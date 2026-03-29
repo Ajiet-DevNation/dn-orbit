@@ -3,6 +3,7 @@ import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 import type { DefaultSession } from "next-auth";
+import type { Adapter } from "next-auth/adapters";
 
 declare module "next-auth" {
   interface Session {
@@ -21,7 +22,7 @@ declare module "next-auth" {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(db) as any,
+  adapter: PrismaAdapter(db) as Adapter,
   providers: [
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
