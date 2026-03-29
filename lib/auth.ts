@@ -2,8 +2,8 @@ import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
-import type { DefaultSession } from "next-auth";
 import type { Adapter } from "next-auth/adapters";
+import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
@@ -23,6 +23,9 @@ declare module "next-auth" {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db) as Adapter,
+  session: {
+    strategy: "jwt",
+  },
   providers: [
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
@@ -35,20 +38,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async session({ session, user, token }) {
-      session.user.id = user.id;
-      session.user.role = user.role;
-      session.user.usn = user.usn;
-      if (token?.accessToken) {
-        session.user.accessToken = token.accessToken as string;
+    async jwt({ token, user, account }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.usn = user.usn;
       }
-      return session;
-    },
-    async jwt({ token, account }) {
       if (account) {
         token.accessToken = account.access_token;
       }
       return token;
+    },
+    async session({ session, token }) {
+      session.user.id = token.id as string;
+      session.user.role = token.role as "admin" | "member";
+      session.user.usn = token.usn as string | null;
+      session.user.accessToken = token.accessToken as string;
+      return session;
     },
   },
 });
