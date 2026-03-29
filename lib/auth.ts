@@ -10,6 +10,7 @@ declare module "next-auth" {
       id: string;
       role: "admin" | "member";
       usn: string | null;
+      accessToken?: string;
     } & DefaultSession["user"];
   }
 
@@ -25,14 +26,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: "read:user user:email repo",
+        },
+      },
     }),
   ],
   callbacks: {
-    async session({ session, user }) {
+    async session({ session, user, token }) {
       session.user.id = user.id;
       session.user.role = user.role;
       session.user.usn = user.usn;
+      if (token?.accessToken) {
+        session.user.accessToken = token.accessToken as string;
+      }
       return session;
+    },
+    async jwt({ token, account }) {
+      if (account) {
+        token.accessToken = account.access_token;
+      }
+      return token;
     },
   },
 });
