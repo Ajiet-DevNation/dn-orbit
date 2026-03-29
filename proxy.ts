@@ -1,5 +1,12 @@
-import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
+import NextAuth from "next-auth";
+import GitHub from "next-auth/providers/github";
+
+const { auth } = NextAuth({
+  providers: [GitHub({
+    clientId: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+  })],
+});
 
 export default auth((req) => {
   const { nextUrl } = req;
@@ -11,18 +18,16 @@ export default auth((req) => {
     nextUrl.pathname.startsWith("/admin");
 
   if (!isLoggedIn && isProtected) {
-    return NextResponse.redirect(new URL("/login", nextUrl));
+    return Response.redirect(new URL("/login", nextUrl));
   }
 
   if (isLoggedIn && !session.user.usn) {
     const isOnboarding = nextUrl.pathname === "/onboarding";
     const isApi = nextUrl.pathname.startsWith("/api");
     if (!isOnboarding && !isApi) {
-      return NextResponse.redirect(new URL("/onboarding", nextUrl));
+      return Response.redirect(new URL("/onboarding", nextUrl));
     }
   }
-
-  return NextResponse.next();
 });
 
 export const config = {
