@@ -94,27 +94,21 @@ export async function GET(
     );
   }
 
-  // ── 5. Save fresh stats to DB (upsert — replace old row if it existed) ────
-  const saved = await db.githubStats.upsert({
-    where: { userId },
-    update: {
-      reposCount: stats.reposCount,
-      totalCommits: stats.totalCommits,
-      totalPrs: stats.totalPrs,
-      totalStars: stats.totalStars,
-      topLanguages: stats.topLanguages,
-      fetchedAt: new Date(),
-    },
-    create: {
-      userId,
-      reposCount: stats.reposCount,
-      totalCommits: stats.totalCommits,
-      totalPrs: stats.totalPrs,
-      totalStars: stats.totalStars,
-      topLanguages: stats.topLanguages,
-      fetchedAt: new Date(),
-    },
-  });
+  // ── 5. Save fresh stats to DB ─────────────────────────────────────────────
+  const statsData = {
+    reposCount: stats.reposCount,
+    totalCommits: stats.totalCommits,
+    totalPrs: stats.totalPrs,
+    totalStars: stats.totalStars,
+    topLanguages: stats.topLanguages,
+    fetchedAt: new Date(),
+  };
+
+  // Update existing row if it exists, otherwise create a new one
+  const existing = await db.githubStats.findFirst({ where: { userId } });
+  const saved = existing
+    ? await db.githubStats.update({ where: { id: existing.id }, data: statsData })
+    : await db.githubStats.create({ data: { userId, ...statsData } });
 
   return NextResponse.json({ data: saved, source: "fresh" });
 }
