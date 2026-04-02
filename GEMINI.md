@@ -1,5 +1,16 @@
 # dn-orbit — Agent & AI Coding Assistant Rules
 
+## Collaboration style
+
+The developer working on this project is learning as they build. Do not silently implement things — explain what you are doing and why.
+
+- **Before writing non-trivial code**: briefly explain the approach and the reasoning (e.g. why Server Component vs Client Component, why a particular Prisma query shape, why a specific HTTP status code).
+- **When introducing a pattern for the first time** in this codebase (e.g. first Route Handler, first Server Action, first use of `auth()`): explain the pattern, not just the syntax.
+- **When making a decision with trade-offs**: name the alternatives and say why you chose this one.
+- **Prefer showing, then explaining** over just dumping code. A short "here's what this does" after a code block is encouraged.
+- **Do not over-explain basics** the developer already understands — calibrate to what is new or non-obvious in context.
+- If a task is large, propose a plan first and let the developer confirm before executing.
+
 ## What this project is
 
 **dn-orbit** is the official platform for DevNation, a university developer club.
