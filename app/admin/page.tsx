@@ -35,7 +35,7 @@ export default async function AdminDashboardPage() {
           <div className="flex items-center gap-4">
             <span className="text-[10px] text-zinc-600 tracking-[0.4em] uppercase font-bold">ORBIT_COMMAND_SYSTEM_READY</span>
             <div className="h-px flex-1 bg-zinc-900" />
-            <span className="text-[10px] text-zinc-800 font-mono">0x{Date.now().toString(16).toUpperCase()}</span>
+            <span className="text-[10px] text-zinc-800 font-mono">0x7F2A9B0C</span>
           </div>
         </div>
       </header>
