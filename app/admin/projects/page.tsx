@@ -4,13 +4,27 @@ import { redirect } from "next/navigation";
 import { ProjectTable } from "./ProjectTable";
 import { TacticalCard } from "@/components/ui/TacticalCard";
 
+interface ProjectWithLead {
+  id: string;
+  title: string;
+  description: string | null;
+  status: any; // ProjectStatus from prisma
+  progressPct: number;
+  githubRepoUrl: string | null;
+  isApproved: boolean;
+  submittedAt: Date;
+  lead: {
+    name: string | null;
+    githubUsername: string | null;
+  } | null;
+}
+
 export default async function AdminProjectsPage() {
   const session = await auth();
   if (session?.user?.role !== "admin") {
     redirect("/");
   }
 
-  // Fetch all projects with lead info
   const projects = await db.project.findMany({
     include: {
       lead: {
@@ -24,14 +38,13 @@ export default async function AdminProjectsPage() {
     orderBy: {
       submittedAt: "desc"
     }
-  });
+  }) as unknown as ProjectWithLead[];
 
-  const pendingCount = projects.filter((p: any) => !p.isApproved).length;
-  const approvedCount = projects.filter((p: any) => p.isApproved).length;
+  const pendingCount = projects.filter(p => !p.isApproved).length;
+  const approvedCount = projects.filter(p => p.isApproved).length;
 
   return (
     <div className="space-y-12 p-8">
-      {/* Header Area */}
       <header className="border-b border-zinc-900 pb-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="space-y-4">
@@ -60,14 +73,13 @@ export default async function AdminProjectsPage() {
         </div>
       </header>
 
-      {/* Main Table */}
       <div className="space-y-6">
         <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
           <div className="text-xl font-black uppercase tracking-tighter">PROJECT_DIRECTORY</div>
           <div className="text-[8px] text-zinc-800 uppercase tracking-widest font-bold">STATUS: OPERATIONAL</div>
         </div>
         
-        <ProjectTable initialProjects={projects.map((p: any) => ({
+        <ProjectTable initialProjects={projects.map(p => ({
           ...p,
           leadName: p.lead?.name || "UNNAMED_LEAD",
           leadGithub: p.lead?.githubUsername || null
