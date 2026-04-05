@@ -25,7 +25,7 @@ export default async function AdminProjectsPage() {
     redirect("/");
   }
 
-  const projects = (await db.project.findMany({
+  const projectsRaw = await db.project.findMany({
     include: {
       lead: {
         select: {
@@ -38,8 +38,9 @@ export default async function AdminProjectsPage() {
     orderBy: {
       submittedAt: "desc"
     }
-  })) as unknown as ProjectWithLead[];
+  });
 
+  const projects = projectsRaw as unknown as ProjectWithLead[];
   const pendingCount = projects.filter(p => !p.isApproved).length;
   const approvedCount = projects.filter(p => p.isApproved).length;
 

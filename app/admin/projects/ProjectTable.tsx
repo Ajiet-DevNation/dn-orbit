@@ -3,7 +3,7 @@
 import React, { useTransition } from "react";
 import { TacticalTable } from "@/components/ui/TacticalTable";
 import { TacticalButton } from "@/components/ui/TacticalButton";
-import { approveProject, deleteProject, updateProjectStatus } from "./actions";
+import { approveProject, deleteProject } from "./actions";
 
 interface Project {
   id: string;
