@@ -58,7 +58,7 @@ export default async function AdminLeaderboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="lg:col-span-1">
           <TacticalCard title="WEIGHT_CONFIG" subtitle="Define algorithm parameters for score calculation.">
-            <WeightForm initialWeights={weights} />
+            <WeightForm initialWeights={weights || { githubWeight: 30, lcWeight: 40, eventWeight: 30 }} />
           </TacticalCard>
         </div>
 
