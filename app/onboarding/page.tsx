@@ -16,7 +16,8 @@ export default function OnboardingPage() {
         await completeOnboarding(formData);
         // We force a refresh to ensure the session update is picked up
         router.refresh();
-      } catch (err) {
+      } catch (err: any) {
+        if (err.message === "NEXT_REDIRECT") return;
         console.error("Submission failed:", err);
         alert("UPLINK_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN_ERROR"));
       }
