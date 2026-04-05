@@ -17,8 +17,15 @@ export function TacticalTable<T extends { id: string | number }>({
   data, 
   columns, 
   onRowClick,
-  id = "TBL_" + Math.random().toString(16).slice(2, 6).toUpperCase()
+  id: initialId
 }: TacticalTableProps<T>) {
+  const [id, setId] = React.useState(initialId || "TBL_----");
+
+  React.useEffect(() => {
+    if (!initialId) {
+      setId("TBL_" + Math.random().toString(16).slice(2, 6).toUpperCase());
+    }
+  }, [initialId]);
   return (
     <div className="w-full font-mono text-white overflow-x-auto border border-zinc-900 bg-black">
       <table className="w-full border-collapse">
