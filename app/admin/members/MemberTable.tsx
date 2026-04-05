@@ -37,7 +37,7 @@ export function MemberTable({ initialMembers }: MemberTableProps) {
   const columns = [
     { 
       key: "name",
-      header: "01_IDENTIFIER", 
+      header: "NAME", 
       render: (m: Member) => (
         <div className="flex flex-col">
           <span className="text-white font-black">{m.name || "UNNAMED_NODE"}</span>
@@ -47,12 +47,12 @@ export function MemberTable({ initialMembers }: MemberTableProps) {
     },
     { 
       key: "usn",
-      header: "02_USN", 
+      header: "USN", 
       render: (m: Member) => m.usn || "N_A" 
     },
     { 
       key: "role",
-      header: "03_CLEARANCE", 
+      header: "ROLE", 
       render: (m: Member) => (
         <div className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
           m.role === 'admin' 
@@ -65,12 +65,12 @@ export function MemberTable({ initialMembers }: MemberTableProps) {
     },
     { 
       key: "branch",
-      header: "04_SECTOR", 
-      render: (m: Member) => m.branch ? `${m.branch}_${m.year}Y` : "N/A" 
+      header: "BRANCH/YEAR", 
+      render: (m: Member) => m.branch ? `${m.branch} (${m.year}Y)` : "N/A" 
     },
     { 
       key: "actions",
-      header: "05_ACTIONS", 
+      header: "ACTIONS", 
       render: (m: Member) => (
         <div className="text-right">
           <TacticalButton 

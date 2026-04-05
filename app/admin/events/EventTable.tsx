@@ -46,7 +46,7 @@ export function EventTable({ initialEvents }: EventTableProps) {
   const columns = [
     { 
       key: "title",
-      header: "01_EVENT_IDENTIFIER", 
+      header: "IDENTIFIER", 
       render: (e: Event) => (
         <div className="flex flex-col">
           <span className="text-white font-black">{e.title}</span>
@@ -56,30 +56,30 @@ export function EventTable({ initialEvents }: EventTableProps) {
     },
     { 
       key: "eventDate",
-      header: "02_DATE_STAMP", 
+      header: "DATE", 
       render: (e: Event) => new Date(e.eventDate).toLocaleDateString() 
     },
     { 
       key: "location",
-      header: "03_LOCATION", 
-      render: (e: Event) => e.location || "VIRTUAL_UPLINK" 
+      header: "LOCATION", 
+      render: (e: Event) => e.location || "VIRTUAL" 
     },
     { 
       key: "status",
-      header: "04_STATE", 
+      header: "STATUS", 
       render: (e: Event) => (
         <div className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
           e.isPublished 
             ? 'bg-white text-black border-white' 
             : 'bg-transparent text-zinc-500 border-zinc-800 italic'
         }`}>
-          {e.isPublished ? "PUBLISHED" : "DRAFT_X"}
+          {e.isPublished ? "PUBLISHED" : "DRAFT"}
         </div>
       ) 
     },
     { 
       key: "actions",
-      header: "05_TACTICAL_CONTROLS", 
+      header: "ACTIONS", 
       render: (e: Event) => (
         <div className="flex justify-end gap-2 text-right">
           <TacticalButton 

@@ -49,7 +49,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
   const columns = [
     { 
       key: "title",
-      header: "01_PROJECT_META", 
+      header: "PROJECT", 
       render: (p: Project) => (
         <div className="flex flex-col">
           <span className="text-white font-black">{p.title}</span>
@@ -59,17 +59,17 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
     },
     { 
       key: "lead",
-      header: "02_COMMAND_LEAD", 
+      header: "COMMAND_LEAD", 
       render: (p: Project) => (
         <div className="flex flex-col">
           <span className="text-white font-black italic">{p.leadName.toUpperCase()}</span>
-          <span className="text-[9px] text-zinc-700 tracking-widest">{p.leadGithub ? `@${p.leadGithub}` : "NO_GITHUB_UPLINK"}</span>
+          <span className="text-[9px] text-zinc-700 tracking-widest">{p.leadGithub ? `@${p.leadGithub}` : "NO_GITHUB"}</span>
         </div>
       ) 
     },
     { 
       key: "status",
-      header: "03_MISSION_STATUS", 
+      header: "STATUS", 
       render: (p: Project) => (
         <div className="flex items-center gap-4">
           <div className={`px-2 py-0.5 text-[9px] font-black border ${
@@ -83,18 +83,18 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
     },
     { 
       key: "approval",
-      header: "04_CLEARANCE", 
+      header: "CLEARANCE", 
       render: (p: Project) => (
         <div className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
           p.isApproved ? 'bg-transparent text-white border-white/20 uppercase' : 'bg-red-900/20 text-red-500 border-red-900 uppercase italic'
         }`}>
-          {p.isApproved ? "VERIFIED" : "PENDING_APPROVAL"}
+          {p.isApproved ? "VERIFIED" : "PENDING"}
         </div>
       ) 
     },
     { 
       key: "actions",
-      header: "05_ARCHIVE_CONTROLS", 
+      header: "ACTIONS", 
       render: (p: Project) => (
         <div className="flex justify-end gap-2 text-right">
           {!p.isApproved && (
