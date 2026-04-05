@@ -37,9 +37,9 @@ export default async function AdminDashboard() {
             <div className="bg-white text-black inline-block px-2 py-0.5 text-[10px] font-black tracking-widest uppercase">
               SYSTEM_ACCESS_GRANTED
             </div>
-            <h1 className="text-7xl font-black uppercase tracking-tighter leading-[0.8] max-w-lg">
-              RESOURCE<br />VAULT
-              <span className="block text-3xl text-zinc-700 tracking-tight mt-4">(TACTICAL ARCHIVE)</span>
+            <h1 className="text-7xl font-black uppercase tracking-tighter leading-none max-w-lg">
+              ORBIT<br />COMMAND
+              <span className="block text-3xl text-zinc-700 tracking-tight mt-4">(SYSTEM_CORE)</span>
             </h1>
           </div>
 
