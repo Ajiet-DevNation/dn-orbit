@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 
 export function TacticalLoading({ message = "LOADING_SYSTEM_RESOURCES" }: { message?: string }) {
