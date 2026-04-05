@@ -45,7 +45,7 @@ export function TacticalTable<T extends { id: string | number }>({
               </td>
             </tr>
           ) : (
-            data.map((item, idx) => (
+            data.map((item) => (
               <tr 
                 key={item.id} 
                 onClick={() => onRowClick && onRowClick(item)}
@@ -56,7 +56,7 @@ export function TacticalTable<T extends { id: string | number }>({
                     key={col.key}
                     className="py-4 px-6 text-xs font-bold border-r border-zinc-900 last:border-r-0 group-hover:border-white/10"
                   >
-                    {col.render ? col.render(item) : (item as any)[col.key]}
+                    {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? "")}
                   </td>
                 ))}
               </tr>
@@ -68,7 +68,7 @@ export function TacticalTable<T extends { id: string | number }>({
       {/* Table Metadata Footer */}
       <div className="border-t border-zinc-900 bg-zinc-950/50 p-2 flex items-center justify-between">
         <span className="text-[8px] text-zinc-700 tracking-widest uppercase">
-          {id} // ADDR_0x{data.length.toString(16).padStart(4, '0').toUpperCase()}
+          {id} {"//"} ADDR_0x{data.length.toString(16).padStart(4, '0').toUpperCase()}
         </span>
         <div className="flex gap-1">
           <div className="w-1 h-1 bg-zinc-800" />

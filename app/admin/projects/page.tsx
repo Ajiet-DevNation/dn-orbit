@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ProjectTable } from "./ProjectTable";
 import { TacticalCard } from "@/components/ui/TacticalCard";
-import { Project } from "@prisma/client";
 
 export default async function AdminProjectsPage() {
   const session = await auth();

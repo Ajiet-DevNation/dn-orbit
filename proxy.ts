@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 // We re-declare auth here to avoid loading Prisma in the Edge runtime
 const { auth } = NextAuth({
@@ -26,7 +26,7 @@ const { auth } = NextAuth({
   },
 });
 
-export default auth((req: any) => {
+export default auth((req: NextRequest & { auth: any }) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
   const user = req.auth?.user;
