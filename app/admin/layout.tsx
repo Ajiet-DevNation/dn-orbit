@@ -29,13 +29,13 @@ export default async function AdminLayout({
         <div className="mb-16">
           <Link href="/" className="text-3xl font-black italic tracking-tighter hover:opacity-70 transition-opacity">
             DN_ORBIT
-            <span className="block text-[10px] tracking-[0.4em] not-italic text-zinc-600 mt-2">// ADMIN_INTERFACE</span>
+            <span className="block text-[10px] tracking-[0.4em] not-italic text-zinc-600 mt-2">// ADMINISTRATION</span>
           </Link>
           <div className="h-[1px] w-full bg-zinc-800 mt-6" />
         </div>
 
         <nav className="flex-1 space-y-6">
-          <div className="text-[10px] uppercase tracking-[0.4em] text-zinc-700 mb-6 font-black italic underline decoration-zinc-800 underline-offset-4">ROOT_DIRECTORIES</div>
+          <div className="text-[10px] uppercase tracking-[0.4em] text-zinc-700 mb-6 font-black italic underline decoration-zinc-800 underline-offset-4">NAVIGATION</div>
           {navItems.map((item) => (
             <Link 
               key={item.href} 
@@ -61,14 +61,14 @@ export default async function AdminLayout({
               </div>
               <div className="flex flex-col overflow-hidden text-left">
                 <span className="text-[10px] font-black truncate uppercase tracking-tighter">{session.user.name || "Administrator"}</span>
-                <span className="text-[8px] text-zinc-600 uppercase tracking-[0.3em] font-bold mt-1">LVL_7_UPLINK</span>
+                <span className="text-[8px] text-zinc-600 uppercase tracking-[0.3em] font-bold mt-1">ADMINISTRATOR</span>
               </div>
            </div>
            
            <div className="space-y-2">
-              <div className="text-[8px] text-zinc-800 font-bold tracking-widest uppercase">System_State: Nominal</div>
-              <TacticalButton variant="danger" size="sm" prefix="[!" className="w-full group">
-                TERMINATE
+              <div className="text-[8px] text-zinc-800 font-bold tracking-widest uppercase">System: Online</div>
+              <TacticalButton variant="danger" size="sm" prefix="" className="w-full group">
+                LOGOUT
               </TacticalButton>
            </div>
         </div>

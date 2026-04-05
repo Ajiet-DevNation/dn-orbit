@@ -22,11 +22,11 @@ export default async function LeaderboardConfigPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between border-b border-zinc-900 pb-12 gap-8">
         <div className="space-y-4">
           <div className="bg-white text-black inline-block px-2 py-0.5 text-[10px] font-black tracking-widest uppercase">
-            PROTOCOL: ALGO_CALIBRATION_X9
+            STATUS: READY
           </div>
           <h1 className="text-6xl font-black uppercase tracking-tighter leading-none">
-            SCORING<br />MATRIX
-            <span className="block text-2xl text-zinc-700 tracking-tight mt-4">(ALGORITHM_WEIGHT_SYSTEM)</span>
+            LEADERBOARD<br />SETTINGS
+            <span className="block text-2xl text-zinc-700 tracking-tight mt-4">(SCORING_CALIBRATION_SYSTEM)</span>
           </h1>
         </div>
 

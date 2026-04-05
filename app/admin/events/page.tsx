@@ -21,18 +21,18 @@ export default async function EventsAdminPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between border-b border-zinc-900 pb-12 gap-8">
         <div className="space-y-4">
           <div className="bg-white text-black inline-block px-2 py-0.5 text-[10px] font-black tracking-widest uppercase">
-            PROTOCOL: EVENT_LOG_V4
+            STATUS: OPERATIONAL
           </div>
           <h1 className="text-6xl font-black uppercase tracking-tighter leading-none">
-            MISSION<br />LOGS
-            <span className="block text-2xl text-zinc-700 tracking-tight mt-4">(ACTIVE_SECTORS_ENTRY)</span>
+            EVENT<br />MANAGEMENT
+            <span className="block text-2xl text-zinc-700 tracking-tight mt-4">(SYSTEM_EVENT_REGISTRY)</span>
           </h1>
         </div>
 
         <div className="flex gap-4">
            {/* In a real app, this would open a Dialog/Modal */}
-           <TacticalButton size="lg" variant="primary" prefix="[+]">
-              NEW_MISSION_ENTRY
+           <TacticalButton size="lg" variant="primary" prefix="">
+              CREATE_NEW_EVENT
            </TacticalButton>
         </div>
       </header>

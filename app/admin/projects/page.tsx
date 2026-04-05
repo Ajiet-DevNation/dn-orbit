@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ProjectTable } from "./ProjectTable";
 import { TacticalCard } from "@/components/ui/TacticalCard";
+import { Project } from "@prisma/client";
 
 export default async function AdminProjectsPage() {
   const session = await auth();
@@ -26,8 +27,8 @@ export default async function AdminProjectsPage() {
     }
   });
 
-  const pendingCount = projects.filter(p => !p.isApproved).length;
-  const approvedCount = projects.filter(p => p.isApproved).length;
+  const pendingCount = projects.filter((p: any) => !p.isApproved).length;
+  const approvedCount = projects.filter((p: any) => p.isApproved).length;
 
   return (
     <div className="space-y-12 p-8">
@@ -36,10 +37,10 @@ export default async function AdminProjectsPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="space-y-4">
             <h1 className="text-8xl font-black uppercase tracking-tighter leading-none italic">
-              PROJECT<br />ARCHIVE
+              PROJECT<br />MANAGEMENT
             </h1>
             <p className="text-xs text-zinc-600 tracking-[0.4em] uppercase font-bold">
-              MISSION_REGISTRY_V1.1
+              PROJECT_DIRECTORY_V1.1
             </p>
           </div>
           
@@ -63,11 +64,11 @@ export default async function AdminProjectsPage() {
       {/* Main Table */}
       <div className="space-y-6">
         <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
-          <div className="text-xl font-black uppercase tracking-tighter">PROJECT_DIRECTORY_LIST</div>
-          <div className="text-[8px] text-zinc-800 uppercase tracking-widest font-bold">SYSLOG_ADDR: 0x82A1</div>
+          <div className="text-xl font-black uppercase tracking-tighter">PROJECT_DIRECTORY</div>
+          <div className="text-[8px] text-zinc-800 uppercase tracking-widest font-bold">STATUS: OPERATIONAL</div>
         </div>
         
-        <ProjectTable initialProjects={projects.map(p => ({
+        <ProjectTable initialProjects={projects.map((p: any) => ({
           ...p,
           leadName: p.lead?.name || "UNNAMED_LEAD",
           leadGithub: p.lead?.githubUsername || null
