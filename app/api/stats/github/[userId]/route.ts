@@ -9,9 +9,9 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
-  const { userId } = params;
+  const { userId } = await params;
 
   // 1. Auth check
   const session = await auth();

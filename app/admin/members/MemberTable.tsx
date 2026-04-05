@@ -44,7 +44,7 @@ export function MemberTable({ initialMembers }: MemberTableProps) {
         </div>
       ) 
     },
-    { header: "02_USN", accessor: "usn" },
+    { header: "02_USN", accessor: (m: Member) => m.usn },
     { 
       header: "03_CLEARANCE", 
       accessor: (m: Member) => (
