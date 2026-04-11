@@ -67,7 +67,7 @@ export default async function AdminMembersPage() {
           <div className="text-[8px] text-zinc-800 uppercase tracking-widest font-bold">STATUS: COMPLIANT</div>
         </div>
         
-        <MemberTable initialMembers={users} />
+        <MemberTable initialMembers={users} currentUserId={session?.user?.id || ""} />
       </div>
     </div>
   );

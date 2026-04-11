@@ -53,7 +53,7 @@ export default async function AdminDashboardPage() {
                   <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-black">METRIC_V1</span>
                   <span className="text-5xl font-black italic leading-none my-2">{stat.value}</span>
                 </div>
-                <stat.icon className={`w-8 h-8 ${stat.highlight ? 'text-white' : 'text-zinc-800'} group-hover:opacity-100 transition-opacity`} />
+                <stat.icon className={`w-8 h-8 text-white transition-opacity group-hover:opacity-80`} />
               </div>
             </TacticalCard>
           </Link>

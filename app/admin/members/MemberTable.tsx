@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useTransition } from "react";
+import React, { useTransition, useState } from "react";
 import { TacticalTable } from "@/components/ui/TacticalTable";
 import { TacticalButton } from "@/components/ui/TacticalButton";
+import { TacticalFeedback } from "@/components/ui/TacticalFeedback";
 import { updateUserRole } from "./actions";
 
 interface Member {
@@ -17,19 +18,36 @@ interface Member {
 
 interface MemberTableProps {
   initialMembers: Member[];
+  currentUserId: string;
 }
 
-export function MemberTable({ initialMembers }: MemberTableProps) {
+export function MemberTable({ initialMembers, currentUserId }: MemberTableProps) {
   const [isPending, startTransition] = useTransition();
+  const [feedback, setFeedback] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const handleRoleToggle = async (userId: string, currentRole: string) => {
     const newRole = currentRole === "admin" ? "member" : "admin";
     
+    if (userId === currentUserId && newRole === "member") {
+      setFeedback({ 
+        message: "SECURITY_BLOCK: YOU_CANNOT_REVOKE_YOUR_OWN_ADMIN_CLEARANCE", 
+        type: "error" 
+      });
+      return;
+    }
+
     startTransition(async () => {
       try {
         await updateUserRole(userId, newRole);
+        setFeedback({ 
+          message: `CLEARANCE_${newRole === 'admin' ? 'GRANTED' : 'REVOKED'}: SYSTEM_REGISTRY_UPDATED`, 
+          type: "success" 
+        });
       } catch (err) {
-        alert("CLEARANCE_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        setFeedback({ 
+          message: "CLEARANCE_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"), 
+          type: "error" 
+        });
       }
     });
   };
@@ -74,12 +92,12 @@ export function MemberTable({ initialMembers }: MemberTableProps) {
       render: (m: Member) => (
         <div className="text-right">
           <TacticalButton 
-            variant="outline" 
+            variant={m.role === 'admin' ? "danger" : "outline"} 
             size="sm" 
             prefix=""
             disabled={isPending}
             onClick={() => handleRoleToggle(m.id, m.role)}
-            className={m.role === 'admin' ? 'border-red-900 text-red-500 hover:bg-red-600 hover:text-white hover:border-red-600' : ''}
+            className="font-black"
           >
             {m.role === 'admin' ? "REVOKE_ADMIN" : "GRANT_ADMIN"}
           </TacticalButton>
@@ -88,5 +106,15 @@ export function MemberTable({ initialMembers }: MemberTableProps) {
     }
   ];
 
-  return <TacticalTable data={initialMembers} columns={columns} id="MEM_DIR_ROOT" />;
+  return (
+    <>
+      <TacticalTable data={initialMembers} columns={columns} id="MEM_DIR_ROOT" />
+      <TacticalFeedback 
+        key={feedback?.message || "none"}
+        message={feedback?.message || null} 
+        type={feedback?.type || "success"} 
+        onClear={() => setFeedback(null)}
+      />
+    </>
+  );
 }
