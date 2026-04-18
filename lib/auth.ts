@@ -44,6 +44,9 @@ const customAdapter: Adapter = {
       },
     }) as any;
   },
+  getUserByEmail: async (email) => {
+    return db.user.findUnique({ where: { email } }) as any;
+  },
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -75,6 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           lcUsername: null,
         };
       },
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   callbacks: {
