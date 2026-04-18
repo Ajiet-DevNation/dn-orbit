@@ -24,7 +24,6 @@ declare module "next-auth" {
     lcUsername: string | null;
     githubId: string;
     githubUsername: string;
-    avatarUrl: string | null;
   }
 }
 
@@ -33,14 +32,11 @@ const baseAdapter = PrismaAdapter(db) as Adapter;
 const customAdapter: Adapter = {
   ...baseAdapter,
   createUser: async (user) => {
-    const u = user as unknown as {
+    const u = user as unknown as AdapterUser & {
       githubId: string;
       githubUsername: string;
-      email: string;
-      name?: string;
-      avatarUrl: string | null;
     };
-    // The 'user' here comes from the provider's 'profile' callback
+    // Merge GitHub-specific columns with Auth.js user fields the adapter expects
     return db.user.create({
       data: {
         githubId: u.githubId,
@@ -50,9 +46,6 @@ const customAdapter: Adapter = {
         avatarUrl: u.avatarUrl,
       },
     }) as unknown as AdapterUser;
-  },
-  getUserByEmail: async (email) => {
-    return db.user.findUnique({ where: { email } }) as unknown as AdapterUser | null;
   },
 };
 
@@ -75,10 +68,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: profile.id.toString(),
           name: profile.name ?? profile.login,
           email: profile.email,
+          image: profile.avatar_url,
           githubId: profile.id.toString(),
           githubUsername: profile.login,
-          avatarUrl: profile.avatar_url,
-          // NextAuth requires role/usn/etc to be typed if we use them in jwt
           role: "member",
           usn: null,
           branch: null,

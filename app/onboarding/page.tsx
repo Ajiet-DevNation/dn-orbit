@@ -14,6 +14,7 @@ export default function OnboardingPage() {
     setError(null);
     setIsLoading(true);
     
+<<<<<<< HEAD
     try {
       const result = await submitOnboarding(formData);
       
@@ -33,6 +34,19 @@ export default function OnboardingPage() {
     } catch {
       setError("An unexpected error occurred.");
       setIsLoading(false);
+=======
+    if (result.error) {
+      setError(result.error);
+    } else if (result.success && result.user) {
+      // Update the local session so middleware sees the new data
+      await update({
+        usn: result.user.usn,
+        branch: result.user.branch,
+        lcUsername: result.user.lcUsername,
+        name: result.user.name,
+      });
+      router.push("/");
+>>>>>>> 65d079a (Feat apis (#9))
     }
   }
 
