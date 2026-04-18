@@ -48,7 +48,7 @@ const customAdapter: Adapter = {
     }) as unknown as AdapterUser;
   },
   getUserByEmail: async (email) => {
-    return db.user.findUnique({ where: { email } }) as any;
+    return db.user.findUnique({ where: { email } }) as unknown as AdapterUser | null;
   },
 };
 
