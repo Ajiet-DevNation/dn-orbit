@@ -1,57 +1,64 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { submitOnboarding } from "@/app/actions/onboarding";
+import { useSession } from "next-auth/react";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    name: "",
-    usn: "",
-    branch: "",
-    year: "",
-    lcUsername: "",
-  });
+  const { update } = useSession();
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const res = await fetch("/api/onboarding", {
-      method: "POST",
-      body: JSON.stringify(form),
-      headers: { "Content-Type": "application/json" },
-    });
-    if (res.ok) router.push("/dashboard");
+  async function handleSubmit(formData: FormData) {
+    setError(null);
+    const result = await submitOnboarding(formData);
+    
+    if (result.error) {
+      setError(result.error);
+    } else if (result.success && result.user) {
+      // Update the local session so middleware sees the new data
+      await update({
+        usn: result.user.usn,
+        branch: result.user.branch,
+        lcUsername: result.user.lcUsername,
+        name: result.user.name,
+      });
+      router.push("/dashboard");
+    }
   }
 
   return (
     <main className="flex min-h-screen items-center justify-center">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-80">
+      <form action={handleSubmit} className="flex flex-col gap-4 w-80">
         <h1 className="text-xl font-bold">Complete your profile</h1>
+        {error && <p className="text-red-500 text-sm">{error}</p>}
         <input
+          name="name"
           placeholder="Full name"
           required
-          onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
         />
         <input
+          name="usn"
           placeholder="USN"
           required
-          onChange={e => setForm(f => ({ ...f, usn: e.target.value }))}
         />
         <input
+          name="branch"
           placeholder="Branch (e.g. CSE)"
           required
-          onChange={e => setForm(f => ({ ...f, branch: e.target.value }))}
         />
         <input
-          placeholder="Year (1-4)"
+          name="year"
+          placeholder="Year (1-5)"
           type="number"
           min={1}
-          max={4}
+          max={5}
           required
-          onChange={e => setForm(f => ({ ...f, year: e.target.value }))}
         />
         <input
-          placeholder="LeetCode username (optional)"
-          onChange={e => setForm(f => ({ ...f, lcUsername: e.target.value }))}
+          name="lc_username"
+          placeholder="LeetCode username (required)"
+          required
         />
         <button type="submit" className="bg-white text-black px-4 py-2 rounded">
           Submit

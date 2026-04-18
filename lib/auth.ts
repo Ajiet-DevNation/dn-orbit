@@ -3,7 +3,7 @@ import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
-import type { Adapter } from "next-auth/adapters";
+import type { Adapter, AdapterUser } from "next-auth/adapters";
 import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
@@ -12,17 +12,52 @@ declare module "next-auth" {
       id: string;
       role: "admin" | "member";
       usn: string | null;
+      branch: string | null;
+      lcUsername: string | null;
       accessToken?: string;
     } & DefaultSession["user"];
   }
   interface User {
     role: "admin" | "member";
     usn: string | null;
+    branch: string | null;
+    lcUsername: string | null;
+    githubId: string;
+    githubUsername: string;
+    avatarUrl: string | null;
   }
 }
 
+const baseAdapter = PrismaAdapter(db) as Adapter;
+
+const customAdapter: Adapter = {
+  ...baseAdapter,
+  createUser: async (user) => {
+    const u = user as unknown as {
+      githubId: string;
+      githubUsername: string;
+      email: string;
+      name?: string;
+      avatarUrl: string | null;
+    };
+    // The 'user' here comes from the provider's 'profile' callback
+    return db.user.create({
+      data: {
+        githubId: u.githubId,
+        githubUsername: u.githubUsername,
+        email: u.email!,
+        name: u.name || u.githubUsername || "Unknown",
+        avatarUrl: u.avatarUrl,
+      },
+    }) as unknown as AdapterUser;
+  },
+  getUserByEmail: async (email) => {
+    return db.user.findUnique({ where: { email } }) as unknown as AdapterUser | null;
+  },
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(db) as Adapter,
+  adapter: customAdapter,
   session: {
     strategy: "jwt",
   },
@@ -35,14 +70,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           scope: "read:user user:email repo",
         },
       },
+      profile(profile) {
+        return {
+          id: profile.id.toString(),
+          name: profile.name ?? profile.login,
+          email: profile.email,
+          githubId: profile.id.toString(),
+          githubUsername: profile.login,
+          avatarUrl: profile.avatar_url,
+          // NextAuth requires role/usn/etc to be typed if we use them in jwt
+          role: "member",
+          usn: null,
+          branch: null,
+          lcUsername: null,
+        };
+      },
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
+      // Handle manual session updates from the client
+      if (trigger === "update" && session) {
+        if (session.usn !== undefined) token.usn = session.usn;
+        if (session.branch !== undefined) token.branch = session.branch;
+        if (session.lcUsername !== undefined) token.lcUsername = session.lcUsername;
+        if (session.name !== undefined) token.name = session.name;
+      }
+
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.usn = user.usn;
+        token.branch = user.branch;
+        token.lcUsername = user.lcUsername;
       }
       if (account) {
         token.accessToken = account.access_token;
@@ -53,6 +114,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.id = token.id as string;
       session.user.role = token.role as "admin" | "member";
       session.user.usn = token.usn as string | null;
+      session.user.branch = token.branch as string | null;
+      session.user.lcUsername = token.lcUsername as string | null;
       session.user.accessToken = token.accessToken as string;
       return session;
     },
