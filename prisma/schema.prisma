@@ -34,8 +34,8 @@ enum ProjectStatus {
 
 model User {
   id              String    @id @default(uuid())
-  githubId        String    @unique @map("github_id")
-  githubUsername  String    @unique @map("github_username")
+  githubId        String?   @unique @map("github_id")
+  githubUsername  String?   @unique @map("github_username")
   email           String    @unique
   name            String
   /// Auth.js profile image (`avatar_url` in DB)
@@ -64,6 +64,7 @@ model User {
   feedback          Feedback[]
   ledProjects       Project[]         @relation("ProjectLead")
   projectMemberships ProjectMember[]
+  auditLogs      AuditLog[]
 
   @@map("users")
 }
@@ -288,4 +289,30 @@ model ProjectMember {
 
   @@unique([projectId, userId]) // one membership per user per project
   @@map("project_members")
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOGS (Platform accountability)
+// ─────────────────────────────────────────────
+
+enum AuditType {
+  MEMBERS
+  PROJECTS
+  EVENTS
+  LEADERBOARD
+  INFRA
+}
+
+model AuditLog {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      AuditType
+  action    String    @db.Text
+  targetId  String?   @map("target_id")
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
 }

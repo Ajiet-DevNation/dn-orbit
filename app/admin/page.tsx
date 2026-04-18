@@ -14,15 +14,22 @@ export default async function AdminDashboardPage() {
 
   // Fetch counts for dashboard
   const totalUsers = await db.user.count();
-  // We fetch counts for other entities to show on dashboard
   const totalProjects = await db.project.count({ where: { isApproved: true } });
   const pendingProjects = await db.project.count({ where: { isApproved: false } });
+  const totalEvents = await db.event.count();
+
+
+  const recentLogs = await db.auditLog.findMany({
+    take: 5,
+    orderBy: { createdAt: 'desc' }
+  });
 
   const stats = [
     { label: "CONNECTED_MEMBERS", value: totalUsers, icon: Users, href: "/admin/members" },
     { label: "ACTIVE_PROJECTS", value: totalProjects, icon: Rocket, href: "/admin/projects" },
     { label: "PENDING_REVIEWS", value: pendingProjects, icon: ShieldCheck, href: "/admin/projects", highlight: true },
-    { label: "EVENT_SCHEDULES", value: "05", icon: Calendar, href: "/admin/events" },
+    { label: "EVENT_SCHEDULES", value: totalEvents.toString().padStart(2, '0'), icon: Calendar, href: "/admin/events" },
+
   ];
 
   return (
@@ -67,18 +74,21 @@ export default async function AdminDashboardPage() {
              SYSTEM_LOGS
           </div>
           <div className="space-y-4 font-mono">
-            <div className="p-4 border border-zinc-900 hover:bg-zinc-950 transition-colors">
-              <span className="text-zinc-700 mr-4">[12:44:03]</span>
-              <span className="text-zinc-400 uppercase text-xs">UPLINK_SUCCESS: SYNCED_WITH_NEON_DB</span>
-            </div>
-            <div className="p-4 border border-zinc-900 hover:bg-zinc-950 transition-colors">
-              <span className="text-zinc-700 mr-4">[12:44:05]</span>
-              <span className="text-zinc-400 uppercase text-xs">ROOT_ACCESS: COMMANDER_SESSION_INITIATED</span>
-            </div>
-            <div className="p-4 border border-zinc-900 hover:bg-zinc-950 transition-colors">
-              <span className="text-zinc-700 mr-4">[12:44:12]</span>
-              <span className="text-zinc-400 uppercase text-xs animate-pulse text-red-900">SECURITY_NOTICE: UNESCAPED_ENTITIES_RESOLVED</span>
-            </div>
+            {recentLogs.length > 0 ? (
+              recentLogs.map((log: any) => (
+                <div key={log.id} className="p-4 border border-zinc-900 hover:bg-zinc-950 transition-colors flex items-center">
+                  <span className="text-zinc-700 mr-4 min-w-[75px]">[{log.createdAt.toISOString().substring(11, 19)}]</span>
+                  <span className={`uppercase text-xs ${log.action.includes('ERROR') || log.action.includes('FAILURE') ? 'text-red-500 animate-pulse' : 'text-zinc-400'}`}>
+                    {log.type}: {log.action}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 border border-zinc-900 hover:bg-zinc-950 transition-colors">
+                <span className="text-zinc-700 mr-4">[--:--:--]</span>
+                <span className="text-zinc-600 uppercase text-xs">NO_ACTIVITY_DETECTED</span>
+              </div>
+            )}
           </div>
         </div>
 
