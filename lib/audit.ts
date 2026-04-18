@@ -11,7 +11,7 @@ export async function logAction(
   type: AuditType,
   action: string,
   targetId?: string,
-  metadata: Record<string, any> = {}
+  metadata: Record<string, unknown> = {}
 ) {
   try {
     const session = await auth();

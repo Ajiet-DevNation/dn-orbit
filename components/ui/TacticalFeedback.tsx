@@ -7,6 +7,7 @@ interface TacticalFeedbackProps {
   message: string | null;
   type?: 'info' | 'error' | 'success';
   className?: string;
+  onClear?: () => void;
 }
 
 export const TacticalFeedback = ({ message, type = 'info', className = '' }: TacticalFeedbackProps) => {

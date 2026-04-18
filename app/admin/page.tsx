@@ -75,7 +75,7 @@ export default async function AdminDashboardPage() {
           </div>
           <div className="space-y-4 font-mono">
             {recentLogs.length > 0 ? (
-              recentLogs.map((log: any) => (
+              recentLogs.map((log: import("@prisma/client").AuditLog) => (
                 <div key={log.id} className="p-4 border border-zinc-900 hover:bg-zinc-950 transition-colors flex items-center">
                   <span className="text-zinc-700 mr-4 min-w-[75px]">[{log.createdAt.toISOString().substring(11, 19)}]</span>
                   <span className={`uppercase text-xs ${log.action.includes('ERROR') || log.action.includes('FAILURE') ? 'text-red-500 animate-pulse' : 'text-zinc-400'}`}>
