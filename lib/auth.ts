@@ -45,7 +45,7 @@ const customAdapter: Adapter = {
       data: {
         githubId: u.githubId,
         githubUsername: u.githubUsername,
-        email: u.email!,
+        email: u.email || `${u.githubUsername}@github.local`,
         name: u.name || u.githubUsername || "Unknown",
         avatarUrl: u.avatarUrl,
       },

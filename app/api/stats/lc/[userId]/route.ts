@@ -1,4 +1,4 @@
-// app/api/statscms/lc/[userId]/route.ts
+// app/api/stats/lc/[userId]/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
