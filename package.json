@@ -6,10 +6,15 @@
     "dev": "next dev",
     "build": "bunx prisma generate && bunx prisma migrate deploy && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:api": "node scripts/test-api.mjs",
+    "test:api:auth": "node scripts/test-api.mjs",
+    "test:api:base": "node scripts/test-api.mjs --base-url=http://localhost:3000"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
+    "@neondatabase/serverless": "^1.1.0",
+    "@prisma/adapter-neon": "^7.7.0",
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.5.0",
     "next": "16.2.1",
@@ -17,7 +22,8 @@
     "pg": "^8.20.0",
     "prisma": "^7.5.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "ws": "^8.20.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -25,6 +31,7 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.18.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
