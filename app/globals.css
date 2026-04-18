@@ -1,99 +1,130 @@
 @import "tailwindcss";
 
-@theme {
-  --font-mono: "Geist Mono", "Courier New", monospace;
-  --color-tactical-black: #000000;
-  --color-tactical-white: #ffffff;
+/* ── ORBIT Design System: CS_ARCHIVE_V1.0 ── */
+
+@theme inline {
+  /* Colors */
+  --color-bg: #0a0a0a;
+  --color-surface: #111111;
+  --color-surface-2: #1a1a1a;
+  --color-surface-3: #2a2a2a;
+  --color-accent: #22c55e;
+  --color-text: #ededed;
+  --color-text-muted: #888888;
+  --color-border: #333333;
+  --color-white: #ffffff;
+
+  /* Fonts */
+  --font-heading: var(--font-bebas-neue);
+  --font-mono: var(--font-ibm-plex-mono);
 }
 
-:root {
-  --background: #000000;
-  --foreground: #ffffff;
+/* ── Base Reset ── */
+
+* {
+  border-radius: 0 !important;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-mono);
-  overflow-x: hidden;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-mono), ui-monospace, monospace;
 }
 
-/* Hide number input spin buttons */
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+/* ── Dot Grid Background Pattern ── */
+
+.dot-grid-bg {
+  background-image: radial-gradient(circle, #333333 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-input[type=number] {
-  -moz-appearance: textfield;
+/* ── Stamp Variants ── */
+
+.stamp-verified {
+  color: #22c55e;
+  border-color: #22c55e;
 }
 
-/* Tactical Archive Effects */
-
-.scanlines {
-  position: relative;
-  overflow: hidden;
+.stamp-confidential {
+  color: #f97316;
+  border-color: #f97316;
 }
 
-.scanlines::after {
-  content: " ";
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  background: linear-gradient(
-    rgba(18, 16, 16, 0) 50%,
-    rgba(0, 0, 0, 0.25) 50%
-  ),
-  linear-gradient(
-    90deg,
-    rgba(255, 0, 0, 0.06),
-    rgba(0, 255, 0, 0.02),
-    rgba(0, 255, 0, 0.06)
-  );
-  z-index: 2;
-  background-size: 100% 2px, 3px 100%;
-  pointer-events: none;
+.stamp-urgent {
+  color: #ef4444;
+  border-color: #ef4444;
 }
 
-.noise {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
-  opacity: 0.05;
-  pointer-events: none;
-  z-index: 100;
+.stamp-restricted {
+  color: #eab308;
+  border-color: #eab308;
 }
 
-.tactical-border {
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  position: relative;
+.stamp-archived {
+  color: #888888;
+  border-color: #888888;
 }
 
-.tactical-border::before {
-  content: "";
-  position: absolute;
-  top: -1px;
-  left: -1px;
-  width: 10px;
-  height: 10px;
-  border-top: 2px solid white;
-  border-left: 2px solid white;
+/* ── Badge Variants ── */
+
+.badge-stable {
+  background-color: #22c55e;
+  color: #0a0a0a;
 }
 
-.tactical-border::after {
-  content: "";
-  position: absolute;
-  bottom: -1px;
-  right: -1px;
-  width: 10px;
-  height: 10px;
-  border-bottom: 2px solid white;
-  border-right: 2px solid white;
+.badge-experimental {
+  background-color: #f97316;
+  color: #0a0a0a;
 }
+
+.badge-archived {
+  background-color: #888888;
+  color: #0a0a0a;
+}
+
+.badge-restricted {
+  background-color: #eab308;
+  color: #0a0a0a;
+}
+
+.badge-urgent {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+/* ── Scrollbar Styling ── */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333333;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+/* ── Selection ── */
+
+::selection {
+  background-color: #22c55e;
+  color: #0a0a0a;
+}
+
+/* ── Terminal Cursor Blink ── */
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
