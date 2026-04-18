@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // app/api/stats/lc/[userId]/route.ts
+=======
+// app/api/statscms/lc/[userId]/route.ts
+>>>>>>> 9cf57ee (feature/auth/githubint (#8))
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
