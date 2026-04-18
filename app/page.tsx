@@ -12,6 +12,16 @@ import { RepoRow } from "@/components/ui/RepoRow";
 
 import { TerminalParallax } from "@/components/sections/TerminalParallax";
 
+/**
+ * Home page — CLUB HUB (ARCHIVE)
+ *
+ * This is a showcase page that demonstrates all the global UI components
+ * working together. In production, the sections will pull real data from
+ * the API. For now it uses static content to verify the design system.
+ *
+ * Client Component for Framer Motion page transitions.
+ */
+
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
