@@ -106,6 +106,7 @@ model Session {
   @@map("sessions")
 }
 
+<<<<<<< HEAD
 model VerificationToken {
   identifier String
   token      String
@@ -115,6 +116,8 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+=======
+>>>>>>> 216ba8b (feat: github integration + onboarding + auth)
 // ─────────────────────────────────────────────
 // GITHUB STATS
 // ─────────────────────────────────────────────
