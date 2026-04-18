@@ -3,7 +3,7 @@ import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
-import type { Adapter } from "next-auth/adapters";
+import type { Adapter, AdapterUser } from "next-auth/adapters";
 import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
@@ -33,19 +33,26 @@ const baseAdapter = PrismaAdapter(db) as Adapter;
 const customAdapter: Adapter = {
   ...baseAdapter,
   createUser: async (user) => {
+    const u = user as unknown as {
+      githubId: string;
+      githubUsername: string;
+      email: string;
+      name?: string;
+      avatarUrl: string | null;
+    };
     // The 'user' here comes from the provider's 'profile' callback
     return db.user.create({
       data: {
-        githubId: (user as any).githubId,
-        githubUsername: (user as any).githubUsername,
-        email: user.email!,
-        name: user.name || (user as any).githubUsername || "Unknown",
-        avatarUrl: (user as any).avatarUrl,
+        githubId: u.githubId,
+        githubUsername: u.githubUsername,
+        email: u.email!,
+        name: u.name || u.githubUsername || "Unknown",
+        avatarUrl: u.avatarUrl,
       },
-    }) as any;
+    }) as unknown as AdapterUser;
   },
   getUserByEmail: async (email) => {
-    return db.user.findUnique({ where: { email } }) as any;
+    return db.user.findUnique({ where: { email } }) as unknown as AdapterUser | null;
   },
 };
 

@@ -62,7 +62,7 @@ export async function fetchLeetCodeStats(username: string): Promise<LcStatsResul
   const submissions = matchedUser.submitStats?.acSubmissionNum || [];
 
   const getCount = (difficulty: string) => {
-    const item = submissions.find((s: Record<string, any>) => s.difficulty === difficulty);
+    const item = submissions.find((s: { difficulty: string; count: number }) => s.difficulty === difficulty);
     return item ? item.count : 0;
   };
 
