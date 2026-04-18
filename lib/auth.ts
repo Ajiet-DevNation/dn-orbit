@@ -47,6 +47,9 @@ const customAdapter: Adapter = {
       },
     }) as unknown as AdapterUser;
   },
+  getUserByEmail: async (email) => {
+    return db.user.findUnique({ where: { email } }) as any;
+  },
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
