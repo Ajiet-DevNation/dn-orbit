@@ -8,6 +8,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { update } = useSession();
   const [error, setError] = useState<string | null>(null);
+<<<<<<< HEAD
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(formData: FormData) {
@@ -35,6 +36,13 @@ export default function OnboardingPage() {
       setError("An unexpected error occurred.");
       setIsLoading(false);
 =======
+=======
+
+  async function handleSubmit(formData: FormData) {
+    setError(null);
+    const result = await submitOnboarding(formData);
+    
+>>>>>>> 216ba8b (feat: github integration + onboarding + auth)
     if (result.error) {
       setError(result.error);
     } else if (result.success && result.user) {
@@ -45,8 +53,12 @@ export default function OnboardingPage() {
         lcUsername: result.user.lcUsername,
         name: result.user.name,
       });
+<<<<<<< HEAD
       router.push("/");
 >>>>>>> 65d079a (Feat apis (#9))
+=======
+      router.push("/dashboard");
+>>>>>>> 216ba8b (feat: github integration + onboarding + auth)
     }
   }
 
@@ -59,19 +71,28 @@ export default function OnboardingPage() {
           name="name"
           placeholder="Full name"
           required
+<<<<<<< HEAD
           disabled={isLoading}
+=======
+>>>>>>> 216ba8b (feat: github integration + onboarding + auth)
         />
         <input
           name="usn"
           placeholder="USN"
           required
+<<<<<<< HEAD
           disabled={isLoading}
+=======
+>>>>>>> 216ba8b (feat: github integration + onboarding + auth)
         />
         <input
           name="branch"
           placeholder="Branch (e.g. CSE)"
           required
+<<<<<<< HEAD
           disabled={isLoading}
+=======
+>>>>>>> 216ba8b (feat: github integration + onboarding + auth)
         />
         <input
           name="year"
@@ -80,13 +101,19 @@ export default function OnboardingPage() {
           min={1}
           max={5}
           required
+<<<<<<< HEAD
           disabled={isLoading}
+=======
+>>>>>>> 216ba8b (feat: github integration + onboarding + auth)
         />
         <input
           name="lc_username"
           placeholder="LeetCode username (required)"
           required
+<<<<<<< HEAD
           disabled={isLoading}
+=======
+>>>>>>> 216ba8b (feat: github integration + onboarding + auth)
         />
         <button 
           type="submit" 
