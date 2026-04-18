@@ -1,4 +1,6 @@
-import React from 'react';
+"use client";
+
+import React, { useState, useEffect } from 'react';
 
 interface TacticalCardProps {
   title?: string;
@@ -21,8 +23,18 @@ export const TacticalCard = ({
   timestamp,
   variant = 'default'
 }: TacticalCardProps) => {
+  const [activeTimestamp, setActiveTimestamp] = useState(timestamp || "2026.04.18");
+
+  useEffect(() => {
+    if (!timestamp) {
+      const now = new Date();
+      const formatted = now.toLocaleDateString('en-CA').replace(/-/g, '.');
+      setActiveTimestamp(formatted);
+    }
+  }, [timestamp]);
+
   const borderStyles = variant === 'dashed' ? 'border-dashed border-zinc-600' : 'border-zinc-800';
-  const displayTimestamp = timestamp || "2026.04.18"; // Mission Date
+  const displayTimestamp = activeTimestamp;
   
   return (
     <div className={`bg-black p-0 relative font-mono group border ${borderStyles} ${className}`}>
