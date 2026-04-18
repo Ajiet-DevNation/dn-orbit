@@ -33,13 +33,15 @@ enum ProjectStatus {
 // ─────────────────────────────────────────────
 
 model User {
-  id              String   @id @default(uuid())
-  githubId        String   @unique @map("github_id")
-  githubUsername  String   @unique @map("github_username")
-  email           String   @unique
+  id              String    @id @default(uuid())
+  githubId        String    @unique @map("github_id")
+  githubUsername  String    @unique @map("github_username")
+  email           String    @unique
   name            String
-  avatarUrl       String?  @map("avatar_url")
-  role            Role     @default(member)
+  /// Auth.js profile image (`avatar_url` in DB)
+  image           String?   @map("avatar_url")
+  emailVerified   DateTime? @map("email_verified")
+  role            Role      @default(member)
 
   // Onboarding fields
   lcUsername      String?  @map("lc_username")
@@ -102,6 +104,15 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 // ─────────────────────────────────────────────

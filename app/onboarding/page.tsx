@@ -23,7 +23,7 @@ export default function OnboardingPage() {
         lcUsername: result.user.lcUsername,
         name: result.user.name,
       });
-      router.push("/dashboard");
+      router.push("/");
     }
   }
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -38,6 +39,17 @@ export async function submitOnboarding(formData: FormData) {
   }
 
   try {
+    const existingUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true },
+    });
+
+    if (!existingUser) {
+      return {
+        error: "Your session is stale. Please sign out and sign in again.",
+      };
+    }
+
     const updatedUser = await db.user.update({
       where: { id: session.user.id },
       data: {
@@ -61,8 +73,36 @@ export async function submitOnboarding(formData: FormData) {
         lcUsername: updatedUser.lcUsername,
       } 
     };
-  } catch (error) {
-    console.error("Onboarding Error:", error);
+  } catch (error: unknown) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      console.error("Onboarding Prisma Error", {
+        code: error.code,
+        message: error.message,
+        meta: error.meta,
+      });
+
+      if (error.code === "P2025") {
+        return {
+          error: "Could not find your user record. Please sign out and sign in again.",
+        };
+      }
+
+      if (error.code === "ETIMEDOUT") {
+        return {
+          error:
+            "Database connection timed out. Please retry in a few seconds.",
+        };
+      }
+    } else if (error instanceof Error) {
+      console.error("Onboarding Error", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+    } else {
+      console.error("Onboarding Unknown Error", error);
+    }
+
     return { error: "Failed to update profile. Please try again." };
   }
 }
