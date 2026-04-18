@@ -12,17 +12,42 @@ declare module "next-auth" {
       id: string;
       role: "admin" | "member";
       usn: string | null;
+      branch: string | null;
+      lcUsername: string | null;
       accessToken?: string;
     } & DefaultSession["user"];
   }
   interface User {
     role: "admin" | "member";
     usn: string | null;
+    branch: string | null;
+    lcUsername: string | null;
+    githubId: string;
+    githubUsername: string;
+    avatarUrl: string | null;
   }
 }
 
+const baseAdapter = PrismaAdapter(db) as Adapter;
+
+const customAdapter: Adapter = {
+  ...baseAdapter,
+  createUser: async (user) => {
+    // The 'user' here comes from the provider's 'profile' callback
+    return db.user.create({
+      data: {
+        githubId: (user as any).githubId,
+        githubUsername: (user as any).githubUsername,
+        email: user.email!,
+        name: user.name || (user as any).githubUsername || "Unknown",
+        avatarUrl: (user as any).avatarUrl,
+      },
+    }) as any;
+  },
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(db) as Adapter,
+  adapter: customAdapter,
   session: {
     strategy: "jwt",
   },
@@ -35,14 +60,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           scope: "read:user user:email repo",
         },
       },
+      profile(profile) {
+        return {
+          id: profile.id.toString(),
+          name: profile.name ?? profile.login,
+          email: profile.email,
+          githubId: profile.id.toString(),
+          githubUsername: profile.login,
+          avatarUrl: profile.avatar_url,
+          // NextAuth requires role/usn/etc to be typed if we use them in jwt
+          role: "member",
+          usn: null,
+          branch: null,
+          lcUsername: null,
+        };
+      },
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
+      // Handle manual session updates from the client
+      if (trigger === "update" && session) {
+        if (session.usn !== undefined) token.usn = session.usn;
+        if (session.branch !== undefined) token.branch = session.branch;
+        if (session.lcUsername !== undefined) token.lcUsername = session.lcUsername;
+        if (session.name !== undefined) token.name = session.name;
+      }
+
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.usn = user.usn;
+        token.branch = user.branch;
+        token.lcUsername = user.lcUsername;
       }
       if (account) {
         token.accessToken = account.access_token;
@@ -53,6 +103,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.id = token.id as string;
       session.user.role = token.role as "admin" | "member";
       session.user.usn = token.usn as string | null;
+      session.user.branch = token.branch as string | null;
+      session.user.lcUsername = token.lcUsername as string | null;
       session.user.accessToken = token.accessToken as string;
       return session;
     },
