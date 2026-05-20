@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+
 import { useEffect, useRef } from "react";
 import { useAnimate, stagger } from "framer-motion";
 
@@ -360,11 +360,11 @@ export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
                     borderRadius: "50%",
                   }}
                 >
-                  <Image
+                  <img
                     src={assets[i]}
                     alt=""
-                    fill
-                    className="object-contain brightness-90"
+                    className="h-3/4 w-3/4 object-contain"
+                    style={{ filter: "brightness(0.9)" }}
                   />
                 </div>
               ) : (
