@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Bebas_Neue, IBM_Plex_Mono, Inter_Tight } from "next/font/google";
 import { DotGridBackground } from "@/components/ui/DotGridBackground";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const bebasNeue = Bebas_Neue({
   weight: "400",

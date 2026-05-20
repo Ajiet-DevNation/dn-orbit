@@ -6,10 +6,12 @@ export default function LoginPage() {
       <form
         action={async () => {
           "use server";
-          await signIn("github");
+          await signIn("github", { redirectTo: "/" });
         }}
       >
-        <button type="submit">Sign in with GitHub</button>
+        <button type="submit" className="bg-white text-black px-4 py-2 rounded">
+          Sign in with GitHub
+        </button>
       </form>
     </main>
   );

@@ -1,35 +1,62 @@
-import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/github";
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
-const { auth } = NextAuth({
-  providers: [GitHub({
-    clientId: process.env.GITHUB_CLIENT_ID!,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-  })],
-});
+const publicRoutes = ["/login", "/api/auth"];
+const isPublicRoute = (path: string) => publicRoutes.some(route => path.startsWith(route));
 
 export default auth((req) => {
+  const isLoggedIn = !!req.auth;
   const { nextUrl } = req;
-  const session = req.auth;
-  const isLoggedIn = !!session?.user;
+  const path = nextUrl.pathname;
 
-  const isProtected =
-    nextUrl.pathname.startsWith("/dashboard") ||
-    nextUrl.pathname.startsWith("/admin");
+  console.log(`[Proxy] Path: ${path} | isLoggedIn: ${isLoggedIn}`);
 
-  if (!isLoggedIn && isProtected) {
-    return Response.redirect(new URL("/login", nextUrl));
+  // Let API auth routes, next internal routes, and public assets pass through
+  if (path.startsWith("/api/auth") || path.startsWith("/_next") || path.includes("favicon.ico")) {
+    return NextResponse.next();
   }
 
-  if (isLoggedIn && !session.user.usn) {
-    const isOnboarding = nextUrl.pathname === "/onboarding";
-    const isApi = nextUrl.pathname.startsWith("/api");
-    if (!isOnboarding && !isApi) {
-      return Response.redirect(new URL("/onboarding", nextUrl));
+  // Redirect unauthenticated users to login
+  if (!isLoggedIn && !isPublicRoute(path) && path !== "/") {
+    console.log(`[Proxy] Redirecting unauthenticated user to /login`);
+    return NextResponse.redirect(new URL("/login", nextUrl));
+  }
+
+  if (isLoggedIn) {
+    const user = req.auth?.user;
+    
+    // Check if user has completed onboarding
+    const isOnboarded = !!(user?.usn && user?.branch && user?.lcUsername);
+    console.log(`[Proxy] User onboarded: ${isOnboarded} (USN: ${user?.usn})`);
+
+    // If on login page but logged in, redirect based on onboarding status
+    if (path.startsWith("/login")) {
+      console.log(`[Proxy] Logged in user on /login, redirecting to ${isOnboarded ? "/" : "/onboarding"}`);
+      return NextResponse.redirect(new URL(isOnboarded ? "/" : "/onboarding", nextUrl));
+    }
+
+    // If not onboarded and trying to access protected route (except onboarding and public APIs)
+    if (!isOnboarded && !path.startsWith("/onboarding") && !path.startsWith("/api")) {
+      console.log(`[Proxy] User not onboarded, redirecting to /onboarding`);
+      return NextResponse.redirect(new URL("/onboarding", nextUrl));
+    }
+
+    // If onboarded and trying to access onboarding, redirect away
+    if (isOnboarded && path.startsWith("/onboarding")) {
+      console.log(`[Proxy] User already onboarded, redirecting away from /onboarding`);
+      return NextResponse.redirect(new URL("/", nextUrl));
+    }
+
+    // Admin Route Protection
+    if (path.startsWith("/admin") && user?.role !== "admin") {
+      console.log(`[Proxy] Non-admin tried to access /admin`);
+      return NextResponse.redirect(new URL("/", nextUrl));
     }
   }
+
+  return NextResponse.next();
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
 };
