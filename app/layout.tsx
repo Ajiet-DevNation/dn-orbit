@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, IBM_Plex_Mono } from "next/font/google";
+import { Bebas_Neue, IBM_Plex_Mono, Inter_Tight } from "next/font/google";
 import { DotGridBackground } from "@/components/ui/DotGridBackground";
 import "./globals.css";
 
@@ -13,6 +13,13 @@ const bebasNeue = Bebas_Neue({
 const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600", "700"],
   variable: "--font-ibm-plex-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const interTight = Inter_Tight({
+  weight: ["800"],
+  variable: "--font-inter-tight",
   subsets: ["latin"],
   display: "swap",
 });
@@ -31,7 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bebasNeue.variable} ${ibmPlexMono.variable} h-full`}
+      className={`${bebasNeue.variable} ${ibmPlexMono.variable} ${interTight.variable} h-full`}
     >
       <body className="min-h-full flex flex-col bg-bg text-text">
         <DotGridBackground />
