@@ -20,8 +20,6 @@ import { TerminalParallax } from "@/components/sections/TerminalParallax";
  */
 
 export default function Home() {
-  const { data: session } = useSession();
-
   return (
     <PageShell>
       {/* ── Cinematic Brand Intro ── */}
