@@ -1,9 +1,100 @@
 # DN ORBIT — UI Style Guide
 
+## ⚠️ CRITICAL: DO NOT TOUCH
+
+The following are **strictly off-limits** for all frontend contributors:
+
+- **Do not modify, refactor, or delete any backend files, routes, or server-side logic.**
+- **Do not alter any API contracts** — endpoint paths, request shapes, response shapes, HTTP methods, and status codes must remain exactly as defined.
+- **Do not add, remove, or rename API parameters** without explicit approval from the backend owner.
+- **Do not introduce new API calls** to endpoints that haven't been defined by the backend team.
+- If you believe a backend change is necessary, open a discussion/issue and wait for backend owner sign-off before touching anything.
+
+> Violating any of the above will break the integration between frontend and backend and will require a rollback.
+
+---
+
+This project uses **two distinct visual themes** depending on the surface:
+
+| Surface | Theme | Reference file |
+|---------|-------|---------------|
+| Public landing page (`/`) | **CS_ARCHIVE_V1.0** | `app/page.tsx` |
+| Auth, onboarding, dashboard, admin | **Tactical Archive** | `app/admin/page.tsx` |
+
+Do not mix tokens or components across themes.
+
+---
+
+# Theme 1 — CS_ARCHIVE_V1.0 (Landing Page)
+
+> ⚠️ The landing page is still a work in progress. Sections 3 and 4 use placeholder data.
+
+**Tone:** Brutalist, editorial, high-contrast. Feels like a zine crossed with a terminal.
+
+## Design tokens (`globals.css` / `@theme inline`)
+
+| Token | CSS var | Value | Tailwind class |
+|-------|---------|-------|----------------|
+| Background | `--color-bg` | `#0a0a0a` | `bg-bg` |
+| Surface (cards) | `--color-surface` | `#111111` | `bg-surface` |
+| Surface raised | `--color-surface-2` | `#1a1a1a` | `bg-surface-2` |
+| Surface elevated | `--color-surface-3` | `#2a2a2a` | `bg-surface-3` |
+| Accent | `--color-accent` | `#22c55e` | `text-accent` |
+| Text primary | `--color-text` | `#ededed` | `text-text` |
+| Text muted | `--color-text-muted` | `#888888` | `text-text-muted` |
+| Border | `--color-border` | `#333333` | `border-border` |
+| Heading font | `--font-heading` | Bebas Neue | `font-heading` |
+| Mono font | `--font-mono` | IBM Plex Mono | `font-mono` |
+
+## Rules
+
+- Zero border-radius — enforced globally via `* { border-radius: 0 !important; }`. Never override.
+- Monochrome + single accent — no new colors. The only accent is green (`#22c55e`).
+- No gradients, no shadows, no rounded corners.
+- Dot grid background — use `.dot-grid-bg` CSS class for section backgrounds.
+
+## Components (landing page only)
+
+| Component | Path | Use for |
+|-----------|------|---------|
+| `ArchiveTag` | `components/ui/ArchiveTag.tsx` | Small metadata tag labels |
+| `ArchiveBadge` | `components/ui/ArchiveBadge.tsx` | Status badges with stamp variants |
+| `TerminalButton` | `components/ui/TerminalButton.tsx` | CTAs and nav links |
+| `PolaroidCard` | `components/ui/PolaroidCard.tsx` | Project showcase cards |
+| `StampLabel` | `components/ui/StampLabel.tsx` | Overlay stamps on cards |
+| `RepoRow` | `components/ui/RepoRow.tsx` | Repository list rows |
+| `SectionHeader` | `components/ui/SectionHeader.tsx` | Section titles with path label |
+| `DotGridBackground` | `components/ui/DotGridBackground.tsx` | Dot grid background layer |
+| `PageShell` | `components/layout/PageShell.tsx` | Page wrapper (Navbar + Footer) |
+| `Navbar` | `components/layout/Navbar.tsx` | Top navigation |
+| `Footer` | `components/layout/Footer.tsx` | Footer |
+| `TerminalParallax` | `components/sections/TerminalParallax.tsx` | Full-width parallax terminal animation |
+
+## Stamp variants (`.stamp-*` / `ArchiveBadge` / `StampLabel`)
+
+| Variant | Color | Use for |
+|---------|-------|---------|
+| `verified` | Green `#22c55e` | Approved / live projects |
+| `confidential` | Orange `#f97316` | WIP / restricted content |
+| `urgent` | Red `#ef4444` | CTAs, alerts |
+| `restricted` | Yellow `#eab308` | Locked / members-only |
+
+## Landing page sections (in order)
+
+1. **Hero** — large `font-heading` headline, `ArchiveTag`, two `TerminalButton`s, metadata line in `font-mono text-[10px]`
+2. **TerminalParallax** — full-width parallax terminal animation
+3. **Project Showcase** ⚠️ placeholder — `SectionHeader` + 4-column `PolaroidCard` grid with optional `StampLabel` overlays
+4. **Shared Repositories** ⚠️ placeholder — `SectionHeader` + `RepoRow` list
+5. **Join CTA** — centered `ArchiveBadge` + `font-heading` headline + `TerminalButton` to `/login`, ghost watermark text behind
+
+---
+
+# Theme 2 — Tactical Archive (Dashboard & Admin)
+
 **Theme name:** Tactical Archive  
 **Tone:** Technical, clean, confident. Not campy sci-fi. Not cluttered.
 
-Every page in this app — member-facing and admin — shares one visual language. When in doubt, look at `/app/admin/page.tsx` or `/app/admin/members/page.tsx` as reference.
+Every authenticated page — member dashboard, admin panel, login, onboarding — shares this visual language. When in doubt, look at `/app/admin/page.tsx` or `/app/admin/members/page.tsx` as reference.
 
 ---
 
