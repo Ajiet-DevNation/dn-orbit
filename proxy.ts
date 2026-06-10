@@ -31,8 +31,8 @@ export default auth((req) => {
 
     // If on login page but logged in, redirect based on onboarding status
     if (path.startsWith("/login")) {
-      console.log(`[Proxy] Logged in user on /login, redirecting to ${isOnboarded ? "/" : "/onboarding"}`);
-      return NextResponse.redirect(new URL(isOnboarded ? "/" : "/onboarding", nextUrl));
+      console.log(`[Proxy] Logged in user on /login, redirecting to ${isOnboarded ? "/dashboard" : "/onboarding"}`);
+      return NextResponse.redirect(new URL(isOnboarded ? "/dashboard" : "/onboarding", nextUrl));
     }
 
     // If not onboarded and trying to access protected route (except onboarding and public APIs)
@@ -44,7 +44,7 @@ export default auth((req) => {
     // If onboarded and trying to access onboarding, redirect away
     if (isOnboarded && path.startsWith("/onboarding")) {
       console.log(`[Proxy] User already onboarded, redirecting away from /onboarding`);
-      return NextResponse.redirect(new URL("/", nextUrl));
+      return NextResponse.redirect(new URL("/dashboard", nextUrl));
     }
 
     // Admin Route Protection
