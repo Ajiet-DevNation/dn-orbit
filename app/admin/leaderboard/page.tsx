@@ -4,17 +4,6 @@ import { redirect } from "next/navigation";
 import { TacticalCard } from "@/components/ui/TacticalCard";
 import { WeightForm } from "./WeightForm";
 
-interface LeaderboardScore {
-  id: string;
-  totalScore: number;
-  rank: number | null;
-  user: {
-    name: string | null;
-    branch: string | null;
-    year: number | null;
-  };
-}
-
 export default async function AdminLeaderboardPage() {
   const session = await auth();
   if (session?.user?.role !== "admin") {
@@ -22,23 +11,24 @@ export default async function AdminLeaderboardPage() {
   }
 
   const weights = await db.scoreWeight.findFirst();
-  const scoresRaw = await db.leaderboardScore.findMany({
-    include: {
+  const scores = await db.leaderboardScore.findMany({
+    select: {
+      id: true,
+      totalScore: true,
+      rank: true,
       user: {
         select: {
           name: true,
           branch: true,
-          year: true
+          year: true,
         }
-      }
+      },
     },
     orderBy: {
       totalScore: "desc"
     },
     take: 10
   });
-
-  const scores = scoresRaw as unknown as LeaderboardScore[];
 
   return (
     <div className="space-y-12 p-8">
@@ -58,7 +48,7 @@ export default async function AdminLeaderboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="lg:col-span-1">
           <TacticalCard title="WEIGHT_CONFIG" subtitle="Define algorithm parameters for score calculation.">
-            <WeightForm initialWeights={weights || { githubWeight: 30, lcWeight: 40, eventWeight: 30 }} />
+            <WeightForm initialWeights={weights || { githubWeight: 0.33, lcWeight: 0.33, eventWeight: 0.34 }} />
           </TacticalCard>
         </div>
 

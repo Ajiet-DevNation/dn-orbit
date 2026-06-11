@@ -83,47 +83,15 @@ If it might be useful to another page or contributor, export it from the compone
 
 All UI must conform to the established brutalist-terminal aesthetic. Do not deviate.
 
-### Design tokens (`globals.css` / `@theme inline`)
-
-| Token | CSS var | Value |
-|---|---|---|
-| Background | `--color-bg` | `#0a0a0a` |
-| Surface (cards) | `--color-surface` | `#111111` |
-| Surface raised | `--color-surface-2` | `#1a1a1a` |
-| Surface elevated | `--color-surface-3` | `#2a2a2a` |
-| Accent (green) | `--color-accent` | `#22c55e` |
-| Text primary | `--color-text` | `#ededed` |
-| Text muted | `--color-text-muted` | `#888888` |
-| Border | `--color-border` | `#333333` |
-| Heading font | `--font-heading` | `Bebas Neue` (via `var(--font-bebas-neue)`) |
-| Mono font | `--font-mono` | `IBM Plex Mono` (via `var(--font-ibm-plex-mono)`) |
-
-In Tailwind classes use the token names directly: `bg-bg`, `text-text-muted`, `border-border`, `font-heading`, `font-mono`, `text-accent`.
-
-### Rules
-- **Zero border-radius** — enforced globally via `* { border-radius: 0 !important; }`. Never override.
-- **Monochrome + single accent** — no new colors. The only accent is green (`#22c55e`).
-- **No gradients, no shadows, no rounded corners.**
-- **Dot grid background** — use `.dot-grid-bg` CSS class for section backgrounds.
-
-### Stamp variants (`.stamp-*` classes)
-
-| Variant | Color | Use for |
-|---|---|---|
-| `verified` | Green `#22c55e` | Approved / live projects |
-| `confidential` | Orange `#f97316` | WIP / restricted content |
-| `urgent` | Red `#ef4444` | CTAs, alerts |
-| `restricted` | Yellow `#eab308` | Locked / members-only |
-
-### Landing page sections (in order)
-
-1. **Hero** — large `font-heading` headline, `ArchiveTag`, two `TerminalButton`s, metadata line in `font-mono text-[10px]`
-2. **TerminalParallax** — full-width parallax terminal animation (`components/sections/TerminalParallax.tsx`)
-3. **Project Showcase** — `SectionHeader` + 4-column `PolaroidCard` grid with optional `StampLabel` overlays
-4. **Shared Repositories** — `SectionHeader` + `RepoRow` list
-5. **Join CTA** — centered `ArchiveBadge` + `font-heading` headline + `TerminalButton` to `/login`, ghost watermark text behind
-
-> ⚠️ The landing page is still a work in progress. Sections 3 and 4 use placeholder data. Do not treat them as final.
+| Token | Value |
+|---|---|
+| Background | Near-black (`#0a0a0a` or equivalent) |
+| Primary font | `Bebas Neue` (display headers) |
+| UI font | `IBM Plex Mono` (labels, body, data) |
+| Accent | Status green only (`#22c55e` or Tailwind `green-500`) |
+| Palette | Strictly monochrome + single accent |
+| Borders | Dashed or dotted, zero border-radius |
+| Cards | Polaroid-style with physical stamp overlays |
 
 > Do not introduce new colors, fonts, rounded corners, or gradients without a design review.
 

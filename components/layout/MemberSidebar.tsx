@@ -9,6 +9,7 @@ import {
   Users,
   Rocket,
   LogOut,
+  Settings
 } from "lucide-react";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { SidebarBrand } from "@/components/layout/SidebarBrand";
@@ -26,6 +27,7 @@ export default function MemberSidebar({ userName }: MemberSidebarProps) {
     { label: "EVENTS", href: "/events", icon: Calendar },
     { label: "MEMBERS", href: "/members", icon: Users },
     { label: "PROJECTS", href: "/projects", icon: Rocket },
+    { label: "SETTINGS", href: "/settings", icon: Settings },
   ];
 
   return (

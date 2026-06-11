@@ -6,28 +6,25 @@ import { TacticalCard } from "@/components/ui/TacticalCard";
 import { TacticalButton } from "@/components/ui/TacticalButton";
 import { EventTable } from "./EventTable";
 
-interface EventWithMetadata {
-  id: string;
-  title: string;
-  eventType: string | null;
-  eventDate: Date;
-  location: string | null;
-  isPublished: boolean;
-}
-
 export default async function AdminEventsPage() {
   const session = await auth();
   if (session?.user?.role !== "admin") {
     redirect("/");
   }
 
-  const eventsRaw = await db.event.findMany({
+  const events = await db.event.findMany({
+    select: {
+      id: true,
+      title: true,
+      eventType: true,
+      eventDate: true,
+      location: true,
+      isPublished: true,
+    },
     orderBy: {
       eventDate: "desc",
     },
   });
-
-  const events = eventsRaw as EventWithMetadata[];
   const totalEvents = events.length;
   const publishedCount = events.filter((e) => e.isPublished).length;
 
