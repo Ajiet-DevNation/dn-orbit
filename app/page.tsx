@@ -87,13 +87,13 @@ export default function Home() {
             className="mt-8 flex flex-wrap gap-4"
           >
             <TerminalButton
-              label="VIEW_SOURCE"
-              href="/repositories"
+              label="GET_STARTED"
+              href="/login"
               variant="outlined"
             />
             <TerminalButton
-              label="DATA_LOGS"
-              href="/logs"
+              label="LEADERBOARD"
+              href="/leaderboard"
               variant="filled"
             />
           </motion.div>

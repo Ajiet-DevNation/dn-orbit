@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
-const onboardingSchema = z.object({
+const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   usn: z.string().min(5, "USN must be valid"),
   branch: z.string().min(2, "Branch is required"),
@@ -15,9 +15,11 @@ const onboardingSchema = z.object({
     .string()
     .min(1, "LeetCode username is required")
     .regex(/^[a-zA-Z0-9_.-]+$/, "Invalid LeetCode username format"),
+  bio: z.string().max(160, "Bio must be 160 characters or less").optional(),
+  isVisible: z.boolean().default(true),
 });
 
-export async function submitOnboarding(formData: FormData) {
+export async function updateProfile(formData: FormData) {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -30,9 +32,11 @@ export async function submitOnboarding(formData: FormData) {
     branch: formData.get("branch"),
     year: formData.get("year"),
     lc_username: formData.get("lc_username"),
+    bio: formData.get("bio") || undefined,
+    isVisible: formData.get("isVisible") === "on",
   };
 
-  const parsed = onboardingSchema.safeParse(rawData);
+  const parsed = profileSchema.safeParse(rawData);
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
@@ -58,9 +62,13 @@ export async function submitOnboarding(formData: FormData) {
         branch: parsed.data.branch,
         year: parsed.data.year,
         lcUsername: parsed.data.lc_username,
+        bio: parsed.data.bio,
+        isVisible: parsed.data.isVisible,
       },
     });
 
+    revalidatePath("/profile");
+    revalidatePath("/members");
     revalidatePath("/", "layout");
     
     // We return the updated fields so the client can call NextAuth's `update()` method
@@ -75,7 +83,7 @@ export async function submitOnboarding(formData: FormData) {
     };
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error("Onboarding Prisma Error", {
+      console.error("Profile Update Prisma Error", {
         code: error.code,
         message: error.message,
         meta: error.meta,
@@ -87,7 +95,7 @@ export async function submitOnboarding(formData: FormData) {
         };
       }
     } else if (error instanceof Error) {
-      console.error("Onboarding Error", {
+      console.error("Profile Update Error", {
         name: error.name,
         message: error.message,
         stack: error.stack,
@@ -100,7 +108,7 @@ export async function submitOnboarding(formData: FormData) {
         };
       }
     } else {
-      console.error("Onboarding Unknown Error", error);
+      console.error("Profile Update Unknown Error", error);
     }
 
     return { error: "Failed to update profile. Please try again." };

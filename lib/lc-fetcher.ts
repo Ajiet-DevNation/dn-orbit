@@ -1,6 +1,6 @@
 // lib/lc-fetcher.ts
 
-const LEETCODE_GRAPHQL_ENDPOINT = "https://leetcode.com/graphql";
+const LEETCODE_GRAPHQL_ENDPOINT = "https://alfa.leetcode.com/graphql";
 
 export interface LcStatsResult {
   totalSolved: number;

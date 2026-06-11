@@ -7,7 +7,7 @@ import { StatsRefreshPanel } from "@/components/features/dashboard/StatsRefreshP
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const isStale = (d?: Date | null) =>
-  d ? Date.now() - new Date(d).getTime() > DAY_MS : false;
+  d ? Date.now() - new Date(d).getTime() > DAY_MS : true;
 
 type LanguageStat = {
   label: string;

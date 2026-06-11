@@ -27,12 +27,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const body = await req.json();
+  const { title, description, bannerUrl, eventType, eventDate, location, isPublished } = body;
 
   const updated = await db.event.update({
     where: { id },
     data: {
-      ...body,
-      ...(body.eventDate ? { eventDate: new Date(body.eventDate) } : {}),
+      ...(title !== undefined && { title }),
+      ...(description !== undefined && { description }),
+      ...(bannerUrl !== undefined && { bannerUrl }),
+      ...(eventType !== undefined && { eventType }),
+      ...(eventDate !== undefined && { eventDate: new Date(eventDate) }),
+      ...(location !== undefined && { location }),
+      ...(isPublished !== undefined && { isPublished }),
     },
   });
 

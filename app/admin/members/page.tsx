@@ -4,29 +4,26 @@ import { redirect } from "next/navigation";
 import { TacticalCard } from "@/components/ui/TacticalCard";
 import { MemberTable } from "./MemberTable";
 
-interface MemberRecord {
-  id: string;
-  name: string | null;
-  email: string | null;
-  usn: string | null;
-  role: "admin" | "member";
-  branch: string | null;
-  year: number | null;
-}
-
 export default async function AdminMembersPage() {
   const session = await auth();
   if (session?.user?.role !== "admin") {
     redirect("/");
   }
 
-  const usersRaw = await db.user.findMany({
+  const users = await db.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      usn: true,
+      role: true,
+      branch: true,
+      year: true,
+    },
     orderBy: {
       createdAt: "desc"
     }
   });
-
-  const users = usersRaw as unknown as MemberRecord[];
 
   const adminCount = users.filter(u => u.role === "admin").length;
   const memberCount = users.filter(u => u.role === "member").length;
