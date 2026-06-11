@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger leaderboard recompute
+      - name: Trigger stats sync and leaderboard recompute
         env:
           CRON_URL: ${{ secrets.CRON_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -22,4 +22,4 @@ jobs:
 
           curl --fail --silent --show-error \
             -H "Authorization: Bearer ${CRON_SECRET}" \
-            "${CRON_URL%/}/api/cron/leaderboard"
+            "${CRON_URL%/}/api/cron/stats-sync"
