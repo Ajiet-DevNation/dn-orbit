@@ -1,69 +1,80 @@
-"use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { submitOnboarding } from "@/app/actions/onboarding";
-import { useSession } from "next-auth/react";
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
-export default function OnboardingPage() {
-  const router = useRouter();
-  const { update } = useSession();
-  const [error, setError] = useState<string | null>(null);
+const publicRoutes = ["/login", "/api/auth"];
+const isPublicRoute = (path: string) =>
+  publicRoutes.some((route) => path.startsWith(route));
 
-  async function handleSubmit(formData: FormData) {
-    setError(null);
-    const result = await submitOnboarding(formData);
-    
-    if (result.error) {
-      setError(result.error);
-    } else if (result.success && result.user) {
-      // Update the local session so middleware sees the new data
-      await update({
-        usn: result.user.usn,
-        branch: result.user.branch,
-        lcUsername: result.user.lcUsername,
-        name: result.user.name,
-      });
-      router.push("/dashboard");
+export default auth((req) => {
+  const isLoggedIn = !!req.auth;
+  const { nextUrl } = req;
+  const path = nextUrl.pathname;
+
+  console.log(`[Proxy] Path: ${path} | isLoggedIn: ${isLoggedIn}`);
+
+  // Let API auth routes, next internal routes, and public assets pass through
+  if (
+    path.startsWith("/api/auth") ||
+    path.startsWith("/_next") ||
+    path.includes("favicon.ico")
+  ) {
+    return NextResponse.next();
+  }
+
+  // Redirect unauthenticated users to login
+  if (!isLoggedIn && !isPublicRoute(path) && path !== "/") {
+    console.log(`[Proxy] Redirecting unauthenticated user to /login`);
+    return NextResponse.redirect(new URL("/login", nextUrl));
+  }
+
+  if (isLoggedIn) {
+    const user = req.auth?.user;
+
+    // Check if user has completed onboarding
+    const isOnboarded = !!(user?.usn && user?.branch && user?.lcUsername);
+    console.log(`[Proxy] User onboarded: ${isOnboarded} (USN: ${user?.usn})`);
+
+    // If on login page but logged in, redirect based on onboarding status
+    if (path.startsWith("/login")) {
+      console.log(
+        `[Proxy] Logged in user on /login, redirecting to ${isOnboarded ? "/dashboard" : "/onboarding"}`,
+      );
+      return NextResponse.redirect(
+        new URL(isOnboarded ? "/dashboard" : "/onboarding", nextUrl),
+      );
+    }
+
+    // If not onboarded and trying to access protected route (except onboarding and public APIs)
+    if (
+      !isOnboarded &&
+      !path.startsWith("/onboarding") &&
+      !path.startsWith("/api")
+    ) {
+      console.log(`[Proxy] User not onboarded, redirecting to /onboarding`);
+      return NextResponse.redirect(new URL("/onboarding", nextUrl));
+    }
+
+    // If onboarded and trying to access onboarding, redirect away
+    if (isOnboarded && path.startsWith("/onboarding")) {
+      console.log(
+        `[Proxy] User already onboarded, redirecting away from /onboarding`,
+      );
+      return NextResponse.redirect(new URL("/dashboard", nextUrl));
+    }
+
+    // Admin Route Protection
+    if (path.startsWith("/admin") && user?.role !== "admin") {
+      console.log(
+        `[Proxy] Non-admin tried to access /admin, redirecting to /dashboard`,
+      );
+      // FIXED: Redirect unauthorized users to /dashboard instead of /
+      return NextResponse.redirect(new URL("/dashboard", nextUrl));
     }
   }
 
-  return (
-    <main className="flex min-h-screen items-center justify-center">
-      <form action={handleSubmit} className="flex flex-col gap-4 w-80">
-        <h1 className="text-xl font-bold">Complete your profile</h1>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <input
-          name="name"
-          placeholder="Full name"
-          required
-        />
-        <input
-          name="usn"
-          placeholder="USN"
-          required
-        />
-        <input
-          name="branch"
-          placeholder="Branch (e.g. CSE)"
-          required
-        />
-        <input
-          name="year"
-          placeholder="Year (1-5)"
-          type="number"
-          min={1}
-          max={5}
-          required
-        />
-        <input
-          name="lc_username"
-          placeholder="LeetCode username (required)"
-          required
-        />
-        <button type="submit" className="bg-white text-black px-4 py-2 rounded">
-          Submit
-        </button>
-      </form>
-    </main>
-  );
-}
+  return NextResponse.next();
+});
+
+export const config = {
+  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+};

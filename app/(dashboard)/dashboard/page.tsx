@@ -1,56 +1,37 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { redirect } from "next/navigation";
+import Link from "next/link";
 import { TacticalCard } from "@/components/ui/TacticalCard";
-import { StatsRefreshPanel } from "@/components/features/dashboard/StatsRefreshPanel";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const isStale = (d?: Date | null) =>
-  d ? Date.now() - new Date(d).getTime() > DAY_MS : false;
-
-type LanguageStat = {
-  label: string;
-  count: number;
+export const metadata = {
+  title: "DASHBOARD // ORBIT MEMBER",
 };
 
-// GitHub stats store topLanguages as JSON; accept both a keyed object map and
-// older array-like shapes so the dashboard can render existing rows safely.
-function asLanguageStats(value: unknown): LanguageStat[] {
-  if (Array.isArray(value)) {
-    return value
-      .filter((entry): entry is string => typeof entry === "string")
-      .map((label, index, labels) => ({
-        label,
-        count: labels.length - index,
-      }));
-  }
-
-  if (!value || typeof value !== "object") return [];
-
-  return Object.entries(value as Record<string, unknown>)
-    .filter(([, count]) => typeof count === "number")
-    .sort(([, a], [, b]) => (b as number) - (a as number))
-    .slice(0, 5)
-    .map(([label, count]) => ({
-      label,
-      count: count as number,
-    }));
-}
+// Helper function to check if data is older than 24 hours
+const isStale = (date: Date | undefined | null) => {
+  if (!date) return false;
+  const twentyFourHours = 24 * 60 * 60 * 1000;
+  return new Date().getTime() - new Date(date).getTime() > twentyFourHours;
+};
 
 export default async function DashboardPage() {
   const session = await auth();
 
-  // Middleware already gates this route, but narrow the type and stay safe.
-  if (!session?.user?.id) {
+  // Guard: Ensure user is logged in
+  if (!session?.user) {
     redirect("/login");
   }
 
   const userId = session.user.id;
+  const lcUsername = session.user.lcUsername;
 
+  // 1. Parallel Data Fetching
   const [leaderboardScore, githubStats, lcStats, upcomingEvents] =
     await Promise.all([
-      db.leaderboardScore.findUnique({ where: { userId } }),
+      db.leaderboardScore.findUnique({
+        where: { userId },
+      }),
       db.githubStats.findFirst({
         where: { userId },
         orderBy: { fetchedAt: "desc" },
@@ -60,44 +41,43 @@ export default async function DashboardPage() {
         orderBy: { fetchedAt: "desc" },
       }),
       db.event.findMany({
-        where: { isPublished: true, eventDate: { gte: new Date() } },
+        where: {
+          isPublished: true,
+          eventDate: { gte: new Date() },
+        },
         orderBy: { eventDate: "asc" },
         take: 3,
       }),
     ]);
 
-  const languages = asLanguageStats(githubStats?.topLanguages);
-  const statsStale = isStale(githubStats?.fetchedAt) || isStale(lcStats?.fetchedAt);
+  // Safely parse GitHub languages (handles both Stringified JSON or native Prisma Json object)
+  let topLangs: Array<{ name: string; count: number }> = [];
+  if (githubStats?.topLanguages) {
+    try {
+      const parsed =
+        typeof githubStats.topLanguages === "string"
+          ? JSON.parse(githubStats.topLanguages)
+          : githubStats.topLanguages;
 
-  const statCards = [
-    {
-      id: "0xRANK",
-      label: "RANK",
-      value:
-        leaderboardScore?.rank != null ? `#${leaderboardScore.rank}` : "—",
-    },
-    {
-      id: "0xTOTAL",
-      label: "TOTAL_SCORE",
-      value: leaderboardScore ? leaderboardScore.totalScore.toFixed(1) : "—",
-    },
-    {
-      id: "0xLCSCR",
-      label: "LC_SCORE",
-      value: leaderboardScore ? leaderboardScore.lcScore.toFixed(1) : "—",
-    },
-    {
-      id: "0xGHSCR",
-      label: "GITHUB_SCORE",
-      value: leaderboardScore ? leaderboardScore.githubScore.toFixed(1) : "—",
-    },
-  ];
+      if (typeof parsed === "object" && !Array.isArray(parsed)) {
+        topLangs = Object.entries(parsed)
+          .map(([name, count]) => ({ name, count: Number(count) }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5); // Take top 5
+      }
+    } catch (e) {
+      console.error("Failed to parse GitHub languages", e);
+    }
+  }
+
+  const totalLangCount =
+    topLangs.reduce((sum, lang) => sum + lang.count, 0) || 1;
 
   return (
     <div className="p-8 space-y-12">
-      {/* ── Page header ── */}
+      {/* 01_PAGE_HEADER */}
       <header className="border-b border-zinc-900 pb-12">
-        <h1 className="text-7xl md:text-8xl font-black uppercase tracking-tighter leading-none italic">
+        <h1 className="text-7xl md:text-9xl font-black uppercase tracking-tighter italic leading-none text-white">
           DASHBOARD
         </h1>
         <div className="flex items-center gap-4 mt-4">
@@ -105,110 +85,121 @@ export default async function DashboardPage() {
             ORBIT_MEMBER_SECTOR_V1
           </span>
           <div className="h-px flex-1 bg-zinc-900" />
-          {statsStale && (
-            <span className="text-[9px] text-zinc-500 tracking-widest uppercase border border-zinc-800 px-2 py-1">
-              STATS_STALE — REFRESH_AVAILABLE
-            </span>
-          )}
         </div>
       </header>
 
-      {/* ── Top stat bar ── */}
+      {/* 02_TOP_METRICS_BAR */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((card) => (
-          <TacticalCard key={card.id} id={card.id}>
-            <div className="space-y-2">
-              <span className="block text-[9px] text-zinc-500 tracking-widest uppercase">
-                {card.label}
-              </span>
-              <span className="block text-5xl font-black italic text-white leading-none">
-                {card.value}
-              </span>
-            </div>
-          </TacticalCard>
-        ))}
+        <TacticalCard variant="dashed" className="py-4">
+          <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-black block mb-2">
+            RANK
+          </span>
+          <span className="text-5xl text-white font-black italic leading-none">
+            {leaderboardScore?.rank ? `#${leaderboardScore.rank}` : "—"}
+          </span>
+        </TacticalCard>
+
+        <TacticalCard variant="dashed" className="py-4">
+          <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-black block mb-2">
+            TOTAL_SCORE
+          </span>
+          <span className="text-5xl text-white font-black italic leading-none">
+            {leaderboardScore?.totalScore
+              ? leaderboardScore.totalScore.toFixed(1)
+              : "—"}
+          </span>
+        </TacticalCard>
+
+        <TacticalCard variant="dashed" className="py-4">
+          <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-black block mb-2">
+            LC_SCORE
+          </span>
+          <span className="text-5xl text-white font-black italic leading-none">
+            {leaderboardScore?.lcScore
+              ? leaderboardScore.lcScore.toFixed(1)
+              : "—"}
+          </span>
+        </TacticalCard>
+
+        <TacticalCard variant="dashed" className="py-4">
+          <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-black block mb-2">
+            GITHUB_SCORE
+          </span>
+          <span className="text-5xl text-white font-black italic leading-none">
+            {leaderboardScore?.githubScore
+              ? leaderboardScore.githubScore.toFixed(1)
+              : "—"}
+          </span>
+        </TacticalCard>
       </div>
 
-      {/* ── Leaderboard entry point ── */}
-      <TacticalCard
-        id="0xRANKING"
-        title="LEADERBOARD_LINK"
-        subtitle="Stored nightly scores from the scoring engine. Open the full board to inspect rank movement and component breakdowns."
-      >
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
-              Your dashboard shows the personal snapshot. The leaderboard page shows
-              the full member ranking, your exact position, and the score split used
-              by the nightly compute job.
-            </p>
-            <div className="flex flex-wrap gap-6 text-[10px] text-zinc-500 tracking-widest uppercase">
-              <span>
-                CURRENT_RANK {leaderboardScore?.rank != null ? `#${leaderboardScore.rank}` : "PENDING"}
+      {/* 03_INTEGRATION_STATS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* GITHUB STATS */}
+        <TacticalCard id="GITHUB_STATS">
+          <div className="flex justify-between items-start mb-6 border-b border-zinc-900 pb-4">
+            <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500">
+              GITHUB_TELEMETRY
+            </h3>
+            {isStale(githubStats?.fetchedAt) && (
+              <span className="text-[8px] bg-yellow-500/10 text-yellow-500 px-2 py-1 uppercase tracking-widest font-bold">
+                STATS_STALE
               </span>
-              <span>
-                TOTAL_SCORE {leaderboardScore ? leaderboardScore.totalScore.toFixed(1) : "—"}
-              </span>
-            </div>
+            )}
           </div>
 
-          <Link
-            href="/leaderboard"
-            className="inline-flex items-center justify-center px-5 py-3 text-[10px] font-black tracking-[0.3em] uppercase border border-zinc-800 bg-zinc-950 text-white hover:bg-white hover:text-black hover:border-white transition-colors"
-          >
-            OPEN_LEADERBOARD
-          </Link>
-        </div>
-      </TacticalCard>
-
-      {/* ── GitHub + LeetCode ── */}
-      <section className="space-y-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-4">
-              <h2 className="text-xl font-black uppercase tracking-tighter">
-                STATS_SUMMARY
-              </h2>
-              <div className="h-px flex-1 bg-zinc-900" />
+          {!githubStats ? (
+            <div className="py-8 text-center text-xs text-zinc-500 font-mono uppercase tracking-widest">
+              NO_STATS_AVAILABLE // SYNC_PENDING
             </div>
-            <p className="max-w-3xl text-sm text-zinc-500 leading-relaxed">
-              Cached GitHub and LeetCode snapshots for your account. Use refresh when
-              the cache window has expired or after updating your linked profiles.
-            </p>
-          </div>
-        </div>
-
-        <StatsRefreshPanel
-          userId={userId}
-          hasLeetCodeUsername={Boolean(session.user.lcUsername)}
-          hasGitHubAccessToken={Boolean(session.user.accessToken)}
-          statsStale={statsStale}
-        />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* GitHub stats */}
-        <TacticalCard id="0xGITHUB" title="GITHUB_STATS">
-          {githubStats ? (
+          ) : (
             <div className="space-y-6">
-              <div>
-                <StatRow label="REPOS" value={githubStats.reposCount} />
-                <StatRow label="COMMITS" value={githubStats.totalCommits} />
-                <StatRow label="MERGED_PRS" value={githubStats.totalPrs} />
-                <StatRow label="STARS" value={githubStats.totalStars} />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">
+                    REPOS
+                  </span>
+                  <span className="text-xl text-white font-bold">
+                    {githubStats.repos}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">
+                    COMMITS
+                  </span>
+                  <span className="text-xl text-white font-bold">
+                    {githubStats.commits}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">
+                    PRs_MERGED
+                  </span>
+                  <span className="text-xl text-white font-bold">
+                    {githubStats.mergedPrs}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">
+                    STARS
+                  </span>
+                  <span className="text-xl text-white font-bold">
+                    {githubStats.stars}
+                  </span>
+                </div>
               </div>
 
-              {languages.length > 0 && (
-                <div className="space-y-3 pt-2">
-                  <span className="block text-[9px] text-zinc-600 tracking-widest uppercase">
-                    TOP_LANGUAGES
+              {topLangs.length > 0 && (
+                <div className="space-y-2 pt-4 border-t border-zinc-900">
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block mb-4">
+                    LANGUAGE_DISTRIBUTION
                   </span>
-                  {languages.map((lang) => {
-                    const maxCount = languages[0]?.count ?? 1;
-                    const pct = (lang.count / maxCount) * 100;
+                  {topLangs.map((lang) => {
+                    const pct = Math.round((lang.count / totalLangCount) * 100);
                     return (
-                      <div key={lang.label} className="flex items-center gap-3">
-                        <span className="text-[9px] text-zinc-500 w-20 uppercase truncate">
-                          {lang.label}
+                      <div key={lang.name} className="flex items-center gap-3">
+                        <span className="text-[9px] text-zinc-400 w-16 uppercase truncate">
+                          {lang.name}
                         </span>
                         <div className="flex-1 h-1 bg-zinc-900">
                           <div
@@ -216,154 +207,211 @@ export default async function DashboardPage() {
                             style={{ width: `${pct}%` }}
                           />
                         </div>
+                        <span className="text-[9px] text-zinc-600 w-8 text-right">
+                          {pct}%
+                        </span>
                       </div>
                     );
                   })}
                 </div>
               )}
             </div>
-          ) : (
-            <EmptyState code="NO_STATS_AVAILABLE — SYNC_PENDING" />
           )}
         </TacticalCard>
 
-        {/* LeetCode stats */}
-        <TacticalCard id="0xLEETCODE" title="LEETCODE_STATS">
-          {lcStats ? (
-            <div className="space-y-6">
-              <div>
-                <StatRow label="TOTAL_SOLVED" value={lcStats.totalSolved} />
-                <StatRow label="STREAK" value={`${lcStats.streak} DAYS`} />
-                <StatRow
-                  label="RANKING"
-                  value={
-                    lcStats.lcRanking != null
-                      ? `#${lcStats.lcRanking.toLocaleString()}`
-                      : "—"
-                  }
-                />
-              </div>
+        {/* LEETCODE STATS */}
+        <TacticalCard id="LEETCODE_STATS">
+          <div className="flex justify-between items-start mb-6 border-b border-zinc-900 pb-4">
+            <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500">
+              LEETCODE_TELEMETRY
+            </h3>
+            {isStale(lcStats?.fetchedAt) && (
+              <span className="text-[8px] bg-yellow-500/10 text-yellow-500 px-2 py-1 uppercase tracking-widest font-bold">
+                STATS_STALE
+              </span>
+            )}
+          </div>
 
-              <div className="flex items-stretch gap-3 pt-2">
-                <Difficulty
-                  label="EASY"
-                  count={lcStats.easySolved}
-                  className="text-emerald-500"
-                />
-                <Difficulty
-                  label="MEDIUM"
-                  count={lcStats.mediumSolved}
-                  className="text-yellow-500"
-                />
-                <Difficulty
-                  label="HARD"
-                  count={lcStats.hardSolved}
-                  className="text-red-500"
-                />
+          {!lcStats && !lcUsername ? (
+            <div className="py-8 text-center space-y-3">
+              <div className="text-xs text-red-500 font-mono uppercase tracking-widest">
+                LC_USERNAME_NOT_SET
               </div>
-            </div>
-          ) : session.user.lcUsername ? (
-            <EmptyState code="SYNC_PENDING" />
-          ) : (
-            <div className="space-y-3">
-              <EmptyState code="NO_LC_USERNAME — UPDATE_PROFILE" />
               <Link
-                href="/onboarding"
-                className="inline-block text-[10px] text-zinc-500 hover:text-white tracking-widest uppercase border-b border-zinc-700 hover:border-white transition-colors"
+                href="/settings"
+                className="text-[9px] text-zinc-400 underline hover:text-white uppercase tracking-widest"
               >
-                &gt; SET_LEETCODE_USERNAME
+                UPDATE_PROFILE_PARAMETERS
               </Link>
             </div>
+          ) : !lcStats ? (
+            <div className="py-8 text-center text-xs text-zinc-500 font-mono uppercase tracking-widest">
+              SYNC_PENDING // AWAITING_CRON
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">
+                    TOTAL_SOLVED
+                  </span>
+                  <span className="text-xl text-white font-bold">
+                    {lcStats.totalSolved}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">
+                    GLOBAL_RANKING
+                  </span>
+                  <span className="text-xl text-white font-bold">
+                    #{lcStats.ranking}
+                  </span>
+                </div>
+                <div className="col-span-2 border-t border-zinc-900 pt-4">
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">
+                    ACTIVE_STREAK
+                  </span>
+                  <span className="text-xl text-white font-bold">
+                    {lcStats.streak} DAYS
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-zinc-900">
+                <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block mb-4">
+                  DIFFICULTY_DISTRIBUTION
+                </span>
+
+                <div className="space-y-3">
+                  {/* EASY BAR */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-[9px] text-emerald-500 w-12 uppercase tracking-widest font-bold">
+                      EASY
+                    </span>
+                    <div className="flex-1 h-1 bg-zinc-900">
+                      <div
+                        className="h-full bg-emerald-500"
+                        style={{
+                          width: `${(lcStats.easySolved / Math.max(1, lcStats.totalSolved)) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[9px] text-zinc-500 w-8 text-right">
+                      {lcStats.easySolved}
+                    </span>
+                  </div>
+
+                  {/* MEDIUM BAR */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-[9px] text-yellow-500 w-12 uppercase tracking-widest font-bold">
+                      MED
+                    </span>
+                    <div className="flex-1 h-1 bg-zinc-900">
+                      <div
+                        className="h-full bg-yellow-500"
+                        style={{
+                          width: `${(lcStats.mediumSolved / Math.max(1, lcStats.totalSolved)) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[9px] text-zinc-500 w-8 text-right">
+                      {lcStats.mediumSolved}
+                    </span>
+                  </div>
+
+                  {/* HARD BAR */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-[9px] text-red-500 w-12 uppercase tracking-widest font-bold">
+                      HARD
+                    </span>
+                    <div className="flex-1 h-1 bg-zinc-900">
+                      <div
+                        className="h-full bg-red-500"
+                        style={{
+                          width: `${(lcStats.hardSolved / Math.max(1, lcStats.totalSolved)) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[9px] text-zinc-500 w-8 text-right">
+                      {lcStats.hardSolved}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </TacticalCard>
-        </div>
-      </section>
+      </div>
 
-      {/* ── Upcoming events ── */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-black uppercase tracking-tighter">
+      {/* 04_UPCOMING_EVENTS */}
+      <div>
+        <div className="flex items-center gap-4 mb-6">
+          <h2 className="text-xl font-black tracking-tighter uppercase text-white">
             UPCOMING_EVENTS
           </h2>
           <div className="h-px flex-1 bg-zinc-900" />
+          <Link
+            href="/events"
+            className="text-[9px] text-zinc-500 hover:text-white uppercase tracking-widest"
+          >
+            VIEW_ALL_OPERATIONS ↗
+          </Link>
         </div>
 
-        {upcomingEvents.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {upcomingEvents.map((event, i) => (
-              <Link key={event.id} href={`/events/${event.id}`} className="block">
-                <TacticalCard
-                  id={`EVT_${i.toString().padStart(2, "0")}`}
-                  status={event.eventType ?? undefined}
-                  className="h-full hover:border-zinc-600 transition-colors"
-                >
-                  <div className="space-y-3">
-                    <h3 className="text-base font-black uppercase tracking-tighter text-white leading-tight">
-                      {event.title}
-                    </h3>
-                    <div className="space-y-1">
-                      <span className="block text-[9px] text-zinc-500 tracking-widest uppercase">
-                        {event.eventDate.toLocaleDateString("en-CA")}
-                      </span>
-                      {event.location && (
-                        <span className="block text-[9px] text-zinc-600 tracking-widest uppercase truncate">
-                          {event.location}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </TacticalCard>
-              </Link>
-            ))}
+        {upcomingEvents.length === 0 ? (
+          <div className="text-xs text-zinc-500 font-mono uppercase tracking-widest p-8 border border-dashed border-zinc-800 text-center">
+            NO_UPCOMING_EVENTS_SCHEDULED
           </div>
         ) : (
-          <div className="border border-dashed border-zinc-800 p-12 text-center">
-            <EmptyState code="NO_UPCOMING_EVENTS_SCHEDULED" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {upcomingEvents.map((event, i) => {
+              const formattedDate = new Date(event.eventDate)
+                .toLocaleDateString("en-CA")
+                .replace(/-/g, ".");
+              const eventIdHex = `0x${event.id.substring(0, 6).toUpperCase()}`;
+
+              return (
+                <Link
+                  key={event.id}
+                  href={`/events/${event.id}`}
+                  className="block h-full group"
+                >
+                  <TacticalCard
+                    id={`EVT_ID: ${eventIdHex}`}
+                    variant="dashed"
+                    className="h-full group-hover:border-zinc-600 transition-colors cursor-pointer flex flex-col"
+                  >
+                    <div className="flex-1 space-y-4 mb-6">
+                      <h4 className="text-lg font-black uppercase text-white truncate">
+                        {event.title}
+                      </h4>
+
+                      <div className="grid grid-cols-2 gap-4 border-t border-zinc-900 pt-4">
+                        <div>
+                          <p className="text-[8px] text-zinc-600 uppercase tracking-widest font-black mb-1">
+                            DATE
+                          </p>
+                          <p className="text-[10px] text-zinc-300 truncate">
+                            {formattedDate}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[8px] text-zinc-600 uppercase tracking-widest font-black mb-1">
+                            TYPE
+                          </p>
+                          <p className="text-[10px] text-emerald-500 truncate">
+                            {event.eventType || "ASSEMBLY"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </TacticalCard>
+                </Link>
+              );
+            })}
           </div>
         )}
-      </section>
+      </div>
     </div>
-  );
-}
-
-// ── Local presentational helpers ──
-
-function StatRow({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="flex items-center justify-between border-b border-zinc-900 py-3">
-      <span className="text-[10px] text-zinc-500 tracking-widest uppercase">
-        {label}
-      </span>
-      <span className="text-sm font-black text-white">
-        {typeof value === "number" ? value.toLocaleString() : value}
-      </span>
-    </div>
-  );
-}
-
-function Difficulty({
-  label,
-  count,
-  className,
-}: {
-  label: string;
-  count: number;
-  className: string;
-}) {
-  return (
-    <div className="flex-1 border border-zinc-900 px-3 py-4 text-center">
-      <span className={`block text-2xl font-black italic ${className}`}>
-        {count}
-      </span>
-      <span className="block mt-1 text-[8px] text-zinc-600 tracking-widest uppercase">
-        {label}
-      </span>
-    </div>
-  );
-}
-
-function EmptyState({ code }: { code: string }) {
-  return (
-    <p className="text-[10px] text-zinc-600 tracking-widest uppercase">{code}</p>
   );
 }

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
-import { MemberSidebar } from "@/components/layout/MemberSidebar";
+import { redirect } from "next/navigation";
+import MemberSidebar from "@/components/layout/MemberSidebar";
 
 export default async function DashboardLayout({
   children,
@@ -8,13 +9,28 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
 
+  // Route protection fallback (Middleware handles the primary protection)
+  if (!session?.user) {
+    redirect("/login");
+  }
+
   return (
     <div className="min-h-screen bg-black text-white font-mono flex">
-      <MemberSidebar userName={session?.user?.name ?? "MEMBER"} />
+      {/* Sidebar Navigation */}
+      <MemberSidebar userName={session.user.name || "OPERATIVE"} />
 
-      <main className="flex-1 relative bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-repeat">
-        <div className="absolute inset-0 bg-black/60 pointer-events-none" />
-        <div className="relative z-10 w-full h-full overflow-y-auto">
+      {/* Main Content Area */}
+      <main className="flex-1 relative overflow-y-auto h-screen">
+        {/* Subtle dot grid background for the entire member dashboard area */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-20"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, #3f3f46 1px, transparent 0)`,
+            backgroundSize: `24px 24px`
+          }}
+        />
+        
+        <div className="relative z-10 w-full min-h-full">
           {children}
         </div>
       </main>
