@@ -8,29 +8,26 @@ export const metadata = {
 };
 
 export default async function MemberEventsPage() {
-  // 1. Enforce session security
   const session = await auth();
   if (!session?.user) {
     redirect("/login");
   }
 
-  // 2. Fetch all published events from Prisma
   const eventsRaw = await db.event.findMany({
-    where: {
-      isPublished: true,
-    },
-    orderBy: {
-      eventDate: "asc",
-    },
+    where: { isPublished: true },
+    orderBy: { eventDate: "asc" },
   });
 
-  // Ensure plain objects are passed to the Client Component
+  // FIX: Explicitly mapping to plain objects to fix build serialization errors
   const events = eventsRaw.map((event) => ({
-    ...event,
+    id: event.id,
+    title: event.title,
+    description: event.description,
+    eventType: event.eventType,
     eventDate: event.eventDate.toISOString(),
+    location: event.location,
   }));
 
-  // 3. Render the Tactical Archive Page Shell
   return (
     <div className="p-8 space-y-12">
       <header className="border-b border-zinc-900 pb-12">
@@ -44,8 +41,6 @@ export default async function MemberEventsPage() {
           <div className="h-px flex-1 bg-zinc-900" />
         </div>
       </header>
-
-      {/* Hand off data to Phase 2: Client Component */}
       <EventClientList initialEvents={events} />
     </div>
   );
