@@ -16,7 +16,7 @@
     "@neondatabase/serverless": "^1.1.0",
     "@prisma/adapter-neon": "^7.7.0",
     "@prisma/adapter-pg": "^7.6.0",
-    "@prisma/client": "7.8.0",
+    "@prisma/client": "^7.8.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.8.0",
     "next": "16.2.1",

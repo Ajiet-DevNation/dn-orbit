@@ -4,43 +4,33 @@ import { redirect } from "next/navigation";
 import { ProjectTable } from "./ProjectTable";
 import { TacticalCard } from "@/components/ui/TacticalCard";
 
-interface ProjectWithLead {
-  id: string;
-  title: string;
-  description: string | null;
-  status: "planning" | "active" | "completed" | "stalled";
-  progressPct: number;
-  githubRepoUrl: string | null;
-  isApproved: boolean;
-  submittedAt: Date;
-  lead: {
-    name: string | null;
-    githubUsername: string | null;
-  } | null;
-}
-
 export default async function AdminProjectsPage() {
   const session = await auth();
   if (session?.user?.role !== "admin") {
     redirect("/");
   }
 
-  const projectsRaw = await db.project.findMany({
-    include: {
+  const projects = await db.project.findMany({
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      status: true,
+      progressPct: true,
+      githubRepoUrl: true,
+      isApproved: true,
+      submittedAt: true,
       lead: {
         select: {
           name: true,
-          email: true,
-          githubUsername: true
+          githubUsername: true,
         }
-      }
+      },
     },
     orderBy: {
       submittedAt: "desc"
     }
   });
-
-  const projects = projectsRaw as unknown as ProjectWithLead[];
   const pendingCount = projects.filter(p => !p.isApproved).length;
   const approvedCount = projects.filter(p => p.isApproved).length;
 

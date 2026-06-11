@@ -1,13 +1,25 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
 const publicRoutes = ["/login", "/api/auth"];
 const isPublicRoute = (path: string) => publicRoutes.some(route => path.startsWith(route));
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth;
-  const { nextUrl } = req;
-  const path = nextUrl.pathname;
+/**
+ * Next.js 16 Proxy (replaces the deprecated middleware convention).
+ *
+ * Uses `getToken()` from next-auth/jwt instead of the `auth()` wrapper.
+ * Why: `auth()` pulls in the full Prisma adapter which requires Node.js
+ * `crypto` — that module is unavailable in the Edge Runtime that proxy
+ * runs in. `getToken()` only decodes the JWT cookie via `jose` (Edge-safe).
+ *
+ * The JWT contains `id`, `role`, `usn`, `branch`, `lcUsername`, and
+ * `accessToken` — set by the jwt callback in lib/auth.ts.
+ */
+export async function proxy(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const isLoggedIn = !!token;
+  const path = req.nextUrl.pathname;
 
   console.log(`[Proxy] Path: ${path} | isLoggedIn: ${isLoggedIn}`);
 
@@ -19,43 +31,46 @@ export default auth((req) => {
   // Redirect unauthenticated users to login
   if (!isLoggedIn && !isPublicRoute(path) && path !== "/") {
     console.log(`[Proxy] Redirecting unauthenticated user to /login`);
-    return NextResponse.redirect(new URL("/login", nextUrl));
+    return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  if (isLoggedIn) {
-    const user = req.auth?.user;
-    
-    // Check if user has completed onboarding
-    const isOnboarded = !!(user?.usn && user?.branch && user?.lcUsername);
-    console.log(`[Proxy] User onboarded: ${isOnboarded} (USN: ${user?.usn})`);
+  if (isLoggedIn && token) {
+    // Read user data from the JWT (set by the jwt callback in lib/auth.ts)
+    const usn = token.usn as string | null;
+    const branch = token.branch as string | null;
+    const lcUsername = token.lcUsername as string | null;
+    const role = token.role as string | undefined;
+
+    const isOnboarded = !!(usn && branch && lcUsername);
+    console.log(`[Proxy] User onboarded: ${isOnboarded} (USN: ${usn})`);
 
     // If on login page but logged in, redirect based on onboarding status
     if (path.startsWith("/login")) {
       console.log(`[Proxy] Logged in user on /login, redirecting to ${isOnboarded ? "/dashboard" : "/onboarding"}`);
-      return NextResponse.redirect(new URL(isOnboarded ? "/dashboard" : "/onboarding", nextUrl));
+      return NextResponse.redirect(new URL(isOnboarded ? "/dashboard" : "/onboarding", req.nextUrl));
     }
 
     // If not onboarded and trying to access protected route (except onboarding and public APIs)
     if (!isOnboarded && !path.startsWith("/onboarding") && !path.startsWith("/api")) {
       console.log(`[Proxy] User not onboarded, redirecting to /onboarding`);
-      return NextResponse.redirect(new URL("/onboarding", nextUrl));
+      return NextResponse.redirect(new URL("/onboarding", req.nextUrl));
     }
 
     // If onboarded and trying to access onboarding, redirect away
     if (isOnboarded && path.startsWith("/onboarding")) {
       console.log(`[Proxy] User already onboarded, redirecting away from /onboarding`);
-      return NextResponse.redirect(new URL("/dashboard", nextUrl));
+      return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
     }
 
     // Admin Route Protection
-    if (path.startsWith("/admin") && user?.role !== "admin") {
+    if (path.startsWith("/admin") && role !== "admin") {
       console.log(`[Proxy] Non-admin tried to access /admin`);
-      return NextResponse.redirect(new URL("/", nextUrl));
+      return NextResponse.redirect(new URL("/", req.nextUrl));
     }
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],

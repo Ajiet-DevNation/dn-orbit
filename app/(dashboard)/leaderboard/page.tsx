@@ -41,7 +41,7 @@ export default async function LeaderboardPage() {
         },
       },
     },
-    orderBy: [{ rank: "asc" }, { totalScore: "desc" }],
+    orderBy: [{ rank: { sort: "asc", nulls: "last" } }, { totalScore: "desc" }],
   })) as ScoreRow[];
 
   const currentUserScore = scores.find((score) => score.userId === session.user.id);

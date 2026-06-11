@@ -7,6 +7,7 @@ import {
   LogOut,
   Trophy,
   Rocket,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,6 +16,7 @@ import { SidebarBrand } from "@/components/layout/SidebarBrand";
 
 const navItems = [
   { label: "DASHBOARD", href: "/dashboard", icon: LayoutDashboard },
+  { label: "PROFILE", href: "/profile", icon: User },
   { label: "LEADERBOARD", href: "/leaderboard", icon: Trophy },
   { label: "EVENTS", href: "/events", icon: Calendar },
   { label: "MEMBERS", href: "/members", icon: Users },
