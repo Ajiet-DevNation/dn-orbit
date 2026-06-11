@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { SidebarBrand } from "@/components/layout/SidebarBrand";
 
 export default async function AdminLayout({
   children,
@@ -36,17 +37,7 @@ export default async function AdminLayout({
     <div className="min-h-screen bg-black text-white font-mono flex">
       {/* Sidebar Navigation */}
       <aside className="w-72 border-r border-zinc-900 flex flex-col sticky top-0 h-screen bg-black z-50">
-        <div className="p-8 border-b border-zinc-900">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white flex items-center justify-center">
-              <span className="text-black font-black text-xs">DN</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-black tracking-tighter leading-none">ORBIT</span>
-              <span className="text-[9px] text-zinc-600 font-bold tracking-widest">COMMAND_SEC_V4</span>
-            </div>
-          </div>
-        </div>
+        <SidebarBrand sectorLabel="COMMAND_SEC_V4" />
 
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
           {navItems.map((item) => (
