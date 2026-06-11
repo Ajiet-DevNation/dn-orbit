@@ -3,15 +3,39 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { TacticalCard } from "@/components/ui/TacticalCard";
+import { StatsRefreshPanel } from "@/components/features/dashboard/StatsRefreshPanel";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const isStale = (d?: Date | null) =>
   d ? Date.now() - new Date(d).getTime() > DAY_MS : false;
 
-// `topLanguages` is stored as a JSON value; coerce it safely to string[].
-function asLanguageList(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((v): v is string => typeof v === "string");
+type LanguageStat = {
+  label: string;
+  count: number;
+};
+
+// GitHub stats store topLanguages as JSON; accept both a keyed object map and
+// older array-like shapes so the dashboard can render existing rows safely.
+function asLanguageStats(value: unknown): LanguageStat[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((entry): entry is string => typeof entry === "string")
+      .map((label, index, labels) => ({
+        label,
+        count: labels.length - index,
+      }));
+  }
+
+  if (!value || typeof value !== "object") return [];
+
+  return Object.entries(value as Record<string, unknown>)
+    .filter(([, count]) => typeof count === "number")
+    .sort(([, a], [, b]) => (b as number) - (a as number))
+    .slice(0, 5)
+    .map(([label, count]) => ({
+      label,
+      count: count as number,
+    }));
 }
 
 export default async function DashboardPage() {
@@ -42,7 +66,7 @@ export default async function DashboardPage() {
       }),
     ]);
 
-  const languages = asLanguageList(githubStats?.topLanguages).slice(0, 5);
+  const languages = asLanguageStats(githubStats?.topLanguages);
   const statsStale = isStale(githubStats?.fetchedAt) || isStale(lcStats?.fetchedAt);
 
   const statCards = [
@@ -105,8 +129,63 @@ export default async function DashboardPage() {
         ))}
       </div>
 
+      {/* ── Leaderboard entry point ── */}
+      <TacticalCard
+        id="0xRANKING"
+        title="LEADERBOARD_LINK"
+        subtitle="Stored nightly scores from the scoring engine. Open the full board to inspect rank movement and component breakdowns."
+      >
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
+              Your dashboard shows the personal snapshot. The leaderboard page shows
+              the full member ranking, your exact position, and the score split used
+              by the nightly compute job.
+            </p>
+            <div className="flex flex-wrap gap-6 text-[10px] text-zinc-500 tracking-widest uppercase">
+              <span>
+                CURRENT_RANK {leaderboardScore?.rank != null ? `#${leaderboardScore.rank}` : "PENDING"}
+              </span>
+              <span>
+                TOTAL_SCORE {leaderboardScore ? leaderboardScore.totalScore.toFixed(1) : "—"}
+              </span>
+            </div>
+          </div>
+
+          <Link
+            href="/leaderboard"
+            className="inline-flex items-center justify-center px-5 py-3 text-[10px] font-black tracking-[0.3em] uppercase border border-zinc-800 bg-zinc-950 text-white hover:bg-white hover:text-black hover:border-white transition-colors"
+          >
+            OPEN_LEADERBOARD
+          </Link>
+        </div>
+      </TacticalCard>
+
       {/* ── GitHub + LeetCode ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section className="space-y-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-black uppercase tracking-tighter">
+                STATS_SUMMARY
+              </h2>
+              <div className="h-px flex-1 bg-zinc-900" />
+            </div>
+            <p className="max-w-3xl text-sm text-zinc-500 leading-relaxed">
+              Cached GitHub and LeetCode snapshots for your account. Use refresh when
+              the cache window has expired or after updating your linked profiles.
+            </p>
+          </div>
+        </div>
+
+        <StatsRefreshPanel
+          userId={userId}
+          hasLeetCodeUsername={Boolean(session.user.lcUsername)}
+          hasGitHubAccessToken={Boolean(session.user.accessToken)}
+          statsStale={statsStale}
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GitHub stats */}
         <TacticalCard id="0xGITHUB" title="GITHUB_STATS">
           {githubStats ? (
@@ -123,12 +202,13 @@ export default async function DashboardPage() {
                   <span className="block text-[9px] text-zinc-600 tracking-widest uppercase">
                     TOP_LANGUAGES
                   </span>
-                  {languages.map((lang, i) => {
-                    const pct = ((languages.length - i) / languages.length) * 100;
+                  {languages.map((lang) => {
+                    const maxCount = languages[0]?.count ?? 1;
+                    const pct = (lang.count / maxCount) * 100;
                     return (
-                      <div key={lang} className="flex items-center gap-3">
+                      <div key={lang.label} className="flex items-center gap-3">
                         <span className="text-[9px] text-zinc-500 w-20 uppercase truncate">
-                          {lang}
+                          {lang.label}
                         </span>
                         <div className="flex-1 h-1 bg-zinc-900">
                           <div
@@ -196,7 +276,8 @@ export default async function DashboardPage() {
             </div>
           )}
         </TacticalCard>
-      </div>
+        </div>
+      </section>
 
       {/* ── Upcoming events ── */}
       <section className="space-y-6">
