@@ -53,7 +53,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         });
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
-        setFeedback({ message: "PROJECT_CLEARANCE_GRANTHED", type: "success" });
+        setFeedback({ message: "PROJECT_CLEARANCE_GRANTED", type: "success" });
       } catch (err) {
         setFeedback({ 
           message: "APPROVE_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"), 
