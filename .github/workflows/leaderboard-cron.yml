@@ -1,0 +1,25 @@
+name: Leaderboard Cron
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  run-leaderboard-cron:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger leaderboard recompute
+        env:
+          CRON_URL: ${{ secrets.CRON_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "CRON_URL and CRON_SECRET are required"
+            exit 1
+          fi
+
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${CRON_URL%/}/api/cron/leaderboard"
