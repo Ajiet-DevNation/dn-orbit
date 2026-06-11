@@ -127,3 +127,10 @@ The following variables must be configured in your `.env` file:
 - `NEXTAUTH_SECRET`: Random secret for session encryption.
 - `NEXTAUTH_URL`: Canonical application URL.
 - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`: GitHub OAuth credentials.
+
+### Leaderboard cron
+
+If you want the leaderboard recomputed by GitHub Actions, add these repository secrets:
+
+- `CRON_URL`: Public base URL of the deployed app, such as `https://your-app.vercel.app`.
+- `CRON_SECRET`: Shared secret sent to `/api/cron/leaderboard`.
