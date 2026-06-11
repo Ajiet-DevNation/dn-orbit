@@ -105,6 +105,38 @@ export default async function DashboardPage() {
         ))}
       </div>
 
+      {/* ── Leaderboard entry point ── */}
+      <TacticalCard
+        id="0xRANKING"
+        title="LEADERBOARD_LINK"
+        subtitle="Stored nightly scores from the scoring engine. Open the full board to inspect rank movement and component breakdowns."
+      >
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl">
+              Your dashboard shows the personal snapshot. The leaderboard page shows
+              the full member ranking, your exact position, and the score split used
+              by the nightly compute job.
+            </p>
+            <div className="flex flex-wrap gap-6 text-[10px] text-zinc-500 tracking-widest uppercase">
+              <span>
+                CURRENT_RANK {leaderboardScore?.rank != null ? `#${leaderboardScore.rank}` : "PENDING"}
+              </span>
+              <span>
+                TOTAL_SCORE {leaderboardScore ? leaderboardScore.totalScore.toFixed(1) : "—"}
+              </span>
+            </div>
+          </div>
+
+          <Link
+            href="/leaderboard"
+            className="inline-flex items-center justify-center px-5 py-3 text-[10px] font-black tracking-[0.3em] uppercase border border-zinc-800 bg-zinc-950 text-white hover:bg-white hover:text-black hover:border-white transition-colors"
+          >
+            OPEN_LEADERBOARD
+          </Link>
+        </div>
+      </TacticalCard>
+
       {/* ── GitHub + LeetCode ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GitHub stats */}

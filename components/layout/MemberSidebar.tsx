@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { SidebarBrand } from "@/components/layout/SidebarBrand";
 
 const navItems = [
   { label: "DASHBOARD", href: "/dashboard", icon: LayoutDashboard },
@@ -25,22 +26,7 @@ export function MemberSidebar({ userName }: { userName: string }) {
 
   return (
     <aside className="w-72 border-r border-zinc-900 flex flex-col sticky top-0 h-screen bg-black z-50">
-      {/* Logo block */}
-      <div className="p-8 border-b border-zinc-900">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-white flex items-center justify-center">
-            <span className="text-black font-black text-xs">DN</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-black tracking-tighter leading-none">
-              ORBIT
-            </span>
-            <span className="text-[9px] text-zinc-600 font-bold tracking-widest">
-              MEMBER_SECTOR_V1
-            </span>
-          </div>
-        </div>
-      </div>
+      <SidebarBrand sectorLabel="MEMBER_SECTOR_V1" />
 
       {/* Navigation */}
       <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
