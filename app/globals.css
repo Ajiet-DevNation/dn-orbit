@@ -4,7 +4,7 @@
 
 @theme inline {
   /* Colors */
-  --color-bg: #0a0a0a;
+  --color-bg: #000000;
   --color-surface: #111111;
   --color-surface-2: #1a1a1a;
   --color-surface-3: #2a2a2a;
@@ -168,3 +168,37 @@ body {
   background-size: 128px 128px;
 }
 
+/* ── About Section — card hover glow ── */
+
+.about-card {
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+}
+.about-card:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.06), inset 0 0 20px rgba(255, 255, 255, 0.02);
+}
+
+/* ── OrbitIntro — CSS persistence after animation completes ── */
+/* When the intro finishes, the "intro-done" class is added to the section.
+   These rules force animated elements to their final state via CSS specificity,
+   so even if React re-renders and resets inline styles, they stay visible. */
+
+.intro-done .orbit-letter-O,
+.intro-done .orbit-letter {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  filter: blur(0px) !important;
+}
+
+.intro-done .orbital-ring-path {
+  opacity: 1 !important;
+}
+
+.intro-done .orbit-join-cta {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+.intro-done .orbit-tagline {
+  opacity: 0.25 !important;
+}

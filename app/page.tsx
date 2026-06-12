@@ -1,28 +1,27 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { PageShell } from "@/components/layout/PageShell";
-import { TerminalButton } from "@/components/ui/TerminalButton";
-import { ArchiveBadge } from "@/components/ui/ArchiveBadge";
-
 import { OrbitIntro } from "@/components/sections/OrbitIntro";
 import { TerminalParallax } from "@/components/sections/TerminalParallax";
+import { AboutSection } from "@/components/sections/AboutSection";
+import { ContactSection } from "@/components/sections/ContactSection";
 
 /**
  * Home page — ORBIT Landing
  *
  * Structure:
- *   1. OrbitIntro — Cinematic brand animation (full-screen)
- *   2. TerminalParallax — Scroll-driven terminal with members/projects
- *   3. Join CTA — Call-to-action to join the collective
+ *   1. OrbitIntro — Cinematic brand animation (full-screen) + Join CTA
+ *   2. AboutSection — Club overview with image placeholder
+ *   3. TerminalParallax — Scroll-driven terminal with members/projects
+ *   4. ContactSection — Contact info grid
  *
+ * No Navbar or Footer on the landing page — minimalist, distraction-free.
  * Client Component for Framer Motion animations.
  */
 
 export default function Home() {
   return (
-    <PageShell>
-      {/* ── Cinematic Brand Intro ── */}
+    <main className="relative z-10 flex-1">
+      {/* ── Cinematic Brand Intro + Join CTA ── */}
       <OrbitIntro
         assets={[
           "https://api.dicebear.com/9.x/shapes/svg?seed=orbit1",
@@ -31,48 +30,14 @@ export default function Home() {
         ]}
       />
 
+      {/* ── About Section ── */}
+      <AboutSection />
+
       {/* ── Parallax Terminal Section ── */}
       <TerminalParallax />
 
-      {/* ── Join CTA Section ── */}
-      <section className="relative overflow-hidden px-6 py-24 md:px-12 lg:px-24">
-        {/* Background repeating text */}
-        <div
-          className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-[0.04]"
-          aria-hidden="true"
-        >
-          <p className="whitespace-nowrap font-heading text-[120px] uppercase leading-none tracking-tight text-white md:text-[180px]">
-            JOIN THE COLLECTIVE JOIN THE COLLECTIVE JOIN THE COLLECTIVE
-          </p>
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="relative z-10 mx-auto max-w-lg text-center"
-        >
-          <ArchiveBadge
-            label="INITIATE_SESSION"
-            variant="urgent"
-            className="mb-4"
-          />
-          <h2 className="font-heading text-5xl uppercase tracking-tight text-white md:text-6xl">
-            JOIN THE COLLECTIVE
-          </h2>
-          <p className="mt-3 font-mono text-xs uppercase tracking-widest text-text-muted">
-            CLICK TO INITIALIZE MEMBERSHIP
-          </p>
-          <div className="mt-6">
-            <TerminalButton
-              label="INITIATE_CONNECTION"
-              href="/login"
-              variant="filled"
-            />
-          </div>
-        </motion.div>
-      </section>
-    </PageShell>
+      {/* ── Contact Section ── */}
+      <ContactSection />
+    </main>
   );
 }
