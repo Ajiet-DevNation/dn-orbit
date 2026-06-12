@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { motion, useScroll, useMotionValueEvent, type MotionValue } from "framer-motion";
+import { useScroll, useMotionValueEvent } from "framer-motion";
 import { TERMINAL_MEMBERS, TERMINAL_PROJECTS } from "@/constants/terminalData";
 import type { TerminalMember, TerminalProject } from "@/constants/terminalData";
 

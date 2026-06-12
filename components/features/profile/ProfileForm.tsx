@@ -47,7 +47,7 @@ export function ProfileForm({ initialData }: UserProfileProps) {
         setSuccess(true);
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred.");
     } finally {
       setIsPending(false);
