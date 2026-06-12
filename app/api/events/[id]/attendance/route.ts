@@ -1,44 +1,52 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
-type Params = { params: Promise<{ id: string }> };
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    // 1. Enforce Admin Security Clearance
+    const session = await auth();
+    if (session?.user?.role !== "admin") {
+      return new NextResponse("UNAUTHORIZED_ACCESS", { status: 403 });
+    }
 
-export async function PATCH(req: NextRequest, { params }: Params) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-  if (session.user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // 2. Await the dynamic route parameters (Next.js 15+ requirement)
+    const resolvedParams = await params;
+    const eventId = resolvedParams.id;
 
-  const { id: eventId } = await params;
-  const { userId, attended } = await req.json();
+    // 3. Extract the payload from the frontend
+    const body = await req.json();
+    const { userId, attended } = body;
 
-  if (!userId || attended === undefined) {
-    return NextResponse.json({ error: "userId and attended are required" }, { status: 400 });
+    if (!userId || typeof attended !== "boolean") {
+      return new NextResponse("INVALID_PAYLOAD", { status: 400 });
+    }
+
+    // 4. Update the operative's attendance status in the database
+    // We use updateMany here because we are querying by the composite of eventId + userId
+    const updatedRegistration = await db.registration.updateMany({
+      where: {
+        eventId: eventId,
+        userId: userId,
+      },
+      data: {
+        attended: attended,
+      },
+    });
+
+    if (updatedRegistration.count === 0) {
+      return new NextResponse("REGISTRATION_NOT_FOUND", { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "ATTENDANCE_STATUS_UPDATED",
+    });
+  } catch (error) {
+    console.error("[EVENT_ATTENDANCE_POST]", error);
+    return new NextResponse("INTERNAL_SERVER_ERROR", { status: 500 });
   }
-
-  const registration = await db.registration.update({
-    where: {
-      userId_eventId: { userId, eventId },
-    },
-    data: { attended },
-  });
-
-  return NextResponse.json(registration);
-}
-
-export async function GET(_req: NextRequest, { params }: Params) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-  if (session.user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  const { id: eventId } = await params;
-
-  const registrations = await db.registration.findMany({
-    where: { eventId },
-    include: {
-      user: { select: { id: true, name: true, email: true, githubUsername: true } },
-    },
-  });
-
-  return NextResponse.json(registrations);
 }
