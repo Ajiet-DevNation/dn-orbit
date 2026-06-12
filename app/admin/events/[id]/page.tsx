@@ -59,7 +59,7 @@ export default async function AdminEventRosterPage({
         </h1>
         <div className="flex items-center gap-4 mt-4">
           <span className="text-[10px] text-zinc-600 tracking-[0.4em] uppercase font-bold">
-            EVT_ID: {eventIdHex} // {eventRaw.title}
+            EVT_ID: {eventIdHex} — {eventRaw.title}
           </span>
           <div className="h-px flex-1 bg-zinc-900" />
         </div>

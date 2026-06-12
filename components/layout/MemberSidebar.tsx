@@ -8,17 +8,16 @@ import {
   Calendar,
   Users,
   Rocket,
-  LogOut,
   Settings,
 } from "lucide-react";
-import { SignOutButton } from "@/components/auth/SignOutButton";
 import { SidebarBrand } from "@/components/layout/SidebarBrand";
 
 interface MemberSidebarProps {
   userName: string;
 }
 
-export default function MemberSidebar({ userName }: MemberSidebarProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export default function MemberSidebar({ userName: _ }: MemberSidebarProps) {
   const pathname = usePathname();
 
   const navItems = [

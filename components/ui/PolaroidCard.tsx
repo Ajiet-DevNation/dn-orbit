@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 interface PolaroidCardProps {
@@ -24,10 +25,11 @@ export function PolaroidCard({
     <div className="relative border-[6px] border-white bg-surface">
       {/* Image region */}
       <div className="relative aspect-square overflow-hidden bg-surface-2">
-        <img
+        <Image
           src={image}
           alt={title}
-          className="h-full w-full object-cover"
+          fill
+          className="object-cover"
         />
         {/* Stamp overlays */}
         {children}
