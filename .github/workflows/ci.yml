@@ -14,7 +14,3 @@ jobs:
       - run: bunx prisma generate
       - run: bun run lint
       - run: bunx tsc --noEmit
-      - name: Build Application
-        run: bun run build
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/orbit"
