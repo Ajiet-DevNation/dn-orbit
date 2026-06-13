@@ -110,7 +110,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-md">
         <Card>
           <CardHeader className="p-8 pb-6">
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex items-center gap-4 mb-3">
               <div className="border-[3px] border-foreground p-1">
                 <Image src="/assets/DNLogoTransparent.png" alt="DN Logo" width={32} height={32} className="w-8 h-8 pixelated drop-shadow-md" />
               </div>
@@ -118,7 +118,7 @@ export default function OnboardingPage() {
                 <div className="font-black text-[10px] tracking-widest uppercase">ORBIT</div>
               </div>
             </div>
-            <CardTitle className="text-2xl leading-tight uppercase mb-2">
+            <CardTitle className="text-2xl leading-tight uppercase">
               CREATE YOUR PROFILE
             </CardTitle>
           </CardHeader>
@@ -131,7 +131,7 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            <form action={handleSubmit} className="space-y-8">
+            <form action={handleSubmit} className="space-y-5">
               {/* Hidden fields — always submitted */}
               <input type="hidden" name="name" value={name} />
               <input type="hidden" name="usn" value={usn} />
@@ -139,9 +139,9 @@ export default function OnboardingPage() {
               <input type="hidden" name="year" value={year} />
               <input type="hidden" name="lc_username" value={lcUsername} />
 
-              <div className="space-y-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="name" className="text-[8px] text-muted-foreground uppercase tracking-widest">FULL_NAME</Label>
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name" className="text-[10px] text-muted-foreground uppercase tracking-widest">FULL_NAME</Label>
                   <Input
                     id="name"
                     placeholder="YOUR NAME"
@@ -149,13 +149,13 @@ export default function OnboardingPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setName(e.target.value)
                     }
-                    className={fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                    className={`text-xs ${fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   />
-                  {fieldErrors.name && <p className="text-[8px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.name}</p>}
+                  {fieldErrors.name && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.name}</p>}
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="usn" className="text-[8px] text-muted-foreground uppercase tracking-widest">USN</Label>
+                <div className="grid gap-2">
+                  <Label htmlFor="usn" className="text-[10px] text-muted-foreground uppercase tracking-widest">USN</Label>
                   <Input
                     id="usn"
                     placeholder="4AL22CS001"
@@ -163,18 +163,18 @@ export default function OnboardingPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setUsn(e.target.value.toUpperCase())
                     }
-                    className={fieldErrors.usn ? "border-destructive focus-visible:ring-destructive uppercase" : "uppercase"}
+                    className={`text-xs uppercase ${fieldErrors.usn ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   />
-                  {fieldErrors.usn && <p className="text-[8px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.usn}</p>}
+                  {fieldErrors.usn && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.usn}</p>}
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="branch" className="text-[8px] text-muted-foreground uppercase tracking-widest">DOMAIN</Label>
+                <div className="grid gap-2">
+                  <Label htmlFor="branch" className="text-[10px] text-muted-foreground uppercase tracking-widest">DOMAIN</Label>
                   <Select value={branch} onValueChange={setBranch}>
-                    <SelectTrigger className={`w-full ${fieldErrors.branch ? "border-destructive" : ""}`}>
+                    <SelectTrigger className={`w-full text-xs ${fieldErrors.branch ? "border-destructive" : ""}`}>
                       <SelectValue placeholder="SELECT" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="text-xs">
                       <SelectItem value="CSE">CSE</SelectItem>
                       <SelectItem value="ISE">ISE</SelectItem>
                       <SelectItem value="ECE">ECE</SelectItem>
@@ -185,19 +185,19 @@ export default function OnboardingPage() {
                       <SelectItem value="CSD">CSD</SelectItem>
                     </SelectContent>
                   </Select>
-                  {fieldErrors.branch && <p className="text-[8px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.branch}</p>}
+                  {fieldErrors.branch && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.branch}</p>}
                 </div>
 
-                <div className="grid gap-3">
-                  <Label className="text-[8px] text-muted-foreground uppercase tracking-widest">YEAR</Label>
-                  <div className="grid grid-cols-4 gap-3">
+                <div className="grid gap-2">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-widest">YEAR</Label>
+                  <div className="grid grid-cols-4 gap-2">
                     {["1", "2", "3", "4"].map((y) => (
                       <Button
                         key={y}
                         type="button"
                         variant={year === y ? "default" : "outline"}
                         onClick={() => setYear(y)}
-                        className={`py-3 rounded-none h-auto transition-all ${year === y
+                        className={`py-3 text-xs rounded-none h-auto transition-all ${year === y
                           ? "bg-white text-black dark:bg-white dark:text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.5)] translate-y-1"
                           : "opacity-50 hover:opacity-100"
                           }`}
@@ -206,11 +206,11 @@ export default function OnboardingPage() {
                       </Button>
                     ))}
                   </div>
-                  {fieldErrors.year && <p className="text-[8px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.year}</p>}
+                  {fieldErrors.year && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.year}</p>}
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="lc_username" className="text-[8px] text-muted-foreground uppercase tracking-widest">
+                <div className="grid gap-2">
+                  <Label htmlFor="lc_username" className="text-[10px] text-muted-foreground uppercase tracking-widest">
                     LEETCODE_USERNAME
                   </Label>
                   <Input
@@ -220,15 +220,15 @@ export default function OnboardingPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setLcUsername(e.target.value)
                     }
-                    className={fieldErrors.lcUsername ? "border-destructive focus-visible:ring-destructive" : ""}
+                    className={`text-xs ${fieldErrors.lcUsername ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   />
                   {fieldErrors.lcUsername && (
-                    <p className="text-[8px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.lcUsername}</p>
+                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.lcUsername}</p>
                   )}
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="github" className="text-[8px] text-muted-foreground uppercase tracking-widest">
+                <div className="grid gap-2">
+                  <Label htmlFor="github" className="text-[10px] text-muted-foreground uppercase tracking-widest">
                     GITHUB_USERNAME <span className="text-zinc-600">(AUTO-FILLED)</span>
                   </Label>
                   <Input
@@ -236,7 +236,7 @@ export default function OnboardingPage() {
                     value={githubUsername}
                     readOnly
                     disabled
-                    className="opacity-50 cursor-not-allowed"
+                    className="text-xs opacity-50 cursor-not-allowed"
                   />
                 </div>
               </div>
