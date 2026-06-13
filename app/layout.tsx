@@ -9,6 +9,7 @@ import {
 import { DotGridBackground } from "@/components/ui/DotGridBackground";
 import "./globals.css";
 import { Providers } from "./providers";
+import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -71,6 +72,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-bg text-text">
         <DotGridBackground />
         <Providers>{children}</Providers>
+        <Toaster />
       </body>
     </html>
   );

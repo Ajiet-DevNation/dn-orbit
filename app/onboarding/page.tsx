@@ -15,6 +15,8 @@ import {
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/8bit-select";
+import { PixelStarsBackground } from "@/components/ui/PixelStarsBackground";
+import { toast } from "sonner";
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
@@ -89,7 +91,11 @@ export default function OnboardingPage() {
     const result = await submitOnboarding(formData);
 
     if (result.error) {
-      setServerError(result.error);
+      if (result.error.includes("LeetCode")) {
+        toast.error("INCORRECT_LEETCODE_USERNAME");
+      } else {
+        setServerError(result.error);
+      }
     } else if (result.success && result.user) {
       // Update the local session so middleware sees the new data
       await update({
@@ -106,8 +112,9 @@ export default function OnboardingPage() {
   if (showSuccess) return <SuccessOverlay />;
 
   return (
-    <div className="dark flex w-full min-h-screen items-center justify-center bg-background p-4 md:p-8 retro">
-      <div className="w-full max-w-xl">
+    <div className="dark flex w-full min-h-screen items-center justify-center bg-background p-6 md:p-12 retro relative">
+      <PixelStarsBackground />
+      <div className="w-full max-w-lg relative z-10">
         <Card>
           <CardHeader className="p-6 pb-2 flex flex-col items-center text-center space-y-0">
             <div className="flex items-center justify-center gap-2">
@@ -127,7 +134,7 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            <form action={handleSubmit} className="space-y-5">
+            <form action={handleSubmit} className="space-y-6">
               {/* Hidden fields — always submitted */}
               <input type="hidden" name="name" value={name} />
               <input type="hidden" name="usn" value={usn} />
@@ -135,8 +142,8 @@ export default function OnboardingPage() {
               <input type="hidden" name="year" value={year} />
               <input type="hidden" name="lc_username" value={lcUsername} />
 
-              <div className="space-y-4">
-                <div className="grid gap-2">
+              <div className="space-y-5">
+                <div className="grid gap-3">
                   <Label htmlFor="name" className="text-[10px] text-muted-foreground uppercase tracking-widest">FULL_NAME</Label>
                   <Input
                     id="name"
@@ -150,7 +157,7 @@ export default function OnboardingPage() {
                   {fieldErrors.name && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.name}</p>}
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-3">
                   <Label htmlFor="usn" className="text-[10px] text-muted-foreground uppercase tracking-widest">USN</Label>
                   <Input
                     id="usn"
@@ -164,7 +171,7 @@ export default function OnboardingPage() {
                   {fieldErrors.usn && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.usn}</p>}
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-3">
                   <Label htmlFor="branch" className="text-[10px] text-muted-foreground uppercase tracking-widest">DOMAIN</Label>
                   <Select value={branch} onValueChange={setBranch}>
                     <SelectTrigger className={`w-full text-xs ${fieldErrors.branch ? "border-destructive" : ""}`}>
@@ -184,9 +191,9 @@ export default function OnboardingPage() {
                   {fieldErrors.branch && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.branch}</p>}
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-3">
                   <Label className="text-[10px] text-muted-foreground uppercase tracking-widest">YEAR</Label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-3">
                     {["1", "2", "3", "4"].map((y) => (
                       <Button
                         key={y}
@@ -205,7 +212,7 @@ export default function OnboardingPage() {
                   {fieldErrors.year && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.year}</p>}
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-3">
                   <Label htmlFor="lc_username" className="text-[10px] text-muted-foreground uppercase tracking-widest">
                     LEETCODE_USERNAME
                   </Label>
@@ -223,7 +230,7 @@ export default function OnboardingPage() {
                   )}
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-3">
                   <Label htmlFor="github" className="text-[10px] text-muted-foreground uppercase tracking-widest">
                     GITHUB_USERNAME <span className="text-zinc-600">(AUTO-FILLED)</span>
                   </Label>
