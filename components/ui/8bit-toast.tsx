@@ -1448,16 +1448,22 @@ var Toaster = /* @__PURE__ */ React4.forwardRef(function Toaster2(props, ref) {
 });
 
 // ../../../private/tmp/esbuild-batch7/toast-stage/src/components/ui/8bit/toast.tsx
-function toast2(toast3) {
-  return toast.custom((id) => <Toast2 id={id} title={toast3} />);
+function toast2(toast3, options) {
+  return toast.custom((id) => <Toast2 id={id} title={toast3} variant={options?.variant} />);
 }
+toast2.error = (message) => toast2(message, { variant: "error" });
+toast2.success = (message) => toast2(message, { variant: "success" });
+
 function Toast2(props) {
-  const { title } = props;
+  const { title, variant } = props;
+  const isError = variant === "error";
+  
   return <div className={`relative ${"retro"}`}>
-      <div className="flex rounded-lg bg-background shadow-lg ring-1 ring-black/5 w-full md:max-w-[364px] items-center p-4">
-        <div className="flex flex-1 items-center">
+      <div className={`flex rounded-none shadow-lg ring-1 ring-black/5 w-full md:max-w-[364px] items-center p-4 ${isError ? "bg-destructive text-destructive-foreground" : "bg-background"}`}>
+        <div className="flex flex-1 items-center gap-3">
+          {isError && <span className="flex-shrink-0 bg-white text-destructive rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs">X</span>}
           <div className="w-full">
-            <p className="text-sm font-medium">{title}</p>
+            <p className="text-xs uppercase tracking-widest font-medium">{title}</p>
           </div>
         </div>
       </div>
