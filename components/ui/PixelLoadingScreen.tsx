@@ -165,7 +165,10 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   const [orbitVisible, setOrbitVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 10);
+    return () => clearTimeout(timer);
+  }, []);
   const animFrameRef = useRef<number>(0);
   const totalBlocksRef = useRef<number>(1);
 

@@ -31,7 +31,6 @@ export default async function V2Layout({
       year: true,
       lcUsername: true,
       bio: true,
-      isVisible: true,
     },
   });
 
@@ -42,7 +41,6 @@ export default async function V2Layout({
     year: dbUser?.year ?? null,
     lcUsername: dbUser?.lcUsername ?? "",
     bio: dbUser?.bio ?? "",
-    isVisible: dbUser?.isVisible ?? true,
   };
 
   return (

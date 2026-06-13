@@ -33,10 +33,7 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
   const [headerVisible, setHeaderVisible] = useState(!isLandingPage);
 
   useEffect(() => {
-    if (!isLandingPage) {
-      setHeaderVisible(true);
-      return;
-    }
+    if (!isLandingPage) return;
 
     const handleScroll = () => {
       // Show header after scrolling down halfway through the hero section
