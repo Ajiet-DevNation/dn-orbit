@@ -467,7 +467,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       />
 
       {/* ── Central animation area ── */}
-      <div className="relative z-10 flex w-full max-w-[700px] flex-col items-center">
+      <div className="relative z-10 flex w-full max-w-[700px] flex-col items-center -translate-y-8">
         {/* ── 3D Container ── */}
         <div className="relative w-full aspect-square flex items-center justify-center">
           
