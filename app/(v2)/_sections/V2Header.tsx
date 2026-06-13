@@ -74,7 +74,7 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
       <div className="relative flex items-center justify-between px-6 pt-6 pb-3 gap-4">
 
         {/* Left: Logo + Brand */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-0 shrink-0">
           <Image
             src="/assets/DNLogoTransparent.png"
             alt="DevNation"
