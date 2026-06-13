@@ -20,7 +20,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main className="dark flex min-h-screen w-full items-center justify-center bg-background p-8 retro">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-md">
         <LoginForm errorMessage={errorMessage} />
       </div>
     </main>
