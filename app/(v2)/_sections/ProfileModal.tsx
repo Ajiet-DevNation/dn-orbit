@@ -258,23 +258,21 @@ export function ProfileModal({
                 </span>
               </label>
 
-              <Button
-                className="mt-2 w-full text-[10px]"
-                onClick={() => setConfirmOpen(true)}
-              >
-                SAVE CHANGES
-              </Button>
+              <div className="mt-2 flex gap-4 w-full">
+                <Button
+                  className="flex-[2] text-[10px]"
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  SAVE CHANGES
+                </Button>
+                <Button
+                  className="flex-[1] text-[10px] !bg-red-600 hover:!bg-red-500 !text-white"
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                >
+                  LOG OUT
+                </Button>
+              </div>
             </div>
-          </div>
-          
-          {/* Logout Button */}
-          <div className="mt-12 flex justify-start">
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="retro text-[10px] text-red-500 hover:text-red-400 hover:underline transition-colors"
-            >
-              [ LOG OUT ]
-            </button>
           </div>
         </div>
       </div>
