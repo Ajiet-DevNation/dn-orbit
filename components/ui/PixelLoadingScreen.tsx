@@ -527,6 +527,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                 className="absolute flex items-center justify-center rounded-full force-rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
                 style={{
                   backgroundColor: "#181717",
+                  borderRadius: "50%",
                   width: PLANET_ICON_SIZE,
                   height: PLANET_ICON_SIZE,
                   left: `calc(50% + ${(planetPositions.github.x / CANVAS_SIZE) * 100}%)`,
@@ -545,6 +546,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                 className="absolute flex items-center justify-center rounded-full force-rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
                 style={{
                   backgroundColor: "#FFA116",
+                  borderRadius: "50%",
                   width: PLANET_ICON_SIZE,
                   height: PLANET_ICON_SIZE,
                   left: `calc(50% + ${(planetPositions.leetcode.x / CANVAS_SIZE) * 100}%)`,
@@ -563,6 +565,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                 className="absolute flex items-center justify-center rounded-full force-rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
                 style={{
                   backgroundColor: "#0a66c2",
+                  borderRadius: "50%",
                   width: PLANET_ICON_SIZE,
                   height: PLANET_ICON_SIZE,
                   left: `calc(50% + ${(planetPositions.linkedin.x / CANVAS_SIZE) * 100}%)`,
