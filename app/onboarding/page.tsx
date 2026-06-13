@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/8bit-select";
 import { PixelStarsBackground } from "@/components/ui/PixelStarsBackground";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/8bit-toast";
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
@@ -174,10 +174,10 @@ export default function OnboardingPage() {
                 <div className="grid gap-3">
                   <Label htmlFor="branch" className="text-[10px] text-muted-foreground uppercase tracking-widest">DOMAIN</Label>
                   <Select value={branch} onValueChange={setBranch}>
-                    <SelectTrigger className={`w-full text-xs ${fieldErrors.branch ? "border-destructive" : ""}`}>
+                    <SelectTrigger className={`w-full ${fieldErrors.branch ? "border-destructive" : ""}`}>
                       <SelectValue placeholder="SELECT" />
                     </SelectTrigger>
-                    <SelectContent className="text-xs">
+                    <SelectContent>
                       <SelectItem value="CSE">CSE</SelectItem>
                       <SelectItem value="ISE">ISE</SelectItem>
                       <SelectItem value="ECE">ECE</SelectItem>
