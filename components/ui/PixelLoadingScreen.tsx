@@ -430,7 +430,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   const wrapperClass =
     mode === "loading"
       ? "fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 backdrop-blur-sm"
-      : "relative flex min-h-[70vh] w-full items-center justify-center overflow-hidden";
+      : "relative flex min-h-[100vh] w-full items-center justify-center overflow-hidden";
 
   return (
     <div className={wrapperClass}>
