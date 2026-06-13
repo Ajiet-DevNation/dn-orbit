@@ -3,6 +3,7 @@
 
 import { useEffect, useRef } from "react";
 import { useAnimate, stagger } from "framer-motion";
+import Image from "next/image";
 
 /* ══════════════════════════════════════════════════════════════
    ORBITAL MATH ENGINE
@@ -378,9 +379,11 @@ export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
                     borderRadius: "50%",
                   }}
                 >
-                  <img
+                  <Image
                     src={assets[i]}
                     alt=""
+                    width={40}
+                    height={40}
                     className="h-3/4 w-3/4 object-contain"
                     style={{ filter: "brightness(0.9)" }}
                   />

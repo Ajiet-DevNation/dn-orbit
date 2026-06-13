@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { ExternalLink } from "lucide-react";
+import Image from "next/image";
 import { TERMINAL_MEMBERS, TERMINAL_PROJECTS } from "@/constants/terminalData";
 import type { TerminalMember, TerminalProject } from "@/constants/terminalData";
 
@@ -58,9 +59,11 @@ function MemberCard({
     >
       {/* Top row: avatar + name + status */}
       <div className="flex items-center gap-3">
-        <img
+        <Image
           src={member.avatar}
           alt={member.name}
+          width={40}
+          height={40}
           className="h-10 w-10 border border-border/30 bg-surface"
           style={{ borderRadius: "8px" }}
         />
@@ -129,9 +132,11 @@ function ProjectCard({
     >
       {/* Project image */}
       <div className="flex h-28 items-center justify-center bg-surface/80 p-4">
-        <img
+        <Image
           src={project.image}
           alt={project.name}
+          width={64}
+          height={64}
           className="h-16 w-16 opacity-60"
         />
       </div>
