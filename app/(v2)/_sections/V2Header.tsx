@@ -35,17 +35,20 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
   useEffect(() => {
     if (!isLandingPage) return;
 
-    const handleReveal = () => setHeaderVisible(true);
-    window.addEventListener("hero-reveal-header", handleReveal);
-
-    // Safety fallback: if something blocks the hero animation,
-    // force reveal the header after a few seconds so the site isn't broken
-    const fallbackTimer = setTimeout(handleReveal, 5000);
-
-    return () => {
-      window.removeEventListener("hero-reveal-header", handleReveal);
-      clearTimeout(fallbackTimer);
+    const handleScroll = () => {
+      // Show header after scrolling down halfway through the hero section
+      if (window.scrollY > window.innerHeight * 0.5) {
+        setHeaderVisible(true);
+      } else {
+        setHeaderVisible(false);
+      }
     };
+
+    // Initial check on mount
+    handleScroll();
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [isLandingPage]);
 
   const handleTabChange = (value: string) => {
@@ -61,25 +64,18 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
     .toUpperCase();
 
   return (
-    <header 
-      className="sticky top-0 z-50 w-full bg-transparent"
-      style={{
-        opacity: headerVisible ? 1 : 0,
-        transform: headerVisible ? "translateY(0)" : "translateY(-16px)",
-        transition: "opacity 800ms ease-out, transform 800ms ease-out",
-        pointerEvents: headerVisible ? "auto" : "none"
-      }}
-    >
+    <>
+      <header className="sticky top-0 z-50 w-full bg-transparent">
       <div className="relative flex items-center justify-between px-6 pt-6 pb-3 gap-4">
 
         {/* Left: Logo + Brand */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-0 shrink-0">
           <Image
             src="/assets/DNLogoTransparent.png"
             alt="DevNation"
-            width={48}
-            height={48}
-            className="pixelated opacity-90 h-10 w-10 sm:h-12 sm:w-12"
+            width={64}
+            height={64}
+            className="pixelated opacity-90 h-14 w-14 sm:h-16 sm:w-16 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
           />
           <span className="font-[family-name:var(--font-pixel)] text-white text-2xl leading-none hidden sm:block mt-1">
             ORBIT
@@ -88,25 +84,35 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
 
         {/* Center: 8-bit nav tabs — absolutely centered to the viewport so the
             differing logo/avatar widths don't push it off-centre. */}
-        <div className="absolute left-1/2 -translate-x-1/2 hidden md:block mt-3">
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            {/*
-              TabsList background is bg-card (dark mode = #292929).
-              The pixel border divs inside use border-foreground / dark:border-ring.
-              The globals.css fix above corrects border-width from 24px → 6px.
-            */}
-            <TabsList>
-              {NAV_TABS.map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="px-4 py-2 text-xs"
-                >
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+        <div className="absolute inset-x-0 top-6 flex justify-center pointer-events-none">
+          <div 
+            className="hidden md:block mt-3"
+            style={{
+              opacity: headerVisible ? 1 : 0,
+              transform: headerVisible ? "translateY(0)" : "translateY(-16px)",
+              transition: "opacity 800ms ease-out, transform 800ms ease-out",
+              pointerEvents: headerVisible ? "auto" : "none"
+            }}
+          >
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+              {/*
+                TabsList background is bg-card (dark mode = #292929).
+                The pixel border divs inside use border-foreground / dark:border-ring.
+                The globals.css fix above corrects border-width from 24px → 6px.
+              */}
+              <TabsList>
+                {NAV_TABS.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="px-4 py-2 text-xs"
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
 
         {/* Right: 8bit pixel-frame avatar — click to edit profile */}
@@ -129,6 +135,7 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
         </button>
 
       </div>
+    </header>
 
       <ProfileModal
         open={profileOpen}
@@ -136,6 +143,6 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
         userImage={userImage}
         profile={profile}
       />
-    </header>
+    </>
   );
 }

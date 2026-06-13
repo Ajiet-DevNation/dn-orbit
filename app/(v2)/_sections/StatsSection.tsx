@@ -175,7 +175,9 @@ export function StatsSection({
   }
 
   return (
-    <section className="w-full px-6 py-12">
+    <section className="w-full px-6 py-16 relative">
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.02]" style={{ backgroundImage: "radial-gradient(circle, #ffffff 1.5px, transparent 1.5px)", backgroundSize: "24px 24px" }} />
+
       <div className="mx-auto mb-10 flex max-w-6xl items-center justify-between">
         <h2 className="retro text-xl tracking-wider text-white">PLAYER STATS</h2>
         <Button
@@ -187,9 +189,9 @@ export function StatsSection({
         </Button>
       </div>
 
-      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-3">
+      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-3 relative z-10">
         {/* ── GitHub ── */}
-        <Card className="gap-6 py-8">
+        <Card className="gap-6 py-8 border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
           <div className="px-7">
             <h3 className="retro mb-6 text-base text-white">GITHUB</h3>
 
@@ -244,7 +246,7 @@ export function StatsSection({
         </Card>
 
         {/* ── LeetCode ── */}
-        <Card className="gap-6 py-8">
+        <Card className="gap-6 py-8 border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
           <div className="px-7">
             <h3 className="retro mb-6 text-base text-white">LEETCODE</h3>
 
@@ -298,7 +300,7 @@ export function StatsSection({
         </Card>
 
         {/* ── Rank ── */}
-        <Card className="items-center justify-center gap-6 py-8">
+        <Card className="items-center justify-center gap-6 py-8 border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
           <div className="w-full space-y-6 px-7 text-center">
             <h3 className="retro text-base text-white">RANK</h3>
             <p className="retro text-6xl text-white">
