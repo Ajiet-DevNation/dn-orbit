@@ -4,6 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { submitOnboarding } from "@/app/actions/onboarding";
 import { useSession } from "next-auth/react";
+import { Button } from "@/components/ui/8bit-button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/8bit-card";
+import { Input } from "@/components/ui/8bit-input";
+import { Label } from "@/components/ui/8bit-label";
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
@@ -31,10 +41,10 @@ function validate(fields: {
 
 function SuccessOverlay() {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background retro dark">
       <div className="text-center space-y-4 font-mono">
         <div className="w-1.5 h-1.5 bg-emerald-500 animate-pulse mx-auto" />
-        <h2 className="text-7xl font-black uppercase tracking-tighter italic leading-none text-white">
+        <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter italic leading-none text-white">
           PROFILE
           <br />
           COMMITTED.
@@ -46,17 +56,6 @@ function SuccessOverlay() {
     </div>
   );
 }
-
-// ── Shared style constants ───────────────────────────────────────────────────
-
-const inputClass =
-  "w-full bg-black border border-zinc-800 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 placeholder:uppercase focus:outline-none focus:border-white transition-colors";
-const inputErrorClass =
-  "w-full bg-black border border-red-900 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 placeholder:uppercase focus:outline-none focus:border-red-500 transition-colors";
-const labelClass =
-  "text-[9px] font-black tracking-widest uppercase text-zinc-500 block mb-2";
-const errorClass =
-  "text-[10px] text-red-500 font-black tracking-wider uppercase mt-1";
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 
@@ -105,56 +104,36 @@ export default function OnboardingPage() {
   if (showSuccess) return <SuccessOverlay />;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-black px-4 py-12">
+    <div className="dark flex w-full min-h-screen items-center justify-center bg-background p-4 md:p-8 retro">
       <div className="w-full max-w-sm">
-        <div className="bg-black relative font-mono border border-zinc-800">
-
-          {/* Card header */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-950/50">
-            <span className="text-[9px] text-zinc-500 tracking-widest uppercase">
-              ARCHIVE_ID: 0xONBOARD
-            </span>
-            <div className="flex gap-1">
-              <div className="w-1.5 h-1.5 bg-emerald-500 animate-pulse" />
-              <div className="w-1.5 h-1.5 bg-zinc-800" />
-              <div className="w-1.5 h-1.5 bg-zinc-800" />
-            </div>
-          </div>
-
-          <div className="p-8 space-y-8">
-
-            {/* Logo + Title */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="border border-white px-2 py-1">
-                  <span className="font-black text-xs tracking-widest text-white">DN</span>
-                </div>
-                <div>
-                  <div className="font-black text-xs tracking-widest uppercase text-white">ORBIT</div>
-                  <div className="font-black text-[8px] tracking-widest uppercase text-zinc-600">MEMBER_SECTOR_V1</div>
-                </div>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="border-[3px] border-foreground p-1">
+                <span className="font-black text-[10px] tracking-widest">DN</span>
               </div>
-
-              <h1 className="text-4xl font-black uppercase tracking-tighter italic leading-none text-white">
-                COMPLETE
-                <br />
-                YOUR PROFILE
-              </h1>
-              <p className="text-[10px] text-zinc-500 tracking-widest uppercase font-black">
-                ORBIT_MEMBER_REGISTRATION_V1
-              </p>
+              <div>
+                <div className="font-black text-[10px] tracking-widest uppercase">ORBIT</div>
+                <div className="font-black text-[6px] tracking-widest uppercase text-muted-foreground">MEMBER_SECTOR_V1</div>
+              </div>
             </div>
-
-            {/* Server error */}
+            <CardTitle className="text-3xl leading-tight uppercase italic mb-2">
+              COMPLETE<br />YOUR PROFILE
+            </CardTitle>
+            <CardDescription className="text-[8px] uppercase tracking-widest">
+              ORBIT_MEMBER_REGISTRATION_V1
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             {serverError && (
-              <div className="border border-red-900 px-4 py-3">
-                <p className="text-[10px] text-red-500 font-black tracking-wider uppercase">
+              <div className="border-y-[3px] border-destructive mb-6 px-4 py-3 bg-destructive/10">
+                <p className="text-[8px] text-destructive font-black tracking-wider uppercase text-center">
                   ▲ {serverError}
                 </p>
               </div>
             )}
 
-            <form action={handleSubmit} className="space-y-8">
+            <form action={handleSubmit} className="space-y-6">
               {/* Hidden fields — always submitted */}
               <input type="hidden" name="name" value={name} />
               <input type="hidden" name="usn" value={usn} />
@@ -162,140 +141,121 @@ export default function OnboardingPage() {
               <input type="hidden" name="year" value={year} />
               <input type="hidden" name="lc_username" value={lcUsername} />
 
-              {/* 01_IDENTIFICATION */}
               <div className="space-y-4">
-                <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-zinc-900 pb-2">
-                  01_IDENTIFICATION
-                </h3>
-
-                <div>
-                  <label htmlFor="name" className={labelClass}>FULL_NAME</label>
-                  <input
+                <div className="grid gap-2">
+                  <Label htmlFor="name" className="text-[8px] text-muted-foreground uppercase tracking-widest">FULL_NAME</Label>
+                  <Input
                     id="name"
-                    className={fieldErrors.name ? inputErrorClass : inputClass}
                     placeholder="YOUR NAME"
                     value={name}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setName(e.target.value)
                     }
+                    className={fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
-                  {fieldErrors.name && <p className={errorClass}>{fieldErrors.name}</p>}
+                  {fieldErrors.name && <p className="text-[8px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.name}</p>}
                 </div>
 
-                <div>
-                  <label htmlFor="usn" className={labelClass}>USN</label>
-                  <input
+                <div className="grid gap-2">
+                  <Label htmlFor="usn" className="text-[8px] text-muted-foreground uppercase tracking-widest">USN</Label>
+                  <Input
                     id="usn"
-                    className={`${fieldErrors.usn ? inputErrorClass : inputClass} uppercase`}
                     placeholder="4AL22CS001"
                     value={usn}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setUsn(e.target.value.toUpperCase())
                     }
+                    className={fieldErrors.usn ? "border-destructive focus-visible:ring-destructive uppercase" : "uppercase"}
                   />
-                  {fieldErrors.usn && <p className={errorClass}>{fieldErrors.usn}</p>}
-                </div>
-              </div>
-
-              {/* 02_PROFILE_DATA */}
-              <div className="space-y-4">
-                <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-zinc-900 pb-2">
-                  02_PROFILE_DATA
-                </h3>
-
-                <div>
-                  <label htmlFor="branch" className={labelClass}>BRANCH</label>
-                  <select
-                    id="branch"
-                    className={`${fieldErrors.branch ? inputErrorClass : inputClass} appearance-none cursor-pointer`}
-                    value={branch}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setBranch(e.target.value)
-                    }
-                  >
-                    <option value="">SELECT</option>
-                    <option value="CSE">CSE</option>
-                    <option value="ISE">ISE</option>
-                    <option value="ECE">ECE</option>
-                    <option value="MECH">MECH</option>
-                    <option value="CIVIL">CIVIL</option>
-                    <option value="AIDS">AIDS</option>
-                    <option value="AIML">AIML</option>
-                    <option value="CSD">CSD</option>
-                  </select>
-                  {fieldErrors.branch && <p className={errorClass}>{fieldErrors.branch}</p>}
+                  {fieldErrors.usn && <p className="text-[8px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.usn}</p>}
                 </div>
 
-                <div>
-                  <label className={labelClass}>YEAR</label>
+                <div className="grid gap-2">
+                  <Label htmlFor="branch" className="text-[8px] text-muted-foreground uppercase tracking-widest">BRANCH</Label>
+                  <div className={`relative border-y-[6px] !p-0 flex items-center ${fieldErrors.branch ? 'border-destructive' : 'border-foreground dark:border-ring'}`}>
+                    <select
+                      id="branch"
+                      className="w-full bg-background border-none rounded-none outline-none focus:ring-0 px-3 py-2 text-sm appearance-none"
+                      value={branch}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                        setBranch(e.target.value)
+                      }
+                    >
+                      <option value="">SELECT</option>
+                      <option value="CSE">CSE</option>
+                      <option value="ISE">ISE</option>
+                      <option value="ECE">ECE</option>
+                      <option value="MECH">MECH</option>
+                      <option value="CIVIL">CIVIL</option>
+                      <option value="AIDS">AIDS</option>
+                      <option value="AIML">AIML</option>
+                      <option value="CSD">CSD</option>
+                    </select>
+                    <div
+                      className={`absolute inset-0 border-x-[6px] -mx-[6px] pointer-events-none ${fieldErrors.branch ? 'border-destructive' : 'border-foreground dark:border-ring'}`}
+                      aria-hidden="true"
+                    />
+                  </div>
+                  {fieldErrors.branch && <p className="text-[8px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.branch}</p>}
+                </div>
+
+                <div className="grid gap-2">
+                  <Label className="text-[8px] text-muted-foreground uppercase tracking-widest">YEAR</Label>
                   <div className="grid grid-cols-4 gap-2">
                     {["1", "2", "3", "4"].map((y) => (
-                      <button
+                      <Button
                         key={y}
                         type="button"
+                        variant={year === y ? "default" : "outline"}
                         onClick={() => setYear(y)}
-                        className={`py-3 text-xs font-black uppercase tracking-widest border transition-colors ${
-                          year === y
-                            ? "bg-white text-black border-white"
-                            : "bg-black text-zinc-500 border-zinc-800 hover:border-zinc-600 hover:text-white"
-                        }`}
+                        className="py-4 rounded-none h-auto"
                       >
                         {y}
-                      </button>
+                      </Button>
                     ))}
                   </div>
-                  {fieldErrors.year && <p className={errorClass}>{fieldErrors.year}</p>}
+                  {fieldErrors.year && <p className="text-[8px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.year}</p>}
                 </div>
 
-                <div>
-                  <label htmlFor="lc_username" className={labelClass}>
-                    LEETCODE_USERNAME{" "}
-                    <span className="text-zinc-700">(OPTIONAL)</span>
-                  </label>
-                  <input
+                <div className="grid gap-2">
+                  <Label htmlFor="lc_username" className="text-[8px] text-muted-foreground uppercase tracking-widest">
+                    LEETCODE_USERNAME <span className="text-zinc-600">(OPTIONAL)</span>
+                  </Label>
+                  <Input
                     id="lc_username"
-                    className={fieldErrors.lcUsername ? inputErrorClass : inputClass}
                     placeholder="YOUR_LC_HANDLE"
                     value={lcUsername}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setLcUsername(e.target.value)
                     }
+                    className={fieldErrors.lcUsername ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
                   {fieldErrors.lcUsername && (
-                    <p className={errorClass}>{fieldErrors.lcUsername}</p>
+                    <p className="text-[8px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.lcUsername}</p>
                   )}
                 </div>
 
-                <div>
-                  <label htmlFor="github" className={labelClass}>
-                    GITHUB_USERNAME{" "}
-                    <span className="text-zinc-700">(AUTO-FILLED)</span>
-                  </label>
-                  <input
+                <div className="grid gap-2">
+                  <Label htmlFor="github" className="text-[8px] text-muted-foreground uppercase tracking-widest">
+                    GITHUB_USERNAME <span className="text-zinc-600">(AUTO-FILLED)</span>
+                  </Label>
+                  <Input
                     id="github"
-                    className={`${inputClass} opacity-50 cursor-not-allowed`}
                     value={githubUsername}
                     readOnly
                     disabled
+                    className="opacity-50 cursor-not-allowed"
                   />
                 </div>
               </div>
 
-              {/* Submit */}
-              <button
-                type="submit"
-                className="w-full inline-flex items-center justify-center bg-white text-black px-6 py-3 font-mono font-black text-xs uppercase tracking-widest border border-white hover:bg-black hover:text-white transition-colors duration-200"
-              >
+              <Button type="submit" className="w-full mt-4 text-[10px] py-4 h-auto">
                 &gt; COMMIT_PROFILE
-              </button>
+              </Button>
             </form>
-          </div>
-
-          {/* Corner brackets */}
-          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/40" />
-          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/40" />
-        </div>
+          </CardContent>
+        </Card>
       </div>
-    </main>
+    </div>
   );
 }
