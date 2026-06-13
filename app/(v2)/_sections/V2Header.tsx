@@ -87,33 +87,35 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
 
         {/* Center: 8-bit nav tabs — absolutely centered to the viewport so the
             differing logo/avatar widths don't push it off-centre. */}
-        <div 
-          className="absolute left-1/2 -translate-x-1/2 hidden md:block mt-3"
-          style={{
-            opacity: headerVisible ? 1 : 0,
-            transform: headerVisible ? "translate(-50%, 0)" : "translate(-50%, -16px)",
-            transition: "opacity 800ms ease-out, transform 800ms ease-out",
-            pointerEvents: headerVisible ? "auto" : "none"
-          }}
-        >
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            {/*
-              TabsList background is bg-card (dark mode = #292929).
-              The pixel border divs inside use border-foreground / dark:border-ring.
-              The globals.css fix above corrects border-width from 24px → 6px.
-            */}
-            <TabsList>
-              {NAV_TABS.map((tab) => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className="px-4 py-2 text-xs"
-                >
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+        <div className="absolute inset-x-0 top-6 flex justify-center pointer-events-none">
+          <div 
+            className="hidden md:block mt-3"
+            style={{
+              opacity: headerVisible ? 1 : 0,
+              transform: headerVisible ? "translateY(0)" : "translateY(-16px)",
+              transition: "opacity 800ms ease-out, transform 800ms ease-out",
+              pointerEvents: headerVisible ? "auto" : "none"
+            }}
+          >
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+              {/*
+                TabsList background is bg-card (dark mode = #292929).
+                The pixel border divs inside use border-foreground / dark:border-ring.
+                The globals.css fix above corrects border-width from 24px → 6px.
+              */}
+              <TabsList>
+                {NAV_TABS.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="px-4 py-2 text-xs"
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
         </div>
 
         {/* Right: 8bit pixel-frame avatar — click to edit profile */}
