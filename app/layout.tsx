@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, IBM_Plex_Mono, Inter_Tight } from "next/font/google";
-
+import { DotGridBackground } from "@/components/ui/DotGridBackground";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -42,7 +42,7 @@ export default function RootLayout({
       className={`${bebasNeue.variable} ${ibmPlexMono.variable} ${interTight.variable} h-full`}
     >
       <body className="min-h-full flex flex-col bg-bg text-text">
-
+        <DotGridBackground />
         <Providers>{children}</Providers>
       </body>
     </html>
