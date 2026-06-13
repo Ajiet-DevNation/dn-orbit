@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
 import {
@@ -24,8 +25,28 @@ const NAV_TABS = [
 ];
 
 export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
+  const pathname = usePathname();
+  const isLandingPage = pathname === "/";
+  
   const [activeTab, setActiveTab] = useState("events");
   const [profileOpen, setProfileOpen] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(!isLandingPage);
+
+  useEffect(() => {
+    if (!isLandingPage) return;
+
+    const handleReveal = () => setHeaderVisible(true);
+    window.addEventListener("hero-reveal-header", handleReveal);
+
+    // Safety fallback: if something blocks the hero animation,
+    // force reveal the header after a few seconds so the site isn't broken
+    const fallbackTimer = setTimeout(handleReveal, 5000);
+
+    return () => {
+      window.removeEventListener("hero-reveal-header", handleReveal);
+      clearTimeout(fallbackTimer);
+    };
+  }, [isLandingPage]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -40,7 +61,15 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-transparent">
+    <header 
+      className="sticky top-0 z-50 w-full bg-transparent"
+      style={{
+        opacity: headerVisible ? 1 : 0,
+        transform: headerVisible ? "translateY(0)" : "translateY(-16px)",
+        transition: "opacity 800ms ease-out, transform 800ms ease-out",
+        pointerEvents: headerVisible ? "auto" : "none"
+      }}
+    >
       <div className="relative flex items-center justify-between px-6 pt-6 pb-3 gap-4">
 
         {/* Left: Logo + Brand */}
