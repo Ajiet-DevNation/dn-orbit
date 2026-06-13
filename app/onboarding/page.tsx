@@ -109,10 +109,10 @@ export default function OnboardingPage() {
     <div className="dark flex w-full min-h-screen items-center justify-center bg-background p-4 md:p-8 retro">
       <div className="w-full max-w-xl">
         <Card>
-          <CardHeader className="p-6 pb-2 flex flex-col items-center text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Image src="/assets/DNLogoTransparent.png" alt="DN Logo" width={32} height={32} className="w-8 h-8 pixelated drop-shadow-md" />
-              <div className="font-black text-[16px] tracking-widest uppercase mt-1">ORBIT</div>
+          <CardHeader className="p-6 pb-2 flex flex-col items-center text-center space-y-0">
+            <div className="flex items-center justify-center gap-2">
+              <Image src="/assets/DNLogoTransparent.png" alt="DN Logo" width={84} height={84} className="w-[84px] h-[84px] pixelated drop-shadow-md" />
+              <div className="font-black text-[32px] tracking-widest uppercase mt-1">ORBIT</div>
             </div>
             <CardTitle className="text-2xl leading-tight uppercase">
               CREATE YOUR PROFILE
