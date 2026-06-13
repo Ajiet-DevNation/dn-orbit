@@ -24,12 +24,6 @@ const POST_POP_DELAY_MS = 200;
 /** Duration of the fade-in for the orbit ring (ms) */
 const ORBIT_FADE_IN_MS = 800;
 
-/** Delay after orbit appears before header fades in (ms) */
-const HEADER_REVEAL_DELAY_MS = 600;
-
-/** Duration of the header fade-in (ms) */
-const HEADER_FADE_IN_MS = 800;
-
 /** Orbital period for each planet icon (ms) */
 const ORBIT_PERIODS = {
   github: 6000,
@@ -262,7 +256,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         
         try {
           sessionStorage.setItem("dn-orbit-draw-progress", currentBlock.toString());
-        } catch (e) {}
+        } catch {}
 
         const raw = Math.floor((currentBlock / totalBlocksRef.current) * 100);
         setDrawProgress(Math.floor(raw / 5) * 5);
@@ -279,7 +273,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       setPhase("orbiting");
       setOrbitVisible(true);
     };
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     drawLogo();
