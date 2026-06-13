@@ -524,7 +524,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
             <>
               {/* GitHub */}
               <div
-                className="absolute flex items-center justify-center rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
+                className="absolute flex items-center justify-center rounded-full force-rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
                 style={{
                   backgroundColor: "#181717",
                   width: PLANET_ICON_SIZE,
@@ -542,7 +542,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
               {/* LeetCode */}
               <div
-                className="absolute flex items-center justify-center rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
+                className="absolute flex items-center justify-center rounded-full force-rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
                 style={{
                   backgroundColor: "#FFA116",
                   width: PLANET_ICON_SIZE,
@@ -560,7 +560,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
               {/* LinkedIn */}
               <div
-                className="absolute flex items-center justify-center rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
+                className="absolute flex items-center justify-center rounded-full force-rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
                 style={{
                   backgroundColor: "#0a66c2",
                   width: PLANET_ICON_SIZE,

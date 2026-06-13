@@ -66,6 +66,10 @@
   border-radius: 0 !important;
 }
 
+.force-rounded-full {
+  border-radius: 9999px !important;
+}
+
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
