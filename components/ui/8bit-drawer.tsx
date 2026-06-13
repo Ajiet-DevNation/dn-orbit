@@ -159,4 +159,4 @@ export {
 
 export default Drawer;
 
-export { Button } from "@/components/ui/8bit/button";
+export { Button } from "@/components/ui/button";

@@ -98,7 +98,7 @@ export default function OnboardingPage() {
         name: result.user.name,
       });
       setShowSuccess(true);
-      setTimeout(() => router.push("/dashboard"), 2000);
+      setTimeout(() => router.push("/"), 2000);
     }
   }
 

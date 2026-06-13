@@ -4,7 +4,6 @@ import { Command as CommandPrimitive } from "cmdk";
 
 import { cn } from "@/lib/utils";
 
-import { Separator } from "@/components/ui/8bit/separator";
 import {
   Command as ShadcnCommand,
   CommandDialog as ShadcnCommandDialog,
@@ -190,9 +189,7 @@ function CommandSeparator({
         className
       )}
       {...props}
-    >
-      <Separator />
-    </ShadcnCommandSeparator>
+    />
   );
 }
 
