@@ -33,19 +33,25 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
   const [headerVisible, setHeaderVisible] = useState(!isLandingPage);
 
   useEffect(() => {
-    if (!isLandingPage) return;
+    if (!isLandingPage) {
+      setHeaderVisible(true);
+      return;
+    }
 
-    const handleReveal = () => setHeaderVisible(true);
-    window.addEventListener("hero-reveal-header", handleReveal);
-
-    // Safety fallback: if something blocks the hero animation,
-    // force reveal the header after a few seconds so the site isn't broken
-    const fallbackTimer = setTimeout(handleReveal, 5000);
-
-    return () => {
-      window.removeEventListener("hero-reveal-header", handleReveal);
-      clearTimeout(fallbackTimer);
+    const handleScroll = () => {
+      // Show header after scrolling down halfway through the hero section
+      if (window.scrollY > window.innerHeight * 0.5) {
+        setHeaderVisible(true);
+      } else {
+        setHeaderVisible(false);
+      }
     };
+
+    // Initial check on mount
+    handleScroll();
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [isLandingPage]);
 
   const handleTabChange = (value: string) => {
