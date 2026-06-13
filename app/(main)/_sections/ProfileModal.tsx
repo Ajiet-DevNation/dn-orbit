@@ -8,8 +8,8 @@ import { signOut } from "next-auth/react";
 import { updateProfile } from "@/app/actions/profile";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/8bit-avatar";
 import { Button } from "@/components/ui/8bit-button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/8bit-input";
+import { Label } from "@/components/ui/8bit-label";
 import {
   Select,
   SelectContent,
@@ -121,7 +121,7 @@ export function ProfileModal({
       >
         {/* Modal card */}
         <div
-          className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto border-4 border-white/80 bg-[#0a0a0a] p-12"
+          className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto border-4 border-white/80 bg-[#0a0a0a] p-12 retro dark"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="mb-12 flex items-center justify-between">
