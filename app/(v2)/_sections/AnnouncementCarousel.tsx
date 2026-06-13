@@ -196,15 +196,9 @@ export function AnnouncementCarousel({
 
   return (
     <section id="events" className="w-full overflow-hidden py-12">
-      <motion.h2 
-        initial={{ opacity: 0, y: 15 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: false, margin: "-100px" }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
-        className="retro mb-12 text-center text-xl tracking-wider text-white"
-      >
+      <h2 className="retro mb-12 text-center text-xl tracking-wider text-white">
         ANNOUNCEMENTS
-      </motion.h2>
+      </h2>
 
       {/*
         Drag anywhere on the strip to scrub it; release and the drift resumes.
