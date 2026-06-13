@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+
 import { useEffect, useRef } from "react";
 import { useAnimate, stagger } from "framer-motion";
 
@@ -132,6 +132,7 @@ const PREMIUM_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
  * Phase 2 (2.5→5s):  Sphere dissolves; ring + text system emerges
  * Phase 3 (5→6.5s):  "ORBIT" text reveals letter by letter
  * Phase 4 (6.5s+):   3D orbital nodes begin orbiting with depth illusion
+ * Phase 5:           Join CTA + tagline fade in
  *
  * The orbital system uses requestAnimationFrame for 60fps node animation.
  * Nodes change scale (0.7→1.1), opacity (0.4→1.0), and z-index based
@@ -139,15 +140,15 @@ const PREMIUM_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
  */
 export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
   const [scope, animate] = useAnimate();
-  const hasRun = useRef(false);
   const systemRef = useRef<HTMLDivElement>(null);
   const nodesRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
 
   // ── Intro animation timeline ──
+  // No hasRun guard — uses cleanup-based cancellation instead,
+  // which properly handles React Strict Mode double-invocations.
   useEffect(() => {
-    if (hasRun.current) return;
-    hasRun.current = true;
+    let cancelled = false;
 
     const timeline = async () => {
       /* Phase 1: Sphere appears */
@@ -166,6 +167,7 @@ export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
         { opacity: 1 },
         { duration: 2.5 }
       );
+      if (cancelled) return;
 
       /* Phase 2: Sphere dissolves, orbital system emerges */
       animate(".sphere-decay-lines", { opacity: 0 }, { duration: 1.5, ease: "easeInOut" });
@@ -181,6 +183,7 @@ export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
       );
 
       await animate(".phase-timer", { opacity: 1 }, { duration: 2.5 });
+      if (cancelled) return;
 
       /* Phase 3: Text reveal — "O" then "RBIT" */
       animate(".orbit-letter-O", { opacity: 1 }, { duration: 0.5, ease: PREMIUM_EASE });
@@ -189,19 +192,36 @@ export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
         { opacity: 1, x: 0, filter: "blur(0px)" },
         { duration: 0.8, ease: PREMIUM_EASE, delay: stagger(0.1, { startDelay: 0.15 }) }
       );
+      if (cancelled) return;
 
       await animate(".phase-timer", { opacity: 1 }, { duration: 0.4 });
+      if (cancelled) return;
 
-      /* Phase 4: Nodes appear, tagline fades in */
-      animate(".orbit-tagline", { opacity: 0.35 }, { duration: 1.4, ease: "easeOut" });
+      /* Phase 4: Nodes appear + Join CTA fades in */
       animate(
         ".orbital-node",
         { opacity: 1 },
         { duration: 1, ease: "easeOut", delay: stagger(0.15) }
       );
+      animate(
+        ".orbit-join-cta",
+        { opacity: 1, y: 0 },
+        { duration: 0.8, ease: PREMIUM_EASE, delay: 0.3 }
+      );
+
+      /* Phase 5: Tagline fades in below */
+      animate(
+        ".orbit-tagline",
+        { opacity: 0.25 },
+        { duration: 1.4, ease: "easeOut", delay: 0.5 }
+      );
     };
 
     timeline();
+
+    return () => {
+      cancelled = true;
+    };
   }, [animate]);
 
   // ── requestAnimationFrame orbital motion ──
@@ -252,10 +272,8 @@ export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
   return (
     <section
       ref={scope}
-      className="grain-overlay relative flex min-h-screen items-center justify-center overflow-hidden"
-      style={{
-        background: "radial-gradient(ellipse 80% 60% at 50% 50%, #1a1a1a 0%, #0f0f0f 40%, #0a0a0a 100%)",
-      }}
+      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden"
+      style={{ background: "#000000" }}
     >
       {/* Timer element for Framer Motion delays */}
       <div className="phase-timer pointer-events-none absolute" style={{ opacity: 1, width: 0, height: 0 }} aria-hidden="true" />
@@ -272,7 +290,7 @@ export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
       <div
         ref={systemRef}
         className="relative flex items-center justify-center"
-        style={{ width: "clamp(320px, 80vw, 960px)", height: "clamp(140px, 35vw, 420px)" }}
+        style={{ width: "clamp(320px, 80vw, 960px)", height: "clamp(140px, 35vw, 400px)" }}
       >
         {/* SVG ring paths — ultra-thin energy paths */}
         <svg
@@ -308,9 +326,9 @@ export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
               opacity: 0,
               fontFamily: "var(--font-inter-tight), sans-serif",
               fontWeight: 800,
-              fontSize: "clamp(56px, 14vw, 200px)",
+              fontSize: "clamp(64px, 16vw, 260px)",
               lineHeight: 1,
-              letterSpacing: "0.02em",
+              letterSpacing: "-0.02em",
               color: "white",
             }}
           >
@@ -326,9 +344,9 @@ export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
                 filter: "blur(10px)",
                 fontFamily: "var(--font-inter-tight), sans-serif",
                 fontWeight: 800,
-                fontSize: "clamp(56px, 14vw, 200px)",
+                fontSize: "clamp(64px, 16vw, 260px)",
                 lineHeight: 1,
-                letterSpacing: "0.02em",
+                letterSpacing: "-0.02em",
                 color: "white",
               }}
             >
@@ -353,23 +371,23 @@ export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
             >
               {assets[i] ? (
                 <div
-                  className="flex items-center justify-center overflow-hidden bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.35),0_0_6px_rgba(255,255,255,0.15)]"
+                  className="flex items-center justify-center overflow-hidden bg-white/10"
                   style={{
                     width: "clamp(24px, 3vw, 40px)",
                     height: "clamp(24px, 3vw, 40px)",
                     borderRadius: "50%",
                   }}
                 >
-                  <Image
+                  <img
                     src={assets[i]}
                     alt=""
-                    fill
-                    className="object-contain brightness-90"
+                    className="h-3/4 w-3/4 object-contain"
+                    style={{ filter: "brightness(0.9)" }}
                   />
                 </div>
               ) : (
                 <div
-                  className="bg-white/60 shadow-[0_0_18px_rgba(255,255,255,0.4),0_0_5px_rgba(255,255,255,0.2)]"
+                  className="bg-white/60"
                   style={{
                     width: "clamp(10px, 1.2vw, 16px)",
                     height: "clamp(10px, 1.2vw, 16px)",
@@ -382,12 +400,21 @@ export function OrbitIntro({ assets = [] }: { assets?: string[] }) {
         </div>
       </div>
 
+      {/* ── Join CTA — centered below logo via flex column ── */}
+      <a
+        href="/login"
+        className="orbit-join-cta mt-10 border border-white/30 bg-transparent px-10 py-4 font-mono text-xs uppercase tracking-[0.3em] text-white transition-all hover:border-white hover:bg-white/5"
+        style={{ opacity: 0, transform: "translateY(20px)" }}
+      >
+        JOIN
+      </a>
+
       {/* ── Tagline ── */}
       <div
-        className="orbit-tagline absolute bottom-[12%] left-0 right-0 text-center font-mono text-[10px] uppercase tracking-[0.5em] text-white md:text-xs"
+        className="orbit-tagline mt-8 max-w-xl px-6 text-center font-mono text-[10px] uppercase leading-relaxed tracking-[0.3em] text-white md:text-xs"
         style={{ opacity: 0 }}
       >
-        BEYOND THE HORIZON
+        Where builders converge to ship code, spark ideas, and push the boundaries of what a university dev collective can become.
       </div>
     </section>
   );

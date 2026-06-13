@@ -4,7 +4,7 @@
 
 @theme inline {
   /* Colors */
-  --color-bg: #0a0a0a;
+  --color-bg: #000000;
   --color-surface: #111111;
   --color-surface-2: #1a1a1a;
   --color-surface-3: #2a2a2a;
@@ -128,3 +128,77 @@ body {
   animation: blink 1s step-end infinite;
 }
 
+/* ── Orbit Section: Rounded Corner Override ── */
+/* Scoped override — only elements inside .orbit-rounded bypass the global reset */
+
+.orbit-rounded,
+.orbit-rounded *,
+.orbit-rounded *::before,
+.orbit-rounded *::after {
+  border-radius: revert !important;
+}
+
+/* ── Orbit Spin Keyframes ── */
+
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes orbit-spin-reverse {
+  from { transform: rotate(360deg); }
+  to   { transform: rotate(0deg); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.4; filter: blur(20px); }
+  50%      { opacity: 0.7; filter: blur(30px); }
+}
+
+/* ── Grain Texture Overlay ── */
+
+.grain-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
+}
+
+/* ── About Section — card hover glow ── */
+
+.about-card {
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+}
+.about-card:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.06), inset 0 0 20px rgba(255, 255, 255, 0.02);
+}
+
+/* ── OrbitIntro — CSS persistence after animation completes ── */
+/* When the intro finishes, the "intro-done" class is added to the section.
+   These rules force animated elements to their final state via CSS specificity,
+   so even if React re-renders and resets inline styles, they stay visible. */
+
+.intro-done .orbit-letter-O,
+.intro-done .orbit-letter {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+  filter: blur(0px) !important;
+}
+
+.intro-done .orbital-ring-path {
+  opacity: 1 !important;
+}
+
+.intro-done .orbit-join-cta {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+.intro-done .orbit-tagline {
+  opacity: 0.25 !important;
+}
