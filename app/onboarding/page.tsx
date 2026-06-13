@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { submitOnboarding } from "@/app/actions/onboarding";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/8bit-button";
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/8bit-select";
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
@@ -32,7 +34,8 @@ function validate(fields: {
   if (!USN_REGEX.test(fields.usn)) e.usn = "FORMAT: 4AL22CS001";
   if (!fields.branch) e.branch = "REQUIRED";
   if (!fields.year) e.year = "REQUIRED";
-  if (fields.lcUsername && !LC_REGEX.test(fields.lcUsername))
+  if (!fields.lcUsername.trim()) e.lcUsername = "REQUIRED";
+  else if (!LC_REGEX.test(fields.lcUsername))
     e.lcUsername = "ALPHANUMERIC + UNDERSCORE + HYPHEN ONLY";
   return e;
 }
@@ -109,8 +112,8 @@ export default function OnboardingPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3 mb-4">
-              <div className="border-[3px] border-foreground p-1">
-                <span className="font-black text-[10px] tracking-widest">DN</span>
+              <div className="border-[3px] border-foreground p-1 bg-white">
+                <Image src="/assets/DNLogoTransparent.png" alt="DN Logo" width={32} height={32} className="w-8 h-8 pixelated drop-shadow-md" />
               </div>
               <div>
                 <div className="font-black text-[10px] tracking-widest uppercase">ORBIT</div>
@@ -171,31 +174,22 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="branch" className="text-[8px] text-muted-foreground uppercase tracking-widest">BRANCH</Label>
-                  <div className={`relative border-y-[6px] !p-0 flex items-center ${fieldErrors.branch ? 'border-destructive' : 'border-foreground dark:border-ring'}`}>
-                    <select
-                      id="branch"
-                      className="w-full bg-background border-none rounded-none outline-none focus:ring-0 px-3 py-2 text-sm appearance-none"
-                      value={branch}
-                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                        setBranch(e.target.value)
-                      }
-                    >
-                      <option value="">SELECT</option>
-                      <option value="CSE">CSE</option>
-                      <option value="ISE">ISE</option>
-                      <option value="ECE">ECE</option>
-                      <option value="MECH">MECH</option>
-                      <option value="CIVIL">CIVIL</option>
-                      <option value="AIDS">AIDS</option>
-                      <option value="AIML">AIML</option>
-                      <option value="CSD">CSD</option>
-                    </select>
-                    <div
-                      className={`absolute inset-0 border-x-[6px] -mx-[6px] pointer-events-none ${fieldErrors.branch ? 'border-destructive' : 'border-foreground dark:border-ring'}`}
-                      aria-hidden="true"
-                    />
-                  </div>
+                  <Label htmlFor="branch" className="text-[8px] text-muted-foreground uppercase tracking-widest">DOMAIN</Label>
+                  <Select value={branch} onValueChange={setBranch}>
+                    <SelectTrigger className={fieldErrors.branch ? "border-destructive" : ""}>
+                      <SelectValue placeholder="SELECT" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CSE">CSE</SelectItem>
+                      <SelectItem value="ISE">ISE</SelectItem>
+                      <SelectItem value="ECE">ECE</SelectItem>
+                      <SelectItem value="MECH">MECH</SelectItem>
+                      <SelectItem value="CIVIL">CIVIL</SelectItem>
+                      <SelectItem value="AIDS">AIDS</SelectItem>
+                      <SelectItem value="AIML">AIML</SelectItem>
+                      <SelectItem value="CSD">CSD</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {fieldErrors.branch && <p className="text-[8px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.branch}</p>}
                 </div>
 
@@ -208,7 +202,11 @@ export default function OnboardingPage() {
                         type="button"
                         variant={year === y ? "default" : "outline"}
                         onClick={() => setYear(y)}
-                        className="py-4 rounded-none h-auto"
+                        className={`py-4 rounded-none h-auto transition-all ${
+                          year === y 
+                            ? "bg-white text-black dark:bg-white dark:text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.5)] translate-y-1" 
+                            : "opacity-50 hover:opacity-100"
+                        }`}
                       >
                         {y}
                       </Button>
@@ -219,7 +217,7 @@ export default function OnboardingPage() {
 
                 <div className="grid gap-2">
                   <Label htmlFor="lc_username" className="text-[8px] text-muted-foreground uppercase tracking-widest">
-                    LEETCODE_USERNAME <span className="text-zinc-600">(OPTIONAL)</span>
+                    LEETCODE_USERNAME
                   </Label>
                   <Input
                     id="lc_username"
@@ -249,7 +247,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full mt-4 text-[10px] py-4 h-auto">
+              <Button type="submit" className="w-full mt-4 text-[10px] py-4 h-auto shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                 &gt; COMMIT_PROFILE
               </Button>
             </form>
