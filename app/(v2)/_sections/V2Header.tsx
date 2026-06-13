@@ -61,7 +61,8 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
     .toUpperCase();
 
   return (
-    <header 
+    <>
+      <header 
       className="sticky top-0 z-50 w-full bg-transparent"
       style={{
         opacity: headerVisible ? 1 : 0,
@@ -129,6 +130,7 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
         </button>
 
       </div>
+    </header>
 
       <ProfileModal
         open={profileOpen}
@@ -136,6 +138,6 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
         userImage={userImage}
         profile={profile}
       />
-    </header>
+    </>
   );
 }
