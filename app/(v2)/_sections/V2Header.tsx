@@ -68,15 +68,7 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
 
   return (
     <>
-      <header 
-      className="sticky top-0 z-50 w-full bg-transparent"
-      style={{
-        opacity: headerVisible ? 1 : 0,
-        transform: headerVisible ? "translateY(0)" : "translateY(-16px)",
-        transition: "opacity 800ms ease-out, transform 800ms ease-out",
-        pointerEvents: headerVisible ? "auto" : "none"
-      }}
-    >
+      <header className="sticky top-0 z-50 w-full bg-transparent">
       <div className="relative flex items-center justify-between px-6 pt-6 pb-3 gap-4">
 
         {/* Left: Logo + Brand */}
@@ -95,7 +87,15 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
 
         {/* Center: 8-bit nav tabs — absolutely centered to the viewport so the
             differing logo/avatar widths don't push it off-centre. */}
-        <div className="absolute left-1/2 -translate-x-1/2 hidden md:block mt-3">
+        <div 
+          className="absolute left-1/2 -translate-x-1/2 hidden md:block mt-3"
+          style={{
+            opacity: headerVisible ? 1 : 0,
+            transform: headerVisible ? "translate(-50%, 0)" : "translate(-50%, -16px)",
+            transition: "opacity 800ms ease-out, transform 800ms ease-out",
+            pointerEvents: headerVisible ? "auto" : "none"
+          }}
+        >
           <Tabs value={activeTab} onValueChange={handleTabChange}>
             {/*
               TabsList background is bg-card (dark mode = #292929).
