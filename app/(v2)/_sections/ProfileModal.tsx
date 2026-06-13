@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { signOut } from "next-auth/react";
 
 import { updateProfile } from "@/app/actions/profile";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/8bit-avatar";
@@ -264,6 +265,16 @@ export function ProfileModal({
                 SAVE CHANGES
               </Button>
             </div>
+          </div>
+          
+          {/* Logout Button */}
+          <div className="mt-12 flex justify-start">
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="retro text-[10px] text-red-500 hover:text-red-400 hover:underline transition-colors"
+            >
+              [ LOG OUT ]
+            </button>
           </div>
         </div>
       </div>

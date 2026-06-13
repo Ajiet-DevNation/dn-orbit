@@ -7,13 +7,13 @@ import { cn } from "@/lib/utils";
 // ─── Configuration ───────────────────────────────────────────────────────────
 
 /** Size of each "pixel block" in the draw animation (larger = blockier) */
-const BLOCK_SIZE = 14;
+const BLOCK_SIZE = 18;
 
 /** How many blocks to reveal per animation frame */
 const BLOCKS_PER_FRAME = 20;
 
 /** Canvas render size — the logo is drawn into this square */
-const CANVAS_SIZE = 700;
+const CANVAS_SIZE = 900;
 
 /** Duration of the logo pop animation (ms) */
 const POP_DURATION_MS = 600;
@@ -32,8 +32,8 @@ const ORBIT_PERIODS = {
 } as const;
 
 /** Orbit radii (semi-major and semi-minor for the ellipse) */
-const ORBIT_RX = 315;
-const ORBIT_RY = 105;
+const ORBIT_RX = 410;
+const ORBIT_RY = 135;
 
 /** Size of each orbiting planet icon */
 const PLANET_ICON_SIZE = 40;
@@ -64,7 +64,7 @@ function LeetCodeIcon({ size }: { size: number }) {
       height={size}
       viewBox="0 0 24 24"
       fill="currentColor"
-      className="text-[#FFA116] drop-shadow-[0_0_6px_rgba(255,161,22,0.6)]"
+      className="text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]"
     >
       <path d="M13.483 0a1.374 1.374 0 0 0-.961.438L7.116 6.226l-3.854 4.126a5.266 5.266 0 0 0-1.209 2.104 5.35 5.35 0 0 0-.125.513 5.527 5.527 0 0 0 .062 2.362 5.83 5.83 0 0 0 .349 1.017 5.938 5.938 0 0 0 1.271 1.818l4.277 4.193.039.038c2.248 2.165 5.852 2.133 8.063-.074l2.396-2.392c.54-.54.54-1.414.003-1.955a1.378 1.378 0 0 0-1.951-.003l-2.396 2.392a3.021 3.021 0 0 1-4.205.038l-.02-.019-4.276-4.193c-.652-.64-.972-1.469-.948-2.263a2.68 2.68 0 0 1 .066-.523 2.545 2.545 0 0 1 .619-1.164L9.13 8.114c1.058-1.134 3.204-1.27 4.43-.278l3.501 2.831c.593.48 1.461.387 1.94-.207a1.384 1.384 0 0 0-.207-1.943l-3.5-2.831c-.8-.647-1.766-1.045-2.774-1.202l2.015-2.158A1.384 1.384 0 0 0 13.483 0zm-2.866 12.815a1.38 1.38 0 0 0-1.38 1.382 1.38 1.38 0 0 0 1.38 1.382H20.79a1.38 1.38 0 0 0 1.38-1.382 1.38 1.38 0 0 0-1.38-1.382z" />
     </svg>
@@ -78,7 +78,7 @@ function LinkedInIcon({ size }: { size: number }) {
       height={size}
       viewBox="0 0 24 24"
       fill="currentColor"
-      className="text-[#0A66C2] drop-shadow-[0_0_6px_rgba(10,102,194,0.6)]"
+      className="text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]"
     >
       <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
     </svg>
@@ -327,30 +327,27 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         const startAngle = isBack ? Math.PI : 0;
         const endAngle = isBack ? 2 * Math.PI : Math.PI;
         
-        // Inner thin ring
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, ORBIT_RX - 12, ORBIT_RY - 12 * (ORBIT_RY/ORBIT_RX), ORBIT_TILT, startAngle, endAngle);
-        ctx.strokeStyle = `rgba(34, 197, 94, ${isBack ? 0.15 : 0.3})`;
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([]);
-        ctx.stroke();
+        ctx.save();
+        // Glow effect
+        ctx.shadowColor = "rgba(34, 197, 94, 0.8)";
+        ctx.shadowBlur = 15;
 
-        // Main thick dashed ring
+        // Main thick energy ring
         ctx.beginPath();
         ctx.ellipse(cx, cy, ORBIT_RX, ORBIT_RY, ORBIT_TILT, startAngle, endAngle);
-        ctx.strokeStyle = `rgba(34, 197, 94, ${isBack ? 0.25 : 0.5})`;
-        ctx.lineWidth = 6;
-        ctx.setLineDash([12, 16]);
-        ctx.lineDashOffset = -(performance.now() / 40);
+        ctx.strokeStyle = `rgba(34, 197, 94, ${isBack ? 0.2 : 0.4})`;
+        ctx.lineWidth = 4;
+        ctx.setLineDash([]); // Solid ring, not dashed
         ctx.stroke();
 
-        // Outer faint solid ring
+        // Inner core of the energy ring (brighter)
         ctx.beginPath();
-        ctx.ellipse(cx, cy, ORBIT_RX + 10, ORBIT_RY + 10 * (ORBIT_RY/ORBIT_RX), ORBIT_TILT, startAngle, endAngle);
-        ctx.strokeStyle = `rgba(34, 197, 94, ${isBack ? 0.1 : 0.2})`;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([]);
+        ctx.ellipse(cx, cy, ORBIT_RX, ORBIT_RY, ORBIT_TILT, startAngle, endAngle);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${isBack ? 0.1 : 0.3})`;
+        ctx.lineWidth = 1.5;
         ctx.stroke();
+
+        ctx.restore();
       };
 
       const bctx = backCanvas.getContext("2d");
@@ -527,7 +524,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
             <>
               {/* GitHub */}
               <div
-                className="absolute flex items-center justify-center rounded-full pointer-events-none"
+                className="absolute flex items-center justify-center rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
                 style={{
                   backgroundColor: "#181717",
                   width: PLANET_ICON_SIZE,
@@ -545,7 +542,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
               {/* LeetCode */}
               <div
-                className="absolute flex items-center justify-center rounded-full pointer-events-none"
+                className="absolute flex items-center justify-center rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
                 style={{
                   backgroundColor: "#FFA116",
                   width: PLANET_ICON_SIZE,
@@ -563,7 +560,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
               {/* LinkedIn */}
               <div
-                className="absolute flex items-center justify-center rounded-full pointer-events-none"
+                className="absolute flex items-center justify-center rounded-full overflow-hidden border-2 border-transparent pointer-events-none"
                 style={{
                   backgroundColor: "#0a66c2",
                   width: PLANET_ICON_SIZE,
