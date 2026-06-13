@@ -72,7 +72,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-bg text-text">
         <DotGridBackground />
         <Providers>{children}</Providers>
-        <Toaster />
+        <Toaster position="top-center" offset={48} />
       </body>
     </html>
   );

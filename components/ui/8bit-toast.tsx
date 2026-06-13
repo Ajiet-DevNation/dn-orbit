@@ -1193,7 +1193,7 @@ function assignOffset(defaultOffset, mobileOffset) {
   });
   return styles;
 }
-var Toaster = /* @__PURE__ */ React4.forwardRef(function Toaster2(props, ref) {
+var Toaster = /* @__PURE__ */ React4.forwardRef<any, any>(function Toaster2(props, ref) {
   const { id, invert, position = "bottom-right", hotkey = [
     "altKey",
     "KeyT"
