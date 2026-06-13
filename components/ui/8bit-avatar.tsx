@@ -1,5 +1,5 @@
 import type React from "react";
-import { forwardRef } from "react";
+import { forwardRef, useId } from "react";
 
 import {
   Avatar as ShadcnAvatar,
@@ -9,7 +9,6 @@ import {
 import { cva } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
-
 
 export const avatarVariants = cva("", {
   variants: {
@@ -38,83 +37,60 @@ const Avatar = forwardRef<
 >(({ className = "", font, variant = "pixel", ...props }, ref) => {
   const isPixel = variant === "pixel";
 
+  const rawId = useId();
+  const clipId = `pixel-clip-${rawId.replace(/:/g, "")}`;
+
   return (
-    <div className={cn("relative size-max", className)}>
-      {/* Pixel frame (only show if pixel variant) */}
+    <div className={cn("relative flex items-center justify-center size-10 shrink-0", className)}>
       {isPixel && (
-        <div
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          style={{ zIndex: 10 }}
-        >
-          {/* Top section - Row 1 */}
-          <div className="absolute top-0 left-[23%] right-[23%] h-[7%] bg-foreground dark:bg-ring"></div>
+        <>
+          {/* SVG Clip Path (Perfect 30x30 inner boundary, scaled by 1/30) */}
+          <svg className="absolute w-0 h-0 pointer-events-none">
+            <defs>
+              <clipPath id={clipId} clipPathUnits="objectBoundingBox">
+                <path
+                  transform="scale(0.0333333333333333)"
+                  d="M 11 1 H 19 V 2 H 21 V 3 H 23 V 4 H 24 V 5 H 25 V 6 H 26 V 7 H 27 V 9 H 28 V 11 H 29 V 19 H 28 V 21 H 27 V 23 H 26 V 24 H 25 V 25 H 24 V 26 H 23 V 27 H 21 V 28 H 19 V 29 H 11 V 28 H 9 V 27 H 7 V 26 H 6 V 25 H 5 V 24 H 4 V 23 H 3 V 21 H 2 V 19 H 1 V 11 H 2 V 9 H 3 V 7 H 4 V 6 H 5 V 5 H 6 V 4 H 7 V 3 H 9 V 2 H 11 Z"
+                  shapeRendering="crispEdges"
+                />
+              </clipPath>
+            </defs>
+          </svg>
 
-          {/* Top section - Row 2 */}
-          <div className="absolute top-[6.25%] left-[17%] right-[17%] h-[7%] bg-foreground dark:bg-ring"></div>
-
-          {/* Top section - Row 3 */}
-          <div className="absolute top-[12.5%] left-[11%] h-[7%] bg-foreground dark:bg-ring w-[20%]"></div>
-          <div className="absolute top-[12.5%] right-[11%] h-[7%] bg-foreground dark:bg-ring w-[20%]"></div>
-
-          {/* Top section - Row 4 */}
-          <div className="absolute top-[18.75%] left-[5%] w-[20%] h-[7%] bg-foreground dark:bg-ring"></div>
-          <div className="absolute top-[18.75%] right-[5%] w-[20%] h-[7%] bg-foreground dark:bg-ring"></div>
-
-          {/* Top section - Row 5 */}
-          <div className="absolute top-[25%] left-0 w-[20%] h-[7%] bg-foreground dark:bg-ring"></div>
-          <div className="absolute top-[25%] right-0 w-[20%] h-[7%] bg-foreground dark:bg-ring"></div>
-
-          {/* Top section - Rows 6-7 */}
-          <div className="absolute top-[31.25%] left-0 w-[13.5%] h-[13%] bg-foreground dark:bg-ring"></div>
-          <div className="absolute top-[31.25%] right-0 w-[13.5%] h-[13%] bg-foreground dark:bg-ring"></div>
-
-          {/* Top section - Rows 8-10 */}
-          <div className="absolute top-[43.75%] left-0 w-[13.5%] h-[7%] bg-foreground dark:bg-ring"></div>
-          <div className="absolute top-[43.75%] right-0 w-[13.5%] h-[7%] bg-foreground dark:bg-ring"></div>
-
-          {/* Bottom section - Rows 8-10 (mirror) */}
-          <div className="absolute top-[50%] left-0 w-[13.5%] h-[7%] bg-foreground dark:bg-ring"></div>
-          <div className="absolute top-[50%] right-0 w-[13.5%] h-[7%] bg-foreground dark:bg-ring"></div>
-
-          {/* Bottom section - Rows 6-7 (mirror) */}
-          <div className="absolute top-[56.25%] left-0 w-[13.5%] h-[13%] bg-foreground dark:bg-ring"></div>
-          <div className="absolute top-[56.25%] right-0 w-[13.5%] h-[13%] bg-foreground dark:bg-ring"></div>
-
-          {/* Bottom section - Row 5 (mirror) */}
-          <div className="absolute top-[68.75%] left-0 w-[20%] h-[7%] bg-foreground dark:bg-ring"></div>
-          <div className="absolute top-[68.75%] right-0 w-[20%] h-[7%] bg-foreground dark:bg-ring"></div>
-
-          {/* Bottom section - Row 4 (mirror) */}
-          <div className="absolute top-[75%] left-[5%] w-[20%] h-[7%] bg-foreground dark:bg-ring"></div>
-          <div className="absolute top-[75%] right-[5%] w-[20%] h-[7%] bg-foreground dark:bg-ring"></div>
-
-          {/* Bottom section - Row 3 (mirror) */}
-          <div className="absolute top-[81.25%] left-[11%] h-[7%] bg-foreground dark:bg-ring w-[20%]"></div>
-          <div className="absolute top-[81.25%] right-[11%] h-[7%] bg-foreground dark:bg-ring w-[20%]"></div>
-
-          {/* Bottom section - Row 2 (mirror) */}
-          <div className="absolute top-[87.5%] left-[17%] right-[17%] h-[7%] bg-foreground dark:bg-ring"></div>
-
-          {/* Bottom section - Row 1 (mirror) */}
-          <div className="absolute bottom-0 left-[23%] right-[23%] h-[7%] bg-foreground dark:bg-ring"></div>
-        </div>
+          {/* Outer border ring — Added scale-[1.12] to make it thicker outside */}
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none text-gray-500 scale-[1.12] origin-center"
+            viewBox="0 0 30 30"
+            preserveAspectRatio="none"
+            style={{ zIndex: 0 }}
+          >
+            <path
+              d="M 11 0 H 19 V 1 H 21 V 2 H 23 V 3 H 24 V 4 H 25 V 5 H 26 V 6 H 27 V 7 H 28 V 9 H 29 V 11 H 30 V 19 H 29 V 21 H 28 V 23 H 27 V 24 H 26 V 25 H 25 V 26 H 24 V 27 H 23 V 28 H 21 V 29 H 19 V 30 H 11 V 29 H 9 V 28 H 7 V 27 H 6 V 26 H 5 V 25 H 4 V 24 H 3 V 23 H 2 V 21 H 1 V 19 H 0 V 11 H 1 V 9 H 2 V 7 H 3 V 6 H 4 V 5 H 5 V 4 H 6 V 3 H 7 V 2 H 9 V 1 H 11 Z"
+              fill="currentColor"
+              shapeRendering="crispEdges"
+            />
+          </svg>
+        </>
       )}
 
+      {/* Actual Avatar Content */}
       <ShadcnAvatar
         ref={ref}
         data-slot="avatar"
         className={cn(
-          "relative flex size-10 shrink-0 overflow-hidden text-xs",
+          "relative flex size-full shrink-0 overflow-hidden text-xs bg-background",
           !isPixel && "rounded-none",
-          isPixel && "rounded-full",
           font !== "normal" && "retro",
-          variant === "retro" && "image-rendering-pixelated",
-          className
+          variant === "retro" && "image-rendering-pixelated"
         )}
+        style={{
+          ...(isPixel ? { clipPath: `url(#${clipId})` } : {}),
+          zIndex: 1,
+        }}
         {...props}
       />
 
-      {/* Original border styling (only show if not pixel variant) */}
+      {/* Square border styling for non-pixel variants */}
       {!isPixel && (
         <>
           <div className="absolute top-0 left-0 w-full h-1.5 bg-foreground dark:bg-ring pointer-events-none" />
@@ -162,7 +138,7 @@ const AvatarFallback = forwardRef<
     ref={ref}
     data-slot="avatar-fallback"
     className={cn(
-      "flex h-full w-full items-center justify-center rounded-full bg-muted text-foreground",
+      "flex h-full w-full items-center justify-center rounded-none bg-muted text-foreground",
       className
     )}
     {...props}

@@ -184,7 +184,6 @@ export function ContactSection() {
 
   /* ── Hub reveal ── */
   const hubOpacity = useTransform(p, [0, 0.08], [0, 1]);
-  const hubScale = useTransform(p, [0, 0.08], [0.5, 1]);
 
   /* ── Ring drawing ── */
   const r1Draw = useTransform(p, [0.08, 0.2], [1, 0]);
