@@ -7,6 +7,7 @@ import {
 import { StatsSection } from "./_sections/StatsSection";
 import { AboutSection } from "./_sections/AboutSection";
 import { languagesFromRecord } from "./_sections/stats-utils";
+import { PixelLoadingScreen } from "@/components/ui/PixelLoadingScreen";
 
 export const metadata = {
   title: "ORBIT V2 — DevNation",
@@ -60,6 +61,7 @@ export default async function V2Page() {
 
   return (
     <div className="min-h-screen">
+      <PixelLoadingScreen mode="hero" />
       <AnnouncementCarousel announcements={announcements} />
       <StatsSection
         userId={userId ?? ""}
