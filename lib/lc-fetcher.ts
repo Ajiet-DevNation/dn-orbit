@@ -1,6 +1,8 @@
 // lib/lc-fetcher.ts
 
-const LEETCODE_GRAPHQL_ENDPOINT = "https://alfa.leetcode.com/graphql";
+// Official LeetCode GraphQL endpoint. (Was previously the third-party
+// `alfa.leetcode.com` proxy, which is now dead — no DNS record.)
+const LEETCODE_GRAPHQL_ENDPOINT = "https://leetcode.com/graphql";
 
 export interface LcStatsResult {
   totalSolved: number;
@@ -23,12 +25,12 @@ const query = `
       profile {
         ranking
       }
-      userCalendar {
-        streak
-      }
     }
   }
 `;
+// Note: streak (userCalendar / streakCounter) is login-gated on the official
+// endpoint and returns an error anonymously, so it is intentionally omitted.
+// streak therefore defaults to 0 below.
 
 export async function fetchLeetCodeStats(username: string): Promise<LcStatsResult> {
   const response = await fetch(LEETCODE_GRAPHQL_ENDPOINT, {

@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
   const session = await auth();
 
   if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-  if (session.user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const isAdmin = session.user.role === "admin";
 
   const { title, description, bannerUrl, eventType, eventDate, location, isPublished } = await req.json();
 
@@ -39,7 +40,9 @@ export async function POST(req: NextRequest) {
       eventType,
       eventDate: new Date(eventDate),
       location,
-      isPublished: isPublished ?? false,
+      // Non-admins may submit events, but they stay unpublished (pending admin
+      // approval) regardless of the requested value. Only admins can publish.
+      isPublished: isAdmin ? (isPublished ?? false) : false,
       createdBy: session.user.id,
     },
   });
