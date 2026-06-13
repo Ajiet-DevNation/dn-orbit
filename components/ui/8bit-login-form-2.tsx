@@ -50,9 +50,6 @@ export function LoginForm({
           </form>
         </CardContent>
       </Card>
-      <div className="retro text-balance text-center text-xs text-muted-foreground">
-        By signing in, you agree to our Terms & Privacy Policy
-      </div>
     </div>
   );
 }

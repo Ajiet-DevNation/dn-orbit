@@ -16,7 +16,6 @@ const profileSchema = z.object({
     .min(1, "LeetCode username is required")
     .regex(/^[a-zA-Z0-9_.-]+$/, "Invalid LeetCode username format"),
   bio: z.string().max(160, "Bio must be 160 characters or less").optional(),
-  isVisible: z.boolean().default(true),
 });
 
 export async function updateProfile(formData: FormData) {
@@ -33,7 +32,6 @@ export async function updateProfile(formData: FormData) {
     year: formData.get("year"),
     lc_username: formData.get("lc_username"),
     bio: formData.get("bio") || undefined,
-    isVisible: formData.get("isVisible") === "on",
   };
 
   const parsed = profileSchema.safeParse(rawData);
@@ -63,7 +61,6 @@ export async function updateProfile(formData: FormData) {
         year: parsed.data.year,
         lcUsername: parsed.data.lc_username,
         bio: parsed.data.bio,
-        isVisible: parsed.data.isVisible,
       },
     });
 

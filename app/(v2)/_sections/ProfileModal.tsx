@@ -43,7 +43,6 @@ export interface ProfileData {
   year: number | null;
   lcUsername: string;
   bio: string;
-  isVisible: boolean;
 }
 
 interface ProfileModalProps {
@@ -60,7 +59,6 @@ const EMPTY_PROFILE: ProfileData = {
   year: null,
   lcUsername: "",
   bio: "",
-  isVisible: true,
 };
 
 export function ProfileModal({
@@ -77,7 +75,6 @@ export function ProfileModal({
   const [year, setYear] = useState(profile.year ? String(profile.year) : "");
   const [lcUsername, setLcUsername] = useState(profile.lcUsername);
   const [bio, setBio] = useState(profile.bio);
-  const [isVisible, setIsVisible] = useState(profile.isVisible);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [photoPopup, setPhotoPopup] = useState(false);
@@ -99,7 +96,6 @@ export function ProfileModal({
     fd.set("year", year);
     fd.set("lc_username", lcUsername);
     fd.set("bio", bio);
-    if (isVisible) fd.set("isVisible", "on");
 
     const res = await updateProfile(fd);
     setSaving(false);
@@ -245,18 +241,6 @@ export function ProfileModal({
                   onChange={(e) => setBio(e.target.value)}
                 />
               </div>
-
-              <label className="flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={isVisible}
-                  onChange={(e) => setIsVisible(e.target.checked)}
-                  className="size-4 accent-[#22c55e]"
-                />
-                <span className="text-[10px] tracking-wider text-muted-foreground">
-                  VISIBLE ON MEMBERS PAGE
-                </span>
-              </label>
 
               <div className="mt-2 flex gap-4 w-full">
                 <Button
