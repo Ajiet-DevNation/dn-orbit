@@ -57,7 +57,6 @@ export default async function V2Layout({
         />
         {children}
       </div>
-      <Toaster />
     </div>
   );
 }
