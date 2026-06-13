@@ -163,6 +163,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   const [drawProgress, setDrawProgress] = useState(mode === "hero" ? 100 : 0);
   const [popActive, setPopActive] = useState(mode === "hero");
   const [orbitVisible, setOrbitVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
   const animFrameRef = useRef<number>(0);
   const totalBlocksRef = useRef<number>(1);
 
@@ -429,7 +432,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   // Render logic differs slightly based on mode
   const wrapperClass =
     mode === "loading"
-      ? "fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 backdrop-blur-sm"
+      ? "fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 backdrop-blur-sm pt-[100px]"
       : "relative flex min-h-[100vh] w-full items-center justify-center overflow-hidden";
 
   return (
@@ -589,11 +592,11 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
             "dark"
           )}
           style={{
-            // Fade out the progress bar once the pop starts
-            opacity: showProgress ? 1 : 0,
-            transform: showProgress ? "translateY(0)" : "translateY(8px)",
-            transition: "opacity 400ms ease-out, transform 400ms ease-out",
-            // Prevent interaction after hidden
+            // Smoothly animate in on mount, and fade out on pop
+            opacity: mounted && showProgress ? 1 : 0,
+            transform: mounted && showProgress ? "translateY(0) scale(1)" : "translateY(16px) scale(0.95)",
+            filter: mounted && showProgress ? "blur(0)" : "blur(4px)",
+            transition: "all 600ms cubic-bezier(0.16, 1, 0.3, 1)",
             pointerEvents: showProgress ? "auto" : "none",
           }}
         >
