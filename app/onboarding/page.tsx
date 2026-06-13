@@ -45,18 +45,35 @@ function validate(fields: {
 
 function SuccessOverlay() {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background retro dark">
-      <div className="text-center space-y-4 font-mono">
-        <div className="w-1.5 h-1.5 bg-emerald-500 animate-pulse mx-auto" />
-        <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter italic leading-none text-white">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background retro dark">
+      {/* Scanlines */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 opacity-[0.03]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)",
+          backgroundSize: "100% 4px",
+        }}
+      />
+      <div className="relative z-10 text-center space-y-6">
+        <div className="w-3 h-3 bg-emerald-500 mx-auto" style={{ animation: "pixel-pulse 1.5s step-end infinite", boxShadow: "0 0 12px rgba(16,185,129,0.8)" }} />
+        <h2 className="text-3xl md:text-5xl uppercase text-white drop-shadow-[0_4px_0_rgba(255,255,255,0.2)] leading-relaxed">
           PROFILE
           <br />
-          COMMITTED.
+          COMMITTED
         </h2>
-        <p className="text-[10px] text-zinc-500 tracking-widest uppercase font-black">
-          UPLINK_SUCCESS — REDIRECTING
+        <p className="text-xs text-emerald-500 tracking-widest uppercase opacity-80"
+           style={{ animation: "pixel-pulse 1.5s step-end infinite" }}
+        >
+          &gt; UPLINK_SUCCESS — REDIRECTING
         </p>
       </div>
+      <style>{`
+        @keyframes pixel-pulse {
+          0%, 49% { opacity: 1; }
+          50%, 100% { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
