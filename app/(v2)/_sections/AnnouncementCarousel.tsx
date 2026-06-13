@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/8bit-card";
+import { motion } from "framer-motion";
 
 // Generic announcement — NOT tied to events. Any source (events, club news,
 // leaderboard resets, project drops) can be mapped into this shape upstream.
@@ -58,7 +59,7 @@ function AnnouncementSlide({ item }: { item: Announcement }) {
       className="shrink-0"
       style={{ width: CARD_W, marginRight: CARD_GAP }}
     >
-      <Card className="min-h-72 justify-between gap-6 py-10">
+      <Card className="min-h-72 justify-between gap-6 py-10 border-white/10 hover:border-[#22c55e]/40 shadow-[0_0_15px_rgba(34,197,94,0.05)] transition-colors duration-500">
         {item.tag && (
           <div className="px-8">
             <span className="retro inline-block border-2 border-[#22c55e] px-3 py-1.5 text-[9px] text-[#22c55e]">
@@ -195,9 +196,15 @@ export function AnnouncementCarousel({
 
   return (
     <section id="events" className="w-full overflow-hidden py-12">
-      <h2 className="retro mb-12 text-center text-xl tracking-wider text-white">
+      <motion.h2 
+        initial={{ opacity: 0, y: 15 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+        className="retro mb-12 text-center text-xl tracking-wider text-white"
+      >
         ANNOUNCEMENTS
-      </h2>
+      </motion.h2>
 
       {/*
         Drag anywhere on the strip to scrub it; release and the drift resumes.

@@ -78,9 +78,9 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
           <Image
             src="/assets/DNLogoTransparent.png"
             alt="DevNation"
-            width={48}
-            height={48}
-            className="pixelated opacity-90 h-10 w-10 sm:h-12 sm:w-12"
+            width={64}
+            height={64}
+            className="pixelated opacity-90 h-14 w-14 sm:h-16 sm:w-16 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
           />
           <span className="font-[family-name:var(--font-pixel)] text-white text-2xl leading-none hidden sm:block mt-1">
             ORBIT

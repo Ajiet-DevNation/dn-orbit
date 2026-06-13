@@ -323,28 +323,46 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       const cx = w / 2;
       const cy = h / 2;
 
+      const drawSaturnRing = (ctx: CanvasRenderingContext2D, isBack: boolean) => {
+        const startAngle = isBack ? Math.PI : 0;
+        const endAngle = isBack ? 2 * Math.PI : Math.PI;
+        
+        // Inner thin ring
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, ORBIT_RX - 12, ORBIT_RY - 12 * (ORBIT_RY/ORBIT_RX), ORBIT_TILT, startAngle, endAngle);
+        ctx.strokeStyle = `rgba(34, 197, 94, ${isBack ? 0.15 : 0.3})`;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([]);
+        ctx.stroke();
+
+        // Main thick dashed ring
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, ORBIT_RX, ORBIT_RY, ORBIT_TILT, startAngle, endAngle);
+        ctx.strokeStyle = `rgba(34, 197, 94, ${isBack ? 0.25 : 0.5})`;
+        ctx.lineWidth = 6;
+        ctx.setLineDash([12, 16]);
+        ctx.lineDashOffset = -(performance.now() / 40);
+        ctx.stroke();
+
+        // Outer faint solid ring
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, ORBIT_RX + 10, ORBIT_RY + 10 * (ORBIT_RY/ORBIT_RX), ORBIT_TILT, startAngle, endAngle);
+        ctx.strokeStyle = `rgba(34, 197, 94, ${isBack ? 0.1 : 0.2})`;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+        ctx.stroke();
+      };
+
       const bctx = backCanvas.getContext("2d");
       if (bctx) {
         bctx.clearRect(0, 0, w, h);
-        bctx.beginPath();
-        bctx.ellipse(cx, cy, ORBIT_RX, ORBIT_RY, ORBIT_TILT, Math.PI, 2 * Math.PI);
-        bctx.strokeStyle = "rgba(34, 197, 94, 0.25)";
-        bctx.lineWidth = 3;
-        bctx.setLineDash([8, 12]);
-        bctx.lineDashOffset = -(performance.now() / 50);
-        bctx.stroke();
+        drawSaturnRing(bctx, true);
       }
 
       const fctx = frontCanvas.getContext("2d");
       if (fctx) {
         fctx.clearRect(0, 0, w, h);
-        fctx.beginPath();
-        fctx.ellipse(cx, cy, ORBIT_RX, ORBIT_RY, ORBIT_TILT, 0, Math.PI);
-        fctx.strokeStyle = "rgba(34, 197, 94, 0.5)";
-        fctx.lineWidth = 3;
-        fctx.setLineDash([8, 12]);
-        fctx.lineDashOffset = -(performance.now() / 50);
-        fctx.stroke();
+        drawSaturnRing(fctx, false);
       }
 
       frame = requestAnimationFrame(drawOrbitRing);
@@ -509,8 +527,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
             <>
               {/* GitHub */}
               <div
-                className="absolute flex items-center justify-center pointer-events-none"
+                className="absolute flex items-center justify-center rounded-full pointer-events-none"
                 style={{
+                  backgroundColor: "#181717",
                   width: PLANET_ICON_SIZE,
                   height: PLANET_ICON_SIZE,
                   left: `calc(50% + ${(planetPositions.github.x / CANVAS_SIZE) * 100}%)`,
@@ -521,13 +540,14 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   transition: `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
                 }}
               >
-                <GitHubIcon size={PLANET_ICON_SIZE} />
+                <GitHubIcon size={PLANET_ICON_SIZE * 0.6} />
               </div>
 
               {/* LeetCode */}
               <div
-                className="absolute flex items-center justify-center pointer-events-none"
+                className="absolute flex items-center justify-center rounded-full pointer-events-none"
                 style={{
+                  backgroundColor: "#FFA116",
                   width: PLANET_ICON_SIZE,
                   height: PLANET_ICON_SIZE,
                   left: `calc(50% + ${(planetPositions.leetcode.x / CANVAS_SIZE) * 100}%)`,
@@ -538,13 +558,14 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   transition: `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
                 }}
               >
-                <LeetCodeIcon size={PLANET_ICON_SIZE} />
+                <LeetCodeIcon size={PLANET_ICON_SIZE * 0.55} />
               </div>
 
               {/* LinkedIn */}
               <div
-                className="absolute flex items-center justify-center pointer-events-none"
+                className="absolute flex items-center justify-center rounded-full pointer-events-none"
                 style={{
+                  backgroundColor: "#0a66c2",
                   width: PLANET_ICON_SIZE,
                   height: PLANET_ICON_SIZE,
                   left: `calc(50% + ${(planetPositions.linkedin.x / CANVAS_SIZE) * 100}%)`,
@@ -555,7 +576,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   transition: `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
                 }}
               >
-                <LinkedInIcon size={PLANET_ICON_SIZE} />
+                <LinkedInIcon size={PLANET_ICON_SIZE * 0.55} />
               </div>
             </>
           )}
