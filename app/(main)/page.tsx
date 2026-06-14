@@ -10,7 +10,7 @@ import { languagesFromRecord } from "./_sections/stats-utils";
 import { PixelLoadingScreen } from "@/components/ui/PixelLoadingScreen";
 
 export const metadata = {
-  title: "ORBIT V2 — DevNation",
+  title: "DNOrbit ~ DevNation",
 };
 
 function formatDate(date: Date): string {
@@ -63,8 +63,10 @@ export default async function V2Page() {
     <div className="min-h-screen">
       <PixelLoadingScreen mode="hero" />
       <AnnouncementCarousel announcements={announcements} />
+      {/* PLAYER STATS is personal — only rendered for signed-in members. */}
+      {userId && (
       <StatsSection
-        userId={userId ?? ""}
+        userId={userId}
         isAdmin={isAdmin}
         hasGithubToken={hasGithubToken}
         hasLcUsername={hasLcUsername}
@@ -104,6 +106,7 @@ export default async function V2Page() {
             : null
         }
       />
+      )}
       <AboutSection />
     </div>
   );

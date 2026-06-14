@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/8bit-card";
-import { AnimatePresence } from "framer-motion";
 
 // Generic announcement — NOT tied to events. Any source (events, club news,
 // leaderboard resets, project drops) can be mapped into this shape upstream.

@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const publicRoutes = ["/login", "/api/auth"];
-const isPublicRoute = (path: string) => publicRoutes.some(route => path.startsWith(route));
+// Routes that require an authenticated (club-member) session. Everything else —
+// including the landing page `/` — is public and browsable without signing in.
+const protectedRoutes = ["/onboarding", "/admin"];
+const isProtectedRoute = (path: string) =>
+  protectedRoutes.some((route) => path.startsWith(route));
 
 /**
  * Next.js 16 Proxy (replaces the deprecated middleware convention).
@@ -28,8 +31,9 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Redirect unauthenticated users to login
-  if (!isLoggedIn && !isPublicRoute(path) && path !== "/") {
+  // Only the member-only areas require a session. The landing page and all other
+  // public routes render for anonymous visitors.
+  if (!isLoggedIn && isProtectedRoute(path)) {
     console.log(`[Proxy] Redirecting unauthenticated user to /login`);
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }

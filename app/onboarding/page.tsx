@@ -109,7 +109,7 @@ export default function OnboardingPage() {
 
     if (result.error) {
       if (result.error.includes("LeetCode")) {
-        toast.error("INCORRECT_LEETCODE_USERNAME");
+        toast.error("INVALID LEETCODE USERNAME");
       } else {
         setServerError(result.error);
       }

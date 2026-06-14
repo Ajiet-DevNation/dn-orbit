@@ -9,9 +9,26 @@ import { cn } from "@/lib/utils";
 const BLOCK_SIZE = 18;
 const BLOCKS_PER_FRAME = 20;
 const CANVAS_SIZE = 900;
-const POP_DURATION_MS = 600;
-const POST_POP_DELAY_MS = 200;
 const ORBIT_FADE_IN_MS = 800;
+
+// Resting scale of the freshly-drawn logo. The loading screen draws and holds
+// the logo at this size; the landing-page hero then picks it up from exactly
+// here and grows it to full size (1.0) as the orbit forms — so the loading→
+// landing hand-off reads as one continuous "draw → come alive → grow → orbit"
+// motion rather than a size jump. Keep both modes pinned to this constant.
+const HERO_START_SCALE = 0.7;
+
+// Base upward nudge applied to the logo/orbit cluster (matches the old
+// `-translate-y-20`). Shared by both modes so the internal layout is identical.
+const LOGO_BASE_OFFSET_Y = -80;
+
+// On the landing page the hero is pushed down by the sticky V2Header. The
+// loading overlay is a full-viewport fixed layer with no header, so its logo
+// would sit ~one header-height too high. Nudging the loading logo down by the
+// header height lands it exactly where the hero logo settles — a seamless
+// hand-off. Keep this in sync with the V2Header height (px-6 pt-6 pb-3 + ~64px
+// logo ≈ 100px).
+const HEADER_OFFSET = 100;
 
 // Slower base speed for a more relaxed, stable feel
 const ORBIT_PERIODS = {
@@ -83,9 +100,15 @@ interface PixelBlock {
   a: number;
 }
 
-type AnimationPhase = "drawing" | "popping" | "orbiting";
+type AnimationPhase = "drawing" | "orbiting";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Gentle deceleration — fast start, soft landing. Used for the JS-driven hero
+// reveal so it reads as a smooth fade-and-settle rather than a linear ramp.
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
 
 function extractPixelBlocks(imageData: ImageData): PixelBlock[] {
   const blocks: PixelBlock[] = [];
@@ -132,8 +155,17 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [phase, setPhase] = useState<AnimationPhase>("drawing");
   const [drawProgress, setDrawProgress] = useState(mode === "hero" ? 100 : 0);
-  const [popActive, setPopActive] = useState(mode === "hero");
   const [orbitVisible, setOrbitVisible] = useState(false);
+  // Hero-only entrance, driven by JS (rAF) rather than CSS transitions. This is
+  // deliberate: the global `prefers-reduced-motion` rule in globals.css forces
+  // every CSS transition/animation to ~0ms, which would make a CSS-based reveal
+  // snap in instantly. A JS-interpolated value is immune to that rule, so the
+  // hand-off stays smooth for every visitor. `heroProgress` eases the logo in;
+  // `orbitProgress` eases the orbit + planets in a beat later (staggered).
+  const [heroProgress, setHeroProgress] = useState(mode === "hero" ? 0 : 1);
+  const [orbitProgress, setOrbitProgress] = useState(mode === "hero" ? 0 : 1);
+  const heroAnimRef = useRef<number>(0);
+  const orbitAnimRef = useRef<number>(0);
   
   // Directly tied into the JSX to prevent unused variable linter errors
   const [isMounted, setIsMounted] = useState(false);
@@ -174,6 +206,8 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   
   const playFlashSound = useCallback(() => {
     if (typeof window === "undefined") return;
+    // Respect reduced-motion: skip the synthesized audio "flash".
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     try {
       const AudioContext = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext;
       if (!AudioContext) return;
@@ -210,6 +244,31 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       // Silently fail if browser blocks autoplay (no unused 'e' parameter)
     }
   }, []);
+
+  // ── JS-driven tween (immune to reduced-motion CSS) ─────────────────────────
+  // Eases `setValue` from 0→1 over `durationMs` using easeOutCubic, storing the
+  // rAF handle in `frameRef` so it can be cancelled on unmount. We animate in JS
+  // (not CSS) so the global prefers-reduced-motion reset can't flatten it.
+
+  const runTween = useCallback(
+    (
+      durationMs: number,
+      setValue: (v: number) => void,
+      frameRef: React.MutableRefObject<number>
+    ) => {
+      const start = performance.now();
+      const tick = (now: number) => {
+        if (!isMountedRef.current) return;
+        const t = Math.min(1, (now - start) / durationMs);
+        setValue(easeOutCubic(t));
+        if (t < 1) {
+          frameRef.current = requestAnimationFrame(tick);
+        }
+      };
+      frameRef.current = requestAnimationFrame(tick);
+    },
+    []
+  );
 
   // ── Phase 1: Pixel-by-pixel logo drawing ──────────────────────────────────
 
@@ -251,11 +310,15 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
           }
         }
         setDrawProgress(100);
+        // Smooth, JS-driven reveal. The logo eases in first (fade + gentle
+        // grow + de-blur); the orbit follows a beat later for a staggered,
+        // cohesive hand-off from the loading overlay rather than a hard cut.
+        runTween(1100, setHeroProgress, heroAnimRef);
         setTimeout(() => {
           if (!isMountedRef.current) return;
-          setPhase("popping");
-          setPopActive(true);
-        }, 100);
+          setPhase("orbiting");
+          runTween(1300, setOrbitProgress, orbitAnimRef);
+        }, 480);
         return;
       }
 
@@ -265,12 +328,10 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         if (!isMountedRef.current) return;
 
         if (currentBlock >= blocks.length) {
+          // Loading is "draw only": the logo finishes pixel-painting and simply
+          // rests at HERO_START_SCALE. The grow + orbit reveal belongs to the
+          // landing page (hero mode), so the hand-off is one continuous motion.
           setDrawProgress(100);
-          setTimeout(() => {
-            if (!isMountedRef.current) return;
-            setPhase("popping");
-            setPopActive(true);
-          }, 100);
           return;
         }
 
@@ -307,28 +368,19 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
     };
 
     img.src = "/assets/DNLogoTransparent.png";
-  }, [mode]);
+  }, [mode, runTween]);
 
   useEffect(() => {
     drawLogo();
     return () => {
-      if (animFrameRef.current) {
-        cancelAnimationFrame(animFrameRef.current);
-      }
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      // The hero/orbit tweens self-terminate via the isMountedRef guard in their
+      // tick (no further setState or rescheduling once unmounted), so they don't
+      // need explicit cancellation here.
     };
   }, [drawLogo]);
 
-  // ── Phase 2→3: Pop → Orbit ───────────────────────────────────────────────
-  
-  useEffect(() => {
-    if (phase !== "popping") return;
-
-    const orbitTimer = setTimeout(() => {
-      setPhase("orbiting");
-    }, POP_DURATION_MS + POST_POP_DELAY_MS);
-
-    return () => clearTimeout(orbitTimer);
-  }, [phase]);
+  // ── Orbit reveal: announce the header once the orbit begins forming ────────
 
   useEffect(() => {
     if (phase !== "orbiting" || orbitVisible) return;
@@ -642,19 +694,43 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   // ── Computed values ───────────────────────────────────────────────────────
   
   const showOrbit = phase === "orbiting";
-  const showProgress = phase === "drawing";
+  // The progress bar is a loading affordance only — the landing-page hero must
+  // never flash "LOADING…" while its entrance plays out.
+  const showProgress = mode !== "hero" && phase === "drawing";
 
-  const logoScale =
-    phase === "drawing"
+  // ── Hero reveal multipliers (JS-driven; see heroProgress/orbitProgress) ──
+  // For the landing-page hero these come from the rAF tweens, so the entrance
+  // stays smooth even under prefers-reduced-motion. Loading mode keeps its
+  // original CSS-transition behaviour keyed off `orbitVisible`.
+  const isHero = mode === "hero";
+  const orbitReveal = isHero ? orbitProgress : orbitVisible ? 1 : 0;
+  const orbitRingScale = isHero
+    ? 0.86 + 0.14 * orbitProgress
+    : orbitVisible
       ? 1
-      : popActive
-        ? 1.08
-        : 1;
+      : 0.82;
+  // JS drives the hero values per frame, so CSS transitions are disabled there
+  // (and would be flattened by reduced-motion anyway). Loading mode keeps them.
+  const orbitRevealTransition = isHero
+    ? "none"
+    : shattered
+      ? "none"
+      : `opacity ${ORBIT_FADE_IN_MS}ms ease-out, transform ${ORBIT_FADE_IN_MS}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
+  const planetRevealTransition = isHero
+    ? "none"
+    : shattered
+      ? "none"
+      : `opacity ${ORBIT_FADE_IN_MS}ms ease-out`;
 
   const wrapperClass =
     mode === "loading"
-      ? "fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 backdrop-blur-sm pt-[100px]"
+      ? "fixed inset-0 z-[100] flex items-center justify-center bg-bg/95 backdrop-blur-sm"
       : "relative flex min-h-[100vh] w-full items-center justify-center overflow-hidden";
+
+  // Loading overlay has no header, so push its logo down by the header height to
+  // align with where the hero logo lands once the header is present.
+  const contentOffsetY =
+    mode === "loading" ? LOGO_BASE_OFFSET_Y + HEADER_OFFSET : LOGO_BASE_OFFSET_Y;
 
   return (
     <div className={wrapperClass}>
@@ -685,8 +761,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
       {/* ── Reforming Flash Effect ── */}
       <div
-        className="pointer-events-none absolute inset-0 z-[80] flex items-center justify-center -translate-y-20"
+        className="pointer-events-none absolute inset-0 z-[80] flex items-center justify-center"
         style={{
+          transform: `translateY(${contentOffsetY}px)`,
           opacity: flashActive ? 1 : 0,
           transition: flashActive ? "none" : "opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
@@ -703,7 +780,10 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         />
       </div>
 
-      <div className="relative z-10 flex w-full max-w-[700px] flex-col items-center -translate-y-20">
+      <div
+        className="relative z-10 flex w-full max-w-[700px] flex-col items-center"
+        style={{ transform: `translateY(${contentOffsetY}px)` }}
+      >
         
         <div 
           role="application"
@@ -729,8 +809,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
               height={CANVAS_SIZE}
               className="absolute inset-0 z-0 w-full h-full pointer-events-none"
               style={{
-                opacity: orbitVisible ? 1 : 0,
-                transition: shattered ? "none" : `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
+                opacity: orbitReveal,
+                transform: `scale(${orbitRingScale})`,
+                transition: orbitRevealTransition,
               }}
             />
           )}
@@ -738,11 +819,17 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
           <div
             className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
             style={{
-              transform: `scale(${logoScale})`,
-              transition:
-                phase === "popping" || phase === "orbiting"
-                  ? `transform ${POP_DURATION_MS}ms cubic-bezier(0.175, 0.885, 0.32, 1.275)`
-                  : "none",
+              // Loading rests at HERO_START_SCALE; hero grows from that exact size
+              // (in place, scaling about the shared centre) up to full size — so
+              // the two modes line up seamlessly across the route hand-off.
+              transform: isHero
+                ? `scale(${HERO_START_SCALE + (1 - HERO_START_SCALE) * heroProgress})`
+                : `scale(${HERO_START_SCALE})`,
+              // Fade + de-blur slightly ahead of the grow so it reads as the logo
+              // "coming back to life" rather than a plain zoom.
+              opacity: isHero ? Math.min(1, heroProgress * 1.3) : 1,
+              filter: isHero ? `blur(${(1 - heroProgress) * 8}px)` : "none",
+              transition: "none",
             }}
           >
             <canvas
@@ -761,8 +848,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
               height={CANVAS_SIZE}
               className="absolute inset-0 z-20 w-full h-full pointer-events-none"
               style={{
-                opacity: orbitVisible ? 1 : 0,
-                transition: shattered ? "none" : `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
+                opacity: orbitReveal,
+                transform: `scale(${orbitRingScale})`,
+                transition: orbitRevealTransition,
               }}
             />
           )}
@@ -781,8 +869,8 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   top: `calc(50% + ${(planetPositions.github.y / CANVAS_SIZE) * 100}%)`,
                   transform: `translate(-50%, -50%) scale(${planetPositions.github.scale})`,
                   zIndex: planetPositions.github.z > 0 ? 30 : 5,
-                  opacity: orbitVisible ? (0.6 + 0.4 * ((planetPositions.github.z + 1) / 2)) : 0,
-                  transition: shattered ? "none" : `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
+                  opacity: orbitReveal * (0.6 + 0.4 * ((planetPositions.github.z + 1) / 2)),
+                  transition: planetRevealTransition,
                 }}
               >
                 <a
@@ -791,7 +879,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   rel="noopener noreferrer"
                   draggable={false}
                   onDragStart={(e) => e.preventDefault()}
-                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 hover:scale-[1.7]"
+                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out hover:scale-[1.45]"
                 >
                   <GitHubIcon size={PLANET_ICON_SIZE * 0.85} />
                 </a>
@@ -809,8 +897,8 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   top: `calc(50% + ${(planetPositions.leetcode.y / CANVAS_SIZE) * 100}%)`,
                   transform: `translate(-50%, -50%) scale(${planetPositions.leetcode.scale})`,
                   zIndex: planetPositions.leetcode.z > 0 ? 30 : 5,
-                  opacity: orbitVisible ? (0.6 + 0.4 * ((planetPositions.leetcode.z + 1) / 2)) : 0,
-                  transition: shattered ? "none" : `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
+                  opacity: orbitReveal * (0.6 + 0.4 * ((planetPositions.leetcode.z + 1) / 2)),
+                  transition: planetRevealTransition,
                 }}
               >
                 <a
@@ -819,7 +907,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   rel="noopener noreferrer"
                   draggable={false}
                   onDragStart={(e) => e.preventDefault()}
-                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 hover:scale-[1.7]"
+                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out hover:scale-[1.45]"
                 >
                   <LeetCodeIcon size={PLANET_ICON_SIZE * 0.85} />
                 </a>
@@ -837,8 +925,8 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   top: `calc(50% + ${(planetPositions.linkedin.y / CANVAS_SIZE) * 100}%)`,
                   transform: `translate(-50%, -50%) scale(${planetPositions.linkedin.scale})`,
                   zIndex: planetPositions.linkedin.z > 0 ? 30 : 5,
-                  opacity: orbitVisible ? (0.6 + 0.4 * ((planetPositions.linkedin.z + 1) / 2)) : 0,
-                  transition: shattered ? "none" : `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
+                  opacity: orbitReveal * (0.6 + 0.4 * ((planetPositions.linkedin.z + 1) / 2)),
+                  transition: planetRevealTransition,
                 }}
               >
               <a
@@ -877,7 +965,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
           <div className="w-full space-y-1">
             <div className="flex justify-end">
-              <span className="text-[8px] text-text-muted">
+              <span className="text-[8px] tabular-nums text-text-muted">
                 {drawProgress}%
               </span>
             </div>

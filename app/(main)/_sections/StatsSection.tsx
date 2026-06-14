@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/8bit-button";
 import { Progress } from "@/components/ui/8bit-progress";
 import type { ReactNode } from "react";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { Reveal } from "@/components/ui/Reveal";
 import { type LanguageStat, languagesFromRecord } from "./stats-utils";
 import { ContactModal } from "./ContactModal";
 import { EventModal } from "./EventModal";
@@ -189,7 +190,7 @@ export function StatsSection({
         </Button>
       </div>
 
-      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-3 relative z-10">
+      <Reveal className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-3 relative z-10">
         {/* ── GitHub ── */}
         <Card className="gap-6 py-8 border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
           <div className="px-7">
@@ -325,7 +326,7 @@ export function StatsSection({
             </div>
           </div>
         </Card>
-      </div>
+      </Reveal>
 
       {/* ── Action buttons ── */}
       <div className="mx-auto mt-8 grid max-w-6xl gap-6 sm:grid-cols-3">

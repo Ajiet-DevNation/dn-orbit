@@ -29,6 +29,44 @@ declare module "next-auth" {
 
 const baseAdapter = PrismaAdapter(db) as Adapter;
 
+// ── Membership gate ──────────────────────────────────────────────────────────
+// The public can browse the site freely; sign-in is reserved for club members.
+// A user may sign in only if their GitHub login/email is on the admin-managed
+// Allowlist, or in the ADMIN_GITHUB_USERNAMES bootstrap list (which also grants
+// the admin role — this is how the first admin gets in before the allowlist or
+// any admin UI exists).
+
+function bootstrapAdminUsernames(): string[] {
+  return (process.env.ADMIN_GITHUB_USERNAMES ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isBootstrapAdmin(githubUsername?: string | null): boolean {
+  const u = githubUsername?.toLowerCase();
+  return !!u && bootstrapAdminUsernames().includes(u);
+}
+
+async function isAllowedToSignIn(
+  githubUsername?: string | null,
+  email?: string | null
+): Promise<boolean> {
+  const u = githubUsername?.toLowerCase() || null;
+  const e = email?.toLowerCase() || null;
+
+  if (u && isBootstrapAdmin(u)) return true;
+  if (!u && !e) return false;
+
+  // Allowlist stores normalized (lowercased) values, so exact match is enough.
+  const or: { githubUsername?: string; email?: string }[] = [];
+  if (u) or.push({ githubUsername: u });
+  if (e) or.push({ email: e });
+
+  const entry = await db.allowlist.findFirst({ where: { OR: or } });
+  return !!entry;
+}
+
 const customAdapter: Adapter = {
   ...baseAdapter,
   createUser: async (user) => {
@@ -45,7 +83,7 @@ const customAdapter: Adapter = {
         name: u.name ?? u.githubUsername ?? "Unknown",
         image: u.image,
         emailVerified: u.emailVerified,
-        role: "member",
+        role: isBootstrapAdmin(u.githubUsername) ? "admin" : "member",
       },
     }) as unknown as AdapterUser;
   },
@@ -83,6 +121,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    // Gate sign-in to allowlisted club members (or bootstrap admins). Returning
+    // false aborts before any user record is created and redirects the visitor
+    // to /login?error=AccessDenied (mapped to ACCESS_DENIED on the login page).
+    async signIn({ user, profile }) {
+      const githubUsername =
+        (profile?.login as string | undefined) ??
+        (user as { githubUsername?: string } | undefined)?.githubUsername;
+      const email = (profile?.email as string | undefined) ?? user?.email;
+      return isAllowedToSignIn(githubUsername, email);
+    },
     async jwt({ token, user, account, trigger, session }) {
       // Handle manual session updates from the client
       if (trigger === "update" && session) {
@@ -98,6 +146,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.usn = user.usn;
         token.branch = user.branch;
         token.lcUsername = user.lcUsername;
+        // Keep bootstrap admins elevated even if their DB row predates the env
+        // var (createUser only runs once, on first sign-in).
+        if (isBootstrapAdmin((user as { githubUsername?: string }).githubUsername)) {
+          token.role = "admin";
+        }
       }
       if (account) {
         token.accessToken = account.access_token;

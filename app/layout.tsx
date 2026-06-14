@@ -72,7 +72,15 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-bg text-text">
         <DotGridBackground />
         <Providers>{children}</Providers>
-        <Toaster />
+        {/* Single global Toaster. `className="dark"` is forwarded to the portaled
+            <ol>, so the 8-bit Toast2 (bg-background / bg-destructive) resolves to the
+            dark theme instead of rendering white on the dark site. */}
+        <Toaster
+          theme="dark"
+          position="top-center"
+          offset={48}
+          className="dark retro"
+        />
       </body>
     </html>
   );

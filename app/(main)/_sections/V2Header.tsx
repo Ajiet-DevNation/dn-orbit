@@ -3,17 +3,20 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
 import {
   Avatar,
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/8bit-avatar";
+import { Button } from "@/components/ui/8bit-button";
 import { ProfileModal, type ProfileData } from "./ProfileModal";
 
 interface V2HeaderProps {
   userName: string | null;
   userImage: string | null;
+  isAuthenticated: boolean;
   profile: ProfileData;
 }
 
@@ -24,7 +27,12 @@ const NAV_TABS = [
   { value: "projects", label: "PROJECTS" },
 ];
 
-export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
+export function V2Header({
+  userName,
+  userImage,
+  isAuthenticated,
+  profile,
+}: V2HeaderProps) {
   const pathname = usePathname();
   const isLandingPage = pathname === "/";
   
@@ -90,8 +98,10 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
             style={{
               opacity: headerVisible ? 1 : 0,
               transform: headerVisible ? "translateY(0)" : "translateY(-16px)",
-              transition: "opacity 800ms ease-out, transform 800ms ease-out",
-              pointerEvents: headerVisible ? "auto" : "none"
+              transition:
+                "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1)",
+              willChange: "opacity, transform",
+              pointerEvents: headerVisible ? "auto" : "none",
             }}
           >
             <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -115,34 +125,43 @@ export function V2Header({ userName, userImage, profile }: V2HeaderProps) {
           </div>
         </div>
 
-        {/* Right: 8bit pixel-frame avatar — click to edit profile */}
-        <button
-          onClick={() => setProfileOpen(true)}
-          className="shrink-0 transition-transform hover:scale-105 active:scale-95"
-          aria-label="Edit profile"
-        >
-          <Avatar className="size-16">
-            {userImage ? (
-              <AvatarImage
-                src={userImage}
-                alt={userName ?? "User"}
-                className="object-cover"
-              />
-            ) : (
-              <AvatarFallback>{initials}</AvatarFallback>
-            )}
-          </Avatar>
-        </button>
+        {/* Right: signed-in members get the 8bit avatar (click to edit profile);
+            anonymous visitors get a SIGN IN button into the members-only login. */}
+        {isAuthenticated ? (
+          <button
+            onClick={() => setProfileOpen(true)}
+            className="shrink-0 transition-transform duration-200 ease-out hover:scale-105 active:scale-95"
+            aria-label="Edit profile"
+          >
+            <Avatar className="size-16">
+              {userImage ? (
+                <AvatarImage
+                  src={userImage}
+                  alt={userName ?? "User"}
+                  className="object-cover"
+                />
+              ) : (
+                <AvatarFallback>{initials}</AvatarFallback>
+              )}
+            </Avatar>
+          </button>
+        ) : (
+          <Link href="/login" className="shrink-0" aria-label="Sign in">
+            <Button className="text-[10px]">SIGN IN</Button>
+          </Link>
+        )}
 
       </div>
     </header>
 
-      <ProfileModal
-        open={profileOpen}
-        onOpenChange={setProfileOpen}
-        userImage={userImage}
-        profile={profile}
-      />
+      {isAuthenticated && (
+        <ProfileModal
+          open={profileOpen}
+          onOpenChange={setProfileOpen}
+          userImage={userImage}
+          profile={profile}
+        />
+      )}
     </>
   );
 }
