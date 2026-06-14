@@ -13,15 +13,16 @@ const POP_DURATION_MS = 600;
 const POST_POP_DELAY_MS = 200;
 const ORBIT_FADE_IN_MS = 800;
 
+// Slower base speed for a more relaxed, stable feel
 const ORBIT_PERIODS = {
-  github: 8000,
-  leetcode: 8000,
-  linkedin: 8000,
+  github: 12000,
+  leetcode: 12000,
+  linkedin: 12000,
 } as const;
 
 const ORBIT_RX = 410;
 const ORBIT_RY = 135;
-const PLANET_ICON_SIZE = 50;
+const PLANET_ICON_SIZE = 55;
 const ORBIT_TILT = -Math.PI / 6;
 
 // ─── SVG Icon Paths ──────────────────────────────────────────────────────────
@@ -140,15 +141,6 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   const isPausedRef = useRef(false);
   const hasShatteredRef = useRef(false);
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    const timer = setTimeout(() => setMounted(true), 10);
-    return () => {
-      isMountedRef.current = false;
-      clearTimeout(timer);
-    };
-  }, []);
-
   // Custom Deep-Space Physics Engine State
   const physics = useRef({
     accumulatedTime: 0,
@@ -166,6 +158,47 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
   const [shattered, setShattered] = useState(false);
   const [flashActive, setFlashActive] = useState(false);
+
+  // ── Synthetic Audio Generator (Web Audio API) ─────────────────────────────
+  
+  const playFlashSound = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioContext = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+
+      // 1. High energy sweep (The "Flash")
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(1200, ctx.currentTime);
+      osc1.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.8);
+      gain1.gain.setValueAtTime(0, ctx.currentTime);
+      gain1.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
+      gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start();
+      osc1.stop(ctx.currentTime + 1);
+
+      // 2. Deep bass impact (The "Lock")
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "square"; // Adds that retro 8-bit grit!
+      osc2.frequency.setValueAtTime(150, ctx.currentTime);
+      osc2.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.6);
+      gain2.gain.setValueAtTime(0, ctx.currentTime);
+      gain2.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
+      gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start();
+      osc2.stop(ctx.currentTime + 1);
+    } catch (e) {
+      // Silently fail if browser blocks autoplay
+    }
+  }, []);
 
   // ── Phase 1: Pixel-by-pixel logo drawing ──────────────────────────────────
 
@@ -222,7 +255,6 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
         if (currentBlock >= blocks.length) {
           setDrawProgress(100);
-          // FIXED: Loading mode now correctly advances to the popping phase!
           setTimeout(() => {
             if (!isMountedRef.current) return;
             setPhase("popping");
@@ -277,7 +309,6 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
   // ── Phase 2→3: Pop → Orbit ───────────────────────────────────────────────
   
-  // FIXED: Separated Phase transition from Visibility transition to prevent lifecycle clear-outs!
   useEffect(() => {
     if (phase !== "popping") return;
 
@@ -329,7 +360,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         if (timeSinceShatter < 6000) {
           ringOpacity = 0; 
         } else {
-          const progress = Math.min((timeSinceShatter - 6000) / 8000, 1);
+          const progress = Math.min((timeSinceShatter - 6000) / 11000, 1);
           const easeOut = 1 - Math.pow(1 - progress, 3);
           ringOpacity = progress; 
           ringScale = 0.8 + 0.2 * easeOut; 
@@ -410,9 +441,21 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       lastTime = now;
       const phys = physics.current;
 
-      if (!phys.isDragging && !isPausedRef.current) {
+      if (!phys.isDragging && (!isPausedRef.current || phys.isShattered)) {
         phys.spinVelocity += (1 - phys.spinVelocity) * 0.05;
-        phys.accumulatedTime += delta * phys.spinVelocity;
+        
+        let currentSpin = phys.spinVelocity;
+
+        if (phys.isShattered) {
+          const timeSinceShatter = now - phys.shatterStartTime;
+          if (timeSinceShatter > 6000 && timeSinceShatter < 17000) {
+            const reformProgress = (timeSinceShatter - 6000) / 11000;
+            const extraSpin = Math.pow(1 - reformProgress, 2) * 12; 
+            currentSpin += extraSpin;
+          }
+        }
+
+        phys.accumulatedTime += delta * currentSpin;
       }
 
       const calcPos = (period: number, offset: number) => {
@@ -435,17 +478,18 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       if (phys.isShattered) {
         const timeSinceShatter = now - phys.shatterStartTime;
 
-        if (timeSinceShatter >= 14000) {
+        if (timeSinceShatter >= 17000) {
           phys.isShattered = false;
           setShattered(false);
           setPlanetPositions(targetPositions);
           
           setFlashActive(true);
+          playFlashSound(); 
           setTimeout(() => setFlashActive(false), 50);
 
         } else {
           const isReforming = timeSinceShatter > 6000;
-          const reformProgress = isReforming ? (timeSinceShatter - 6000) / 8000 : 0;
+          const reformProgress = isReforming ? (timeSinceShatter - 6000) / 11000 : 0;
 
           Object.keys(phys.particles).forEach((key, index) => {
             const k = key as keyof typeof phys.particles;
@@ -465,7 +509,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
               p.x += Math.sin(now / 500 + index) * 0.8;
               p.y += Math.cos(now / 400 + index) * 0.8;
 
-              const LOGO_HALF_W = 530;
+              const LOGO_HALF_W = 330;
               const LOGO_HALF_H = 150;
 
               if (Math.abs(p.x) < LOGO_HALF_W && Math.abs(p.y) < LOGO_HALF_H) {
@@ -499,7 +543,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
               p.x += p.vx;
               p.y += p.vy;
 
-              const pullStrength = 0.005 + Math.pow(reformProgress, 2) * 0.15; 
+              const pullStrength = 0.005 + Math.pow(reformProgress, 2) * 0.20; 
               p.x += (t.x - p.x) * pullStrength;
               p.y += (t.y - p.y) * pullStrength;
               p.z += (t.z - p.z) * pullStrength;
@@ -518,7 +562,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
     frame = requestAnimationFrame(updatePositions);
     return () => cancelAnimationFrame(frame);
-  }, [phase]);
+  }, [phase, playFlashSound]);
 
   // ── Drag & Shatter Interaction Handlers ─────────────────────────────────────
 
@@ -651,9 +695,14 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       <div className="relative z-10 flex w-full max-w-[700px] flex-col items-center -translate-y-20">
         
         <div 
-          role="presentation"
+          role="application"
+          aria-label="Interactive Orbit Physics Canvas"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+          }}
           className={cn(
-            "relative w-full aspect-square flex items-center justify-center",
+            "relative w-full aspect-square flex items-center justify-center focus:outline-none",
             !shattered && phase === "orbiting" && "cursor-grab active:cursor-grabbing"
           )}
           onMouseDown={handleMouseDown}
