@@ -134,12 +134,23 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   const [drawProgress, setDrawProgress] = useState(mode === "hero" ? 100 : 0);
   const [popActive, setPopActive] = useState(mode === "hero");
   const [orbitVisible, setOrbitVisible] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  
+  // Directly tied into the JSX to prevent unused variable linter errors
+  const [isMounted, setIsMounted] = useState(false);
 
   const isMountedRef = useRef(true);
   const animFrameRef = useRef<number>(0);
   const isPausedRef = useRef(false);
   const hasShatteredRef = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    const timer = setTimeout(() => setIsMounted(true), 10);
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(timer);
+    };
+  }, []);
 
   // Custom Deep-Space Physics Engine State
   const physics = useRef({
@@ -195,8 +206,8 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       gain2.connect(ctx.destination);
       osc2.start();
       osc2.stop(ctx.currentTime + 1);
-    } catch (e) {
-      // Silently fail if browser blocks autoplay
+    } catch {
+      // Silently fail if browser blocks autoplay (no unused 'e' parameter)
     }
   }, []);
 
@@ -719,7 +730,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
               className="absolute inset-0 z-0 w-full h-full pointer-events-none"
               style={{
                 opacity: orbitVisible ? 1 : 0,
-                transition: hasShatteredRef.current ? "none" : `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
+                transition: shattered ? "none" : `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
               }}
             />
           )}
@@ -751,7 +762,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
               className="absolute inset-0 z-20 w-full h-full pointer-events-none"
               style={{
                 opacity: orbitVisible ? 1 : 0,
-                transition: hasShatteredRef.current ? "none" : `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
+                transition: shattered ? "none" : `opacity ${ORBIT_FADE_IN_MS}ms ease-out`,
               }}
             />
           )}
@@ -851,9 +862,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
             "dark"
           )}
           style={{
-            opacity: mounted && showProgress ? 1 : 0,
-            transform: mounted && showProgress ? "translateY(0) scale(1)" : "translateY(16px) scale(0.95)",
-            filter: mounted && showProgress ? "blur(0)" : "blur(4px)",
+            opacity: isMounted && showProgress ? 1 : 0,
+            transform: isMounted && showProgress ? "translateY(0) scale(1)" : "translateY(16px) scale(0.95)",
+            filter: isMounted && showProgress ? "blur(0)" : "blur(4px)",
             transition: "all 600ms cubic-bezier(0.16, 1, 0.3, 1)",
             pointerEvents: showProgress ? "auto" : "none",
           }}
