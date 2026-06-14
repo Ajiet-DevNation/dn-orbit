@@ -31,9 +31,12 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
 
   const [optimisticProjects, addOptimisticAction] = useOptimistic(
     initialProjects,
-    (state, action: { type: 'approve' | 'delete', id: string }) => {
-      if (action.type === 'approve') {
+    (state, action: { type: 'publish' | 'unpublish' | 'delete', id: string }) => {
+      if (action.type === 'publish') {
         return state.map(p => p.id === action.id ? { ...p, isApproved: true } : p);
+      }
+      if (action.type === 'unpublish') {
+        return state.map(p => p.id === action.id ? { ...p, isApproved: false } : p);
       }
       if (action.type === 'delete') {
         return state.filter(p => p.id !== action.id);
@@ -42,22 +45,25 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
     }
   );
 
-  const handleApprove = async (id: string) => {
+  const handlePublishToggle = async (id: string, publish: boolean) => {
     startTransition(async () => {
-      addOptimisticAction({ type: 'approve', id });
+      addOptimisticAction({ type: publish ? 'publish' : 'unpublish', id });
       try {
         const res = await fetch(`/api/admin/projects/${id}/approve`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isApproved: true })
+          body: JSON.stringify({ isApproved: publish }),
         });
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
-        setFeedback({ message: "PROJECT_CLEARANCE_GRANTED", type: "success" });
+        setFeedback({
+          message: publish ? "PROJECT_PUBLISHED" : "PROJECT_UNPUBLISHED",
+          type: "success",
+        });
       } catch (err) {
-        setFeedback({ 
-          message: "APPROVE_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"), 
-          type: "error" 
+        setFeedback({
+          message: (publish ? "PUBLISH" : "UNPUBLISH") + "_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"),
+          type: "error"
         });
       }
     });
@@ -114,36 +120,46 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         </div>
       ) 
     },
-    { 
+    {
       key: "approval",
-      header: "CLEARANCE", 
+      header: "PUBLISHED",
       render: (p: Project) => (
         <div className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
-          p.isApproved ? 'bg-transparent text-white border-white/20 uppercase' : 'bg-red-900/20 text-red-500 border-red-900 uppercase italic'
+          p.isApproved ? 'bg-transparent text-emerald-400 border-emerald-900 uppercase' : 'bg-red-900/20 text-red-500 border-red-900 uppercase italic'
         }`}>
-          {p.isApproved ? "VERIFIED" : "PENDING"}
+          {p.isApproved ? "LIVE" : "DRAFT"}
         </div>
-      ) 
+      )
     },
-    { 
+    {
       key: "actions",
-      header: "ACTIONS", 
+      header: "ACTIONS",
       render: (p: Project) => (
         <div className="flex justify-end gap-2 text-right">
-          {!p.isApproved && (
-            <TacticalButton 
-              variant="primary" 
-              size="sm" 
+          {!p.isApproved ? (
+            <TacticalButton
+              variant="primary"
+              size="sm"
               prefix=""
               disabled={isPending}
-              onClick={() => handleApprove(p.id)}
+              onClick={() => handlePublishToggle(p.id, true)}
             >
-              APPROVE
+              PUBLISH
+            </TacticalButton>
+          ) : (
+            <TacticalButton
+              variant="outline"
+              size="sm"
+              prefix=""
+              disabled={isPending}
+              onClick={() => handlePublishToggle(p.id, false)}
+            >
+              UNPUBLISH
             </TacticalButton>
           )}
-          <TacticalButton 
-            variant="danger" 
-            size="sm" 
+          <TacticalButton
+            variant="danger"
+            size="sm"
             prefix=""
             disabled={isPending}
             onClick={() => handleDelete(p.id)}
@@ -151,7 +167,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
             DELETE
           </TacticalButton>
         </div>
-      ) 
+      )
     }
   ];
 

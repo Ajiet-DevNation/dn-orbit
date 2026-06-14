@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "app/generated/prisma/**",
+    // Pre-bundled (esbuild) vendored component from 21st.dev — minified, not
+    // human-editable source, so linting it is meaningless (also @ts-nocheck'd).
+    "components/ui/8bit-toast.tsx",
   ]),
 ]);
 

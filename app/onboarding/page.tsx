@@ -2,8 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { submitOnboarding } from "@/app/actions/onboarding";
 import { useSession } from "next-auth/react";
+import { Button } from "@/components/ui/8bit-button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/8bit-card";
+import { Input } from "@/components/ui/8bit-input";
+import { Label } from "@/components/ui/8bit-label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/8bit-select";
+import { PixelStarsBackground } from "@/components/ui/PixelStarsBackground";
+import { toast } from "@/components/ui/8bit-toast";
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
@@ -22,7 +35,8 @@ function validate(fields: {
   if (!USN_REGEX.test(fields.usn)) e.usn = "FORMAT: 4AL22CS001";
   if (!fields.branch) e.branch = "REQUIRED";
   if (!fields.year) e.year = "REQUIRED";
-  if (fields.lcUsername && !LC_REGEX.test(fields.lcUsername))
+  if (!fields.lcUsername.trim()) e.lcUsername = "REQUIRED";
+  else if (!LC_REGEX.test(fields.lcUsername))
     e.lcUsername = "ALPHANUMERIC + UNDERSCORE + HYPHEN ONLY";
   return e;
 }
@@ -31,32 +45,38 @@ function validate(fields: {
 
 function SuccessOverlay() {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
-      <div className="text-center space-y-4 font-mono">
-        <div className="w-1.5 h-1.5 bg-emerald-500 animate-pulse mx-auto" />
-        <h2 className="text-7xl font-black uppercase tracking-tighter italic leading-none text-white">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background retro dark">
+      {/* Scanlines */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 opacity-[0.03]"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)",
+          backgroundSize: "100% 4px",
+        }}
+      />
+      <div className="relative z-10 text-center space-y-6">
+        <div className="w-3 h-3 bg-emerald-500 mx-auto" style={{ animation: "pixel-pulse 1.5s step-end infinite", boxShadow: "0 0 12px rgba(16,185,129,0.8)" }} />
+        <h2 className="text-3xl md:text-5xl uppercase text-white drop-shadow-[0_4px_0_rgba(255,255,255,0.2)] leading-relaxed">
           PROFILE
           <br />
-          COMMITTED.
+          COMMITTED
         </h2>
-        <p className="text-[10px] text-zinc-500 tracking-widest uppercase font-black">
-          UPLINK_SUCCESS — REDIRECTING
+        <p className="text-xs text-emerald-500 tracking-widest uppercase opacity-80"
+           style={{ animation: "pixel-pulse 1.5s step-end infinite" }}
+        >
+          &gt; UPLINK_SUCCESS — REDIRECTING
         </p>
       </div>
+      <style>{`
+        @keyframes pixel-pulse {
+          0%, 49% { opacity: 1; }
+          50%, 100% { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
-
-// ── Shared style constants ───────────────────────────────────────────────────
-
-const inputClass =
-  "w-full bg-black border border-zinc-800 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 placeholder:uppercase focus:outline-none focus:border-white transition-colors";
-const inputErrorClass =
-  "w-full bg-black border border-red-900 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 placeholder:uppercase focus:outline-none focus:border-red-500 transition-colors";
-const labelClass =
-  "text-[9px] font-black tracking-widest uppercase text-zinc-500 block mb-2";
-const errorClass =
-  "text-[10px] text-red-500 font-black tracking-wider uppercase mt-1";
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 
@@ -88,7 +108,11 @@ export default function OnboardingPage() {
     const result = await submitOnboarding(formData);
 
     if (result.error) {
-      setServerError(result.error);
+      if (result.error.includes("LeetCode")) {
+        toast.error("INCORRECT_LEETCODE_USERNAME");
+      } else {
+        setServerError(result.error);
+      }
     } else if (result.success && result.user) {
       // Update the local session so middleware sees the new data
       await update({
@@ -98,63 +122,36 @@ export default function OnboardingPage() {
         name: result.user.name,
       });
       setShowSuccess(true);
-      setTimeout(() => router.push("/dashboard"), 2000);
+      setTimeout(() => router.push("/"), 2000);
     }
   }
 
   if (showSuccess) return <SuccessOverlay />;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-black px-4 py-12">
-      <div className="w-full max-w-sm">
-        <div className="bg-black relative font-mono border border-zinc-800">
-
-          {/* Card header */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800 bg-zinc-950/50">
-            <span className="text-[9px] text-zinc-500 tracking-widest uppercase">
-              ARCHIVE_ID: 0xONBOARD
-            </span>
-            <div className="flex gap-1">
-              <div className="w-1.5 h-1.5 bg-emerald-500 animate-pulse" />
-              <div className="w-1.5 h-1.5 bg-zinc-800" />
-              <div className="w-1.5 h-1.5 bg-zinc-800" />
+    <div className="dark flex w-full min-h-screen items-center justify-center bg-background p-6 md:p-12 retro relative">
+      <PixelStarsBackground />
+      <div className="w-full max-w-lg relative z-10">
+        <Card>
+          <CardHeader className="p-6 pb-2 flex flex-col items-center text-center space-y-0">
+            <div className="flex items-center justify-center gap-2">
+              <Image src="/assets/DNLogoTransparent.png" alt="DN Logo" width={84} height={84} className="w-[84px] h-[84px] pixelated drop-shadow-md" />
+              <div className="font-black text-[32px] tracking-widest uppercase mt-1">ORBIT</div>
             </div>
-          </div>
-
-          <div className="p-8 space-y-8">
-
-            {/* Logo + Title */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="border border-white px-2 py-1">
-                  <span className="font-black text-xs tracking-widest text-white">DN</span>
-                </div>
-                <div>
-                  <div className="font-black text-xs tracking-widest uppercase text-white">ORBIT</div>
-                  <div className="font-black text-[8px] tracking-widest uppercase text-zinc-600">MEMBER_SECTOR_V1</div>
-                </div>
-              </div>
-
-              <h1 className="text-4xl font-black uppercase tracking-tighter italic leading-none text-white">
-                COMPLETE
-                <br />
-                YOUR PROFILE
-              </h1>
-              <p className="text-[10px] text-zinc-500 tracking-widest uppercase font-black">
-                ORBIT_MEMBER_REGISTRATION_V1
-              </p>
-            </div>
-
-            {/* Server error */}
+            <CardTitle className="text-2xl leading-tight uppercase">
+              CREATE YOUR PROFILE
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-8 pt-0">
             {serverError && (
-              <div className="border border-red-900 px-4 py-3">
-                <p className="text-[10px] text-red-500 font-black tracking-wider uppercase">
+              <div className="border-y-[3px] border-destructive mb-8 px-4 py-3 bg-destructive/10">
+                <p className="text-[8px] text-destructive font-black tracking-wider uppercase text-center">
                   ▲ {serverError}
                 </p>
               </div>
             )}
 
-            <form action={handleSubmit} className="space-y-8">
+            <form action={handleSubmit} className="space-y-6">
               {/* Hidden fields — always submitted */}
               <input type="hidden" name="name" value={name} />
               <input type="hidden" name="usn" value={usn} />
@@ -162,140 +159,115 @@ export default function OnboardingPage() {
               <input type="hidden" name="year" value={year} />
               <input type="hidden" name="lc_username" value={lcUsername} />
 
-              {/* 01_IDENTIFICATION */}
-              <div className="space-y-4">
-                <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-zinc-900 pb-2">
-                  01_IDENTIFICATION
-                </h3>
-
-                <div>
-                  <label htmlFor="name" className={labelClass}>FULL_NAME</label>
-                  <input
+              <div className="space-y-5">
+                <div className="grid gap-3">
+                  <Label htmlFor="name" className="text-[10px] text-muted-foreground uppercase tracking-widest">FULL_NAME</Label>
+                  <Input
                     id="name"
-                    className={fieldErrors.name ? inputErrorClass : inputClass}
                     placeholder="YOUR NAME"
                     value={name}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setName(e.target.value)
                     }
+                    className={`text-xs ${fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   />
-                  {fieldErrors.name && <p className={errorClass}>{fieldErrors.name}</p>}
+                  {fieldErrors.name && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.name}</p>}
                 </div>
 
-                <div>
-                  <label htmlFor="usn" className={labelClass}>USN</label>
-                  <input
+                <div className="grid gap-3">
+                  <Label htmlFor="usn" className="text-[10px] text-muted-foreground uppercase tracking-widest">USN</Label>
+                  <Input
                     id="usn"
-                    className={`${fieldErrors.usn ? inputErrorClass : inputClass} uppercase`}
                     placeholder="4AL22CS001"
                     value={usn}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setUsn(e.target.value.toUpperCase())
                     }
+                    className={`text-xs uppercase ${fieldErrors.usn ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   />
-                  {fieldErrors.usn && <p className={errorClass}>{fieldErrors.usn}</p>}
-                </div>
-              </div>
-
-              {/* 02_PROFILE_DATA */}
-              <div className="space-y-4">
-                <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-zinc-900 pb-2">
-                  02_PROFILE_DATA
-                </h3>
-
-                <div>
-                  <label htmlFor="branch" className={labelClass}>BRANCH</label>
-                  <select
-                    id="branch"
-                    className={`${fieldErrors.branch ? inputErrorClass : inputClass} appearance-none cursor-pointer`}
-                    value={branch}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setBranch(e.target.value)
-                    }
-                  >
-                    <option value="">SELECT</option>
-                    <option value="CSE">CSE</option>
-                    <option value="ISE">ISE</option>
-                    <option value="ECE">ECE</option>
-                    <option value="MECH">MECH</option>
-                    <option value="CIVIL">CIVIL</option>
-                    <option value="AIDS">AIDS</option>
-                    <option value="AIML">AIML</option>
-                    <option value="CSD">CSD</option>
-                  </select>
-                  {fieldErrors.branch && <p className={errorClass}>{fieldErrors.branch}</p>}
+                  {fieldErrors.usn && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.usn}</p>}
                 </div>
 
-                <div>
-                  <label className={labelClass}>YEAR</label>
-                  <div className="grid grid-cols-4 gap-2">
+                <div className="grid gap-3">
+                  <Label htmlFor="branch" className="text-[10px] text-muted-foreground uppercase tracking-widest">DOMAIN</Label>
+                  <Select value={branch} onValueChange={setBranch}>
+                    <SelectTrigger className={`w-full ${fieldErrors.branch ? "border-destructive" : ""}`}>
+                      <SelectValue placeholder="SELECT" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CSE">CSE</SelectItem>
+                      <SelectItem value="ISE">ISE</SelectItem>
+                      <SelectItem value="ECE">ECE</SelectItem>
+                      <SelectItem value="MECH">MECH</SelectItem>
+                      <SelectItem value="CIVIL">CIVIL</SelectItem>
+                      <SelectItem value="AIDS">AIDS</SelectItem>
+                      <SelectItem value="AIML">AIML</SelectItem>
+                      <SelectItem value="CSD">CSD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {fieldErrors.branch && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.branch}</p>}
+                </div>
+
+                <div className="grid gap-3">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-widest">YEAR</Label>
+                  <div className="grid grid-cols-4 gap-3">
                     {["1", "2", "3", "4"].map((y) => (
-                      <button
+                      <Button
                         key={y}
                         type="button"
+                        variant={year === y ? "default" : "outline"}
                         onClick={() => setYear(y)}
-                        className={`py-3 text-xs font-black uppercase tracking-widest border transition-colors ${
-                          year === y
-                            ? "bg-white text-black border-white"
-                            : "bg-black text-zinc-500 border-zinc-800 hover:border-zinc-600 hover:text-white"
-                        }`}
+                        className={`py-3 text-xs rounded-none h-auto transition-all ${year === y
+                          ? "bg-white text-black dark:bg-white dark:text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.5)] translate-y-1"
+                          : "opacity-50 hover:opacity-100"
+                          }`}
                       >
                         {y}
-                      </button>
+                      </Button>
                     ))}
                   </div>
-                  {fieldErrors.year && <p className={errorClass}>{fieldErrors.year}</p>}
+                  {fieldErrors.year && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.year}</p>}
                 </div>
 
-                <div>
-                  <label htmlFor="lc_username" className={labelClass}>
-                    LEETCODE_USERNAME{" "}
-                    <span className="text-zinc-700">(OPTIONAL)</span>
-                  </label>
-                  <input
+                <div className="grid gap-3">
+                  <Label htmlFor="lc_username" className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    LEETCODE_USERNAME
+                  </Label>
+                  <Input
                     id="lc_username"
-                    className={fieldErrors.lcUsername ? inputErrorClass : inputClass}
                     placeholder="YOUR_LC_HANDLE"
                     value={lcUsername}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setLcUsername(e.target.value)
                     }
+                    className={`text-xs ${fieldErrors.lcUsername ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   />
                   {fieldErrors.lcUsername && (
-                    <p className={errorClass}>{fieldErrors.lcUsername}</p>
+                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.lcUsername}</p>
                   )}
                 </div>
 
-                <div>
-                  <label htmlFor="github" className={labelClass}>
-                    GITHUB_USERNAME{" "}
-                    <span className="text-zinc-700">(AUTO-FILLED)</span>
-                  </label>
-                  <input
+                <div className="grid gap-3">
+                  <Label htmlFor="github" className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    GITHUB_USERNAME <span className="text-zinc-600">(AUTO-FILLED)</span>
+                  </Label>
+                  <Input
                     id="github"
-                    className={`${inputClass} opacity-50 cursor-not-allowed`}
                     value={githubUsername}
                     readOnly
                     disabled
+                    className="text-xs opacity-50 cursor-not-allowed"
                   />
                 </div>
               </div>
 
-              {/* Submit */}
-              <button
-                type="submit"
-                className="w-full inline-flex items-center justify-center bg-white text-black px-6 py-3 font-mono font-black text-xs uppercase tracking-widest border border-white hover:bg-black hover:text-white transition-colors duration-200"
-              >
+              <Button type="submit" className="w-full mt-6 text-[10px] py-4 h-auto shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                 &gt; COMMIT_PROFILE
-              </button>
+              </Button>
             </form>
-          </div>
-
-          {/* Corner brackets */}
-          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white/40" />
-          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white/40" />
-        </div>
+          </CardContent>
+        </Card>
       </div>
-    </main>
+    </div>
   );
 }

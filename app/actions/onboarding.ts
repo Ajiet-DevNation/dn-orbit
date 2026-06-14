@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { fetchLeetCodeStats } from "@/lib/lc-fetcher";
 
 const onboardingSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -48,6 +49,12 @@ export async function submitOnboarding(formData: FormData) {
       return {
         error: "Your session is stale. Please sign out and sign in again.",
       };
+    }
+
+    try {
+      await fetchLeetCodeStats(parsed.data.lc_username);
+    } catch (error) {
+      return { error: "Incorrect LeetCode username. Profile not found." };
     }
 
     const updatedUser = await db.user.update({
