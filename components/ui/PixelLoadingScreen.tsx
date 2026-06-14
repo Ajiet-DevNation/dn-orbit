@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -30,6 +29,7 @@ const ORBIT_TILT = -Math.PI / 6;
 function GitHubIcon({ size }: { size: number }) {
   return (
     <svg
+      xmlns="http://www.w3.org/2000/svg"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -44,6 +44,7 @@ function GitHubIcon({ size }: { size: number }) {
 function LeetCodeIcon({ size }: { size: number }) {
   return (
     <svg
+      xmlns="http://www.w3.org/2000/svg"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -58,6 +59,7 @@ function LeetCodeIcon({ size }: { size: number }) {
 function LinkedInIcon({ size }: { size: number }) {
   return (
     <svg
+      xmlns="http://www.w3.org/2000/svg"
       width={size}
       height={size}
       viewBox="0 0 24 24"
@@ -133,15 +135,19 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   const [orbitVisible, setOrbitVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), 10);
-    return () => clearTimeout(timer);
-  }, []);
-  
+  const isMountedRef = useRef(true);
   const animFrameRef = useRef<number>(0);
-  const totalBlocksRef = useRef<number>(1);
   const isPausedRef = useRef(false);
   const hasShatteredRef = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    const timer = setTimeout(() => setMounted(true), 10);
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(timer);
+    };
+  }, []);
 
   // Custom Deep-Space Physics Engine State
   const physics = useRef({
@@ -164,17 +170,10 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   // ── Phase 1: Pixel-by-pixel logo drawing ──────────────────────────────────
 
   const drawLogo = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return;
-
     const img = new Image();
-    img.src = "/assets/DNLogoTransparent.png";
-
+    
     img.onload = () => {
-      ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      if (!isMountedRef.current) return;
 
       const offscreen = document.createElement("canvas");
       offscreen.width = CANVAS_SIZE;
@@ -194,73 +193,77 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       offCtx.imageSmoothingEnabled = false;
       offCtx.drawImage(img, offsetX, offsetY, drawW, drawH);
 
+      const imageData = offCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      const blocks = extractPixelBlocks(imageData);
+
       if (mode === "hero") {
-        const imageData = offCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-        const blocks = extractPixelBlocks(imageData);
-
-        ctx.imageSmoothingEnabled = false;
-        for (let i = 0; i < blocks.length; i++) {
-          const block = blocks[i];
-          ctx.fillStyle = `rgba(${block.r}, ${block.g}, ${block.b}, ${block.a / 255})`;
-          ctx.fillRect(block.x, block.y, BLOCK_SIZE, BLOCK_SIZE);
+        const ctx = canvasRef.current?.getContext("2d", { willReadFrequently: true });
+        if (ctx) {
+          ctx.imageSmoothingEnabled = false;
+          for (let i = 0; i < blocks.length; i++) {
+            const block = blocks[i];
+            ctx.fillStyle = `rgba(${block.r}, ${block.g}, ${block.b}, ${block.a / 255})`;
+            ctx.fillRect(block.x, block.y, BLOCK_SIZE, BLOCK_SIZE);
+          }
         }
-
         setDrawProgress(100);
         setTimeout(() => {
+          if (!isMountedRef.current) return;
           setPhase("popping");
           setPopActive(true);
         }, 100);
         return;
       }
 
-      const imageData = offCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-      const blocks = extractPixelBlocks(imageData);
-
-      ctx.imageSmoothingEnabled = false;
-
       let currentBlock = 0;
 
-      if (currentBlock > 0 && currentBlock < blocks.length) {
-        for (let i = 0; i < currentBlock; i++) {
-          const block = blocks[i];
-          ctx.fillStyle = `rgba(${block.r}, ${block.g}, ${block.b}, ${block.a / 255})`;
-          ctx.fillRect(block.x, block.y, BLOCK_SIZE, BLOCK_SIZE);
-        }
-      }
-
       const animate = () => {
+        if (!isMountedRef.current) return;
+
         if (currentBlock >= blocks.length) {
           setDrawProgress(100);
+          // FIXED: Loading mode now correctly advances to the popping phase!
+          setTimeout(() => {
+            if (!isMountedRef.current) return;
+            setPhase("popping");
+            setPopActive(true);
+          }, 100);
           return;
         }
 
-        const end = Math.min(currentBlock + BLOCKS_PER_FRAME, blocks.length);
-        for (let i = currentBlock; i < end; i++) {
-          const block = blocks[i];
-          ctx.fillStyle = `rgba(${block.r}, ${block.g}, ${block.b}, ${block.a / 255})`;
-          ctx.fillRect(block.x, block.y, BLOCK_SIZE, BLOCK_SIZE);
+        if (canvasRef.current) {
+          const ctx = canvasRef.current.getContext("2d", { willReadFrequently: true });
+          if (ctx) {
+            ctx.imageSmoothingEnabled = false;
+            const end = Math.min(currentBlock + BLOCKS_PER_FRAME, blocks.length);
+            for (let i = currentBlock; i < end; i++) {
+              const block = blocks[i];
+              ctx.fillStyle = `rgba(${block.r}, ${block.g}, ${block.b}, ${block.a / 255})`;
+              ctx.fillRect(block.x, block.y, BLOCK_SIZE, BLOCK_SIZE);
+            }
+            currentBlock = end;
+          }
         }
 
-        currentBlock = end;
-        
-        try {
-          sessionStorage.setItem("dn-orbit-draw-progress", currentBlock.toString());
-        } catch {}
-
-        const raw = Math.floor((currentBlock / totalBlocksRef.current) * 100);
+        const raw = Math.floor((currentBlock / Math.max(blocks.length, 1)) * 100);
         setDrawProgress(Math.floor(raw / 5) * 5);
         animFrameRef.current = requestAnimationFrame(animate);
       };
 
       setTimeout(() => {
-        animFrameRef.current = requestAnimationFrame(animate);
+        if (isMountedRef.current) {
+          animFrameRef.current = requestAnimationFrame(animate);
+        }
       }, 200);
     };
 
     img.onerror = () => {
+      if (!isMountedRef.current) return;
       setPhase("orbiting");
       setOrbitVisible(true);
     };
+
+    img.src = "/assets/DNLogoTransparent.png";
   }, [mode]);
 
   useEffect(() => {
@@ -273,22 +276,30 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   }, [drawLogo]);
 
   // ── Phase 2→3: Pop → Orbit ───────────────────────────────────────────────
-
+  
+  // FIXED: Separated Phase transition from Visibility transition to prevent lifecycle clear-outs!
   useEffect(() => {
     if (phase !== "popping") return;
 
     const orbitTimer = setTimeout(() => {
       setPhase("orbiting");
-      setTimeout(() => {
-        setOrbitVisible(true);
-        window.dispatchEvent(new Event("hero-reveal-header"));
-      }, 50);
     }, POP_DURATION_MS + POST_POP_DELAY_MS);
 
     return () => clearTimeout(orbitTimer);
   }, [phase]);
 
-  // ── Orbit ring drawing (With smooth scale/fade during reform) ───────────
+  useEffect(() => {
+    if (phase !== "orbiting" || orbitVisible) return;
+
+    const visibleTimer = setTimeout(() => {
+      setOrbitVisible(true);
+      window.dispatchEvent(new Event("hero-reveal-header"));
+    }, 50);
+
+    return () => clearTimeout(visibleTimer);
+  }, [phase, orbitVisible]);
+
+  // ── Orbit ring drawing ────────────────────────────────────────────────────
 
   const orbitCanvasBackRef = useRef<HTMLCanvasElement>(null);
   const orbitCanvasFrontRef = useRef<HTMLCanvasElement>(null);
@@ -454,7 +465,6 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
               p.x += Math.sin(now / 500 + index) * 0.8;
               p.y += Math.cos(now / 400 + index) * 0.8;
 
-              // Rectangular Forcefield: Protects the wide "DevNation" text
               const LOGO_HALF_W = 530;
               const LOGO_HALF_H = 150;
 
@@ -463,11 +473,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                 const distToYEdge = LOGO_HALF_H - Math.abs(p.y);
 
                 if (distToXEdge < distToYEdge) {
-                  // Bounce off left/right edges
                   p.x = Math.sign(p.x) * LOGO_HALF_W;
                   p.vx *= -0.9;
                 } else {
-                  // Bounce off top/bottom edges
                   p.y = Math.sign(p.y) * LOGO_HALF_H;
                   p.vy *= -0.9;
                 }
@@ -525,8 +533,8 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
     const dir = Math.sign(phys.spinVelocity) || 1;
 
     setPlanetPositions((prev) => {
-      Object.keys(prev).forEach((key) => {
-        const k = key as keyof typeof prev;
+      const keys: (keyof typeof prev)[] = ["github", "leetcode", "linkedin"];
+      keys.forEach((k) => {
         const pos = prev[k];
         const angle = Math.atan2(pos.y, pos.x);
         
@@ -541,7 +549,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
           z: pos.z
         };
       });
-      return prev; 
+      return { ...phys.particles }; 
     });
   }, []);
 
@@ -643,6 +651,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       <div className="relative z-10 flex w-full max-w-[700px] flex-col items-center -translate-y-20">
         
         <div 
+          role="presentation"
           className={cn(
             "relative w-full aspect-square flex items-center justify-center",
             !shattered && phase === "orbiting" && "cursor-grab active:cursor-grabbing"
@@ -801,11 +810,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
           }}
         >
           <p
-            className="text-[10px] uppercase tracking-widest text-accent"
-            style={{
-              animation: "pixel-pulse 1.5s step-end infinite",
-              textShadow: "0 0 8px rgba(34, 197, 94, 0.4)",
-            }}
+            className="text-[10px] uppercase tracking-widest text-accent pixel-pulse-text"
           >
             LOADING...
           </p>
@@ -826,12 +831,16 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         </div>
       </div>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes pixel-pulse {
           0%, 49% { opacity: 1; }
           50%, 100% { opacity: 0.3; }
         }
-      `}</style>
+        .pixel-pulse-text {
+          animation: pixel-pulse 1.5s step-end infinite;
+          text-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+        }
+      ` }} />
     </div>
   );
 }
