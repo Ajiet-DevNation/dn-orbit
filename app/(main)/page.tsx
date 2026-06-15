@@ -17,7 +17,8 @@ import { languagesFromRecord } from "./_sections/stats-utils";
 import { PixelLoadingScreen } from "@/components/ui/PixelLoadingScreen";
 
 export const metadata = {
-  title: "DNOrbit ~ DevNation",
+  // Absolute title so the home page reads cleanly (no "%s — ORBIT" template).
+  title: { absolute: "ORBIT — DevNation · Leaderboard, Events, Projects & Members" },
 };
 
 function formatDate(date: Date): string {

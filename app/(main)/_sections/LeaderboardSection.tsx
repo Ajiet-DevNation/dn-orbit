@@ -244,70 +244,76 @@ function LeaderboardList({
   phaseB: number;
 }) {
   return (
-    <Card className="border-white/10 py-7">
-      <p className="retro mb-3 px-7 text-sm tracking-wider text-[#22c55e]">
-        TOP {entries.length}
-      </p>
-      {/* Column headers so the numbers are self-explanatory. Mirrors the row
-          layout below (rank · avatar · name · score). */}
-      <div className="mb-1 flex items-center gap-4 border-b-2 border-white/10 px-7 pb-2">
-        <span className="retro w-8 text-right text-[9px] tracking-wider text-muted-foreground">
-          POS
-        </span>
-        <span className="w-11 shrink-0" aria-hidden="true" />
-        <span className="retro flex-1 text-[9px] tracking-wider text-muted-foreground">
-          NAME
-        </span>
-        <span className="retro text-[9px] tracking-wider text-muted-foreground">
-          SCORE
-        </span>
-      </div>
-      <div className="no-scrollbar max-h-[68vh] overflow-y-auto px-3">
-        {entries.map((e, i) => {
-          // Rows cascade in, offset by index, as phase B progresses.
-          const rp = clamp01((phaseB * 1.35 - i * 0.04) / 0.5);
-          const medal = RANK_STYLE[e.rank];
-          return (
-            <div
-              key={`${e.rank}-${e.name}`}
-              className="flex items-center gap-4 border-b border-white/5 px-4 py-3 last:border-b-0"
-              style={{
-                opacity: rp,
-                transform: `translateX(${(1 - rp) * -24}px)`,
-                willChange: "opacity, transform",
-              }}
-            >
-              <span
-                className="retro w-8 shrink-0 text-right text-base"
-                style={{ color: medal ? medal.color : "#ffffff" }}
+    <Card className="border-white/10 py-6">
+      {/* Single wrapper so the Card's flex gap doesn't open a gulf between the
+          header and the rows; spacing is controlled here instead. */}
+      <div className="px-5">
+        <p className="retro mb-4 text-sm tracking-wider text-[#22c55e]">
+          TOP {entries.length}
+        </p>
+
+        {/* Column headers — aligned to the row layout (rank · avatar · name ·
+            score), with the score in a fixed right-aligned column. */}
+        <div className="mb-1 flex items-center gap-4 border-b-2 border-white/10 px-2 pb-2.5">
+          <span className="retro w-8 text-right text-[10px] tracking-[0.2em] text-muted-foreground/80">
+            POS
+          </span>
+          <span className="w-11 shrink-0" aria-hidden="true" />
+          <span className="retro flex-1 text-[10px] tracking-[0.2em] text-muted-foreground/80">
+            NAME
+          </span>
+          <span className="retro w-14 text-right text-[10px] tracking-[0.2em] text-muted-foreground/80">
+            SCORE
+          </span>
+        </div>
+
+        <div className="no-scrollbar max-h-[64vh] overflow-y-auto">
+          {entries.map((e, i) => {
+            // Rows cascade in, offset by index, as phase B progresses.
+            const rp = clamp01((phaseB * 1.35 - i * 0.04) / 0.5);
+            const medal = RANK_STYLE[e.rank];
+            return (
+              <div
+                key={`${e.rank}-${e.name}`}
+                className="flex items-center gap-4 border-b border-white/5 px-2 py-3 last:border-b-0"
+                style={{
+                  opacity: rp,
+                  transform: `translateX(${(1 - rp) * -24}px)`,
+                  willChange: "opacity, transform",
+                }}
               >
-                {e.rank}
-              </span>
-              <Avatar className="size-11 shrink-0">
-                {e.image ? (
-                  <AvatarImage
-                    src={e.image}
-                    alt={e.name}
-                    className="object-cover"
-                  />
-                ) : (
-                  <AvatarFallback className="text-xs">
-                    {initials(e.name)}
-                  </AvatarFallback>
-                )}
-              </Avatar>
-              <span
-                className="flex-1 truncate text-lg text-white/90"
-                title={e.name}
-              >
-                {e.name}
-              </span>
-              <span className="retro shrink-0 text-base text-[#22c55e]">
-                {e.score}
-              </span>
-            </div>
-          );
-        })}
+                <span
+                  className="retro w-8 shrink-0 text-right text-base"
+                  style={{ color: medal ? medal.color : "#ffffff" }}
+                >
+                  {e.rank}
+                </span>
+                <Avatar className="size-11 shrink-0">
+                  {e.image ? (
+                    <AvatarImage
+                      src={e.image}
+                      alt={e.name}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <AvatarFallback className="text-xs">
+                      {initials(e.name)}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <span
+                  className="flex-1 truncate text-lg text-white/90"
+                  title={e.name}
+                >
+                  {e.name}
+                </span>
+                <span className="retro w-14 shrink-0 text-right text-base text-[#22c55e]">
+                  {e.score}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </Card>
   );
@@ -382,14 +388,16 @@ export function LeaderboardSection({ entries }: LeaderboardSectionProps) {
       className="relative w-full scroll-mt-24"
       style={{ height: `${SECTION_VH}vh` }}
     >
-      <div className="sticky top-0 flex h-screen w-full items-center justify-center overflow-hidden px-6">
-        <div className="absolute inset-x-0 top-10 z-10">
+      <div className="sticky top-0 flex h-screen w-full flex-col overflow-hidden px-6">
+        {/* Title gets its own row at the top so the podium never covers it. */}
+        <div className="shrink-0 pt-28">
           <SectionHeading text="LEADERBOARD" />
         </div>
 
+        {/* Podium + list centre within the area below the title. */}
         <div
           ref={containerRef}
-          className="relative mx-auto h-full w-full max-w-[96rem]"
+          className="relative mx-auto w-full max-w-[96rem] flex-1"
         >
           {/* Podium */}
           <div
