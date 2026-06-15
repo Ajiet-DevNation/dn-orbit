@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { TacticalCard } from "@/components/ui/TacticalCard";
 import { MemberTable } from "./MemberTable";
+import { AllowlistManager } from "./AllowlistManager";
 
 export default async function AdminMembersPage() {
   const session = await auth();
@@ -10,20 +11,23 @@ export default async function AdminMembersPage() {
     redirect("/");
   }
 
-  const users = await db.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      usn: true,
-      role: true,
-      branch: true,
-      year: true,
-    },
-    orderBy: {
-      createdAt: "desc"
-    }
-  });
+  const [users, allowlist] = await Promise.all([
+    db.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        usn: true,
+        role: true,
+        branch: true,
+        year: true,
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    }),
+    db.allowlist.findMany({ orderBy: { createdAt: "desc" } }),
+  ]);
 
   const adminCount = users.filter(u => u.role === "admin").length;
   const memberCount = users.filter(u => u.role === "member").length;
@@ -66,6 +70,16 @@ export default async function AdminMembersPage() {
         
         <MemberTable initialMembers={users} currentUserId={session?.user?.id || ""} />
       </div>
+
+      <AllowlistManager
+        initialEntries={allowlist.map((a) => ({
+          id: a.id,
+          githubUsername: a.githubUsername,
+          email: a.email,
+          note: a.note,
+          createdAt: a.createdAt.toISOString(),
+        }))}
+      />
     </div>
   );
 }

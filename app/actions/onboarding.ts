@@ -53,7 +53,7 @@ export async function submitOnboarding(formData: FormData) {
 
     try {
       await fetchLeetCodeStats(parsed.data.lc_username);
-    } catch (error) {
+    } catch {
       return { error: "Incorrect LeetCode username. Profile not found." };
     }
 

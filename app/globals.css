@@ -70,10 +70,36 @@
   border-radius: 9999px !important;
 }
 
+/* Shared easing for hand-rolled transitions across the app. */
+:root {
+  --ease-out-quart: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-back: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+/* ── Accessibility: honour reduced-motion ──
+   Disables the heavier 8-bit animations (orbit spin, pulses, typing, reveals)
+   and instant-jumps anchored scrolling for users who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ── Dot Grid Background Pattern ── */
@@ -217,10 +243,41 @@ body {
 
 .about-card {
   transition: box-shadow 0.4s ease, border-color 0.4s ease;
+  /* Faint green terminal glow at rest, tying the card to the orbit accent. */
+  box-shadow: 0 0 24px rgba(34, 197, 94, 0.05), inset 0 0 30px rgba(34, 197, 94, 0.02);
 }
 .about-card:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.06), inset 0 0 20px rgba(255, 255, 255, 0.02);
+  border-color: rgba(34, 197, 94, 0.35);
+  box-shadow: 0 0 28px rgba(34, 197, 94, 0.12), inset 0 0 24px rgba(34, 197, 94, 0.04);
+}
+
+/* CRT-style scanlines + soft phosphor glow over the terminal transcript. The
+   overlay is non-interactive and sits above the text via a relative wrapper. */
+.terminal-screen {
+  position: relative;
+}
+.terminal-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.025) 0px,
+    rgba(255, 255, 255, 0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.6;
+}
+
+/* Hide the scrollbar while keeping programmatic scroll (terminal follows cursor). */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* ── OrbitIntro — CSS persistence after animation completes ── */

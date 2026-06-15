@@ -69,6 +69,24 @@ model User {
 }
 
 // ─────────────────────────────────────────────
+// ALLOWLIST — admin-controlled club membership gate
+// ─────────────────────────────────────────────
+// Only GitHub users whose login or email appears here (or in the
+// ADMIN_GITHUB_USERNAMES env bootstrap list) may complete sign-in. The public
+// can browse the site without an account; sign-in is reserved for club members.
+
+model Allowlist {
+  id             String   @id @default(uuid())
+  githubUsername String?  @unique @map("github_username")
+  email          String?  @unique
+  note           String?
+  addedBy        String?  @map("added_by") // user id of the admin who added it
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("allowlist")
+}
+
+// ─────────────────────────────────────────────
 // NEXTAUTH ACCOUNTS
 // ─────────────────────────────────────────────
 
