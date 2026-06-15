@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
+import { PixelTabFill } from "./PixelTabFill";
 import {
   Avatar,
   AvatarImage,
@@ -26,27 +27,6 @@ const NAV_TABS = [
   { value: "projects", label: "PROJECTS" },
   { value: "members", label: "MEMBERS" },
 ];
-
-// 8-bit "thunk" on click: a quick squash + brightness flash, driven by rAF (so
-// the global prefers-reduced-motion CSS reset can't silently disable it; it's a
-// brief, user-triggered cue rather than ambient motion).
-function playPress(el: HTMLElement) {
-  const DURATION = 240;
-  const start = performance.now();
-  const frame = (now: number) => {
-    const t = Math.min(1, (now - start) / DURATION);
-    const dip = Math.sin(Math.PI * t); // 0 → 1 → 0
-    el.style.transform = `scale(${1 - 0.16 * dip})`;
-    el.style.filter = `brightness(${1 + 0.6 * dip})`;
-    if (t < 1) {
-      requestAnimationFrame(frame);
-    } else {
-      el.style.transform = "";
-      el.style.filter = "";
-    }
-  };
-  requestAnimationFrame(frame);
-}
 
 export function V2Header({
   userName,
@@ -78,6 +58,29 @@ export function V2Header({
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, [isLandingPage]);
+
+  // Scrollspy: keep the active tab in sync with whichever section is crossing
+  // the viewport's vertical centre, so the nav highlight follows the scroll.
+  useEffect(() => {
+    if (!isLandingPage) return;
+    const sections = NAV_TABS.map((t) => document.getElementById(t.value)).filter(
+      (el): el is HTMLElement => el !== null
+    );
+    if (sections.length === 0) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActiveTab(entry.target.id);
+        }
+      },
+      // A 1px detection band at the viewport's middle — the section spanning the
+      // centre is the "current" one.
+      { rootMargin: "-50% 0px -50% 0px", threshold: 0 }
+    );
+    sections.forEach((el) => io.observe(el));
+    return () => io.disconnect();
   }, [isLandingPage]);
 
   const handleTabChange = (value: string) => {
@@ -136,10 +139,11 @@ export function V2Header({
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    onClick={(e) => playPress(e.currentTarget)}
-                    className="px-4 py-2 text-xs will-change-transform"
+                    className="relative overflow-hidden px-4 py-2 text-xs transition-none data-[state=active]:bg-transparent! data-[state=active]:text-[#0a0a0a]"
                   >
-                    {tab.label}
+                    {/* Green selection drawn in as scattered pixel blocks. */}
+                    <PixelTabFill />
+                    <span className="relative z-10">{tab.label}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>

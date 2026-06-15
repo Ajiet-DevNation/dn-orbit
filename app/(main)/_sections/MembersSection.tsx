@@ -6,14 +6,15 @@ import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
 import { MEMBERS, type MemberData } from "@/constants/members";
 import { SectionHeading } from "./SectionHeading";
-import { useDragScrollCarousel } from "./useDragScrollCarousel";
+import { useCoverflow } from "./useCoverflow";
 
 // ─── tuning ──────────────────────────────────────────────────────────────────
-const SECTION_VH = 300; // pinned scrub region height
-const CARD_W = 260; // solitaire-card width (px)
-const CARD_H = 366; // solitaire-card height (~5:7)
-const GAP = 40;
-const STEP = CARD_W + GAP;
+const SECTION_VH = 320; // pinned scrub region height
+const CARD_W = 392; // solitaire-card width (px)
+const CARD_H = 536; // ~5:7
+const SPREAD = 224; // horizontal centre-to-centre gap (< CARD_W → cards overlap)
+// Flip easing: smooth ease-in-out, no overshoot, so it reads as a real card turn.
+const FLIP_EASE = "transform 560ms cubic-bezier(0.4, 0.0, 0.2, 1)";
 
 function initials(name: string): string {
   return name
@@ -30,7 +31,7 @@ function MemberFront({ member }: { member: MemberData }) {
   return (
     <Card className="h-full justify-between gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.05)]">
       <div className="border-b-[6px] border-white/10 px-3 py-3 text-center">
-        <span className="retro text-[8px] tracking-wider text-[#22c55e]">
+        <span className="retro text-[9px] tracking-wider text-[#22c55e]">
           {member.role}
         </span>
       </div>
@@ -47,7 +48,7 @@ function MemberFront({ member }: { member: MemberData }) {
           />
         ) : (
           <div className="dot-grid-bg flex h-full w-full items-center justify-center">
-            <span className="retro text-4xl text-[#22c55e]/25 select-none">
+            <span className="retro text-5xl text-[#22c55e]/25 select-none">
               {initials(member.name)}
             </span>
           </div>
@@ -55,7 +56,7 @@ function MemberFront({ member }: { member: MemberData }) {
       </div>
 
       <div className="border-t-[6px] border-white/10 px-3 py-3 text-center">
-        <span className="retro block truncate text-[10px] text-white">
+        <span className="retro block truncate text-[11px] text-white">
           {member.name}
         </span>
       </div>
@@ -66,21 +67,21 @@ function MemberFront({ member }: { member: MemberData }) {
 function MemberBack({ member }: { member: MemberData }) {
   const stop = (e: React.MouseEvent) => e.stopPropagation();
   return (
-    <Card className="h-full justify-start gap-3 border-[#22c55e]/30 py-5 shadow-[0_0_24px_rgba(34,197,94,0.12)]">
-      <div className="px-4">
-        <p className="retro text-[11px] leading-relaxed text-white">
+    <Card className="h-full justify-start gap-4 border-[#22c55e]/30 py-6 shadow-[0_0_24px_rgba(34,197,94,0.14)]">
+      <div className="px-5">
+        <p className="retro text-[12px] leading-relaxed text-white">
           {member.name}
         </p>
-        <p className="retro mt-1.5 text-[8px] tracking-wider text-[#22c55e]">
+        <p className="retro mt-2 text-[9px] tracking-wider text-[#22c55e]">
           {member.role}
         </p>
       </div>
 
-      <p className="flex-1 px-4 text-[11px] leading-relaxed text-muted-foreground">
+      <p className="flex-1 px-5 text-[12px] leading-relaxed text-muted-foreground">
         {member.bio}
       </p>
 
-      <div className="flex items-center justify-center gap-5 px-4">
+      <div className="flex items-center justify-center gap-6 px-5">
         {member.linkedin && (
           <a
             href={member.linkedin}
@@ -90,7 +91,7 @@ function MemberBack({ member }: { member: MemberData }) {
             aria-label={`${member.name} on LinkedIn`}
             className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-[#22c55e]"
           >
-            <FaLinkedin className="size-5" />
+            <FaLinkedin className="size-6" />
           </a>
         )}
         {member.github && (
@@ -102,7 +103,7 @@ function MemberBack({ member }: { member: MemberData }) {
             aria-label={`${member.name} on GitHub`}
             className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-[#22c55e]"
           >
-            <FaGithub className="size-5" />
+            <FaGithub className="size-6" />
           </a>
         )}
         {member.leetcode && (
@@ -114,7 +115,7 @@ function MemberBack({ member }: { member: MemberData }) {
             aria-label={`${member.name} on LeetCode`}
             className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-[#22c55e]"
           >
-            <SiLeetcode className="size-5" />
+            <SiLeetcode className="size-6" />
           </a>
         )}
       </div>
@@ -122,79 +123,72 @@ function MemberBack({ member }: { member: MemberData }) {
   );
 }
 
-// ─── Flip card ────────────────────────────────────────────────────────────────
+// ─── Flip card (front/back, 3D) ───────────────────────────────────────────────
 function MemberCard({
   member,
   flipped,
-  onToggle,
+  onClick,
 }: {
   member: MemberData;
   flipped: boolean;
-  onToggle: () => void;
+  onClick: () => void;
 }) {
   return (
     <div
-      className="group shrink-0 transition-transform duration-300 ease-out hover:-translate-y-1.5"
-      style={{ width: CARD_W, height: CARD_H, perspective: 1000 }}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      aria-pressed={flipped}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="relative h-full w-full cursor-pointer"
+      style={{
+        transformStyle: "preserve-3d",
+        transition: FLIP_EASE,
+        transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+      }}
     >
       <div
-        onClick={onToggle}
-        role="button"
-        tabIndex={0}
-        aria-pressed={flipped}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onToggle();
-          }
-        }}
-        className="relative h-full w-full cursor-pointer"
+        className="absolute inset-0"
         style={{
-          transformStyle: "preserve-3d",
-          transition: "transform 500ms var(--ease-out-quart)",
-          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          backfaceVisibility: "hidden",
+          pointerEvents: flipped ? "none" : "auto",
         }}
       >
-        <div
-          className="absolute inset-0"
-          style={{
-            backfaceVisibility: "hidden",
-            pointerEvents: flipped ? "none" : "auto",
-          }}
-        >
-          <MemberFront member={member} />
-        </div>
-        <div
-          className="absolute inset-0"
-          style={{
-            backfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
-            pointerEvents: flipped ? "auto" : "none",
-          }}
-        >
-          <MemberBack member={member} />
-        </div>
+        <MemberFront member={member} />
+      </div>
+      <div
+        className="absolute inset-0"
+        style={{
+          backfaceVisibility: "hidden",
+          transform: "rotateY(180deg)",
+          pointerEvents: flipped ? "auto" : "none",
+        }}
+      >
+        <MemberBack member={member} />
       </div>
     </div>
   );
 }
 
 export function MembersSection() {
-  const { sectionRef, viewportRef, trackRef, onPointerDown, didDrag } =
-    useDragScrollCarousel({ step: STEP });
-
-  // Which cards are showing their back. Multiple may be flipped independently.
   const [flipped, setFlipped] = useState<Set<number>>(() => new Set());
 
-  const toggle = (i: number) => {
-    if (didDrag()) return; // a drag, not a tap
-    setFlipped((prev) => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
-      return next;
-    });
-  };
+  const { sectionRef, registerCard, onCardClick, stageHandlers } = useCoverflow({
+    count: MEMBERS.length,
+    spread: SPREAD,
+    onActivateCenter: (i) =>
+      setFlipped((prev) => {
+        const next = new Set(prev);
+        if (next.has(i)) next.delete(i);
+        else next.add(i);
+        return next;
+      }),
+  });
 
   return (
     <section
@@ -203,36 +197,38 @@ export function MembersSection() {
       className="relative w-full scroll-mt-24"
       style={{ height: `${SECTION_VH}vh` }}
     >
-      <div className="sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden">
-        <div className="absolute inset-x-0 top-10 z-10">
+      <div className="sticky top-0 flex h-screen w-full flex-col overflow-hidden">
+        {/* Title gets its own row at the top so the cards never cover it. */}
+        <div className="shrink-0 pt-28">
           <SectionHeading text="MEMBERS" />
         </div>
 
+        {/* Coverflow stage fills the rest; cards centre within it. */}
         <div
-          ref={viewportRef}
-          className="w-full cursor-grab touch-pan-y select-none overflow-hidden active:cursor-grabbing"
-          onPointerDown={onPointerDown}
-          onContextMenu={(e) => e.preventDefault()}
+          className="relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing"
+          {...stageHandlers}
         >
-          <div
-            ref={trackRef}
-            className="flex w-max items-center px-[8vw] will-change-transform"
-            style={{ gap: GAP }}
-          >
-            {MEMBERS.map((member, i) => (
+          {MEMBERS.map((member, i) => (
+            <div
+              key={member.id}
+              ref={registerCard(i)}
+              className="absolute left-1/2 top-1/2 will-change-transform"
+              style={{
+                width: CARD_W,
+                height: CARD_H,
+                marginLeft: -CARD_W / 2,
+                marginTop: -CARD_H / 2,
+                perspective: 1200,
+              }}
+            >
               <MemberCard
-                key={member.id}
                 member={member}
                 flipped={flipped.has(i)}
-                onToggle={() => toggle(i)}
+                onClick={() => onCardClick(i)}
               />
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-
-        <p className="retro absolute bottom-8 z-10 text-[8px] text-muted-foreground/60">
-          SCROLL · DRAG · ◀ ▶ — CLICK A CARD TO FLIP
-        </p>
       </div>
     </section>
   );

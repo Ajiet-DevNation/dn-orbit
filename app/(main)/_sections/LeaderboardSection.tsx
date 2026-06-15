@@ -94,7 +94,7 @@ function useIsWide(): boolean {
 // The crown perches on the avatar's top-right at a rakish clockwise tilt (top
 // leaning outward to the right), pivoting on its base so it reads as resting
 // there. Positive = clockwise.
-const CROWN_REST_DEG = 20;
+const CROWN_REST_DEG = 45;
 
 function PixelCrown({ progress }: { progress: number }) {
   const ce = clamp01(easeOutBack(progress));
@@ -245,10 +245,24 @@ function LeaderboardList({
 }) {
   return (
     <Card className="border-white/10 py-7">
-      <p className="retro mb-4 px-7 text-sm tracking-wider text-[#22c55e]">
+      <p className="retro mb-3 px-7 text-sm tracking-wider text-[#22c55e]">
         TOP {entries.length}
       </p>
-      <div className="no-scrollbar max-h-[72vh] overflow-y-auto px-3">
+      {/* Column headers so the numbers are self-explanatory. Mirrors the row
+          layout below (rank · avatar · name · score). */}
+      <div className="mb-1 flex items-center gap-4 border-b-2 border-white/10 px-7 pb-2">
+        <span className="retro w-8 text-right text-[9px] tracking-wider text-muted-foreground">
+          POS
+        </span>
+        <span className="w-11 shrink-0" aria-hidden="true" />
+        <span className="retro flex-1 text-[9px] tracking-wider text-muted-foreground">
+          NAME
+        </span>
+        <span className="retro text-[9px] tracking-wider text-muted-foreground">
+          SCORE
+        </span>
+      </div>
+      <div className="no-scrollbar max-h-[68vh] overflow-y-auto px-3">
         {entries.map((e, i) => {
           // Rows cascade in, offset by index, as phase B progresses.
           const rp = clamp01((phaseB * 1.35 - i * 0.04) / 0.5);
@@ -348,12 +362,15 @@ export function LeaderboardSection({ entries }: LeaderboardSectionProps) {
   // podium moves right and the list fills the left; on narrow screens the podium
   // rises and the list drops in beneath it.
   const podiumTransform = wide
-    ? `translate(calc(-50% + ${phaseBE * containerWidth * 0.18}px), -50%) scale(${1 - phaseBE * 0.28})`
+    ? `translate(calc(-50% + ${phaseBE * (containerWidth * 0.26 + 50)}px), -50%) scale(${1 - phaseBE * 0.3})`
     : `translate(-50%, calc(-50% - ${phaseBE * 150}px)) scale(${1 - phaseBE * 0.28})`;
 
+  // Width set inline (not an arbitrary Tailwind class) so it's guaranteed to
+  // apply: ~52% of the container plus 50px, growing only the right edge.
   const listWrapperClass = wide
-    ? "absolute left-0 top-1/2 w-[46%]"
+    ? "absolute left-0 top-1/2"
     : "absolute bottom-[4%] left-1/2 w-[92%] max-w-md";
+  const listWidth = wide ? "calc(52% + 50px)" : undefined;
   const listTransform = wide
     ? `translateY(-50%) translateX(${(1 - phaseB) * -30}px)`
     : `translateX(-50%) translateY(${(1 - phaseB) * 36}px)`;
@@ -397,6 +414,7 @@ export function LeaderboardSection({ entries }: LeaderboardSectionProps) {
           <div
             className={cn(listWrapperClass)}
             style={{
+              width: listWidth,
               transform: listTransform,
               opacity: phaseB,
               pointerEvents: phaseB > 0.5 ? "auto" : "none",

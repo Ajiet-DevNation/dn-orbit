@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/8bit-card";
 import { SectionHeading } from "./SectionHeading";
-import { useRevealStagger } from "./useRevealStagger";
+import { PixelReveal } from "./PixelReveal";
 
 // Plain, serializable shape — mapped from the DB Event in the server page so no
 // Date objects cross the client boundary.
@@ -26,16 +26,9 @@ function bannerGlyph(type: string): string {
   return (type.trim()[0] ?? "·").toUpperCase();
 }
 
-function EventCard({ data, reveal }: { data: EventCardData; reveal: number }) {
+function EventCard({ data }: { data: EventCardData }) {
   return (
-    <div
-      style={{
-        opacity: reveal,
-        // easeOutBack lets these values slightly overshoot for a springy pop.
-        transform: `translateY(${(1 - reveal) * 28}px) scale(${0.92 + 0.08 * reveal})`,
-        willChange: "opacity, transform",
-      }}
-    >
+    <>
       {/* Dedicated hover wrapper — the lift/scale lives here, NOT on the Card,
           because the 8-bit Card spreads className onto both its frame and inner
           content; a transform there would double-apply and shift the pixel
@@ -83,7 +76,7 @@ function EventCard({ data, reveal }: { data: EventCardData; reveal: number }) {
           </div>
         </Card>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -102,25 +95,19 @@ function EmptyState() {
 }
 
 export function EventsSection({ events }: EventsSectionProps) {
-  // Reveal count must cover every card so each gets its own staggered tween.
-  const { containerRef, reveal } = useRevealStagger(events.length);
-
   return (
-    <section
-      id="events"
-      className="w-full scroll-mt-24 px-6 py-24"
-    >
+    <section id="events" className="w-full scroll-mt-24 px-6 py-24">
       <SectionHeading text="EVENTS" />
 
       {events.length === 0 ? (
         <EmptyState />
       ) : (
-        <div
-          ref={containerRef}
-          className="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
-        >
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((event, i) => (
-            <EventCard key={event.id} data={event} reveal={reveal[i] ?? 0} />
+            // Pixel-block dissolve as each card scrolls in (staggered).
+            <PixelReveal key={event.id} delayMs={i * 70}>
+              <EventCard data={event} />
+            </PixelReveal>
           ))}
         </div>
       )}

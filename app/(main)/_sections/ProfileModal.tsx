@@ -272,16 +272,16 @@ export function ProfileModal({
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-base leading-relaxed text-white">
-              we&apos;re too broke to store your photos :D
+              We&apos;re too broke to store your photos
             </p>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              change it on GitHub and it&apos;ll sync on your next sign-in.
+              Change it on GitHub and it&apos;ll sync on your next sign-in.
             </p>
             <Button
               className="mt-8 text-[10px]"
               onClick={() => setPhotoPopup(false)}
             >
-              OK :(
+              OK
             </Button>
           </div>
         </div>
