@@ -1,79 +1,56 @@
 import { db } from "@/lib/db";
-
-export type LeaderboardScoreInput = {
-  userId: string;
-  lcScore: number;
-  githubScore: number;
-  eventScore: number;
-  totalScore: number;
-};
+import {
+  computeLeaderboard,
+  type ScoringUserInput,
+} from "@/lib/leaderboard-scoring";
 
 export async function recomputeLeaderboardScores() {
   const weightConfig = await db.scoreWeight.findFirst();
-  const lcWeight = weightConfig?.lcWeight ?? 0.33;
-  const githubWeight = weightConfig?.githubWeight ?? 0.33;
-  const eventWeight = weightConfig?.eventWeight ?? 0.34;
+  const weights = {
+    lcWeight: weightConfig?.lcWeight ?? 0.33,
+    githubWeight: weightConfig?.githubWeight ?? 0.33,
+    eventWeight: weightConfig?.eventWeight ?? 0.34,
+  };
 
-  const totalEvents = await db.event.count({
-    where: {
-      isPublished: true,
-      eventDate: { lt: new Date() },
-    },
-  });
+  const now = new Date();
+  const eventFilter = { isPublished: true, eventDate: { lt: now } } as const;
+
+  const totalEvents = await db.event.count({ where: eventFilter });
 
   const users = await db.user.findMany({
     include: {
-      lcStats: {
-        orderBy: { fetchedAt: "desc" },
-        take: 1,
-      },
-      githubStats: {
-        orderBy: { fetchedAt: "desc" },
-        take: 1,
-      },
-      registrations: {
-        where: { attended: true },
-      },
+      lcStats: { orderBy: { fetchedAt: "desc" }, take: 1 },
+      githubStats: { orderBy: { fetchedAt: "desc" }, take: 1 },
+      // Count only attendance at events that also count toward `totalEvents`
+      // (published and already past), so the numerator and denominator agree and
+      // the ratio can't exceed 100%.
+      registrations: { where: { attended: true, event: eventFilter } },
     },
   });
 
-  const userScores = users.map((user) => {
-    const lc = user.lcStats[0];
-    const gh = user.githubStats[0];
+  const scoringInput: ScoringUserInput[] = users.map((user) => ({
+    userId: user.id,
+    lc: user.lcStats[0]
+      ? {
+          easySolved: user.lcStats[0].easySolved,
+          mediumSolved: user.lcStats[0].mediumSolved,
+          hardSolved: user.lcStats[0].hardSolved,
+        }
+      : null,
+    gh: user.githubStats[0]
+      ? {
+          totalCommits: user.githubStats[0].totalCommits,
+          totalPrs: user.githubStats[0].totalPrs,
+          totalStars: user.githubStats[0].totalStars,
+        }
+      : null,
+    attendedCount: user.registrations.length,
+  }));
 
-    const rawLc = lc ? lc.easySolved * 1 + lc.mediumSolved * 3 + lc.hardSolved * 5 : 0;
-    const rawGh = gh ? gh.totalCommits + gh.totalPrs * 2 + gh.totalStars : 0;
-    const rawEvent = totalEvents > 0 ? (user.registrations.length / totalEvents) * 100 : 0;
-
-    return {
-      userId: user.id,
-      rawLc,
-      rawGh,
-      eventScore: rawEvent,
-    };
-  });
-
-  const maxLc = Math.max(...userScores.map((u) => u.rawLc), 1);
-  const maxGh = Math.max(...userScores.map((u) => u.rawGh), 1);
-
-  const finalScores: LeaderboardScoreInput[] = userScores.map((u) => {
-    const lcScore = (u.rawLc / maxLc) * 100;
-    const githubScore = (u.rawGh / maxGh) * 100;
-    const totalScore = lcScore * lcWeight + githubScore * githubWeight + u.eventScore * eventWeight;
-
-    return {
-      userId: u.userId,
-      lcScore,
-      githubScore,
-      eventScore: u.eventScore,
-      totalScore,
-    };
-  });
-
-  finalScores.sort((a, b) => b.totalScore - a.totalScore);
+  const finalScores = computeLeaderboard(scoringInput, weights, totalEvents);
 
   await db.$transaction(
-    finalScores.map((score, index) =>
+    finalScores.map((score) =>
       db.leaderboardScore.upsert({
         where: { userId: score.userId },
         update: {
@@ -81,7 +58,7 @@ export async function recomputeLeaderboardScores() {
           githubScore: score.githubScore,
           eventScore: score.eventScore,
           totalScore: score.totalScore,
-          rank: index + 1,
+          rank: score.rank,
           computedAt: new Date(),
         },
         create: {
@@ -90,7 +67,7 @@ export async function recomputeLeaderboardScores() {
           githubScore: score.githubScore,
           eventScore: score.eventScore,
           totalScore: score.totalScore,
-          rank: index + 1,
+          rank: score.rank,
         },
       })
     )

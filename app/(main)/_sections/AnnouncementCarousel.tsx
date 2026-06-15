@@ -194,7 +194,7 @@ export function AnnouncementCarousel({
   };
 
   return (
-    <section id="events" className="w-full overflow-hidden py-12">
+    <section id="announcements" className="w-full overflow-hidden py-12">
       <h2 className="retro mb-12 text-center text-xl tracking-wider text-white">
         ANNOUNCEMENTS
       </h2>

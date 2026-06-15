@@ -23,9 +23,30 @@ interface V2HeaderProps {
 const NAV_TABS = [
   { value: "events", label: "EVENTS" },
   { value: "leaderboard", label: "LEADERBOARD" },
-  { value: "members", label: "MEMBERS" },
   { value: "projects", label: "PROJECTS" },
+  { value: "members", label: "MEMBERS" },
 ];
+
+// 8-bit "thunk" on click: a quick squash + brightness flash, driven by rAF (so
+// the global prefers-reduced-motion CSS reset can't silently disable it; it's a
+// brief, user-triggered cue rather than ambient motion).
+function playPress(el: HTMLElement) {
+  const DURATION = 240;
+  const start = performance.now();
+  const frame = (now: number) => {
+    const t = Math.min(1, (now - start) / DURATION);
+    const dip = Math.sin(Math.PI * t); // 0 → 1 → 0
+    el.style.transform = `scale(${1 - 0.16 * dip})`;
+    el.style.filter = `brightness(${1 + 0.6 * dip})`;
+    if (t < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      el.style.transform = "";
+      el.style.filter = "";
+    }
+  };
+  requestAnimationFrame(frame);
+}
 
 export function V2Header({
   userName,
@@ -115,7 +136,8 @@ export function V2Header({
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    className="px-4 py-2 text-xs"
+                    onClick={(e) => playPress(e.currentTarget)}
+                    className="px-4 py-2 text-xs will-change-transform"
                   >
                     {tab.label}
                   </TabsTrigger>

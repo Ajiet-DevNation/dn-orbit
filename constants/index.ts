@@ -3,10 +3,10 @@ import type { NavLink } from "@/types";
 /* ── Navigation Routes ── */
 
 export const NAV_LINKS: NavLink[] = [
-  { label: "LEADERBOARD", href: "/leaderboard" },
   { label: "EVENTS", href: "/events" },
-  { label: "MEMBERS", href: "/members" },
+  { label: "LEADERBOARD", href: "/leaderboard" },
   { label: "PROJECTS", href: "/projects" },
+  { label: "MEMBERS", href: "/members" },
 ];
 
 /* ── Branding ── */

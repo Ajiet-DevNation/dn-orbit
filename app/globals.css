@@ -392,6 +392,16 @@ body {
   image-rendering: crisp-edges;
 }
 
+/* Pointer cursor on everything clickable across the v2 app (buttons, links,
+   role="button" cards, etc.). Disabled controls keep the default cursor. */
+[data-v2] button:not(:disabled),
+[data-v2] a,
+[data-v2] [role="button"],
+[data-v2] summary,
+[data-v2] [tabindex]:not([tabindex="-1"]) {
+  cursor: pointer;
+}
+
 /*
   8bit-avatar clips the photo into a circle (rounded-full) so its corners sit
   inside the octagon pixel frame. The global border-radius reset above wipes
