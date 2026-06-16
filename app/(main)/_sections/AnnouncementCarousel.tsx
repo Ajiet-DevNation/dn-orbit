@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/8bit-card";
+import { cn } from "@/lib/utils";
+import campusAnnouncements from "@/constants/campusAnnouncements.json";
 
 // Generic announcement — NOT tied to events. Any source (events, club news,
 // leaderboard resets, project drops) can be mapped into this shape upstream.
@@ -12,6 +14,7 @@ export interface Announcement {
   title: string;
   body: string | null;
   meta: string | null; // trailing line, e.g. "JUL 15 · MAIN AUDITORIUM"
+  href?: string | null; // when set, the whole card links out (opens new tab)
 }
 
 interface AnnouncementCarouselProps {
@@ -24,6 +27,12 @@ const CARD_W = 550;
 const CARD_GAP = 50;
 const UNIT = CARD_W + CARD_GAP;
 const SPEED = 0.05; // px per ms ≈ 50px/s drift
+
+// Real campus news scraped from the college site (ajiet.edu.in → "News &
+// Events") into constants/campusAnnouncements.json by scripts/scrapeAnnouncements.ts,
+// refreshed weekly via .github/workflows/scrape-announcements.yml. Each card
+// links out to its source page. All carry the "AJIET" tag so the source is clear.
+const CAMPUS_ANNOUNCEMENTS: Announcement[] = campusAnnouncements;
 
 // Always-on generic announcements blended in alongside live data (events, etc).
 // These give the strip variety so it never looks like one card on repeat when
@@ -52,37 +61,80 @@ const BASELINE_ANNOUNCEMENTS: Announcement[] = [
   },
 ];
 
-function AnnouncementSlide({ item }: { item: Announcement }) {
+function AnnouncementSlide({
+  item,
+  onNavGuard,
+}: {
+  item: Announcement;
+  // Suppresses navigation if the pointer was dragging the strip (so a drag that
+  // happens to end on a card doesn't fire its link).
+  onNavGuard: (e: React.MouseEvent) => void;
+}) {
+  const card = (
+    // h-full (not a fixed length) so the Card fills the fixed-height wrapper
+    // below: the Card spreads `className` onto both its outer bordered box AND
+    // its inner content div, and a fixed length there would make the inner
+    // overflow the outer's content area and cover the bottom border. h-full is a
+    // percentage, so it resolves against each parent's content box and fits.
+    <Card
+      className={cn(
+        "h-full gap-4 py-8 border-white/10 shadow-[0_0_15px_rgba(34,197,94,0.05)] transition-colors duration-500",
+        // Linked cards get a stronger hover cue than passive ones.
+        item.href ? "hover:border-[#22c55e]/70" : "hover:border-[#22c55e]/40"
+      )}
+    >
+      {item.tag && (
+        <div className="px-8">
+          <span className="retro inline-block border-2 border-[#22c55e] px-3 py-1.5 text-[9px] text-[#22c55e]">
+            {item.tag}
+          </span>
+        </div>
+      )}
+
+      <h3 className="retro px-8 text-lg leading-relaxed text-white line-clamp-3">
+        {item.title}
+      </h3>
+
+      {item.body && (
+        <p className="px-8 text-sm leading-relaxed text-muted-foreground line-clamp-3">
+          {item.body}
+        </p>
+      )}
+
+      {/* mt-auto pins the meta row to the bottom edge of every card. */}
+      <div className="mt-auto flex items-center justify-between gap-4 px-8">
+        {item.meta && (
+          <p className="retro text-[9px] text-muted-foreground">{item.meta}</p>
+        )}
+        {item.href && (
+          <span className="retro text-[9px] text-[#22c55e]">VIEW &rarr;</span>
+        )}
+      </div>
+    </Card>
+  );
+
   return (
+    // Fixed height lives here (the definite parent); the Card fills it via
+    // h-full. Keeps every card identical without the inner div overflowing.
     <div
-      className="shrink-0"
+      className="shrink-0 h-[21rem]"
       style={{ width: CARD_W, marginRight: CARD_GAP }}
     >
-      <Card className="min-h-72 justify-between gap-6 py-10 border-white/10 hover:border-[#22c55e]/40 shadow-[0_0_15px_rgba(34,197,94,0.05)] transition-colors duration-500">
-        {item.tag && (
-          <div className="px-8">
-            <span className="retro inline-block border-2 border-[#22c55e] px-3 py-1.5 text-[9px] text-[#22c55e]">
-              {item.tag}
-            </span>
-          </div>
-        )}
-
-        <h3 className="retro px-8 text-lg leading-relaxed text-white">
-          {item.title}
-        </h3>
-
-        {item.body && (
-          <p className="px-8 text-sm leading-relaxed text-muted-foreground">
-            {item.body}
-          </p>
-        )}
-
-        {item.meta && (
-          <p className="retro px-8 text-[9px] text-muted-foreground">
-            {item.meta}
-          </p>
-        )}
-      </Card>
+      {item.href ? (
+        <a
+          href={item.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={item.title}
+          draggable={false}
+          onClick={onNavGuard}
+          className="block h-full rounded-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#22c55e]"
+        >
+          {card}
+        </a>
+      ) : (
+        card
+      )}
     </div>
   );
 }
@@ -90,8 +142,13 @@ function AnnouncementSlide({ item }: { item: Announcement }) {
 export function AnnouncementCarousel({
   announcements,
 }: AnnouncementCarouselProps) {
-  // Real announcements first, then the always-on baseline cards for variety.
-  const items = [...announcements, ...BASELINE_ANNOUNCEMENTS];
+  // Live announcements first, then real campus news, then the always-on
+  // baseline cards for variety.
+  const items = [
+    ...announcements,
+    ...CAMPUS_ANNOUNCEMENTS,
+    ...BASELINE_ANNOUNCEMENTS,
+  ];
 
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -123,6 +180,9 @@ export function AnnouncementCarousel({
   const dragStartXRef = useRef(0);
   const dragStartOffsetRef = useRef(0);
   const onScreenRef = useRef(true);
+  // True once a pointer-down has moved far enough to count as a drag — used to
+  // cancel the click that would otherwise follow and open a card's link.
+  const movedRef = useRef(false);
 
   // Keep offset within (-copyWidth, 0] so the two stacked copies loop seamlessly.
   const normalize = () => {
@@ -172,6 +232,7 @@ export function AnnouncementCarousel({
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     draggingRef.current = true;
+    movedRef.current = false;
     dragStartXRef.current = e.clientX;
     dragStartOffsetRef.current = offsetRef.current;
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -179,10 +240,18 @@ export function AnnouncementCarousel({
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!draggingRef.current) return;
-    offsetRef.current =
-      dragStartOffsetRef.current + (e.clientX - dragStartXRef.current);
+    const dx = e.clientX - dragStartXRef.current;
+    // 5px of travel distinguishes a deliberate drag from a jittery click.
+    if (Math.abs(dx) > 5) movedRef.current = true;
+    offsetRef.current = dragStartOffsetRef.current + dx;
     normalize();
     applyTransform();
+  };
+
+  // Runs on a card's click (capture-phase via the anchor's onClick). If the
+  // pointer was dragging, cancel the navigation.
+  const onNavGuard = (e: React.MouseEvent) => {
+    if (movedRef.current) e.preventDefault();
   };
 
   const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -216,7 +285,11 @@ export function AnnouncementCarousel({
         <div ref={trackRef} className="flex w-max will-change-transform">
           {/* Two identical sets back-to-back → seamless infinite loop. */}
           {[...fillSet, ...fillSet].map((item, i) => (
-            <AnnouncementSlide key={`${item.id}-${i}`} item={item} />
+            <AnnouncementSlide
+              key={`${item.id}-${i}`}
+              item={item}
+              onNavGuard={onNavGuard}
+            />
           ))}
         </div>
       </div>

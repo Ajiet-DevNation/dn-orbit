@@ -1,0 +1,44 @@
+name: Scrape campus announcements
+
+# Refreshes constants/campusAnnouncements.json from AJIET's News & Events feed
+# once a week. Opens a PR only when the scraped output actually changes, so new
+# campus news reaches ORBIT without a manual edit. Also runnable on demand.
+on:
+  schedule:
+    - cron: "0 6 * * 1" # every Monday 06:00 UTC
+  workflow_dispatch:
+
+# Needed for the action to push a branch and open the PR.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Scrape AJIET News & Events
+        run: bun run scrape:announcements
+
+      # No-op when the file is unchanged; otherwise creates/updates one PR on a
+      # fixed branch (so reruns amend the same PR instead of piling up new ones).
+      - name: Open PR if announcements changed
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: constants/campusAnnouncements.json
+          branch: chore/refresh-announcements
+          delete-branch: true
+          commit-message: "chore: refresh campus announcements"
+          title: "chore: refresh campus announcements"
+          body: |
+            Automated weekly scrape of AJIET's News & Events feed
+            (`scripts/scrapeAnnouncements.ts`).
+
+            Updates `constants/campusAnnouncements.json` with the latest campus
+            announcements. Review the diff and merge to publish.
