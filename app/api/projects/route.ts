@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Pending approval" }, { status: 403 });
 
     const body = await req.json();
-    const { title, description, githubRepoUrl, techStack, milestones } = body;
+    const { title, description, imageUrl, githubRepoUrl, techStack, milestones } = body;
 
     if (!title) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
       data: {
         title,
         description,
+        imageUrl,
         githubRepoUrl,
         techStack: techStack ?? [],
         milestones: milestones ?? [],
