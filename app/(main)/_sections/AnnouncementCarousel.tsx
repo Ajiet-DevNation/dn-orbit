@@ -197,15 +197,19 @@ export function AnnouncementCarousel({
     }
   };
 
-  // Auto-drift loop. Pauses while dragging or when scrolled off-screen.
+  // Auto-drift loop. Pauses while dragging, when scrolled off-screen, or when
+  // the user prefers reduced motion (the strip then holds still; drag still works).
   useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     let last = performance.now();
     let rafId = 0;
     const frame = (now: number) => {
       rafId = requestAnimationFrame(frame);
       const dt = now - last;
       last = now;
-      if (draggingRef.current || !onScreenRef.current) return;
+      if (draggingRef.current || !onScreenRef.current || reduce) return;
       offsetRef.current -= SPEED * dt;
       normalize();
       applyTransform();
@@ -223,6 +227,12 @@ export function AnnouncementCarousel({
     const io = new IntersectionObserver(
       ([entry]) => {
         onScreenRef.current = entry.isIntersecting;
+        // Promote the marquee track to its own layer only while it's visible
+        // (and therefore drifting); demote off-screen so it's not held idle.
+        if (trackRef.current)
+          trackRef.current.style.willChange = entry.isIntersecting
+            ? "transform"
+            : "";
       },
       { threshold: 0 }
     );
@@ -282,7 +292,7 @@ export function AnnouncementCarousel({
         onPointerCancel={endDrag}
         onContextMenu={(e) => e.preventDefault()}
       >
-        <div ref={trackRef} className="flex w-max will-change-transform">
+        <div ref={trackRef} className="flex w-max">
           {/* Two identical sets back-to-back → seamless infinite loop. */}
           {[...fillSet, ...fillSet].map((item, i) => (
             <AnnouncementSlide
