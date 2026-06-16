@@ -8,7 +8,8 @@ import {
   LayoutDashboard, 
   LogOut,
   Trophy,
-  Rocket
+  Rocket,
+  UserCheck
 } from "lucide-react";
 import Link from "next/link";
 import { SignOutButton } from "@/components/auth/SignOutButton";
@@ -28,6 +29,7 @@ export default async function AdminLayout({
   const navItems = [
     { label: "OVERVIEW", href: "/admin", icon: LayoutDashboard },
     { label: "MEMBERS", href: "/admin/members", icon: Users },
+    { label: "REQUESTS", href: "/admin/requests", icon: UserCheck },
     { label: "EVENTS", href: "/admin/events", icon: Calendar },
     { label: "PROJECTS", href: "/admin/projects", icon: Rocket },
     { label: "LEADERBOARD", href: "/admin/leaderboard", icon: Trophy },
