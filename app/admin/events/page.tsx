@@ -82,7 +82,7 @@ export default async function AdminEventsPage() {
           <div className="text-xl text-white font-black uppercase tracking-tighter">
             EVENT_DIRECTORY
           </div>
-          <div className="text-[8px] text-emerald-500 uppercase tracking-widest font-bold">
+          <div className="text-[8px] text-[#22c55e] uppercase tracking-widest font-bold">
             STATUS: OPERATIONAL
           </div>
         </div>

@@ -125,7 +125,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       header: "PUBLISHED",
       render: (p: Project) => (
         <div className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
-          p.isApproved ? 'bg-transparent text-emerald-400 border-emerald-900 uppercase' : 'bg-red-900/20 text-red-500 border-red-900 uppercase italic'
+          p.isApproved ? 'bg-transparent text-[#22c55e] border-[#22c55e]/30 uppercase' : 'bg-red-900/20 text-red-500 border-red-900 uppercase italic'
         }`}>
           {p.isApproved ? "LIVE" : "DRAFT"}
         </div>

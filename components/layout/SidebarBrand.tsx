@@ -6,24 +6,24 @@ export function SidebarBrand({
   sectorLabel: string;
 }) {
   return (
-    <div className="p-8 border-b border-zinc-900">
+    <div className="p-8 border-b-2 border-white/10">
       <div className="flex items-center gap-4">
-        <div className="relative h-12 w-16 shrink-0 overflow-hidden border border-zinc-800 bg-zinc-950">
+        <div className="relative h-12 w-16 shrink-0 overflow-hidden border-2 border-[#22c55e]/30 bg-[#0a0a0a]">
           <Image
             src="/assets/DevNationLogoFinale.png"
             alt="DevNation logo"
             fill
             sizes="64px"
-            className="object-contain"
+            className="object-contain pixelated"
             priority
           />
         </div>
 
-        <div className="flex min-w-0 flex-col">
-          <span className="text-sm font-black tracking-tighter leading-none">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <span className="retro text-xs text-[#22c55e] leading-none">
             ORBIT
           </span>
-          <span className="text-[9px] text-zinc-600 font-bold tracking-widest">
+          <span className="retro text-[7px] text-zinc-600 tracking-widest">
             {sectorLabel}
           </span>
         </div>
