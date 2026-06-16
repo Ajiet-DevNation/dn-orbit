@@ -107,6 +107,7 @@ export function V2Header({
             alt="DevNation"
             width={64}
             height={64}
+            priority
             className="pixelated opacity-90 h-14 w-14 sm:h-16 sm:w-16 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
           />
           <span className="font-[family-name:var(--font-pixel)] text-white text-2xl leading-none hidden sm:block mt-1">
