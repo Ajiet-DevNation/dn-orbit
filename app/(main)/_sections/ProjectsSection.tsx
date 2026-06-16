@@ -38,6 +38,9 @@ function ProjectCard({
   style?: React.CSSProperties;
 }) {
   const color = statusColor(project.status);
+  // Up to two alphanumerics for the cartridge monogram, e.g. "CERT GEN" → "CE".
+  const monogram =
+    project.title.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase() || "?";
   return (
     <Card
       className={cn(
@@ -56,7 +59,8 @@ function ProjectCard({
         </span>
       </div>
 
-      {/* Picture — fills the rest. Plain <img> (pixelated) or pixel placeholder. */}
+      {/* Picture — fills the rest. Plain <img> (pixelated) or, when a project has
+          no cover, a composed "cartridge" fallback so the card never reads empty. */}
       <div className="relative flex-1 overflow-hidden bg-[#0d0d0d]">
         {project.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -67,10 +71,40 @@ function ProjectCard({
             className="pixelated h-full w-full object-cover"
           />
         ) : (
-          <div className="dot-grid-bg flex h-full w-full items-center justify-center">
-            <span className="retro text-6xl text-[#22c55e]/25 select-none">
-              {project.title.trim()[0] ?? "?"}
+          <div className="dot-grid-bg relative flex h-full w-full flex-col items-center justify-center gap-7 p-8">
+            {/* Oversized monogram watermark for depth behind the tile. */}
+            <span
+              aria-hidden
+              className="retro pointer-events-none absolute inset-0 flex items-center justify-center text-[12rem] leading-none text-white/[0.03] select-none"
+            >
+              {monogram}
             </span>
+
+            {/* Cartridge tile: status-colored pixel border + monogram. */}
+            <div
+              className="relative z-10 flex size-28 items-center justify-center border-4 bg-[#0a0a0a]"
+              style={{ borderColor: color, boxShadow: `0 0 24px ${color}22` }}
+            >
+              <span className="retro text-4xl text-white select-none">
+                {monogram}
+              </span>
+            </div>
+
+            {/* Tech stack chips — the glanceable substance that fills the card. */}
+            {project.techStack.length > 0 && (
+              <div className="z-10 flex max-w-[85%] flex-wrap justify-center gap-2">
+                {project.techStack.map((tech) => (
+                  <span
+                    key={tech}
+                    className="retro border-2 border-white/15 px-2.5 py-1.5 text-[8px] text-white/70"
+                  >
+                    {tech}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <FaGithub className="z-10 size-5 text-white/20" />
           </div>
         )}
       </div>

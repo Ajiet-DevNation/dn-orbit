@@ -1,0 +1,116 @@
+[
+  {
+    "id": "aakar-26",
+    "title": "AAKAR 26",
+    "imageUrl": null,
+    "description": "AAKAR 2026 is the official Techno-Cultural Festival of AJIET Mangalore, bringing together innovation, creativity, and talent through",
+    "techStack": [
+      "Auth.js",
+      "Bun",
+      "Next.js",
+      "Prisma",
+      "Razorpay"
+    ],
+    "githubUrl": "https://github.com/Ajiet-DevNation/Aakar-26",
+    "status": "ACTIVE"
+  },
+  {
+    "id": "libre-mp",
+    "title": "LIBRE MP",
+    "imageUrl": null,
+    "description": "LibreMP, built a lightweight, highly compatible cross-platform desktop application designed to interact seamlessly with Epson projectors across all major operating systems",
+    "techStack": [
+      "HTML",
+      "Rust",
+      "C",
+      "JavaScript",
+      "TypeScript"
+    ],
+    "githubUrl": "https://github.com/Ajiet-DevNation/libre-mp",
+    "status": "ACTIVE"
+  },
+  {
+    "id": "project_stack",
+    "title": "PROJECT STACK",
+    "imageUrl": null,
+    "description": "ProjectStack is the dedicated platform connecting university students with groundbreaking technical projects. Designed to streamline academic and extracurricular collaboration",
+    "techStack": [
+      "JavaScript",
+      "Auth.js",
+      "Next.js",
+      "React",
+      "Tailwind"
+    ],
+    "githubUrl": "https://github.com/Ajiet-DevNation/project_stack",
+    "status": "ACTIVE"
+  },
+  {
+    "id": "aakar2025",
+    "title": "AAKAR 2025",
+    "imageUrl": null,
+    "description": "Aakar 2025 – The official techno-cultural fest of AJIET, Mangalore. Full-stack repo with backend & frontend for event management. 🚀🎭",
+    "techStack": [
+      "TypeScript",
+      "CSS",
+      "JavaScript"
+    ],
+    "githubUrl": "https://github.com/Ajiet-DevNation/Aakar2025",
+    "status": "ACTIVE"
+  },
+  {
+    "id": "symphoria",
+    "title": "SYMPHORIA",
+    "imageUrl": null,
+    "description": "Official repository for AJIDS Symphoria-2025, the intercollegiate cultural fest hosted by A.J. Institute of Dental Sciences. This repo includes event schedules, media assets, coordinator contacts,…",
+    "techStack": [
+      "Blade",
+      "PHP",
+      "CSS",
+      "SCSS",
+      "JavaScript"
+    ],
+    "githubUrl": "https://github.com/Ajiet-DevNation/Symphoria",
+    "status": "SHIPPED"
+  },
+  {
+    "id": "cert-gen",
+    "title": "CERT GEN",
+    "imageUrl": null,
+    "description": "A web-based certificate generator application for creating participation certificates for AAKAR 2025 event participants",
+    "techStack": [
+      "HTML",
+      "JavaScript"
+    ],
+    "githubUrl": "https://github.com/Ajiet-DevNation/cert-gen",
+    "status": "SHIPPED"
+  },
+  {
+    "id": "devnation-cms",
+    "title": "DEVNATION CMS",
+    "imageUrl": null,
+    "description": "This is a CMS site for our student community DevNation.",
+    "techStack": [
+      "Filament",
+      "Laravel",
+      "CSS",
+      "JavaScript",
+      "PHP"
+    ],
+    "githubUrl": "https://github.com/Ajiet-DevNation/DevNation-CMS",
+    "status": "SHIPPED"
+  },
+  {
+    "id": "ezorder",
+    "title": "EZORDER",
+    "imageUrl": null,
+    "description": "Hackathon Project: Instant Food Ordering Web App for our college cafeteria (Backend might take time to load because of free service)",
+    "techStack": [
+      "TypeScript",
+      "JavaScript",
+      "CSS",
+      "HTML"
+    ],
+    "githubUrl": "https://github.com/Ajiet-DevNation/EZOrder",
+    "status": "SHIPPED"
+  }
+]
