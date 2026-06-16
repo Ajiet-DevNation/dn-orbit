@@ -91,10 +91,17 @@ export function useCoverflow({
     }
   }, [count, spread, scaleStep, opacityStep]);
 
+  // GPU-promote the cards only while the loop is actively animating; demote at
+  // rest so we don't hold a compositing layer per card while idle.
+  const setCardsWillChange = useCallback((value: string) => {
+    for (const el of cardRefs.current) if (el) el.style.willChange = value;
+  }, []);
+
   const wake = useCallback(() => {
     if (runningRef.current) return;
     runningRef.current = true;
     lastTimeRef.current = performance.now();
+    setCardsWillChange("transform");
     const step = (now: number) => {
       const dt = Math.min(now - lastTimeRef.current, MAX_DT_MS);
       lastTimeRef.current = now;
@@ -109,6 +116,7 @@ export function useCoverflow({
         focusRef.current = targetRef.current;
         applyCards();
         runningRef.current = false;
+        setCardsWillChange("");
         return;
       }
       focusRef.current += diff * (1 - Math.exp(-dt / TAU_MS));
@@ -116,7 +124,7 @@ export function useCoverflow({
       rafRef.current = requestAnimationFrame(step);
     };
     rafRef.current = requestAnimationFrame(step);
-  }, [applyCards]);
+  }, [applyCards, setCardsWillChange]);
 
   // Focus is a free float driven solely by manual input (drag/keys/click) — the
   // looping renderer wraps it. Scroll no longer drives focus (no pinning).
@@ -151,9 +159,10 @@ export function useCoverflow({
       if (frame) cancelAnimationFrame(frame);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       runningRef.current = false;
+      setCardsWillChange("");
       window.removeEventListener("resize", onResize);
     };
-  }, [applyCards, setTarget]);
+  }, [applyCards, setTarget, setCardsWillChange]);
 
   // On-screen state for arrow-key gating.
   useEffect(() => {
