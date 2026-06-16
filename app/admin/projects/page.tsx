@@ -20,7 +20,7 @@ export default async function AdminProjectsPage() {
       status: true,
       progressPct: true,
       githubRepoUrl: true,
-      isApproved: true,
+      reviewStatus: true,
       submittedAt: true,
       lead: {
         select: {
@@ -33,8 +33,8 @@ export default async function AdminProjectsPage() {
       submittedAt: "desc",
     },
   });
-  const pendingCount = projects.filter((p) => !p.isApproved).length;
-  const approvedCount = projects.filter((p) => p.isApproved).length;
+  const pendingCount = projects.filter((p) => p.reviewStatus === "pending").length;
+  const approvedCount = projects.filter((p) => p.reviewStatus === "approved").length;
 
   return (
     <div className="space-y-8 p-8">

@@ -6,6 +6,8 @@ import { toast } from "@/components/ui/8bit-toast";
 import { deleteProject } from "./actions";
 import { useRouter } from "next/navigation";
 
+type ReviewStatus = "pending" | "approved" | "rejected";
+
 interface Project {
   id: string;
   title: string;
@@ -13,7 +15,7 @@ interface Project {
   status: string;
   progressPct: number;
   githubRepoUrl: string | null;
-  isApproved: boolean;
+  reviewStatus: ReviewStatus;
   submittedAt: Date;
   leadName: string;
   leadGithub: string | null;
@@ -29,12 +31,16 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
 
   const [optimisticProjects, addOptimisticAction] = useOptimistic(
     initialProjects,
-    (state, action: { type: "publish" | "unpublish" | "delete"; id: string }) => {
-      if (action.type === "publish") {
-        return state.map((p) => (p.id === action.id ? { ...p, isApproved: true } : p));
+    (state, action: { type: "approve" | "reject" | "delete"; id: string }) => {
+      if (action.type === "approve") {
+        return state.map((p) =>
+          p.id === action.id ? { ...p, reviewStatus: "approved" as const } : p,
+        );
       }
-      if (action.type === "unpublish") {
-        return state.map((p) => (p.id === action.id ? { ...p, isApproved: false } : p));
+      if (action.type === "reject") {
+        return state.map((p) =>
+          p.id === action.id ? { ...p, reviewStatus: "rejected" as const } : p,
+        );
       }
       if (action.type === "delete") {
         return state.filter((p) => p.id !== action.id);
@@ -43,21 +49,21 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
     }
   );
 
-  const handlePublishToggle = async (id: string, publish: boolean) => {
+  const handleReview = async (id: string, action: "approve" | "reject") => {
     startTransition(async () => {
-      addOptimisticAction({ type: publish ? "publish" : "unpublish", id });
+      addOptimisticAction({ type: action, id });
       try {
         const res = await fetch(`/api/admin/projects/${id}/approve`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isApproved: publish }),
+          body: JSON.stringify({ action }),
         });
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
-        toast.success(publish ? "PROJECT_PUBLISHED" : "PROJECT_UNPUBLISHED");
+        toast.success(action === "approve" ? "PROJECT_APPROVED" : "PROJECT_REJECTED");
       } catch (err) {
         toast.error(
-          (publish ? "PUBLISH" : "UNPUBLISH") +
+          action.toUpperCase() +
             "_FAILURE: " +
             (err instanceof Error ? err.message : "UNKNOWN")
         );
@@ -127,16 +133,18 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
     },
     {
       key: "approval",
-      header: "PUBLISHED",
+      header: "REVIEW",
       render: (p) => (
         <span
           className={`retro inline-block border-2 px-2 py-1 text-[8px] uppercase ${
-            p.isApproved
+            p.reviewStatus === "approved"
               ? "border-[#22c55e]/30 text-[#22c55e]"
-              : "border-red-900 bg-red-900/20 italic text-red-500"
+              : p.reviewStatus === "rejected"
+                ? "border-red-900 bg-red-900/20 italic text-red-500"
+                : "border-amber-500/40 text-amber-400"
           }`}
         >
-          {p.isApproved ? "LIVE" : "DRAFT"}
+          {p.reviewStatus}
         </span>
       ),
     },
@@ -146,23 +154,24 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       align: "right",
       render: (p) => (
         <div className="flex justify-end gap-2">
-          {!p.isApproved ? (
+          {p.reviewStatus !== "approved" && (
             <button
               type="button"
               disabled={isPending}
-              onClick={() => handlePublishToggle(p.id, true)}
+              onClick={() => handleReview(p.id, "approve")}
               className={`${btn} border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black`}
             >
-              PUBLISH
+              APPROVE
             </button>
-          ) : (
+          )}
+          {p.reviewStatus !== "rejected" && (
             <button
               type="button"
               disabled={isPending}
-              onClick={() => handlePublishToggle(p.id, false)}
-              className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}
+              onClick={() => handleReview(p.id, "reject")}
+              className={`${btn} border-red-500/40 text-red-400 hover:bg-red-500/10`}
             >
-              UNPUBLISH
+              REJECT
             </button>
           )}
           <button

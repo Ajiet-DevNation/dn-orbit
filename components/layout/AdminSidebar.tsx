@@ -12,6 +12,7 @@ import {
   Trophy,
   Rocket,
   UserCheck,
+  Inbox,
   Menu,
   X,
   Home,
@@ -28,6 +29,7 @@ const navItems = [
   { label: "REQUESTS", href: "/admin/requests", icon: UserCheck },
   { label: "EVENTS", href: "/admin/events", icon: Calendar },
   { label: "PROJECTS", href: "/admin/projects", icon: Rocket },
+  { label: "APPROVALS", href: "/admin/approvals", icon: Inbox },
   { label: "LEADERBOARD", href: "/admin/leaderboard", icon: Trophy },
   { label: "SETTINGS", href: "/admin/settings", icon: Settings },
 ];

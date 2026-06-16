@@ -75,9 +75,11 @@ model User {
   lcStats           LcStats[]
   leaderboardScore  LeaderboardScore?
   createdEvents     Event[]           @relation("EventCreator")
+  reviewedEvents    Event[]           @relation("EventReviewer")
   registrations     Registration[]
   feedback          Feedback[]
   ledProjects       Project[]         @relation("ProjectLead")
+  reviewedProjects  Project[]         @relation("ProjectReviewer")
   projectMemberships ProjectMember[]
 
   @@map("users")
@@ -201,6 +203,9 @@ model Event {
   eventDate   DateTime @map("event_date")
   location    String?
   isPublished          Boolean       @default(false) @map("is_published")
+  reviewStatus         ApprovalStatus @default(pending) @map("review_status")
+  reviewedById         String?        @map("reviewed_by")
+  reviewedAt           DateTime?      @map("reviewed_at")
   audience             EventAudience @default(public)
   capacity             Int?
   registrationDeadline DateTime?     @map("registration_deadline")
@@ -208,6 +213,7 @@ model Event {
   createdAt            DateTime      @default(now()) @map("created_at")
 
   creator       User           @relation("EventCreator", fields: [createdBy], references: [id])
+  reviewedBy    User?          @relation("EventReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   registrations Registration[]
   feedback      Feedback[]
 
@@ -304,12 +310,15 @@ model Project {
   githubRepoUrl String?       @map("github_repo_url")
   techStack     Json          @default("[]") @map("tech_stack")  // string[]
   milestones    Json          @default("[]") // { label: string, done: boolean }[]
-  isApproved    Boolean       @default(false) @map("is_approved")
+  reviewStatus  ApprovalStatus @default(pending) @map("review_status")
+  reviewedById  String?       @map("reviewed_by")
+  reviewedAt    DateTime?     @map("reviewed_at")
   submittedAt   DateTime      @default(now()) @map("submitted_at")
   updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at")
 
-  lead    User            @relation("ProjectLead", fields: [leadId], references: [id])
-  members ProjectMember[]
+  lead       User            @relation("ProjectLead", fields: [leadId], references: [id])
+  reviewedBy User?           @relation("ProjectReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  members    ProjectMember[]
 
   @@map("projects")
 }

@@ -51,7 +51,7 @@ export default async function V2Page() {
   // Published events feed two surfaces: the top announcement strip (first few)
   // and the full Events grid below the terminal. Fetched once, mapped twice.
   const events = await db.event.findMany({
-    where: { isPublished: true },
+    where: { reviewStatus: "approved", isPublished: true },
     orderBy: { eventDate: "asc" },
     take: 12,
     include: { _count: { select: { registrations: true } } },
@@ -120,7 +120,7 @@ export default async function V2Page() {
   // Member-submitted, admin-approved projects (with uploaded cover images) shown
   // in the public carousel alongside the GitHub-org scraped projects.
   const dbProjects = await db.project.findMany({
-    where: { isApproved: true },
+    where: { reviewStatus: "approved" },
     orderBy: { submittedAt: "desc" },
   });
   const PROJECT_STATUS_LABEL: Record<string, string> = {

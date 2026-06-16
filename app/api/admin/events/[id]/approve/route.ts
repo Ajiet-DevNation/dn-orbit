@@ -5,8 +5,9 @@ import { canAccessAdmin } from "@/lib/roles";
 
 type Params = { params: Promise<{ id: string }> };
 
-// Admin moderation: approve or reject a submitted project. Server-side RBAC —
-// never trusts the client; the only writable target is review_status + reviewer.
+// Admin moderation: approve or reject a submitted event. Mirrors the project
+// review route. Approval alone doesn't make the event public — it must also be
+// published (isPublished) by the author/admin. Server-side RBAC enforced.
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const session = await auth();
@@ -24,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       );
     }
 
-    const updated = await db.project.update({
+    const updated = await db.event.update({
       where: { id },
       data: {
         reviewStatus: action === "approve" ? "approved" : "rejected",
@@ -35,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Review Project Error:", error);
+    console.error("Review Event Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

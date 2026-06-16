@@ -15,19 +15,27 @@ export default async function AdminDashboardPage() {
   }
 
   // Fetch live counts for the dashboard tiles.
-  const [totalUsers, totalProjects, pendingProjects, totalEvents, totalRegistrations] =
-    await Promise.all([
-      db.user.count(),
-      db.project.count({ where: { isApproved: true } }),
-      db.project.count({ where: { isApproved: false } }),
-      db.event.count(),
-      db.registration.count(),
-    ]);
+  const [
+    totalUsers,
+    totalProjects,
+    pendingProjects,
+    pendingEvents,
+    totalEvents,
+    totalRegistrations,
+  ] = await Promise.all([
+    db.user.count(),
+    db.project.count({ where: { reviewStatus: "approved" } }),
+    db.project.count({ where: { reviewStatus: "pending" } }),
+    db.event.count({ where: { reviewStatus: "pending" } }),
+    db.event.count(),
+    db.registration.count(),
+  ]);
+  const pendingReviews = pendingProjects + pendingEvents;
 
   const stats = [
     { label: "CONNECTED_MEMBERS", value: totalUsers, href: "/admin/members" },
     { label: "ACTIVE_PROJECTS", value: totalProjects, href: "/admin/projects" },
-    { label: "PENDING_REVIEWS", value: pendingProjects, href: "/admin/projects" },
+    { label: "PENDING_REVIEWS", value: pendingReviews, href: "/admin/approvals" },
     { label: "TOTAL_EVENTS", value: totalEvents, href: "/admin/events" },
     { label: "TOTAL_REGISTRATIONS", value: totalRegistrations, href: "/admin/events" },
   ];

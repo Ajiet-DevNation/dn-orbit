@@ -13,6 +13,7 @@ interface EventRow {
   location: string | null;
   isPublished: boolean;
   audience: string;
+  reviewStatus: "pending" | "approved" | "rejected";
 }
 
 export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
@@ -66,8 +67,25 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
     { key: "audience", header: "AUDIENCE", render: (e) => <span className="retro text-[8px] text-[#22c55e]">{e.audience.toUpperCase()}</span> },
     { key: "location", header: "LOCATION", render: (e) => <span className="text-white/70">{e.location || "VIRTUAL"}</span> },
     {
+      key: "review",
+      header: "REVIEW",
+      render: (e) => (
+        <span
+          className={`retro inline-block border-2 px-2 py-1 text-[8px] uppercase ${
+            e.reviewStatus === "approved"
+              ? "border-[#22c55e]/30 text-[#22c55e]"
+              : e.reviewStatus === "rejected"
+                ? "border-red-900 bg-red-900/20 text-red-500"
+                : "border-amber-500/40 text-amber-400"
+          }`}
+        >
+          {e.reviewStatus}
+        </span>
+      ),
+    },
+    {
       key: "status",
-      header: "STATUS",
+      header: "PUBLISH",
       render: (e) => (
         <span className={`retro inline-block border-2 px-2 py-1 text-[8px] ${e.isPublished ? "border-[#22c55e] text-[#22c55e]" : "border-white/15 text-zinc-500"}`}>
           {e.isPublished ? "PUBLISHED" : "DRAFT"}

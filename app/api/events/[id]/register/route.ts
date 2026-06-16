@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const event = await db.event.findUnique({ where: { id: eventId } });
   if (!event) return NextResponse.json({ error: "Event not found" }, { status: 404 });
-  if (!event.isPublished)
+  if (event.reviewStatus !== "approved" || !event.isPublished)
     return NextResponse.json({ error: "Event not available" }, { status: 403 });
 
   const audience = event.audience as EventAudience;

@@ -10,6 +10,8 @@ export async function GET(req: NextRequest) {
 
   const events = await db.event.findMany({
     where: {
+      // Public visibility requires BOTH admin approval and the author publishing.
+      reviewStatus: "approved",
       isPublished: true,
       ...(type === "upcoming" ? { eventDate: { gte: now } } : {}),
       ...(type === "past" ? { eventDate: { lt: now } } : {}),
@@ -48,8 +50,11 @@ export async function POST(req: NextRequest) {
       capacity: capacity ?? null,
       registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null,
       formSchema: formSchema ?? undefined,
-      // Non-admins may submit events, but they stay unpublished (pending admin
-      // approval) regardless of the requested value. Only admins can publish.
+      // Every new event enters the moderation queue regardless of who submits it.
+      reviewStatus: "pending",
+      // isPublished is the author's draft/live choice (separate from moderation);
+      // non-admins still can't self-publish. Public visibility needs approved +
+      // published, so this never bypasses review.
       isPublished: isAdmin ? (isPublished ?? false) : false,
       createdBy: session.user.id,
     },

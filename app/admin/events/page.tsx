@@ -14,12 +14,13 @@ export default async function AdminEventsPage() {
   const events = await db.event.findMany({
     select: {
       id: true, title: true, eventType: true, eventDate: true,
-      location: true, isPublished: true, audience: true,
+      location: true, isPublished: true, audience: true, reviewStatus: true,
     },
     orderBy: { eventDate: "desc" },
   });
   const total = events.length;
   const published = events.filter((e) => e.isPublished).length;
+  const pendingReview = events.filter((e) => e.reviewStatus === "pending").length;
 
   return (
     <div className="space-y-8 p-8">
@@ -38,6 +39,7 @@ export default async function AdminEventsPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <PixelStatTile label="TOTAL" value={total} />
         <PixelStatTile label="PUBLISHED" value={published} />
+        <PixelStatTile label="PENDING_REVIEW" value={pendingReview} />
       </div>
       <EventTable initialEvents={events} />
     </div>
