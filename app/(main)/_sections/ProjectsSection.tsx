@@ -199,7 +199,7 @@ export function ProjectsSection() {
 
   const stageRef = useRef<HTMLDivElement>(null);
   // Projects drift LEFT as you scroll down (Members mirror it, drifting right).
-  useScrollParallax(sectionRef, stageRef, { maxPx: 140, direction: -1 });
+  useScrollParallax(sectionRef, stageRef, { maxPx: 260, direction: -1, tau: 90 });
 
   // FLIP: place the detail card over the clicked card, then play it to its slot.
   useLayoutEffect(() => {

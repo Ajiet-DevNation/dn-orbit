@@ -194,7 +194,7 @@ export function MembersSection() {
 
   const stageRef = useRef<HTMLDivElement>(null);
   // Members drift RIGHT as you scroll down — mirror of the Projects section.
-  useScrollParallax(sectionRef, stageRef, { maxPx: 140, direction: 1 });
+  useScrollParallax(sectionRef, stageRef, { maxPx: 260, direction: 1, tau: 90 });
 
   return (
     <section
