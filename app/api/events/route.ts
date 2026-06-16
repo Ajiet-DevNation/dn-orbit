@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
 
   const isAdmin = canAccessAdmin(session.user.role);
 
-  const { title, description, bannerUrl, eventType, eventDate, location, isPublished } = await req.json();
+  const {
+    title, description, bannerUrl, eventType, eventDate, location, isPublished,
+    audience, capacity, registrationDeadline, formSchema,
+  } = await req.json();
 
   if (!title || !eventDate) {
     return NextResponse.json({ error: "title and eventDate are required" }, { status: 400 });
@@ -41,6 +44,10 @@ export async function POST(req: NextRequest) {
       eventType,
       eventDate: new Date(eventDate),
       location,
+      audience: audience ?? "public",
+      capacity: capacity ?? null,
+      registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null,
+      formSchema: formSchema ?? undefined,
       // Non-admins may submit events, but they stay unpublished (pending admin
       // approval) regardless of the requested value. Only admins can publish.
       isPublished: isAdmin ? (isPublished ?? false) : false,
