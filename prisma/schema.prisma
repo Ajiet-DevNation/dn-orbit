@@ -298,6 +298,7 @@ model Project {
   leadId        String        @map("lead_id")
   title         String
   description   String?
+  imageUrl      String?       @map("image_url")
   status        ProjectStatus @default(planning)
   progressPct   Int           @default(0) @map("progress_pct") // 0–100
   githubRepoUrl String?       @map("github_repo_url")

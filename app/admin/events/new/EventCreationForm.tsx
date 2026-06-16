@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/8bit-toast";
 import { PixelPanel } from "@/components/admin/PixelPanel";
+import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { FormBuilder } from "../_form/FormBuilder";
 import type { FormFieldDef } from "@/lib/forms";
 
@@ -47,30 +48,12 @@ export default function EventCreationForm({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [uploading, setUploading] = useState(false);
   const [f, setF] = useState<EventFormState>({ ...DEFAULTS, ...initial });
   const [schema, setSchema] = useState<FormFieldDef[]>(initial?.formSchema ?? []);
   const isEdit = !!eventId;
 
   const set = (k: keyof EventFormState, v: string) =>
     setF((prev) => ({ ...prev, [k]: v }));
-
-  const uploadBanner = async (file: File) => {
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Upload failed");
-      set("bannerUrl", data.url);
-      toast.success("Banner uploaded");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,30 +200,13 @@ export default function EventCreationForm({
       </PixelPanel>
 
       <PixelPanel title="03 · BANNER">
-        <div className="flex flex-col gap-4">
-          <input
-            type="file"
-            accept="image/*"
-            disabled={isPending || uploading}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) uploadBanner(file);
-            }}
-            className="retro text-[10px] text-white/70 file:mr-3 file:border-2 file:border-[#22c55e]/40 file:bg-transparent file:px-3 file:py-2 file:text-[9px] file:text-[#22c55e]"
-          />
-          {uploading && (
-            <span className="retro text-[9px] text-[#22c55e]">UPLOADING…</span>
-          )}
-          {f.bannerUrl && !uploading && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={f.bannerUrl}
-              alt="Banner preview"
-              draggable={false}
-              className="pixelated max-h-48 w-full border-2 border-white/10 object-cover select-none [-webkit-user-drag:none]"
-            />
-          )}
-        </div>
+        <label className={labelCls}>BANNER IMAGE (16:9)</label>
+        <ImageCropUpload
+          aspect={16 / 9}
+          kind="event"
+          value={f.bannerUrl}
+          onChange={(url) => set("bannerUrl", url)}
+        />
       </PixelPanel>
 
       <PixelPanel title="04 · REGISTRATION FORM">
@@ -262,7 +228,7 @@ export default function EventCreationForm({
 
       <button
         type="submit"
-        disabled={isPending || uploading}
+        disabled={isPending}
         className="retro w-fit border-2 border-[#22c55e] px-6 py-3 text-[10px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black disabled:opacity-50"
       >
         {isPending

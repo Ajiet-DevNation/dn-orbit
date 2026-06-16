@@ -14,6 +14,7 @@ import {
 } from "./_sections/LeaderboardSection";
 import { ProjectsSection } from "./_sections/ProjectsSection";
 import { MembersSection } from "./_sections/MembersSection";
+import { PROJECTS as scrapedProjects, type ProjectData } from "@/constants/projects";
 import { languagesFromRecord } from "./_sections/stats-utils";
 import { PixelLoadingScreen } from "@/components/ui/PixelLoadingScreen";
 
@@ -116,6 +117,29 @@ export default async function V2Page() {
     score: Math.round(s.totalScore),
   }));
 
+  // Member-submitted, admin-approved projects (with uploaded cover images) shown
+  // in the public carousel alongside the GitHub-org scraped projects.
+  const dbProjects = await db.project.findMany({
+    where: { isApproved: true },
+    orderBy: { submittedAt: "desc" },
+  });
+  const PROJECT_STATUS_LABEL: Record<string, string> = {
+    planning: "WIP",
+    active: "ACTIVE",
+    completed: "SHIPPED",
+    stalled: "STALLED",
+  };
+  const submittedProjects: ProjectData[] = dbProjects.map((p) => ({
+    id: p.id,
+    title: p.title.toUpperCase(),
+    imageUrl: p.imageUrl,
+    description: p.description ?? "",
+    techStack: Array.isArray(p.techStack) ? (p.techStack as string[]) : [],
+    githubUrl: p.githubRepoUrl,
+    status: PROJECT_STATUS_LABEL[p.status] ?? "ACTIVE",
+  }));
+  const projects: ProjectData[] = [...submittedProjects, ...scrapedProjects];
+
   return (
     <div className="min-h-screen">
       <PixelLoadingScreen mode="hero" />
@@ -167,7 +191,7 @@ export default async function V2Page() {
       <AboutSection />
       <EventsSection events={eventCards} />
       <LeaderboardSection entries={leaderboard} />
-      <ProjectsSection />
+      <ProjectsSection projects={projects} />
       <MembersSection />
     </div>
   );
