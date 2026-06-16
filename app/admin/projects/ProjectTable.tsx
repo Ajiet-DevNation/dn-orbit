@@ -101,7 +101,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       header: "COMMAND_LEAD", 
       render: (p: Project) => (
         <div className="flex flex-col">
-          <span className="text-white font-black italic">{p.leadName.toUpperCase()}</span>
+          <span className="text-white font-black">{p.leadName.toUpperCase()}</span>
           <span className="text-[9px] text-zinc-700 tracking-widest">{p.leadGithub ? `@${p.leadGithub}` : "NO_GITHUB"}</span>
         </div>
       ) 
@@ -112,7 +112,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       render: (p: Project) => (
         <div className="flex items-center gap-4">
           <div className={`px-2 py-0.5 text-[9px] font-black border ${
-            p.status === 'completed' ? 'bg-white text-black border-white' : 'bg-transparent text-zinc-500 border-zinc-800'
+            p.status === 'completed' ? 'bg-white text-black border-white' : 'bg-transparent text-zinc-500 border-white/10'
           }`}>
             {p.status.toUpperCase()}
           </div>

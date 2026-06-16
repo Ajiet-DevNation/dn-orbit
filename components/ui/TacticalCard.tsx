@@ -36,7 +36,12 @@ export const TacticalCard = ({
     }
   }, [timestamp]);
 
-  const borderStyles = variant === 'dashed' ? 'border-dashed border-white/20' : 'border-white/10';
+  const borderStyles =
+    variant === 'dashed'
+      ? 'border-dashed border-white/20'
+      : variant === 'accent'
+        ? 'border-[#22c55e]/50'
+        : 'border-white/10';
   const displayTimestamp = activeTimestamp;
 
   return (

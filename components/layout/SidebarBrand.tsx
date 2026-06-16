@@ -10,7 +10,7 @@ export function SidebarBrand({
       <div className="flex items-center gap-4">
         <div className="relative h-12 w-16 shrink-0 overflow-hidden border-2 border-[#22c55e]/30 bg-[#0a0a0a]">
           <Image
-            src="/assets/DevNationLogoFinale.png"
+            src="/assets/DNLogoTransparent.png"
             alt="DevNation logo"
             fill
             sizes="64px"

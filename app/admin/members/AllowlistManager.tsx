@@ -36,7 +36,7 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
   } | null>(null);
 
   const inputClass =
-    "bg-black border border-zinc-800 focus:border-white outline-none px-3 py-2 text-[11px] font-mono text-white placeholder:text-zinc-700 tracking-wider transition-colors";
+    "bg-black border border-white/10 focus:border-white outline-none px-3 py-2 text-[11px] font-mono text-white placeholder:text-zinc-700 tracking-wider transition-colors";
 
   const handleAdd = async () => {
     if (!githubUsername.trim() && !email.trim()) {
@@ -99,7 +99,7 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
+      <div className="flex items-center justify-between border-b border-white/10 pb-2">
         <div className="text-xl font-black uppercase tracking-tighter">
           ACCESS_ALLOWLIST
         </div>
@@ -115,7 +115,7 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
       </p>
 
       {/* Add form */}
-      <div className="flex flex-col gap-3 border border-dashed border-zinc-700 p-4 md:flex-row md:items-end">
+      <div className="flex flex-col gap-3 border border-dashed border-white/20 p-4 md:flex-row md:items-end">
         <div className="flex flex-1 flex-col gap-1">
           <label className="text-[8px] text-zinc-600 uppercase tracking-widest font-black">
             GitHub_Username
@@ -163,8 +163,8 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
       </div>
 
       {/* Entry list */}
-      <div className="border border-zinc-900">
-        <div className="grid grid-cols-[1.2fr_1.5fr_1fr_auto] gap-4 border-b border-zinc-900 bg-zinc-950/50 px-4 py-2 text-[8px] uppercase tracking-widest text-zinc-600 font-black">
+      <div className="border border-white/10">
+        <div className="grid grid-cols-[1.2fr_1.5fr_1fr_auto] gap-4 border-b border-white/10 bg-zinc-950/50 px-4 py-2 text-[8px] uppercase tracking-widest text-zinc-600 font-black">
           <span>GitHub</span>
           <span>Email</span>
           <span>Added</span>
@@ -179,7 +179,7 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
           initialEntries.map((entry) => (
             <div
               key={entry.id}
-              className="grid grid-cols-[1.2fr_1.5fr_1fr_auto] items-center gap-4 border-b border-zinc-900 px-4 py-3 text-[11px] font-mono last:border-b-0"
+              className="grid grid-cols-[1.2fr_1.5fr_1fr_auto] items-center gap-4 border-b border-white/10 px-4 py-3 text-[11px] font-mono last:border-b-0"
             >
               <span className="truncate text-white font-black">
                 {entry.githubUsername ?? "—"}

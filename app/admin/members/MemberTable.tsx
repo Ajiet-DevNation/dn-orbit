@@ -86,7 +86,7 @@ export function MemberTable({ initialMembers, currentUserId, currentUserRole }: 
         <div className={`retro px-2 py-0.5 inline-block text-[9px] border transition-all duration-300 ${
           m.role !== 'member'
             ? 'bg-[#22c55e] text-black border-[#22c55e]'
-            : 'bg-transparent text-zinc-500 border-zinc-800'
+            : 'bg-transparent text-zinc-500 border-white/10'
         }`}>
           {(ROLE_LABELS[m.role as Role] ?? m.role).toUpperCase()}
         </div>

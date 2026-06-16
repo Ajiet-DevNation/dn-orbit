@@ -1,5 +1,6 @@
 import { Press_Start_2P } from "next/font/google";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { db } from "@/lib/db";
 import { AsciiBackground } from "@/components/v2/AsciiBackground";
 import { V2Header } from "./_sections/V2Header";
@@ -56,6 +57,7 @@ export default async function V2Layout({
           userImage={session?.user?.image ?? null}
           isAuthenticated={!!session?.user}
           profile={profile}
+          isAdmin={canAccessAdmin(session?.user?.role)}
         />
         {children}
       </div>

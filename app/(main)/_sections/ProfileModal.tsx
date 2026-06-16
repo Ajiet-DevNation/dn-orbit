@@ -50,6 +50,8 @@ interface ProfileModalProps {
   onOpenChange: (open: boolean) => void;
   userImage: string | null;
   profile: ProfileData;
+  /** When true (admin-tier user), show a button into the admin panel. */
+  isAdmin?: boolean;
 }
 
 const EMPTY_PROFILE: ProfileData = {
@@ -66,6 +68,7 @@ export function ProfileModal({
   onOpenChange,
   userImage,
   profile = EMPTY_PROFILE,
+  isAdmin = false,
 }: ProfileModalProps) {
   const router = useRouter();
 
@@ -158,6 +161,18 @@ export function ProfileModal({
               >
                 EDIT PHOTO
               </Button>
+
+              {isAdmin && (
+                <Button
+                  className="text-[10px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+                  onClick={() => {
+                    onOpenChange(false);
+                    router.push("/admin");
+                  }}
+                >
+                  ADMIN
+                </Button>
+              )}
             </div>
 
             {/* ── Right: editable details ── */}

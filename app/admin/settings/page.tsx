@@ -19,7 +19,7 @@ export default function SettingsPage() {
           <Shield className="w-3 h-3 text-[#22c55e]/50" />
           <span>SYSTEM_CONFIGURATION_SECTOR</span>
         </div>
-        <h1 className="text-4xl font-black tracking-tighter text-zinc-100 italic uppercase italic">
+        <h1 className="retro text-2xl uppercase tracking-wider leading-relaxed text-white">
           SETTINGS & <span className="text-[#22c55e]">STATUS</span>
         </h1>
       </header>
@@ -29,7 +29,7 @@ export default function SettingsPage() {
           <TacticalCard title="INFRASTRUCTURE_OVERVIEW" subtitle="Current status of the platform's core infrastructure.">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
               {systemMetrics.map((metric) => (
-                <div key={metric.label} className="p-4 border border-zinc-900 bg-zinc-950/50 group hover:border-zinc-800 transition-colors">
+                <div key={metric.label} className="p-4 border border-white/10 bg-zinc-950/50 group hover:border-white/10 transition-colors">
                   <div className="flex items-center gap-3 mb-2">
                     <metric.icon className={`w-4 h-4 ${metric.color}`} />
                     <span className="text-[10px] text-zinc-500 font-bold tracking-widest">{metric.label}</span>
@@ -48,7 +48,7 @@ export default function SettingsPage() {
                 { name: "GITHUB_ID", status: "VERIFIED", hint: "Iv1.****************" },
                 { name: "GITHUB_SECRET", status: "VERIFIED", hint: "********************" },
               ].map((env) => (
-                <div key={env.name} className="flex items-center justify-between p-4 border border-zinc-900">
+                <div key={env.name} className="flex items-center justify-between p-4 border border-white/10">
                   <div className="space-y-1">
                     <div className="text-xs font-bold text-zinc-400">{env.name}</div>
                     <div className="text-[10px] text-zinc-600 font-mono tracking-tight">{env.hint}</div>
@@ -64,7 +64,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
-          <div className="p-6 border border-zinc-800 bg-zinc-900/20 space-y-4 relative overflow-hidden group">
+          <div className="p-6 border border-white/10 bg-zinc-900/20 space-y-4 relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <Shield className="w-32 h-32 text-[#22c55e]" />
             </div>
@@ -72,7 +72,7 @@ export default function SettingsPage() {
             <p className="text-sm text-zinc-400 leading-relaxed font-mono italic">
               All core protocols are operational. Security handshakes are processing normally via the GitHub OAuth gateway.
             </p>
-            <div className="pt-4 border-t border-zinc-800 flex items-center justify-between text-[10px] text-zinc-500 font-bold">
+            <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[10px] text-zinc-500 font-bold">
               <span>UPTIME_VERIFIED</span>
               <span className="text-[#22c55e]">100.0%</span>
             </div>

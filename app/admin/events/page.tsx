@@ -31,10 +31,10 @@ export default async function AdminEventsPage() {
 
   return (
     <div className="space-y-12 p-8">
-      <header className="border-b border-zinc-900 pb-12">
+      <header className="border-b border-white/10 pb-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="space-y-4">
-            <h1 className="text-8xl font-black uppercase tracking-tighter leading-none italic text-white">
+            <h1 className="retro text-2xl uppercase tracking-wider leading-relaxed text-white">
               EVENT
               <br />
               MANAGEMENT
@@ -57,7 +57,7 @@ export default async function AdminEventsPage() {
                 <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-black">
                   TOTAL
                 </span>
-                <span className="text-3xl text-white font-black italic leading-none">
+                <span className="retro text-xl text-[#22c55e] leading-none">
                   {totalEvents.toString().padStart(2, "0")}
                 </span>
               </div>
@@ -68,7 +68,7 @@ export default async function AdminEventsPage() {
                 <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-black">
                   ACTIVE
                 </span>
-                <span className="text-3xl text-white font-black italic leading-none">
+                <span className="retro text-xl text-[#22c55e] leading-none">
                   {publishedCount.toString().padStart(2, "0")}
                 </span>
               </div>
@@ -78,7 +78,7 @@ export default async function AdminEventsPage() {
       </header>
 
       <div className="space-y-6">
-        <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
+        <div className="flex items-center justify-between border-b border-white/10 pb-2">
           <div className="text-xl text-white font-black uppercase tracking-tighter">
             EVENT_DIRECTORY
           </div>

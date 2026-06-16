@@ -64,12 +64,12 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
                 step="1"
                 value={weights[item.key] * 100}
                 onChange={(e) => setWeights({ ...weights, [item.key]: parseInt(e.target.value) / 100 })}
-                className="w-full accent-white bg-zinc-900 appearance-none h-1 border border-zinc-800"
+                className="w-full accent-white bg-zinc-900 appearance-none h-1 border border-white/10"
               />
             </div>
           ))}
 
-          <div className="pt-6 border-t border-zinc-900 flex justify-between items-center">
+          <div className="pt-6 border-t border-white/10 flex justify-between items-center">
              <div className="flex flex-col">
                 <span className="text-[9px] text-zinc-600 uppercase tracking-widest font-black">TOTAL_NORMALIZATION</span>
                 <span className={`text-xl font-black ${isValid ? 'text-white' : 'text-red-500 animate-pulse'}`}>

@@ -17,8 +17,8 @@ export default async function AdminNewEventPage() {
 
   return (
     <div className="p-8 space-y-12">
-      <header className="border-b border-zinc-900 pb-12">
-        <h1 className="text-7xl md:text-9xl font-black uppercase tracking-tighter italic leading-none text-white">
+      <header className="border-b border-white/10 pb-12">
+        <h1 className="retro text-2xl uppercase tracking-wider leading-relaxed text-white">
           INJECT_EVENT
         </h1>
         <div className="flex items-center gap-4 mt-4">

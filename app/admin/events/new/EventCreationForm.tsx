@@ -68,7 +68,7 @@ export default function EventCreationForm() {
       <form onSubmit={handleSubmit} className="space-y-12">
         {/* SECTION 01 */}
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-zinc-900 pb-2">
+          <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-white/10 pb-2">
             01_IDENTIFICATION
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -82,7 +82,7 @@ export default function EventCreationForm() {
                 value={formData.title}
                 onChange={handleChange}
                 placeholder="ENTER_IDENTIFIER..."
-                className="w-full bg-black border border-zinc-800 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 placeholder:uppercase focus:outline-none focus:border-white transition-colors"
+                className="w-full bg-black border border-white/10 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 placeholder:uppercase focus:outline-none focus:border-white transition-colors"
                 disabled={isPending}
               />
             </div>
@@ -94,7 +94,7 @@ export default function EventCreationForm() {
                 name="eventType"
                 value={formData.eventType}
                 onChange={handleChange}
-                className="w-full bg-black border border-zinc-800 px-4 py-3 text-xs font-mono text-white focus:outline-none focus:border-white transition-colors appearance-none uppercase"
+                className="w-full bg-black border border-white/10 px-4 py-3 text-xs font-mono text-white focus:outline-none focus:border-white transition-colors appearance-none uppercase"
                 disabled={isPending}
               >
                 <option value="GENERAL_ASSEMBLY">GENERAL_ASSEMBLY</option>
@@ -108,7 +108,7 @@ export default function EventCreationForm() {
 
         {/* SECTION 02 */}
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-zinc-900 pb-2">
+          <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-white/10 pb-2">
             02_LOGISTICAL_PARAMETERS
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -121,7 +121,7 @@ export default function EventCreationForm() {
                 name="eventDate"
                 value={formData.eventDate}
                 onChange={handleChange}
-                className="w-full bg-black border border-zinc-800 px-4 py-3 text-xs font-mono text-white focus:outline-none focus:border-white transition-colors"
+                className="w-full bg-black border border-white/10 px-4 py-3 text-xs font-mono text-white focus:outline-none focus:border-white transition-colors"
                 disabled={isPending}
               />
             </div>
@@ -135,7 +135,7 @@ export default function EventCreationForm() {
                 value={formData.location}
                 onChange={handleChange}
                 placeholder="PHYSICAL_ROOM_OR_URL..."
-                className="w-full bg-black border border-zinc-800 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 placeholder:uppercase focus:outline-none focus:border-white transition-colors"
+                className="w-full bg-black border border-white/10 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 placeholder:uppercase focus:outline-none focus:border-white transition-colors"
                 disabled={isPending}
               />
             </div>
@@ -144,7 +144,7 @@ export default function EventCreationForm() {
 
         {/* SECTION 03 */}
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-zinc-900 pb-2">
+          <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-white/10 pb-2">
             03_MISSION_BRIEFING
           </h3>
           <div>
@@ -156,7 +156,7 @@ export default function EventCreationForm() {
               value={formData.description}
               onChange={handleChange}
               placeholder="INPUT_MISSION_PARAMETERS_AND_REQUIREMENTS..."
-              className="w-full bg-black border border-zinc-800 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 placeholder:uppercase focus:outline-none focus:border-white transition-colors min-h-[160px] resize-none"
+              className="w-full bg-black border border-white/10 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 placeholder:uppercase focus:outline-none focus:border-white transition-colors min-h-[160px] resize-none"
               disabled={isPending}
             />
           </div>
@@ -164,7 +164,7 @@ export default function EventCreationForm() {
 
         {/* SECTION 04 */}
         <div className="space-y-4">
-          <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-zinc-900 pb-2">
+          <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-white/10 pb-2">
             04_DEPLOYMENT_CONFIG
           </h3>
           <div>
@@ -175,7 +175,7 @@ export default function EventCreationForm() {
               name="isPublished"
               value={formData.isPublished}
               onChange={handleChange}
-              className="w-full bg-black border border-zinc-800 px-4 py-3 text-xs font-mono text-white focus:outline-none focus:border-white transition-colors appearance-none uppercase"
+              className="w-full bg-black border border-white/10 px-4 py-3 text-xs font-mono text-white focus:outline-none focus:border-white transition-colors appearance-none uppercase"
               disabled={isPending}
             >
               <option value="false">SAVE_AS_DRAFT (OFFLINE)</option>
@@ -184,7 +184,7 @@ export default function EventCreationForm() {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-zinc-900 flex justify-end">
+        <div className="pt-8 border-t border-white/10 flex justify-end">
           <TacticalButton variant="primary" disabled={isPending}>
             {isPending ? "INJECTING_DATA..." : "EXECUTE_CREATION"}
           </TacticalButton>
