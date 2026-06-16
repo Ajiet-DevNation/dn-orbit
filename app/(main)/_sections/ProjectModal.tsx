@@ -80,7 +80,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
       onClick={() => onOpenChange(false)}
     >
       <div
-        className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto border-4 border-white/80 bg-[#0a0a0a] p-12"
+        className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto border-4 border-white/80 bg-[#0a0a0a] p-6 sm:p-10"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-8 flex items-center justify-between">
