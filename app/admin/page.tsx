@@ -14,24 +14,29 @@ export default async function AdminDashboardPage() {
     redirect("/");
   }
 
-  // Fetch counts for dashboard
-  const totalUsers = await db.user.count();
-  // We fetch counts for other entities to show on dashboard
-  const totalProjects = await db.project.count({ where: { isApproved: true } });
-  const pendingProjects = await db.project.count({ where: { isApproved: false } });
+  // Fetch live counts for the dashboard tiles.
+  const [totalUsers, totalProjects, pendingProjects, totalEvents, totalRegistrations] =
+    await Promise.all([
+      db.user.count(),
+      db.project.count({ where: { isApproved: true } }),
+      db.project.count({ where: { isApproved: false } }),
+      db.event.count(),
+      db.registration.count(),
+    ]);
 
   const stats = [
     { label: "CONNECTED_MEMBERS", value: totalUsers, href: "/admin/members" },
     { label: "ACTIVE_PROJECTS", value: totalProjects, href: "/admin/projects" },
     { label: "PENDING_REVIEWS", value: pendingProjects, href: "/admin/projects" },
-    { label: "EVENT_SCHEDULES", value: "05", href: "/admin/events" },
+    { label: "TOTAL_EVENTS", value: totalEvents, href: "/admin/events" },
+    { label: "TOTAL_REGISTRATIONS", value: totalRegistrations, href: "/admin/events" },
   ];
 
   return (
     <div className="space-y-8 p-8">
       <PixelPageHeader title="DASHBOARD" subtitle="ORBIT_COMMAND_SYSTEM_READY" />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href}>
             <PixelStatTile label={stat.label} value={stat.value} />
