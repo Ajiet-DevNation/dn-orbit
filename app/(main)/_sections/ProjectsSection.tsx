@@ -286,7 +286,7 @@ export function ProjectsSection() {
       <div
         ref={stageRef}
         className={cn(
-          "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing will-change-transform",
+          "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
           selected !== null && "pointer-events-none opacity-0"
         )}
         style={{ transition: "opacity 300ms var(--ease-out-quart)" }}
@@ -305,7 +305,7 @@ export function ProjectsSection() {
                   onCardClick(i);
                 }
               }}
-              className="group absolute left-1/2 top-1/2 cursor-pointer will-change-transform"
+              className="group absolute left-1/2 top-1/2 cursor-pointer"
               style={{
                 width: CARD_W,
                 height: CARD_H,
@@ -336,7 +336,7 @@ export function ProjectsSection() {
 
             <div
               ref={flipRef}
-              className="shrink-0 will-change-transform"
+              className="shrink-0"
               style={{ width: CARD_W, height: CARD_H }}
             >
               <ProjectCard project={activeProject} className="h-full w-full" />

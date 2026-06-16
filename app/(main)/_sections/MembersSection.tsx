@@ -218,14 +218,14 @@ export function MembersSection() {
       {/* Coverflow stage fills the rest; cards centre within it. */}
       <div
         ref={stageRef}
-        className="relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing will-change-transform"
+        className="relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing"
         {...stageHandlers}
       >
           {MEMBERS.map((member, i) => (
             <div
               key={member.id}
               ref={registerCard(i)}
-              className="absolute left-1/2 top-1/2 will-change-transform"
+              className="absolute left-1/2 top-1/2"
               style={{
                 width: CARD_W,
                 height: CARD_H,
