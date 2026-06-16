@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
 import { MEMBERS, type MemberData } from "@/constants/members";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
+import { useScrollParallax } from "./useScrollParallax";
 
 // ─── tuning ──────────────────────────────────────────────────────────────────
-const SECTION_VH = 320; // pinned scrub region height
 const CARD_W = 392; // solitaire-card width (px)
 const CARD_H = 536; // ~5:7
 const SPREAD = 224; // horizontal centre-to-centre gap (< CARD_W → cards overlap)
@@ -192,24 +192,26 @@ export function MembersSection() {
       }),
   });
 
+  const stageRef = useRef<HTMLDivElement>(null);
+  useScrollParallax(sectionRef, stageRef, 32);
+
   return (
     <section
       ref={sectionRef}
       id="members"
-      className="relative w-full scroll-mt-24"
-      style={{ height: `${SECTION_VH}vh` }}
+      className="relative flex min-h-screen w-full flex-col overflow-hidden py-20 scroll-mt-24"
     >
-      <div className="sticky top-0 flex h-screen w-full flex-col overflow-hidden">
-        {/* Title gets its own row at the top so the cards never cover it. */}
-        <div className="shrink-0 pt-28">
-          <SectionHeading text="MEMBERS" />
-        </div>
+      {/* Title gets its own row at the top so the cards never cover it. */}
+      <div className="shrink-0 pt-28">
+        <SectionHeading text="MEMBERS" />
+      </div>
 
-        {/* Coverflow stage fills the rest; cards centre within it. */}
-        <div
-          className="relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing"
-          {...stageHandlers}
-        >
+      {/* Coverflow stage fills the rest; cards centre within it. */}
+      <div
+        ref={stageRef}
+        className="relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing will-change-transform"
+        {...stageHandlers}
+      >
           {MEMBERS.map((member, i) => (
             <div
               key={member.id}
@@ -231,7 +233,6 @@ export function MembersSection() {
             </div>
           ))}
         </div>
-      </div>
     </section>
   );
 }
