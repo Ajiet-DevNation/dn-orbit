@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessAdmin, canManageRoles, isRole } from "@/lib/roles";
+import { isApprovalStatus } from "@/lib/status";
 import { Prisma } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
@@ -16,11 +17,20 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const { id } = await params;
     const body = await req.json();
 
-    const { isVisible, role, bio } = body;
+    const { isVisible, role, bio, status } = body;
 
     const updateData: Prisma.UserUpdateInput = {};
     if (isVisible !== undefined) updateData.isVisible = Boolean(isVisible);
     if (bio !== undefined) updateData.bio = String(bio);
+
+    // Approve / reject membership — allowed for any admin tier (route is already
+    // canAccessAdmin-gated); only role-tier changes below require President.
+    if (status !== undefined) {
+      if (!isApprovalStatus(status)) {
+        return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+      }
+      updateData.status = status;
+    }
 
     if (role !== undefined) {
       // Any admin tier can toggle visibility/bio, but only the President may
