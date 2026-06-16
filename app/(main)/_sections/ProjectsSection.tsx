@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 import { PROJECTS, type ProjectData } from "@/constants/projects";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
+import { useScrollParallax } from "./useScrollParallax";
 
 // ─── tuning ──────────────────────────────────────────────────────────────────
-const SECTION_VH = 340; // pinned scrub region height
 const CARD_W = 680; // centre-card width (px)
 const CARD_H = 600; // centre-card height (px)
 const SPREAD = 400; // centre-to-centre gap (< CARD_W → cards overlap behind)
@@ -197,6 +197,9 @@ export function ProjectsSection() {
     onActivateCenter: open,
   });
 
+  const stageRef = useRef<HTMLDivElement>(null);
+  useScrollParallax(sectionRef, stageRef, 40);
+
   // FLIP: place the detail card over the clicked card, then play it to its slot.
   useLayoutEffect(() => {
     const el = flipRef.current;
@@ -262,24 +265,23 @@ export function ProjectsSection() {
     <section
       ref={sectionRef}
       id="projects"
-      className="relative w-full scroll-mt-24"
-      style={{ height: `${SECTION_VH}vh` }}
+      className="relative flex min-h-screen w-full flex-col overflow-hidden py-20 scroll-mt-24"
     >
-      <div className="sticky top-0 flex h-screen w-full flex-col overflow-hidden">
-        {/* Title gets its own row so the cards never cover it. */}
-        <div className="shrink-0 pt-28">
-          <SectionHeading text="PROJECTS" />
-        </div>
+      {/* Title gets its own row so the cards never cover it. */}
+      <div className="shrink-0 pt-28">
+        <SectionHeading text="PROJECTS" />
+      </div>
 
-        {/* Coverflow stage */}
-        <div
-          className={cn(
-            "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
-            selected !== null && "pointer-events-none opacity-0"
-          )}
-          style={{ transition: "opacity 300ms var(--ease-out-quart)" }}
-          {...stageHandlers}
-        >
+      {/* Coverflow stage */}
+      <div
+        ref={stageRef}
+        className={cn(
+          "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing will-change-transform",
+          selected !== null && "pointer-events-none opacity-0"
+        )}
+        style={{ transition: "opacity 300ms var(--ease-out-quart)" }}
+        {...stageHandlers}
+      >
           {PROJECTS.map((project, i) => (
             <div
               key={project.id}
@@ -333,7 +335,6 @@ export function ProjectsSection() {
             <ProjectDetail project={activeProject} open={detailOpen} />
           </div>
         )}
-      </div>
     </section>
   );
 }
