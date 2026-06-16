@@ -17,7 +17,9 @@ datasource db {
 // ─────────────────────────────────────────────
 
 enum Role {
-  admin
+  president
+  vice_president
+  core_member
   member
 }
 
