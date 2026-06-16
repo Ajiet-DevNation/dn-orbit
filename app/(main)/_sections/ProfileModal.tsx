@@ -124,7 +124,7 @@ export function ProfileModal({
       >
         {/* Modal card */}
         <div
-          className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto border-4 border-white/80 bg-[#0a0a0a] p-12 retro dark"
+          className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto border-4 border-white/80 bg-[#0a0a0a] p-6 md:p-12 retro dark"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="mb-12 flex items-center justify-between">
@@ -188,7 +188,7 @@ export function ProfileModal({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="grid gap-2">
                   <Label htmlFor="pm-usn" className="text-[10px]">
                     USN
@@ -211,7 +211,7 @@ export function ProfileModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="grid gap-2">
                   <Label className="text-[10px]">BRANCH</Label>
                   <Select value={branch} onValueChange={setBranch}>
