@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
         techStack: techStack ?? [],
         milestones: milestones ?? [],
         status: "planning",
-        isApproved: false,
+        reviewStatus: "pending",
         leadId: session.user.id,
         members: {
           create: {
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   try {
     const projects = await db.project.findMany({
-      where: { isApproved: true },
+      where: { reviewStatus: "approved" },
       include: {
         lead: { select: { id: true, name: true, image: true } },
         members: { select: { role: true, user: { select: { id: true, name: true } } } }

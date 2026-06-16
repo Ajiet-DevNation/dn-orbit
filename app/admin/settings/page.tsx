@@ -1,6 +1,7 @@
 import React from "react";
 import { Shield, Database, Wifi, Cpu, Activity, Server } from "lucide-react";
-import { TacticalCard } from "@/components/ui/TacticalCard";
+import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
+import { PixelPanel } from "@/components/admin/PixelPanel";
 
 export default function SettingsPage() {
   const systemMetrics = [
@@ -13,70 +14,73 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-12">
-      <header>
-        <div className="flex items-center gap-3 mb-2 text-zinc-500 font-mono text-xs tracking-widest uppercase">
-          <Shield className="w-3 h-3 text-[#22c55e]/50" />
-          <span>SYSTEM_CONFIGURATION_SECTOR</span>
-        </div>
-        <h1 className="retro text-2xl uppercase tracking-wider leading-relaxed text-white">
-          SETTINGS & <span className="text-[#22c55e]">STATUS</span>
-        </h1>
-      </header>
+    <div className="space-y-8 p-8">
+      <PixelPageHeader
+        title="SETTINGS & STATUS"
+        subtitle="SYSTEM_CONFIGURATION_SECTOR"
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        <div className="lg:col-span-2 space-y-12">
-          <TacticalCard title="INFRASTRUCTURE_OVERVIEW" subtitle="Current status of the platform's core infrastructure.">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="space-y-8 lg:col-span-2">
+          <PixelPanel title="INFRASTRUCTURE_OVERVIEW">
+            <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-2">
               {systemMetrics.map((metric) => (
-                <div key={metric.label} className="p-4 border border-white/10 bg-zinc-950/50 group hover:border-white/10 transition-colors">
+                <div
+                  key={metric.label}
+                  className="border-2 border-white/10 p-4 transition-colors hover:border-[#22c55e]/30"
+                >
                   <div className="flex items-center gap-3 mb-2">
                     <metric.icon className={`w-4 h-4 ${metric.color}`} />
-                    <span className="text-[10px] text-zinc-500 font-bold tracking-widest">{metric.label}</span>
+                    <span className="retro text-[9px] text-zinc-500 uppercase tracking-widest">
+                      {metric.label}
+                    </span>
                   </div>
-                  <div className="text-lg font-mono font-bold text-zinc-300">{metric.value}</div>
+                  <div className="retro text-[11px] text-zinc-300">{metric.value}</div>
                 </div>
               ))}
             </div>
-          </TacticalCard>
+          </PixelPanel>
 
-          <TacticalCard title="ENVIRONMENT_VERIFICATION" subtitle="Status of required system variables (Secrets Masked).">
-            <div className="space-y-4 pt-4">
+          <PixelPanel title="ENVIRONMENT_VERIFICATION">
+            <div className="space-y-3 pt-2">
               {[
                 { name: "DATABASE_URL", status: "VERIFIED", hint: "postgres://****:****@****" },
                 { name: "NEXTAUTH_SECRET", status: "VERIFIED", hint: "********************" },
                 { name: "GITHUB_ID", status: "VERIFIED", hint: "Iv1.****************" },
                 { name: "GITHUB_SECRET", status: "VERIFIED", hint: "********************" },
               ].map((env) => (
-                <div key={env.name} className="flex items-center justify-between p-4 border border-white/10">
+                <div
+                  key={env.name}
+                  className="flex items-center justify-between border-2 border-white/10 p-4"
+                >
                   <div className="space-y-1">
-                    <div className="text-xs font-bold text-zinc-400">{env.name}</div>
-                    <div className="text-[10px] text-zinc-600 font-mono tracking-tight">{env.hint}</div>
+                    <div className="retro text-[9px] text-zinc-400 uppercase tracking-widest">
+                      {env.name}
+                    </div>
+                    <div className="retro text-[8px] text-zinc-600 tracking-tight">{env.hint}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e] shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                    <span className="text-[10px] font-mono text-[#22c55e] font-bold">{env.status}</span>
+                    <span className="retro text-[9px] text-[#22c55e]">{env.status}</span>
                   </div>
                 </div>
               ))}
             </div>
-          </TacticalCard>
+          </PixelPanel>
         </div>
 
-        <div className="lg:col-span-1 space-y-6">
-          <div className="p-6 border border-white/10 bg-zinc-900/20 space-y-4 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <Shield className="w-32 h-32 text-[#22c55e]" />
+        <div className="lg:col-span-1">
+          <PixelPanel title="SYSTEM_INTEGRITY">
+            <div className="space-y-4">
+              <p className="retro text-[9px] text-zinc-400 leading-relaxed">
+                All core protocols are operational. Security handshakes are processing normally via the GitHub OAuth gateway.
+              </p>
+              <div className="border-t-2 border-white/10 pt-4 flex items-center justify-between">
+                <span className="retro text-[9px] text-zinc-500 uppercase tracking-widest">UPTIME_VERIFIED</span>
+                <span className="retro text-[9px] text-[#22c55e]">100.0%</span>
+              </div>
             </div>
-            <h3 className="text-xs font-bold tracking-widest text-[#22c55e] uppercase">SYSTEM_INTEGRITY</h3>
-            <p className="text-sm text-zinc-400 leading-relaxed font-mono italic">
-              All core protocols are operational. Security handshakes are processing normally via the GitHub OAuth gateway.
-            </p>
-            <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[10px] text-zinc-500 font-bold">
-              <span>UPTIME_VERIFIED</span>
-              <span className="text-[#22c55e]">100.0%</span>
-            </div>
-          </div>
+          </PixelPanel>
         </div>
       </div>
     </div>

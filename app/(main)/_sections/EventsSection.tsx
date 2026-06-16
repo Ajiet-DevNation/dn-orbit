@@ -1,8 +1,11 @@
 "use client";
 
+import { useRef } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/8bit-card";
 import { SectionHeading } from "./SectionHeading";
 import { PixelReveal } from "./PixelReveal";
+import { useFlipDetail } from "./useFlipDetail";
 
 // Plain, serializable shape — mapped from the DB Event in the server page so no
 // Date objects cross the client boundary.
@@ -14,10 +17,9 @@ export interface EventCardData {
   dateLabel: string; // pre-formatted, e.g. "JUL 15, 2026"
   location: string | null;
   bannerUrl: string | null;
-}
-
-interface EventsSectionProps {
-  events: EventCardData[];
+  audience: "members" | "college" | "public";
+  capacityLabel: string | null;
+  registrationClosed: boolean;
 }
 
 // First letter of the event type, shown as a big pixel glyph when a card has no
@@ -45,7 +47,8 @@ function EventCard({ data }: { data: EventCardData }) {
                 src={data.bannerUrl}
                 alt={data.title}
                 loading="lazy"
-                className="pixelated h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                draggable={false}
+                className="pixelated h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 select-none [-webkit-user-drag:none]"
               />
             ) : (
               <div className="dot-grid-bg flex h-full w-full items-center justify-center transition-transform duration-500 ease-out group-hover:scale-110">
@@ -94,9 +97,62 @@ function EmptyState() {
   );
 }
 
-export function EventsSection({ events }: EventsSectionProps) {
+function AudienceBadge({ audience }: { audience: EventCardData["audience"] }) {
+  const label = audience === "members" ? "MEMBERS" : audience === "college" ? "COLLEGE" : "OPEN";
   return (
-    <section id="events" className="w-full scroll-mt-24 px-6 py-24">
+    <span className="retro border-2 border-[#22c55e] px-2 py-1 text-[8px] text-[#22c55e]">
+      {label}
+    </span>
+  );
+}
+
+function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
+  return (
+    <div
+      className="flex w-full max-w-xl flex-col gap-6"
+      style={{
+        opacity: open ? 1 : 0,
+        transform: `translateX(${open ? 0 : 40}px)`,
+        transition:
+          "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)",
+      }}
+    >
+      <div className="flex flex-wrap items-center gap-3">
+        <AudienceBadge audience={data.audience} />
+        <h3 className="retro text-2xl text-white">{data.title}</h3>
+      </div>
+      <p className="retro text-[10px] text-[#22c55e]">
+        {[data.dateLabel, data.location].filter(Boolean).join(" · ")}
+      </p>
+      {data.description && (
+        <p className="text-sm leading-relaxed text-muted-foreground">{data.description}</p>
+      )}
+      {data.capacityLabel && (
+        <p className="retro text-[9px] text-muted-foreground">{data.capacityLabel}</p>
+      )}
+      {data.registrationClosed ? (
+        <span className="retro w-fit border-2 border-white/20 px-4 py-3 text-[9px] text-white/50">
+          REGISTRATION CLOSED
+        </span>
+      ) : (
+        <Link
+          href={`/events/${data.id}/register`}
+          className="retro inline-flex w-fit cursor-pointer items-center gap-2 border-2 border-[#22c55e] px-4 py-3 text-[9px] text-[#22c55e] transition-colors duration-200 hover:bg-[#22c55e] hover:text-[#0a0a0a]"
+        >
+          REGISTER ▸
+        </Link>
+      )}
+    </div>
+  );
+}
+
+export function EventsSection({ events }: { events: EventCardData[] }) {
+  const { selected, detailOpen, flipRef, open, close } = useFlipDetail();
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const active = events.find((e) => e.id === selected) ?? null;
+
+  return (
+    <section id="events" className="relative w-full scroll-mt-24 px-6 py-24">
       <SectionHeading text="EVENTS" />
 
       {events.length === 0 ? (
@@ -104,11 +160,40 @@ export function EventsSection({ events }: EventsSectionProps) {
       ) : (
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((event, i) => (
-            // Pixel-block dissolve as each card scrolls in (staggered).
             <PixelReveal key={event.id} delayMs={i * 70}>
-              <EventCard data={event} />
+              <div
+                ref={(el) => { cardRefs.current[event.id] = el; }}
+                role="button"
+                tabIndex={0}
+                onClick={() => open(event.id, cardRefs.current[event.id]!)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    open(event.id, cardRefs.current[event.id]!);
+                  }
+                }}
+                className="cursor-pointer"
+              >
+                <EventCard data={event} />
+              </div>
             </PixelReveal>
           ))}
+        </div>
+      )}
+
+      {active && (
+        <div className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-8 overflow-y-auto bg-[#0a0a0a] px-[6%] pt-24 lg:flex-row lg:gap-16">
+          <button
+            onClick={close}
+            aria-label="Close event details"
+            className="retro absolute right-8 top-24 z-10 cursor-pointer border-2 border-white/20 px-3 py-2 text-xs text-white/70 transition-colors duration-200 hover:border-[#22c55e] hover:text-[#22c55e]"
+          >
+            ✕
+          </button>
+          <div ref={flipRef} className="w-full max-w-sm shrink-0">
+            <EventCard data={active} />
+          </div>
+          <EventDetail data={active} open={detailOpen} />
         </div>
       )}
     </section>

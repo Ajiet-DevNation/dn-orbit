@@ -28,7 +28,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   const body = await req.json();
-  const { title, description, bannerUrl, eventType, eventDate, location, isPublished } = body;
+  const {
+    title, description, bannerUrl, eventType, eventDate, location, isPublished,
+    audience, capacity, registrationDeadline, formSchema,
+  } = body;
 
   const updated = await db.event.update({
     where: { id },
@@ -40,6 +43,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       ...(eventDate !== undefined && { eventDate: new Date(eventDate) }),
       ...(location !== undefined && { location }),
       ...(isPublished !== undefined && { isPublished }),
+      ...(audience !== undefined && { audience }),
+      ...(capacity !== undefined && { capacity }),
+      ...(registrationDeadline !== undefined && {
+        registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null,
+      }),
+      ...(formSchema !== undefined && { formSchema }),
     },
   });
 

@@ -2,74 +2,49 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/roles";
 import { redirect, notFound } from "next/navigation";
+import { parseFormSchema } from "@/lib/forms";
+import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import EventRosterClient from "./EventRosterClient";
 
-export const metadata = {
-  title: "EVENT ROSTER // ORBIT ADMIN",
-};
+export const metadata = { title: "EVENT ROSTER // ORBIT ADMIN" };
 
 export default async function AdminEventRosterPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // 1. Enforce high-level security clearance
   const session = await auth();
-  if (!canAccessAdmin(session?.user?.role)) {
-    redirect("/");
-  }
+  if (!canAccessAdmin(session?.user?.role)) redirect("/");
 
-  // 2. Await the params to resolve the dynamic ID
-  const resolvedParams = await params;
-
-  // 3. Fetch the event AND include all registrations with user data
-  const eventRaw = await db.event.findUnique({
-    where: { id: resolvedParams.id },
-    include: {
-      registrations: {
-        include: {
-          user: true, // Pulls Name and USN
-        },
-        orderBy: {
-          registeredAt: "asc", // <--- FIX: Changed from createdAt to registeredAt
-        },
-      },
-    },
+  const { id } = await params;
+  const event = await db.event.findUnique({
+    where: { id },
+    include: { registrations: { orderBy: { registeredAt: "asc" } } },
   });
+  if (!event) notFound();
 
-  if (!eventRaw) {
-    notFound();
-  }
-
-  // 4. Serialize and format data for the TacticalTable
-  const formattedRegistrations = eventRaw.registrations.map((reg) => ({
-    id: reg.id,
-    userId: reg.user.id,
-    name: reg.user.name || "UNKNOWN_OPERATIVE",
-    usn: reg.user.usn || "NO_USN_ON_FILE",
-    attended: reg.attended,
+  const formFields = parseFormSchema(event.formSchema).map((f) => ({
+    id: f.id,
+    label: f.label,
   }));
 
-  const eventIdHex = `0x${eventRaw.id.substring(0, 6).toUpperCase()}`;
+  const registrations = event.registrations.map((r) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    usn: r.usn ?? "—",
+    attended: r.attended,
+    registeredAt: r.registeredAt.toISOString(),
+    responses: (r.responses ?? {}) as Record<string, unknown>,
+  }));
 
   return (
-    <div className="p-8 space-y-12">
-      <header className="border-b border-white/10 pb-12">
-        <h1 className="retro text-2xl uppercase tracking-wider leading-relaxed text-white">
-          ROSTER
-        </h1>
-        <div className="flex items-center gap-4 mt-4">
-          <span className="text-[10px] text-zinc-600 tracking-[0.4em] uppercase font-bold">
-            EVT_ID: {eventIdHex} — {eventRaw.title}
-          </span>
-          <div className="h-px flex-1 bg-zinc-900" />
-        </div>
-      </header>
-
-      {/* Hand off the flattened data to the Client Component */}
+    <div className="space-y-8 p-8">
+      <PixelPageHeader title="EVENT ROSTER" subtitle={event.title.toUpperCase()} />
       <EventRosterClient
-        eventId={eventRaw.id}
-        registrations={formattedRegistrations}
+        eventId={event.id}
+        registrations={registrations}
+        formFields={formFields}
       />
     </div>
   );

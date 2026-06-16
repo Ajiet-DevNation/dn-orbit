@@ -51,9 +51,10 @@ export default async function V2Page() {
   // Published events feed two surfaces: the top announcement strip (first few)
   // and the full Events grid below the terminal. Fetched once, mapped twice.
   const events = await db.event.findMany({
-    where: { isPublished: true },
+    where: { reviewStatus: "approved", isPublished: true },
     orderBy: { eventDate: "asc" },
     take: 12,
+    include: { _count: { select: { registrations: true } } },
   });
 
   // Latest cached stats + leaderboard standing for the signed-in user.
@@ -80,15 +81,23 @@ export default async function V2Page() {
     meta: [formatDate(e.eventDate), e.location].filter(Boolean).join(" · "),
   }));
 
-  const eventCards: EventCardData[] = events.map((e) => ({
-    id: e.id,
-    type: (e.eventType ?? "EVENT").toUpperCase(),
-    title: e.title,
-    description: e.description,
-    dateLabel: formatEventDateLong(e.eventDate),
-    location: e.location,
-    bannerUrl: e.bannerUrl,
-  }));
+  const eventCards: EventCardData[] = events.map((e) => {
+    const deadline = e.registrationDeadline ?? e.eventDate;
+    const full = e.capacity != null && e._count.registrations >= e.capacity;
+    return {
+      id: e.id,
+      type: (e.eventType ?? "EVENT").toUpperCase(),
+      title: e.title,
+      description: e.description,
+      dateLabel: formatEventDateLong(e.eventDate),
+      location: e.location,
+      bannerUrl: e.bannerUrl,
+      audience: e.audience as EventCardData["audience"],
+      capacityLabel:
+        e.capacity != null ? `${e._count.registrations} / ${e.capacity} registered` : null,
+      registrationClosed: full || (deadline ? new Date() > deadline : false),
+    };
+  });
 
   // Public leaderboard: top 20 *visible* users by computed total score. Display
   // rank is positional (1..N) so the board reads cleanly even if a hidden user
@@ -111,7 +120,7 @@ export default async function V2Page() {
   // Member-submitted, admin-approved projects (with uploaded cover images) shown
   // in the public carousel alongside the GitHub-org scraped projects.
   const dbProjects = await db.project.findMany({
-    where: { isApproved: true },
+    where: { reviewStatus: "approved" },
     orderBy: { submittedAt: "desc" },
   });
   const PROJECT_STATUS_LABEL: Record<string, string> = {

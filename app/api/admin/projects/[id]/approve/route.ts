@@ -5,6 +5,8 @@ import { canAccessAdmin } from "@/lib/roles";
 
 type Params = { params: Promise<{ id: string }> };
 
+// Admin moderation: approve or reject a submitted project. Server-side RBAC —
+// never trusts the client; the only writable target is review_status + reviewer.
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const session = await auth();
@@ -13,21 +15,27 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     const { id } = await params;
-    const body = await req.json();
-    const { isApproved } = body;
+    const { action } = await req.json();
 
-    if (typeof isApproved !== "boolean") {
-      return NextResponse.json({ error: "isApproved must be a boolean" }, { status: 400 });
+    if (action !== "approve" && action !== "reject") {
+      return NextResponse.json(
+        { error: 'action must be "approve" or "reject"' },
+        { status: 400 },
+      );
     }
 
     const updated = await db.project.update({
       where: { id },
-      data: { isApproved },
+      data: {
+        reviewStatus: action === "approve" ? "approved" : "rejected",
+        reviewedById: session.user.id,
+        reviewedAt: new Date(),
+      },
     });
 
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("Approve Project Error:", error);
+    console.error("Review Project Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

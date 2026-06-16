@@ -52,6 +52,11 @@ function isBootstrapAdmin(githubUsername?: string | null): boolean {
   return !!u && bootstrapAdminUsernames().includes(u);
 }
 
+// How long a JWT may keep a cached role/status before the next session access
+// re-reads it from the DB. Bounds "stale role" to this window after an admin
+// changes someone's tier, without a DB hit on every request.
+const ROLE_SYNC_MS = 30_000;
+
 async function isAllowedToSignIn(
   githubUsername?: string | null,
   email?: string | null
@@ -118,6 +123,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
+  // Route NextAuth's sign-in and error screens to our 8-bit login page instead
+  // of the unstyled built-in pages. A denied sign-in (signIn callback → false)
+  // lands on /login?error=AccessDenied, which the page renders as a pixel alert.
+  pages: {
+    signIn: "/login",
+    error: "/login",
+  },
   providers: [
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
@@ -174,11 +186,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.usn = user.usn;
         token.branch = user.branch;
         token.lcUsername = user.lcUsername;
+        token.githubUsername = (user as { githubUsername?: string }).githubUsername;
         // Keep bootstrap admins elevated even if their DB row predates the env
         // var (createUser only runs once, on first sign-in).
-        if (isBootstrapAdmin((user as { githubUsername?: string }).githubUsername)) {
+        if (isBootstrapAdmin(token.githubUsername as string | undefined)) {
           token.role = "president";
           token.status = "approved";
+        }
+        token.roleSyncedAt = Date.now();
+      } else if (token.id) {
+        // Live RBAC: re-read role/status from the DB so admin changes take
+        // effect without the user re-authenticating. Throttled to at most one
+        // query per ROLE_SYNC_MS per active session; an explicit client
+        // update() bypasses the throttle for an instant self-refresh.
+        const lastSynced = (token.roleSyncedAt as number | undefined) ?? 0;
+        const force = trigger === "update";
+        if (force || Date.now() - lastSynced > ROLE_SYNC_MS) {
+          const fresh = await db.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true, status: true, githubUsername: true },
+          });
+          if (fresh) {
+            token.role = fresh.role;
+            token.status = fresh.status;
+            if (isBootstrapAdmin(fresh.githubUsername)) {
+              token.role = "president";
+              token.status = "approved";
+            }
+          }
+          token.roleSyncedAt = Date.now();
         }
       }
       if (account) {

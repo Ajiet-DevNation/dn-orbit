@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useTransition, useOptimistic, useState } from "react";
-import { TacticalTable } from "@/components/ui/TacticalTable";
-import { TacticalButton } from "@/components/ui/TacticalButton";
-import { TacticalFeedback } from "@/components/ui/TacticalFeedback";
+import React, { useTransition, useOptimistic } from "react";
+import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
+import { toast } from "@/components/ui/8bit-toast";
 import { deleteProject } from "./actions";
 import { useRouter } from "next/navigation";
+
+type ReviewStatus = "pending" | "approved" | "rejected";
 
 interface Project {
   id: string;
@@ -14,7 +15,7 @@ interface Project {
   status: string;
   progressPct: number;
   githubRepoUrl: string | null;
-  isApproved: boolean;
+  reviewStatus: ReviewStatus;
   submittedAt: Date;
   leadName: string;
   leadGithub: string | null;
@@ -26,45 +27,46 @@ interface ProjectTableProps {
 
 export function ProjectTable({ initialProjects }: ProjectTableProps) {
   const [isPending, startTransition] = useTransition();
-  const [feedback, setFeedback] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const router = useRouter();
 
   const [optimisticProjects, addOptimisticAction] = useOptimistic(
     initialProjects,
-    (state, action: { type: 'publish' | 'unpublish' | 'delete', id: string }) => {
-      if (action.type === 'publish') {
-        return state.map(p => p.id === action.id ? { ...p, isApproved: true } : p);
+    (state, action: { type: "approve" | "reject" | "delete"; id: string }) => {
+      if (action.type === "approve") {
+        return state.map((p) =>
+          p.id === action.id ? { ...p, reviewStatus: "approved" as const } : p,
+        );
       }
-      if (action.type === 'unpublish') {
-        return state.map(p => p.id === action.id ? { ...p, isApproved: false } : p);
+      if (action.type === "reject") {
+        return state.map((p) =>
+          p.id === action.id ? { ...p, reviewStatus: "rejected" as const } : p,
+        );
       }
-      if (action.type === 'delete') {
-        return state.filter(p => p.id !== action.id);
+      if (action.type === "delete") {
+        return state.filter((p) => p.id !== action.id);
       }
       return state;
     }
   );
 
-  const handlePublishToggle = async (id: string, publish: boolean) => {
+  const handleReview = async (id: string, action: "approve" | "reject") => {
     startTransition(async () => {
-      addOptimisticAction({ type: publish ? 'publish' : 'unpublish', id });
+      addOptimisticAction({ type: action, id });
       try {
         const res = await fetch(`/api/admin/projects/${id}/approve`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isApproved: publish }),
+          body: JSON.stringify({ action }),
         });
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
-        setFeedback({
-          message: publish ? "PROJECT_PUBLISHED" : "PROJECT_UNPUBLISHED",
-          type: "success",
-        });
+        toast.success(action === "approve" ? "PROJECT_APPROVED" : "PROJECT_REJECTED");
       } catch (err) {
-        setFeedback({
-          message: (publish ? "PUBLISH" : "UNPUBLISH") + "_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"),
-          type: "error"
-        });
+        toast.error(
+          action.toUpperCase() +
+            "_FAILURE: " +
+            (err instanceof Error ? err.message : "UNKNOWN")
+        );
       }
     });
   };
@@ -72,114 +74,120 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
   const handleDelete = async (id: string) => {
     if (!confirm("CONFIRM_PROJECT_DELETION? THIS ACTION IS IRREVERSIBLE.")) return;
     startTransition(async () => {
-      addOptimisticAction({ type: 'delete', id });
+      addOptimisticAction({ type: "delete", id });
       try {
         await deleteProject(id);
-        setFeedback({ message: "PROJECT_RECORD_ERASED", type: "success" });
+        toast.success("PROJECT_RECORD_ERASED");
       } catch (err) {
-        setFeedback({ 
-          message: "DELETION_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"), 
-          type: "error" 
-        });
+        toast.error(
+          "DELETION_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN")
+        );
       }
     });
   };
 
-  const columns = [
-    { 
+  const btn = "retro border-2 px-3 py-1 text-[8px] transition-colors disabled:opacity-50";
+
+  const columns: PixelColumn<Project>[] = [
+    {
       key: "title",
-      header: "PROJECT", 
-      render: (p: Project) => (
+      header: "PROJECT",
+      render: (p) => (
         <div className="flex flex-col">
           <span className="text-white font-black">{p.title}</span>
-          <span className="text-[9px] text-zinc-600 tracking-tighter uppercase line-clamp-1">{p.description || "NO_DESCRIPTION_PROVIDED"}</span>
+          <span className="text-[9px] text-zinc-600 tracking-tighter uppercase line-clamp-1">
+            {p.description || "NO_DESCRIPTION_PROVIDED"}
+          </span>
         </div>
-      ) 
+      ),
     },
-    { 
+    {
       key: "lead",
-      header: "COMMAND_LEAD", 
-      render: (p: Project) => (
+      header: "COMMAND_LEAD",
+      render: (p) => (
         <div className="flex flex-col">
           <span className="text-white font-black">{p.leadName.toUpperCase()}</span>
-          <span className="text-[9px] text-zinc-700 tracking-widest">{p.leadGithub ? `@${p.leadGithub}` : "NO_GITHUB"}</span>
+          <span className="text-[9px] text-zinc-700 tracking-widest">
+            {p.leadGithub ? `@${p.leadGithub}` : "NO_GITHUB"}
+          </span>
         </div>
-      ) 
+      ),
     },
-    { 
+    {
       key: "status",
-      header: "STATUS", 
-      render: (p: Project) => (
+      header: "STATUS",
+      render: (p) => (
         <div className="flex items-center gap-4">
-          <div className={`px-2 py-0.5 text-[9px] font-black border ${
-            p.status === 'completed' ? 'bg-white text-black border-white' : 'bg-transparent text-zinc-500 border-white/10'
-          }`}>
+          <span
+            className={`retro inline-block border-2 px-2 py-1 text-[8px] ${
+              p.status === "completed"
+                ? "border-white bg-white text-black"
+                : "border-white/10 text-zinc-500"
+            }`}
+          >
             {p.status.toUpperCase()}
-          </div>
-          <span className="text-[10px] tabular-nums text-zinc-400">{p.progressPct}%</span>
+          </span>
+          <span className="retro text-[9px] tabular-nums text-zinc-400">{p.progressPct}%</span>
         </div>
-      ) 
+      ),
     },
     {
       key: "approval",
-      header: "PUBLISHED",
-      render: (p: Project) => (
-        <div className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
-          p.isApproved ? 'bg-transparent text-[#22c55e] border-[#22c55e]/30 uppercase' : 'bg-red-900/20 text-red-500 border-red-900 uppercase italic'
-        }`}>
-          {p.isApproved ? "LIVE" : "DRAFT"}
-        </div>
-      )
+      header: "REVIEW",
+      render: (p) => (
+        <span
+          className={`retro inline-block border-2 px-2 py-1 text-[8px] uppercase ${
+            p.reviewStatus === "approved"
+              ? "border-[#22c55e]/30 text-[#22c55e]"
+              : p.reviewStatus === "rejected"
+                ? "border-red-900 bg-red-900/20 italic text-red-500"
+                : "border-amber-500/40 text-amber-400"
+          }`}
+        >
+          {p.reviewStatus}
+        </span>
+      ),
     },
     {
       key: "actions",
       header: "ACTIONS",
-      render: (p: Project) => (
-        <div className="flex justify-end gap-2 text-right">
-          {!p.isApproved ? (
-            <TacticalButton
-              variant="primary"
-              size="sm"
-              prefix=""
+      align: "right",
+      render: (p) => (
+        <div className="flex justify-end gap-2">
+          {p.reviewStatus !== "approved" && (
+            <button
+              type="button"
               disabled={isPending}
-              onClick={() => handlePublishToggle(p.id, true)}
+              onClick={() => handleReview(p.id, "approve")}
+              className={`${btn} border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black`}
             >
-              PUBLISH
-            </TacticalButton>
-          ) : (
-            <TacticalButton
-              variant="outline"
-              size="sm"
-              prefix=""
-              disabled={isPending}
-              onClick={() => handlePublishToggle(p.id, false)}
-            >
-              UNPUBLISH
-            </TacticalButton>
+              APPROVE
+            </button>
           )}
-          <TacticalButton
-            variant="danger"
-            size="sm"
-            prefix=""
+          {p.reviewStatus !== "rejected" && (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => handleReview(p.id, "reject")}
+              className={`${btn} border-red-500/40 text-red-400 hover:bg-red-500/10`}
+            >
+              REJECT
+            </button>
+          )}
+          <button
+            type="button"
             disabled={isPending}
             onClick={() => handleDelete(p.id)}
+            className={`${btn} border-red-500/40 text-red-400 hover:bg-red-500/10`}
           >
             DELETE
-          </TacticalButton>
+          </button>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   return (
-    <>
-      <TacticalTable data={optimisticProjects} columns={columns} id="PRJ_REGISTRY_V2" />
-      <TacticalFeedback 
-        key={feedback?.message || "none"}
-        message={feedback?.message || null} 
-        type={feedback?.type || "success"} 
-        onClear={() => setFeedback(null)}
-      />
-    </>
+    <PixelDataTable data={optimisticProjects} columns={columns} empty="NO PROJECTS" />
   );
 }

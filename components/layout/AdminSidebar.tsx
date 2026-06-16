@@ -12,8 +12,10 @@ import {
   Trophy,
   Rocket,
   UserCheck,
+  Inbox,
   Menu,
   X,
+  Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@/components/auth/SignOutButton";
@@ -27,6 +29,7 @@ const navItems = [
   { label: "REQUESTS", href: "/admin/requests", icon: UserCheck },
   { label: "EVENTS", href: "/admin/events", icon: Calendar },
   { label: "PROJECTS", href: "/admin/projects", icon: Rocket },
+  { label: "APPROVALS", href: "/admin/approvals", icon: Inbox },
   { label: "LEADERBOARD", href: "/admin/leaderboard", icon: Trophy },
   { label: "SETTINGS", href: "/admin/settings", icon: Settings },
 ];
@@ -74,6 +77,13 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
         </div>
 
         <nav className="flex-1 space-y-2 overflow-y-auto p-6">
+          <Link
+            href="/"
+            onClick={() => setOpen(false)}
+            className="retro mb-4 flex items-center gap-3 border-2 border-[#22c55e]/50 bg-[#22c55e]/[0.08] px-4 py-3 text-[9px] tracking-widest text-[#22c55e] transition-all hover:bg-[#22c55e] hover:text-black"
+          >
+            <Home className="h-4 w-4" /> ← EXIT TO ORBIT
+          </Link>
           {navItems.map((item) => {
             const active = pathname === item.href;
             return (

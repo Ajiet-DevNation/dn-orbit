@@ -83,7 +83,8 @@ function ProjectCard({
             src={project.imageUrl}
             alt={project.title}
             loading="lazy"
-            className="pixelated h-full w-full object-cover"
+            draggable={false}
+            className="pixelated h-full w-full object-cover select-none [-webkit-user-drag:none]"
           />
         ) : (
           <div className="dot-grid-bg relative flex h-full w-full flex-col items-center justify-center gap-7 p-8">

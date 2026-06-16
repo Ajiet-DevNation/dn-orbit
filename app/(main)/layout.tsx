@@ -59,6 +59,7 @@ export default async function V2Layout({
           userImage={session?.user?.image ?? null}
           isAuthenticated={!!session?.user}
           profile={profile}
+          role={session?.user?.role ?? null}
           isAdmin={canAccessAdmin(session?.user?.role)}
         />
         {children}

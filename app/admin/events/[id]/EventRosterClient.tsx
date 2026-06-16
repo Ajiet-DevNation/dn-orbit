@@ -2,108 +2,104 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { TacticalTable } from "@/components/ui/TacticalTable";
-import { TacticalButton } from "@/components/ui/TacticalButton";
+import { toast } from "@/components/ui/8bit-toast";
+import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
 
 interface RosterEntry {
   id: string;
-  userId: string;
   name: string;
+  email: string;
   usn: string;
   attended: boolean;
+  registeredAt: string;
+  responses: Record<string, unknown>;
 }
 
-interface EventRosterClientProps {
+interface FormFieldMeta {
+  id: string;
+  label: string;
+}
+
+export default function EventRosterClient({
+  eventId,
+  registrations,
+  formFields,
+}: {
   eventId: string;
   registrations: RosterEntry[];
-}
-
-export default function EventRosterClient({ eventId, registrations }: EventRosterClientProps) {
+  formFields: FormFieldMeta[];
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const handleToggleAttendance = (userId: string, currentStatus: boolean) => {
+  const toggle = (registrationId: string, current: boolean) => {
     startTransition(async () => {
       try {
         const res = await fetch(`/api/events/${eventId}/attendance`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          // Flip the current status and post it to the backend
-          body: JSON.stringify({ userId, attended: !currentStatus }), 
+          body: JSON.stringify({ registrationId, attended: !current }),
         });
-
         if (!res.ok) throw new Error(await res.text());
-        
-        router.refresh(); // Sync UI with the updated DB state instantly
+        router.refresh();
       } catch (err) {
-        alert("ATTENDANCE_UPDATE_FAILED // " + (err instanceof Error ? err.message : "UNKNOWN_ERROR"));
+        toast.error("Attendance update failed: " + (err instanceof Error ? err.message : "unknown"));
       }
     });
   };
 
-  const columns = [
-    { 
-      key: "operative",
-      header: "OPERATIVE", 
-      render: (r: RosterEntry) => (
-        <div className="flex flex-col">
-          <span className="text-white font-black">{r.name}</span>
-          <span className="text-[9px] text-zinc-500 tracking-widest uppercase">{r.usn}</span>
-        </div>
-      ) 
-    },
-    { 
+  const fmtValue = (v: unknown) =>
+    Array.isArray(v) ? v.join(", ") : v == null ? "—" : String(v);
+
+  const columns: PixelColumn<RosterEntry>[] = [
+    { key: "name", header: "NAME", render: (r) => <span className="text-white">{r.name}</span> },
+    { key: "email", header: "EMAIL", render: (r) => <span className="text-white/70">{r.email}</span> },
+    { key: "usn", header: "USN", render: (r) => <span className="text-white/70">{r.usn}</span> },
+    ...formFields.map((f): PixelColumn<RosterEntry> => ({
+      key: `resp_${f.id}`,
+      header: f.label.toUpperCase(),
+      render: (r) => <span className="text-white/70">{fmtValue(r.responses[f.id])}</span>,
+    })),
+    {
       key: "status",
-      header: "STATUS", 
-      render: (r: RosterEntry) => (
-        <div className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
-          r.attended 
-            ? 'bg-[#22c55e]/10 text-[#22c55e] border-[#22c55e]/30' 
-            : 'bg-transparent text-zinc-500 border-white/10'
-        }`}>
+      header: "STATUS",
+      render: (r) => (
+        <span className={`retro inline-block border-2 px-2 py-1 text-[8px] ${r.attended ? "border-[#22c55e] text-[#22c55e]" : "border-white/15 text-zinc-500"}`}>
           {r.attended ? "ATTENDED" : "ABSENT"}
-        </div>
-      ) 
+        </span>
+      ),
     },
-    { 
+    {
       key: "actions",
-      header: "ACTIONS", 
-      render: (r: RosterEntry) => (
-        <div className="flex justify-end text-right">
-          <TacticalButton 
-            variant={r.attended ? "ghost" : "outline"} 
-            size="sm" 
-            prefix=""
-            disabled={isPending}
-            onClick={() => handleToggleAttendance(r.userId, r.attended)}
-          >
-            {r.attended ? "REVOKE_STATUS" : "MARK_ATTENDED"}
-          </TacticalButton>
-        </div>
-      ) 
-    }
+      header: "ACTIONS",
+      align: "right",
+      render: (r) => (
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() => toggle(r.id, r.attended)}
+          className="retro border-2 border-white/15 px-3 py-1 text-[8px] text-white/70 transition-colors hover:border-[#22c55e] hover:text-[#22c55e] disabled:opacity-50"
+        >
+          {r.attended ? "REVOKE" : "MARK ATTENDED"}
+        </button>
+      ),
+    },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-white/10 pb-2">
-        <div className="text-xl text-white font-black uppercase tracking-tighter">PERSONNEL_ROSTER</div>
-        <div className="text-[8px] text-[#22c55e] uppercase tracking-widest font-bold">
-          TOTAL_REGISTERED: {registrations.length}
-        </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="retro text-[9px] tracking-widest text-zinc-500">
+          TOTAL REGISTERED: {registrations.length}
+        </span>
+        <a
+          href={`/api/events/${eventId}/registrations.csv`}
+          className="retro border-2 border-[#22c55e]/40 px-3 py-2 text-[8px] text-[#22c55e] transition-colors hover:bg-[#22c55e]/10"
+        >
+          ↓ EXPORT CSV
+        </a>
       </div>
-      
-      {registrations.length === 0 ? (
-        <div className="text-xs text-zinc-500 font-mono uppercase tracking-widest p-8 border border-dashed border-white/10 text-center">
-          NO_OPERATIVES_REGISTERED_YET
-        </div>
-      ) : (
-        <TacticalTable 
-          data={registrations} 
-          columns={columns} 
-          id={`ROSTER_0x${eventId.substring(0,4).toUpperCase()}`} 
-        />
-      )}
+      <PixelDataTable data={registrations} columns={columns} empty="NO REGISTRATIONS YET" />
     </div>
   );
 }
