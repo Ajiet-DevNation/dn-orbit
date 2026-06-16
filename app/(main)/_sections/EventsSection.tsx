@@ -33,7 +33,7 @@ function EventCard({ data }: { data: EventCardData }) {
           because the 8-bit Card spreads className onto both its frame and inner
           content; a transform there would double-apply and shift the pixel
           border off the content. `group` here so banner/title/chip can react. */}
-      <div className="group h-full transition-transform duration-300 ease-out will-change-transform hover:-translate-y-1.5 hover:scale-[1.02]">
+      <div className="group h-full transition-transform duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02]">
         <Card className="h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.04)] transition-[box-shadow,border-color] duration-300 group-hover:border-[#22c55e]/50 group-hover:shadow-[0_0_30px_rgba(34,197,94,0.18)]">
           {/* Banner — plain <img> (pixelated) so arbitrary admin URLs render
               without next/image remote-pattern config. Falls back to a pixel
