@@ -118,6 +118,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
+  // Route NextAuth's sign-in and error screens to our 8-bit login page instead
+  // of the unstyled built-in pages. A denied sign-in (signIn callback → false)
+  // lands on /login?error=AccessDenied, which the page renders as a pixel alert.
+  pages: {
+    signIn: "/login",
+    error: "/login",
+  },
   providers: [
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
