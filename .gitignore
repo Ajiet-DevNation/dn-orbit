@@ -53,3 +53,15 @@ next-env.d.ts
 
 /app/generated/prisma
 .github/dependabot.yml
+
+# AI assistant local dirs
+.claude/
+.codex/
+
+# editors
+.vscode/
+.idea/
+*.swp
+
+# logs
+*.log

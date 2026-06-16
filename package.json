@@ -7,6 +7,8 @@
     "build": "bunx prisma generate && bunx prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
+    "scrape:announcements": "bun run scripts/scrapeAnnouncements.ts",
+    "scrape:projects": "bun run scripts/scrapeProjects.ts",
     "test": "bun test lib",
     "test:api": "node scripts/test-api.mjs",
     "test:api:auth": "node scripts/test-api.mjs",

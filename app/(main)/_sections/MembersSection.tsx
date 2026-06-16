@@ -44,7 +44,9 @@ function MemberFront({ member }: { member: MemberData }) {
             src={member.imageUrl}
             alt={member.name}
             loading="lazy"
-            className="pixelated h-full w-full object-cover"
+            // object-top keeps faces in frame — most headshots sit in the upper
+            // portion, and the card crops to a near-square portrait window.
+            className="pixelated h-full w-full object-cover object-top"
           />
         ) : (
           <div className="dot-grid-bg flex h-full w-full items-center justify-center">
