@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { canAccessAdmin } from "@/lib/roles";
 
 // Routes that require an authenticated (club-member) session. Everything else —
 // including the landing page `/` — is public and browsable without signing in.
@@ -67,7 +68,7 @@ export async function proxy(req: NextRequest) {
     }
 
     // Admin Route Protection
-    if (path.startsWith("/admin") && role !== "admin") {
+    if (path.startsWith("/admin") && !canAccessAdmin(role)) {
       console.log(`[Proxy] Non-admin tried to access /admin`);
       return NextResponse.redirect(new URL("/", req.nextUrl));
     }
