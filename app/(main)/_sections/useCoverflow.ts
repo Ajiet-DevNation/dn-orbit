@@ -21,8 +21,6 @@ interface CoverflowOptions {
   spread: number;
   scaleStep?: number;
   opacityStep?: number;
-  scrubStart?: number;
-  scrubEnd?: number;
   /** When true, pointer/keys are ignored (e.g. a detail overlay is open). */
   disabled?: boolean;
   onActivateCenter?: (index: number, el: HTMLElement) => void;
@@ -32,10 +30,6 @@ const TAU_MS = 110;
 const MAX_DT_MS = 50;
 const DRAG_THRESHOLD = 5;
 const MAX_VISUAL_DISTANCE = 3.5;
-
-function clamp01(n: number): number {
-  return n < 0 ? 0 : n > 1 ? 1 : n;
-}
 
 // Shortest signed distance from a to b around a ring of `n` (so cards wrap and
 // both sides stay populated).
@@ -50,8 +44,6 @@ export function useCoverflow({
   spread,
   scaleStep = 0.12,
   opacityStep = 0.32,
-  scrubStart = 0.05,
-  scrubEnd = 0.9,
   disabled = false,
   onActivateCenter,
 }: CoverflowOptions) {
@@ -126,21 +118,12 @@ export function useCoverflow({
     rafRef.current = requestAnimationFrame(step);
   }, [applyCards]);
 
-  // Scroll position → base focus (continuous, 0 → count-1).
-  const scrollFocus = useCallback(() => {
-    const el = sectionRef.current;
-    if (!el) return 0;
-    const rect = el.getBoundingClientRect();
-    const scrub = rect.height - window.innerHeight;
-    const raw = scrub > 0 ? -rect.top / scrub : rect.top <= 0 ? 1 : 0;
-    return clamp01((raw - scrubStart) / (scrubEnd - scrubStart)) * (count - 1);
-  }, [scrubStart, scrubEnd, count]);
-
-  // Focus is a free float — the looping renderer wraps it.
+  // Focus is a free float driven solely by manual input (drag/keys/click) — the
+  // looping renderer wraps it. Scroll no longer drives focus (no pinning).
   const setTarget = useCallback(() => {
-    targetRef.current = scrollFocus() + manualRef.current;
+    targetRef.current = manualRef.current;
     wake();
-  }, [scrollFocus, wake]);
+  }, [wake]);
 
   // Bring a card to the centre via the shortest wrapped path.
   const centreOn = useCallback(
@@ -151,26 +134,24 @@ export function useCoverflow({
     [count, setTarget]
   );
 
-  // Scroll / resize tracking + initial layout.
+  // Initial layout + keep layout correct on resize (spread may change — Phase 4).
   useEffect(() => {
     let frame = 0;
-    const onScroll = () => {
+    const onResize = () => {
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
-        setTarget();
+        applyCards();
       });
     };
     applyCards();
     setTarget();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
+    window.addEventListener("resize", onResize, { passive: true });
     return () => {
       if (frame) cancelAnimationFrame(frame);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       runningRef.current = false;
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", onResize);
     };
   }, [applyCards, setTarget]);
 
