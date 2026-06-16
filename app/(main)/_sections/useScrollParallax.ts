@@ -3,19 +3,28 @@
 import { useEffect } from "react";
 import { viewportProgress } from "@/lib/parallax";
 
-// Subtle, non-blocking horizontal drift keyed to scroll position. Writes a
-// translateX straight to `stageRef` (imperative — no per-frame React renders,
-// matching useCoverflow). Eased in a self-stopping rAF loop so coarse wheel
-// deltas don't jump. Disabled under prefers-reduced-motion (the global CSS reset
-// flattens CSS motion; this JS motion is autonomous-ish, so we suppress it).
+// Non-blocking horizontal drift keyed to scroll position. Writes a translateX
+// straight to `stageRef` (imperative — no per-frame React renders, matching
+// useCoverflow). Eased in a self-stopping rAF loop so coarse wheel deltas don't
+// jump. Disabled under prefers-reduced-motion (the global CSS reset flattens CSS
+// motion; this JS motion is autonomous-ish, so we suppress it).
+//
+//   maxPx     peak drift each way (total travel = 2 × maxPx across the section).
+//   direction +1 → drifts right while scrolling down; -1 → drifts left.
+//   tau       easing time-constant (ms): higher = floatier/smoother.
 
-const TAU_MS = 120;
 const MAX_DT_MS = 50;
+
+interface ParallaxOptions {
+  maxPx?: number;
+  direction?: number;
+  tau?: number;
+}
 
 export function useScrollParallax(
   sectionRef: React.RefObject<HTMLElement | null>,
   stageRef: React.RefObject<HTMLElement | null>,
-  maxPx = 40
+  { maxPx = 120, direction = 1, tau = 150 }: ParallaxOptions = {}
 ): void {
   useEffect(() => {
     const reduce =
@@ -52,7 +61,7 @@ export function useScrollParallax(
           running = false;
           return;
         }
-        displayed += diff * (1 - Math.exp(-dt / TAU_MS));
+        displayed += diff * (1 - Math.exp(-dt / tau));
         apply();
         raf = requestAnimationFrame(step);
       };
@@ -64,9 +73,10 @@ export function useScrollParallax(
       const el = sectionRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      // Negate so the stage drifts the opposite way to scroll travel (reads as
-      // depth). Range -1..1 → translateX -maxPx..maxPx.
-      target = -viewportProgress(rect.top, rect.height, window.innerHeight);
+      // viewportProgress: -1 (entering bottom) → +1 (leaving top), i.e. it rises
+      // as you scroll down. `direction` picks which way the stage slides for that
+      // rise. Range -1..1 → translateX -maxPx..maxPx.
+      target = direction * viewportProgress(rect.top, rect.height, window.innerHeight);
       wake();
     };
 
@@ -84,5 +94,5 @@ export function useScrollParallax(
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [sectionRef, stageRef, maxPx]);
+  }, [sectionRef, stageRef, maxPx, direction, tau]);
 }
