@@ -3,27 +3,22 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { Card } from "@/components/ui/8bit-card";
-import { Button } from "@/components/ui/8bit-button";
 import { cn } from "@/lib/utils";
 import { type ProjectData } from "@/constants/projects";
 import { TECH_BY_NAME } from "./techStack";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
 
-// Read-only tech chip: an 8bit button carrying the same tech icon used in the
-// "new project" form (TechStackSelect), so the stack reads consistently.
+// Read-only tech chip: dark background + green pixel border + green tech icon,
+// matching the chips in the "new project" form (TechStackSelect) where the icons
+// pop against the dark fill.
 function TechChip({ name }: { name: string }) {
   const Icon = TECH_BY_NAME[name]?.Icon;
   return (
-    <Button
-      variant="secondary"
-      size="sm"
-      tabIndex={-1}
-      className="pointer-events-none h-auto gap-1.5 px-2.5 py-1.5 text-[9px]"
-    >
-      {Icon && <Icon className="size-3.5 text-[#22c55e]" />}
+    <span className="retro inline-flex items-center gap-2 border-2 border-[#22c55e] bg-[#0a0a0a] px-2.5 py-1.5 text-[9px] text-white">
+      {Icon && <Icon className="size-3.5 shrink-0 text-[#22c55e]" />}
       {name}
-    </Button>
+    </span>
   );
 }
 import { useScrollParallax } from "./useScrollParallax";
