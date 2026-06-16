@@ -1,28 +1,25 @@
 "use client";
 
-import React, { useTransition } from "react";
-import { TacticalTable } from "@/components/ui/TacticalTable";
-import { TacticalButton } from "@/components/ui/TacticalButton";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
 
-interface Event {
+interface EventRow {
   id: string;
   title: string;
   eventType: string | null;
   eventDate: Date;
   location: string | null;
   isPublished: boolean;
+  audience: string;
 }
 
-interface EventTableProps {
-  initialEvents: Event[];
-}
-
-export function EventTable({ initialEvents }: EventTableProps) {
-  const [isPending, startTransition] = useTransition();
+export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
-  const handleTogglePublish = async (id: string, current: boolean) => {
+  const togglePublish = (id: string, current: boolean) => {
     startTransition(async () => {
       try {
         const res = await fetch(`/api/events/${id}`, {
@@ -33,112 +30,64 @@ export function EventTable({ initialEvents }: EventTableProps) {
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
       } catch (err) {
-        alert(
-          "PUBLISH_FAILURE: " +
-            (err instanceof Error ? err.message : "UNKNOWN"),
-        );
+        toast.error("Publish failed: " + (err instanceof Error ? err.message : "unknown"));
       }
     });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("CONFIRM_DELETION: THIS ACTION IS IRREVERSIBLE. CONTINUE?"))
-      return;
-
+  const remove = (id: string) => {
+    if (!confirm("Delete this event? This is irreversible.")) return;
     startTransition(async () => {
       try {
-        const res = await fetch(`/api/events/${id}`, {
-          method: "DELETE",
-        });
+        const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
         if (!res.ok) throw new Error(await res.text());
+        toast.success("Event deleted");
         router.refresh();
       } catch (err) {
-        alert(
-          "DELETION_FAILURE: " +
-            (err instanceof Error ? err.message : "UNKNOWN"),
-        );
+        toast.error("Delete failed: " + (err instanceof Error ? err.message : "unknown"));
       }
     });
   };
 
-  const columns = [
+  const btn = "retro border-2 px-3 py-1 text-[8px] transition-colors disabled:opacity-50";
+
+  const columns: PixelColumn<EventRow>[] = [
     {
       key: "title",
-      header: "IDENTIFIER",
-      render: (e: Event) => (
+      header: "EVENT",
+      render: (e) => (
         <div className="flex flex-col">
-          <span className="text-white font-black">{e.title}</span>
-          <span className="text-[9px] text-zinc-600 tracking-tighter uppercase">
-            {e.eventType || "GENERAL_ASSEMBLY"}
-          </span>
+          <span className="text-white">{e.title}</span>
+          <span className="retro text-[8px] text-zinc-500">{e.eventType ?? "GENERAL_ASSEMBLY"}</span>
         </div>
       ),
     },
-    {
-      key: "eventDate",
-      header: "DATE",
-      render: (e: Event) => new Date(e.eventDate).toLocaleDateString(),
-    },
-    {
-      key: "location",
-      header: "LOCATION",
-      render: (e: Event) => e.location || "VIRTUAL",
-    },
+    { key: "date", header: "DATE", render: (e) => <span className="text-white/70">{new Date(e.eventDate).toLocaleDateString()}</span> },
+    { key: "audience", header: "AUDIENCE", render: (e) => <span className="retro text-[8px] text-[#22c55e]">{e.audience.toUpperCase()}</span> },
+    { key: "location", header: "LOCATION", render: (e) => <span className="text-white/70">{e.location || "VIRTUAL"}</span> },
     {
       key: "status",
       header: "STATUS",
-      render: (e: Event) => (
-        <div
-          className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
-            e.isPublished
-              ? "bg-white text-black border-white"
-              : "bg-transparent text-zinc-500 border-white/10 italic"
-          }`}
-        >
+      render: (e) => (
+        <span className={`retro inline-block border-2 px-2 py-1 text-[8px] ${e.isPublished ? "border-[#22c55e] text-[#22c55e]" : "border-white/15 text-zinc-500"}`}>
           {e.isPublished ? "PUBLISHED" : "DRAFT"}
-        </div>
+        </span>
       ),
     },
     {
       key: "actions",
       header: "ACTIONS",
-      render: (e: Event) => (
-        <div className="flex justify-end gap-2 text-right">
-          {/* NEW: Button routing to the roster page */}
-          <TacticalButton
-            variant="ghost"
-            size="sm"
-            prefix=""
-            onClick={() => router.push(`/admin/events/${e.id}`)}
-          >
-            MANAGE_ROSTER
-          </TacticalButton>
-
-          <TacticalButton
-            variant="outline"
-            size="sm"
-            prefix=""
-            disabled={isPending}
-            onClick={() => handleTogglePublish(e.id, e.isPublished)}
-          >
-            {e.isPublished ? "UNPUBLISH" : "DEPLOY"}
-          </TacticalButton>
-
-          <TacticalButton
-            variant="danger"
-            size="sm"
-            prefix=""
-            disabled={isPending}
-            onClick={() => handleDelete(e.id)}
-          >
-            DELETE
-          </TacticalButton>
+      align: "right",
+      render: (e) => (
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={() => router.push(`/admin/events/${e.id}`)} className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}>ROSTER</button>
+          <button type="button" onClick={() => router.push(`/admin/events/${e.id}/edit`)} className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}>EDIT</button>
+          <button type="button" disabled={isPending} onClick={() => togglePublish(e.id, e.isPublished)} className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}>{e.isPublished ? "UNPUBLISH" : "PUBLISH"}</button>
+          <button type="button" disabled={isPending} onClick={() => remove(e.id)} className={`${btn} border-red-500/40 text-red-400 hover:bg-red-500/10`}>DELETE</button>
         </div>
       ),
     },
   ];
 
-  return (
-    <TacticalTable data={initialEvents} columns={columns} id="EVE_DIR_ROOT" />
-  );
+  return <PixelDataTable data={initialEvents} columns={columns} empty="NO EVENTS" />;
 }
