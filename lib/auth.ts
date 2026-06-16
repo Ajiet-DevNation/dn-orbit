@@ -5,12 +5,13 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 import type { Adapter, AdapterUser } from "next-auth/adapters";
 import type { DefaultSession } from "next-auth";
+import type { Role } from "@/lib/roles";
 
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      role: "admin" | "member";
+      role: Role;
       usn: string | null;
       branch: string | null;
       lcUsername: string | null;
@@ -18,7 +19,7 @@ declare module "next-auth" {
     } & DefaultSession["user"];
   }
   interface User {
-    role: "admin" | "member";
+    role: Role;
     usn: string | null;
     branch: string | null;
     lcUsername: string | null;
@@ -83,7 +84,7 @@ const customAdapter: Adapter = {
         name: u.name ?? u.githubUsername ?? "Unknown",
         image: u.image,
         emailVerified: u.emailVerified,
-        role: isBootstrapAdmin(u.githubUsername) ? "admin" : "member",
+        role: isBootstrapAdmin(u.githubUsername) ? "president" : "member",
       },
     }) as unknown as AdapterUser;
   },
@@ -149,7 +150,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Keep bootstrap admins elevated even if their DB row predates the env
         // var (createUser only runs once, on first sign-in).
         if (isBootstrapAdmin((user as { githubUsername?: string }).githubUsername)) {
-          token.role = "admin";
+          token.role = "president";
         }
       }
       if (account) {
@@ -159,7 +160,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       session.user.id = token.id as string;
-      session.user.role = token.role as "admin" | "member";
+      session.user.role = token.role as Role;
       session.user.usn = token.usn as string | null;
       session.user.branch = token.branch as string | null;
       session.user.lcUsername = token.lcUsername as string | null;
