@@ -5,15 +5,26 @@ import { viewportProgress } from "@/lib/parallax";
 
 // Non-blocking horizontal drift keyed to scroll position. Writes a translateX
 // straight to `stageRef` (imperative — no per-frame React renders, matching
-// useCoverflow). Eased in a self-stopping rAF loop so coarse wheel deltas don't
-// jump. Disabled under prefers-reduced-motion (the global CSS reset flattens CSS
-// motion; this JS motion is autonomous-ish, so we suppress it).
+// useCoverflow). Disabled under prefers-reduced-motion (the global CSS reset
+// flattens CSS motion; this JS motion is autonomous-ish, so we suppress it).
+//
+// Smoothness: the loop samples the scroll position EVERY animation frame while
+// the section is on screen — not once per scroll event — so coarse wheel /
+// trackpad notches can't produce a stepped, slide-show look. It eases toward the
+// freshly-sampled target each frame, so motion stays continuous at the display's
+// refresh rate.
+//
+// Efficiency: an IntersectionObserver only runs the loop while the section is in
+// view, and the loop pauses itself once motion has settled AND scrolling has
+// stopped; a passive scroll/resize listener kicks it back to life. Nothing runs
+// when idle or off-screen.
 //
 //   maxPx     peak drift each way (total travel = 2 × maxPx across the section).
 //   direction +1 → drifts right while scrolling down; -1 → drifts left.
-//   tau       easing time-constant (ms): higher = floatier/smoother.
+//   tau       easing time-constant (ms): higher = floatier, lower = snappier.
 
-const MAX_DT_MS = 50;
+const MAX_DT_MS = 50; // clamp dt so returning from an idle tab can't leap
+const SETTLED = 0.0002;
 
 interface ParallaxOptions {
   maxPx?: number;
@@ -27,6 +38,9 @@ export function useScrollParallax(
   { maxPx = 120, direction = 1, tau = 150 }: ParallaxOptions = {}
 ): void {
   useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
     const reduce =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -35,64 +49,68 @@ export function useScrollParallax(
       return;
     }
 
-    let target = 0;
     let displayed = 0;
-    let running = false;
     let raf = 0;
     let last = 0;
-    let scrollFrame = 0;
+    let visible = false;
+    let lastScrollY = Number.NaN;
 
-    const apply = () => {
+    const frame = (now: number) => {
+      const dt = Math.min(now - last, MAX_DT_MS);
+      last = now;
+
+      const rect = section.getBoundingClientRect();
+      const target =
+        direction * viewportProgress(rect.top, rect.height, window.innerHeight);
+
+      // Frame-rate-independent exponential ease toward the per-frame target.
+      displayed += (target - displayed) * (1 - Math.exp(-dt / tau));
+
       const el = stageRef.current;
       if (el) el.style.transform = `translate3d(${displayed * maxPx}px,0,0)`;
+
+      const scrollY = window.scrollY;
+      const settled = Math.abs(target - displayed) < SETTLED;
+      const sameScroll = scrollY === lastScrollY;
+      lastScrollY = scrollY;
+
+      // Pause when there's nothing left to animate and the user isn't scrolling.
+      if (settled && sameScroll) {
+        raf = 0;
+        return;
+      }
+      raf = requestAnimationFrame(frame);
     };
 
-    const wake = () => {
-      if (running) return;
-      running = true;
+    const kick = () => {
+      if (raf || !visible) return;
       last = performance.now();
-      const step = (now: number) => {
-        const dt = Math.min(now - last, MAX_DT_MS);
-        last = now;
-        const diff = target - displayed;
-        if (Math.abs(diff) < 0.0005) {
-          displayed = target;
-          apply();
-          running = false;
-          return;
-        }
-        displayed += diff * (1 - Math.exp(-dt / tau));
-        apply();
-        raf = requestAnimationFrame(step);
-      };
-      raf = requestAnimationFrame(step);
+      lastScrollY = Number.NaN; // force at least one more evaluated frame
+      raf = requestAnimationFrame(frame);
     };
 
-    const measure = () => {
-      scrollFrame = 0;
-      const el = sectionRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      // viewportProgress: -1 (entering bottom) → +1 (leaving top), i.e. it rises
-      // as you scroll down. `direction` picks which way the stage slides for that
-      // rise. Range -1..1 → translateX -maxPx..maxPx.
-      target = direction * viewportProgress(rect.top, rect.height, window.innerHeight);
-      wake();
-    };
-
-    const onScroll = () => {
-      if (scrollFrame) return;
-      scrollFrame = requestAnimationFrame(measure);
-    };
-
-    measure();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-    return () => {
-      if (scrollFrame) cancelAnimationFrame(scrollFrame);
+    const stop = () => {
       if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      raf = 0;
+    };
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        if (visible) kick();
+        else stop();
+      },
+      { threshold: 0 }
+    );
+    io.observe(section);
+
+    window.addEventListener("scroll", kick, { passive: true });
+    window.addEventListener("resize", kick, { passive: true });
+    return () => {
+      stop();
+      io.disconnect();
+      window.removeEventListener("scroll", kick);
+      window.removeEventListener("resize", kick);
     };
   }, [sectionRef, stageRef, maxPx, direction, tau]);
 }
