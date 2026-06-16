@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { isApproved } from "@/lib/access";
 
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    if (!(await isApproved(session.user.id)))
+      return NextResponse.json({ error: "Pending approval" }, { status: 403 });
 
     const body = await req.json();
     const { title, description, githubRepoUrl, techStack, milestones } = body;

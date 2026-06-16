@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/roles";
+import { isApproved } from "@/lib/access";
 import { Prisma } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
@@ -20,9 +21,11 @@ export async function POST(req: NextRequest, { params }: Params) {
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    if (!(await isApproved(session.user.id)))
+      return NextResponse.json({ error: "Pending approval" }, { status: 403 });
 
     const { id: projectId } = await params;
-    
+
     if (!(await isAuthorized(projectId, session.user.id, session.user.role))) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

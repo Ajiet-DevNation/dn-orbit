@@ -94,7 +94,7 @@ export default async function V2Page() {
   // sits between visible ones in the global ranking. Empty until the nightly
   // recompute (or an admin trigger) has populated leaderboard_scores.
   const topScores = await db.leaderboardScore.findMany({
-    where: { user: { isVisible: true } },
+    where: { user: { isVisible: true, status: "approved" } },
     orderBy: [{ totalScore: "desc" }],
     take: 20,
     include: { user: { select: { name: true, image: true } } },

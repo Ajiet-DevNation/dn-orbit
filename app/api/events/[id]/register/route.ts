@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { isApproved } from "@/lib/access";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(_req: NextRequest, { params }: Params) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  if (!(await isApproved(session.user.id)))
+    return NextResponse.json({ error: "Pending approval" }, { status: 403 });
 
   const { id: eventId } = await params;
 
