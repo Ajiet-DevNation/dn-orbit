@@ -2,7 +2,8 @@
 // (matching the loading-screen logo) rather than a sliding bar. The cells react
 // to the parent TabsTrigger's `data-state="active"` purely via CSS (see the
 // `.pixel-tab-cell` rules in globals.css); per-cell delays are deterministic
-// (no Math.random) so SSR and client markup match.
+// (no Math.random) and rounded to whole milliseconds, so the server-rendered
+// value survives the browser's CSSOM precision rounding and hydration matches.
 
 const COLS = 18;
 const ROWS = 4;
@@ -28,7 +29,7 @@ export function PixelTabFill() {
         <span
           key={i}
           className="pixel-tab-cell"
-          style={{ transitionDelay: `${pseudoRandom(i) * SPREAD_MS}ms` }}
+          style={{ transitionDelay: `${Math.round(pseudoRandom(i) * SPREAD_MS)}ms` }}
         />
       ))}
     </span>

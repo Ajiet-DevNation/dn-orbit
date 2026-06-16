@@ -92,7 +92,7 @@ export function EventTable({ initialEvents }: EventTableProps) {
           className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
             e.isPublished
               ? "bg-white text-black border-white"
-              : "bg-transparent text-zinc-500 border-zinc-800 italic"
+              : "bg-transparent text-zinc-500 border-white/10 italic"
           }`}
         >
           {e.isPublished ? "PUBLISHED" : "DRAFT"}

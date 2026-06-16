@@ -58,8 +58,8 @@ export default function EventRosterClient({ eventId, registrations }: EventRoste
       render: (r: RosterEntry) => (
         <div className={`px-2 py-0.5 inline-block text-[9px] font-black border ${
           r.attended 
-            ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' 
-            : 'bg-transparent text-zinc-500 border-zinc-800'
+            ? 'bg-[#22c55e]/10 text-[#22c55e] border-[#22c55e]/30' 
+            : 'bg-transparent text-zinc-500 border-white/10'
         }`}>
           {r.attended ? "ATTENDED" : "ABSENT"}
         </div>
@@ -86,15 +86,15 @@ export default function EventRosterClient({ eventId, registrations }: EventRoste
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
+      <div className="flex items-center justify-between border-b border-white/10 pb-2">
         <div className="text-xl text-white font-black uppercase tracking-tighter">PERSONNEL_ROSTER</div>
-        <div className="text-[8px] text-emerald-500 uppercase tracking-widest font-bold">
+        <div className="text-[8px] text-[#22c55e] uppercase tracking-widest font-bold">
           TOTAL_REGISTERED: {registrations.length}
         </div>
       </div>
       
       {registrations.length === 0 ? (
-        <div className="text-xs text-zinc-500 font-mono uppercase tracking-widest p-8 border border-dashed border-zinc-800 text-center">
+        <div className="text-xs text-zinc-500 font-mono uppercase tracking-widest p-8 border border-dashed border-white/10 text-center">
           NO_OPERATIVES_REGISTERED_YET
         </div>
       ) : (

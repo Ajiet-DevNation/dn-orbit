@@ -17,8 +17,16 @@ datasource db {
 // ─────────────────────────────────────────────
 
 enum Role {
-  admin
+  president
+  vice_president
+  core_member
   member
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
 }
 
 enum ProjectStatus {
@@ -42,6 +50,7 @@ model User {
   image           String?   @map("avatar_url")
   emailVerified   DateTime? @map("email_verified")
   role            Role      @default(member)
+  status          ApprovalStatus @default(pending)
 
   // Onboarding fields
   lcUsername      String?  @map("lc_username")

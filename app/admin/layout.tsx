@@ -1,17 +1,7 @@
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
-import { 
-  Users, 
-  Calendar, 
-  Settings, 
-  LayoutDashboard, 
-  LogOut,
-  Trophy,
-  Rocket
-} from "lucide-react";
-import Link from "next/link";
-import { SignOutButton } from "@/components/auth/SignOutButton";
-import { SidebarBrand } from "@/components/layout/SidebarBrand";
+import { AdminSidebar } from "@/components/layout/AdminSidebar";
 
 export default async function AdminLayout({
   children,
@@ -20,61 +10,19 @@ export default async function AdminLayout({
 }) {
   const session = await auth();
 
-  if (session?.user?.role !== "admin") {
+  if (!canAccessAdmin(session?.user?.role)) {
     redirect("/");
   }
 
-  const navItems = [
-    { label: "OVERVIEW", href: "/admin", icon: LayoutDashboard },
-    { label: "MEMBERS", href: "/admin/members", icon: Users },
-    { label: "EVENTS", href: "/admin/events", icon: Calendar },
-    { label: "PROJECTS", href: "/admin/projects", icon: Rocket },
-    { label: "LEADERBOARD", href: "/admin/leaderboard", icon: Trophy },
-    { label: "SETTINGS", href: "/admin/settings", icon: Settings },
-  ];
-
   return (
-    <div className="min-h-screen bg-black text-white font-mono flex">
-      {/* Sidebar Navigation */}
-      <aside className="w-72 border-r border-zinc-900 flex flex-col sticky top-0 h-screen bg-black z-50">
-        <SidebarBrand sectorLabel="COMMAND_SEC_V4" />
+    <div className="min-h-screen bg-black text-white font-mono">
+      <AdminSidebar userName={session?.user?.name ?? null} />
 
-        <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-4 px-4 py-3 text-xs font-black tracking-widest text-zinc-500 hover:text-white hover:bg-zinc-950 transition-all border border-transparent hover:border-zinc-800 group"
-            >
-              <item.icon className="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="p-6 border-t border-zinc-900 space-y-4 bg-zinc-950/20">
-          <div className="px-4 py-2 bg-red-950/10 border border-red-900/20 rounded-sm">
-             <div className="flex items-center justify-between mb-1">
-                <span className="text-[8px] text-red-500/50 font-bold tracking-[0.2em]">ADM_SESSION</span>
-                <div className="w-1 h-1 bg-red-500 animate-pulse" />
-             </div>
-             <div className="text-[10px] text-red-500 font-black tracking-tighter truncate uppercase italic">
-                {session?.user?.name || "COMMANDER"}
-             </div>
-          </div>
-          
-          <SignOutButton className="w-full flex items-center justify-center gap-3 px-4 py-3 text-[10px] font-black tracking-[0.3em] uppercase bg-zinc-900 text-zinc-500 hover:bg-white hover:text-black transition-all border border-zinc-800 hover:border-white">
-            <LogOut className="w-3 h-3" />
-            TERMINATE
-          </SignOutButton>
-        </div>
-      </aside>
-
-      <main className="flex-1 relative bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-repeat">
+      {/* Offset for the fixed sidebar on desktop; full width on mobile. The
+          pt-14 clears the floating hamburger on small screens. */}
+      <main className="dot-grid-bg relative min-h-screen md:ml-72">
         <div className="absolute inset-0 bg-black/60 pointer-events-none" />
-        <div className="relative z-10 w-full h-full overflow-y-auto">
-          {children}
-        </div>
+        <div className="relative z-10 w-full pt-14 md:pt-0">{children}</div>
       </main>
     </div>
   );

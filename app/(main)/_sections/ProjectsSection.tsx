@@ -7,12 +7,13 @@ import { cn } from "@/lib/utils";
 import { PROJECTS, type ProjectData } from "@/constants/projects";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
+import { useScrollParallax } from "./useScrollParallax";
+import { useViewportWidth } from "./useViewportWidth";
 
-// ─── tuning ──────────────────────────────────────────────────────────────────
-const SECTION_VH = 340; // pinned scrub region height
-const CARD_W = 680; // centre-card width (px)
-const CARD_H = 600; // centre-card height (px)
-const SPREAD = 400; // centre-to-centre gap (< CARD_W → cards overlap behind)
+// ─── tuning (desktop reference; scaled to the viewport in the component) ───────
+const MAX_CARD_W = 680; // centre-card width (px) on desktop
+const CARD_RATIO = 600 / 680; // height / width
+const SPREAD_RATIO = 400 / 680; // centre-to-centre gap / width
 
 function statusColor(status: string): string {
   switch (status) {
@@ -180,6 +181,14 @@ export function ProjectsSection() {
   const [selected, setSelected] = useState<number | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
+  // Responsive sizing: cap at the desktop width, otherwise scale to the viewport
+  // so the centre card always fits a phone screen.
+  const vw = useViewportWidth();
+  const CARD_W = Math.min(MAX_CARD_W, Math.round(vw * 0.86));
+  const CARD_H = Math.round(CARD_W * CARD_RATIO);
+  const SPREAD = Math.round(CARD_W * SPREAD_RATIO);
+  const DRIFT = vw < 768 ? Math.round(vw * 0.15) : 260;
+
   // Rect of the centre card at the moment it was opened, so the *same* card can
   // fly from there into the detail view (a FLIP shared-element transition).
   const clickedRectRef = useRef<DOMRect | null>(null);
@@ -196,6 +205,10 @@ export function ProjectsSection() {
     disabled: selected !== null,
     onActivateCenter: open,
   });
+
+  const stageRef = useRef<HTMLDivElement>(null);
+  // Projects drift LEFT as you scroll down (Members mirror it, drifting right).
+  useScrollParallax(sectionRef, stageRef, { maxPx: DRIFT, direction: -1, tau: 90 });
 
   // FLIP: place the detail card over the clicked card, then play it to its slot.
   useLayoutEffect(() => {
@@ -262,24 +275,23 @@ export function ProjectsSection() {
     <section
       ref={sectionRef}
       id="projects"
-      className="relative w-full scroll-mt-24"
-      style={{ height: `${SECTION_VH}vh` }}
+      className="relative flex min-h-screen w-full flex-col overflow-hidden py-20 scroll-mt-24"
     >
-      <div className="sticky top-0 flex h-screen w-full flex-col overflow-hidden">
-        {/* Title gets its own row so the cards never cover it. */}
-        <div className="shrink-0 pt-28">
-          <SectionHeading text="PROJECTS" />
-        </div>
+      {/* Title gets its own row so the cards never cover it. */}
+      <div className="shrink-0 pt-28">
+        <SectionHeading text="PROJECTS" />
+      </div>
 
-        {/* Coverflow stage */}
-        <div
-          className={cn(
-            "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
-            selected !== null && "pointer-events-none opacity-0"
-          )}
-          style={{ transition: "opacity 300ms var(--ease-out-quart)" }}
-          {...stageHandlers}
-        >
+      {/* Coverflow stage */}
+      <div
+        ref={stageRef}
+        className={cn(
+          "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
+          selected !== null && "pointer-events-none opacity-0"
+        )}
+        style={{ transition: "opacity 300ms var(--ease-out-quart)" }}
+        {...stageHandlers}
+      >
           {PROJECTS.map((project, i) => (
             <div
               key={project.id}
@@ -293,7 +305,7 @@ export function ProjectsSection() {
                   onCardClick(i);
                 }
               }}
-              className="group absolute left-1/2 top-1/2 cursor-pointer will-change-transform"
+              className="group absolute left-1/2 top-1/2 cursor-pointer"
               style={{
                 width: CARD_W,
                 height: CARD_H,
@@ -313,7 +325,7 @@ export function ProjectsSection() {
             backdrop so it cleanly covers the title + carousel; padded down so it
             sits clear of the sticky nav and reads as centred. */}
         {activeProject && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center gap-8 bg-[#0a0a0a] px-[6%] pt-24 lg:gap-16">
+          <div className="absolute inset-0 z-20 flex flex-col lg:flex-row items-center justify-center gap-8 overflow-y-auto bg-[#0a0a0a] px-[6%] pt-24 lg:gap-16">
             <button
               onClick={close}
               aria-label="Close project details"
@@ -324,7 +336,7 @@ export function ProjectsSection() {
 
             <div
               ref={flipRef}
-              className="shrink-0 will-change-transform"
+              className="shrink-0"
               style={{ width: CARD_W, height: CARD_H }}
             >
               <ProjectCard project={activeProject} className="h-full w-full" />
@@ -333,7 +345,6 @@ export function ProjectsSection() {
             <ProjectDetail project={activeProject} open={detailOpen} />
           </div>
         )}
-      </div>
     </section>
   );
 }

@@ -10,7 +10,9 @@ import { cn } from "@/lib/utils";
 // image" feel as the loading-screen logo, run in reverse.
 //
 // Per-cell delays are derived deterministically from the cell index (no
-// Math.random), so SSR and client markup match. It's a CSS transition, which
+// Math.random) and rounded to whole milliseconds, so the server-rendered value
+// survives the browser's CSSOM precision rounding and hydration matches. It's a
+// CSS transition, which
 // the global prefers-reduced-motion reset flattens to instant — the correct,
 // accessible behaviour for a scroll reveal (the content simply appears).
 
@@ -85,7 +87,7 @@ export function PixelReveal({
                 backgroundColor: coverColor,
                 opacity: revealed ? 0 : 1,
                 transition: `opacity ${DURATION_MS}ms steps(2, end)`,
-                transitionDelay: `${delayMs + pseudoRandom(i) * SPREAD_MS}ms`,
+                transitionDelay: `${Math.round(delayMs + pseudoRandom(i) * SPREAD_MS)}ms`,
               }}
             />
           ))}

@@ -1,12 +1,13 @@
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import { TacticalCard } from "@/components/ui/TacticalCard";
 import { WeightForm } from "./WeightForm";
 
 export default async function AdminLeaderboardPage() {
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  if (!canAccessAdmin(session?.user?.role)) {
     redirect("/");
   }
 
@@ -32,10 +33,10 @@ export default async function AdminLeaderboardPage() {
 
   return (
     <div className="space-y-12 p-8">
-      <header className="border-b border-zinc-900 pb-12">
+      <header className="border-b border-white/10 pb-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div className="space-y-4">
-            <h1 className="text-8xl font-black uppercase tracking-tighter leading-none italic">
+            <h1 className="retro text-2xl uppercase tracking-wider leading-relaxed text-white">
               LEADERBOARD<br />CONFIGURATION
             </h1>
             <p className="text-xs text-zinc-600 tracking-[0.4em] uppercase font-bold">
@@ -53,14 +54,14 @@ export default async function AdminLeaderboardPage() {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <div className="text-xl font-black uppercase tracking-tighter border-b border-zinc-900 pb-2">
+          <div className="text-xl font-black uppercase tracking-tighter border-b border-white/10 pb-2">
             PREVIEW_TELEMETRY (TOP_10)
           </div>
-          <div className="border border-zinc-900 divide-y divide-zinc-900 overflow-hidden">
+          <div className="border border-white/10 divide-y divide-zinc-900 overflow-hidden">
             {scores.map((s, idx) => (
               <div key={s.id} className="p-4 flex items-center justify-between hover:bg-zinc-950 transition-all group">
                 <div className="flex items-center gap-6">
-                  <span className="text-3xl font-black italic text-zinc-800 group-hover:text-white transition-colors">
+                  <span className="retro text-xl text-zinc-700 group-hover:text-[#22c55e] transition-colors">
                     {(idx + 1).toString().padStart(2, '0')}
                   </span>
                   <div className="flex flex-col">
@@ -71,7 +72,7 @@ export default async function AdminLeaderboardPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xl font-black italic text-white tabular-nums">
+                  <div className="retro text-base text-[#22c55e] tabular-nums">
                     {s.totalScore.toFixed(2)}
                   </div>
                   <div className="text-[8px] text-zinc-700 uppercase tracking-widest font-bold">SCORE_VALUE</div>

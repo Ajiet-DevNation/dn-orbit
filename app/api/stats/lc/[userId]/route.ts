@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { db } from "@/lib/db";
 import { fetchLeetCodeStats } from "@/lib/lc-fetcher";
 
@@ -20,7 +21,7 @@ export async function GET(
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isAdmin = session.user.role === "admin";
+    const isAdmin = canAccessAdmin(session.user.role);
     const isSelf = session.user.id === userId;
 
     if (!isSelf && !isAdmin) {

@@ -1,18 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
 import { MEMBERS, type MemberData } from "@/constants/members";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
+import { useScrollParallax } from "./useScrollParallax";
+import { useViewportWidth } from "./useViewportWidth";
 
-// ─── tuning ──────────────────────────────────────────────────────────────────
-const SECTION_VH = 320; // pinned scrub region height
-const CARD_W = 392; // solitaire-card width (px)
-const CARD_H = 536; // ~5:7
-const SPREAD = 224; // horizontal centre-to-centre gap (< CARD_W → cards overlap)
+// ─── tuning (desktop reference; scaled to the viewport in the component) ───────
+const MAX_CARD_W = 392; // solitaire-card width (px) on desktop
+const CARD_RATIO = 536 / 392; // height / width (~5:7)
+const SPREAD_RATIO = 224 / 392; // centre-to-centre gap / width
 // Flip easing: smooth ease-in-out, no overshoot, so it reads as a real card turn.
 const FLIP_EASE = "transform 560ms cubic-bezier(0.4, 0.0, 0.2, 1)";
 
@@ -180,6 +181,13 @@ function MemberCard({
 export function MembersSection() {
   const [flipped, setFlipped] = useState<Set<number>>(() => new Set());
 
+  // Responsive sizing so the card fits a phone screen.
+  const vw = useViewportWidth();
+  const CARD_W = Math.min(MAX_CARD_W, Math.round(vw * 0.82));
+  const CARD_H = Math.round(CARD_W * CARD_RATIO);
+  const SPREAD = Math.round(CARD_W * SPREAD_RATIO);
+  const DRIFT = vw < 768 ? Math.round(vw * 0.15) : 260;
+
   const { sectionRef, registerCard, onCardClick, stageHandlers } = useCoverflow({
     count: MEMBERS.length,
     spread: SPREAD,
@@ -192,29 +200,32 @@ export function MembersSection() {
       }),
   });
 
+  const stageRef = useRef<HTMLDivElement>(null);
+  // Members drift RIGHT as you scroll down — mirror of the Projects section.
+  useScrollParallax(sectionRef, stageRef, { maxPx: DRIFT, direction: 1, tau: 90 });
+
   return (
     <section
       ref={sectionRef}
       id="members"
-      className="relative w-full scroll-mt-24"
-      style={{ height: `${SECTION_VH}vh` }}
+      className="relative flex min-h-screen w-full flex-col overflow-hidden py-20 scroll-mt-24"
     >
-      <div className="sticky top-0 flex h-screen w-full flex-col overflow-hidden">
-        {/* Title gets its own row at the top so the cards never cover it. */}
-        <div className="shrink-0 pt-28">
-          <SectionHeading text="MEMBERS" />
-        </div>
+      {/* Title gets its own row at the top so the cards never cover it. */}
+      <div className="shrink-0 pt-28">
+        <SectionHeading text="MEMBERS" />
+      </div>
 
-        {/* Coverflow stage fills the rest; cards centre within it. */}
-        <div
-          className="relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing"
-          {...stageHandlers}
-        >
+      {/* Coverflow stage fills the rest; cards centre within it. */}
+      <div
+        ref={stageRef}
+        className="relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing"
+        {...stageHandlers}
+      >
           {MEMBERS.map((member, i) => (
             <div
               key={member.id}
               ref={registerCard(i)}
-              className="absolute left-1/2 top-1/2 will-change-transform"
+              className="absolute left-1/2 top-1/2"
               style={{
                 width: CARD_W,
                 height: CARD_H,
@@ -231,7 +242,6 @@ export function MembersSection() {
             </div>
           ))}
         </div>
-      </div>
     </section>
   );
 }

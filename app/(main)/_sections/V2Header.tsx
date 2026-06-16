@@ -19,6 +19,7 @@ interface V2HeaderProps {
   userImage: string | null;
   isAuthenticated: boolean;
   profile: ProfileData;
+  isAdmin?: boolean;
 }
 
 const NAV_TABS = [
@@ -33,6 +34,7 @@ export function V2Header({
   userImage,
   isAuthenticated,
   profile,
+  isAdmin = false,
 }: V2HeaderProps) {
   const pathname = usePathname();
   const isLandingPage = pathname === "/";
@@ -187,6 +189,7 @@ export function V2Header({
           onOpenChange={setProfileOpen}
           userImage={userImage}
           profile={profile}
+          isAdmin={isAdmin}
         />
       )}
     </>

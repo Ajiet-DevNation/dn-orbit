@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
 
-  const isAdmin = session.user.role === "admin";
+  const isAdmin = canAccessAdmin(session.user.role);
 
   const { title, description, bannerUrl, eventType, eventDate, location, isPublished } = await req.json();
 

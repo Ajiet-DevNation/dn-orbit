@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
+import { isApproved } from "@/lib/access";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(req: NextRequest, { params }: Params) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  if (!(await isApproved(session.user.id)))
+    return NextResponse.json({ error: "Pending approval" }, { status: 403 });
 
   const { id: eventId } = await params;
   const { rating, comments } = await req.json();
@@ -43,7 +47,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 export async function GET(_req: NextRequest, { params }: Params) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-  if (session.user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!canAccessAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id: eventId } = await params;
 
