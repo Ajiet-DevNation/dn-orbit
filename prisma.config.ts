@@ -9,6 +9,10 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // CLI commands (migrate/generate/studio) use the DIRECT (non-pooled)
+    // connection — advisory locks used by `migrate` don't work through Neon's
+    // PgBouncer pooler. The runtime client (lib/db.ts) uses DATABASE_URL
+    // (pooled) independently of this config.
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });
