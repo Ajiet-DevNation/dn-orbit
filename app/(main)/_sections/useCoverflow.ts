@@ -94,7 +94,11 @@ export function useCoverflow({
   // GPU-promote the cards only while the loop is actively animating; demote at
   // rest so we don't hold a compositing layer per card while idle.
   const setCardsWillChange = useCallback((value: string) => {
-    for (const el of cardRefs.current) if (el) el.style.willChange = value;
+    const refs = cardRefs.current;
+    for (let i = 0; i < refs.length; i++) {
+      const el = refs[i];
+      if (el) el.style.willChange = value;
+    }
   }, []);
 
   const wake = useCallback(() => {
