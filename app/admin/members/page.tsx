@@ -2,7 +2,8 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
-import { TacticalCard } from "@/components/ui/TacticalCard";
+import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
+import { PixelStatTile } from "@/components/admin/PixelStatTile";
 import { MemberTable } from "./MemberTable";
 import { AllowlistManager } from "./AllowlistManager";
 
@@ -24,8 +25,8 @@ export default async function AdminMembersPage() {
         year: true,
       },
       orderBy: {
-        createdAt: "desc"
-      }
+        createdAt: "desc",
+      },
     }),
     db.allowlist.findMany({ orderBy: { createdAt: "desc" } }),
   ]);
@@ -34,42 +35,26 @@ export default async function AdminMembersPage() {
   const memberCount = users.filter((u) => u.role === "member").length;
 
   return (
-    <div className="space-y-12 p-8">
-      <header className="border-b border-white/10 pb-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-          <div className="space-y-4">
-            <h1 className="retro text-2xl uppercase tracking-wider leading-relaxed text-white">
-              MEMBER<br />DIRECTORY
-            </h1>
-            <p className="text-xs text-zinc-600 tracking-[0.4em] uppercase font-bold">
-              ORBIT_USER_REGISTRY_v4.5
-            </p>
-          </div>
-          
-          <div className="flex gap-4">
-            <TacticalCard variant="dashed" className="w-40 py-2">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-black">ADMINS</span>
-                <span className="retro text-2xl text-[#22c55e]">{adminCount.toString().padStart(2, '0')}</span>
-              </div>
-            </TacticalCard>
-            <TacticalCard variant="dashed" className="w-40 py-2">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-black">MEMBERS</span>
-                <span className="retro text-2xl text-[#22c55e]">{memberCount.toString().padStart(2, '0')}</span>
-              </div>
-            </TacticalCard>
-          </div>
-        </div>
-      </header>
+    <div className="space-y-8 p-8">
+      <PixelPageHeader
+        title="MEMBER DIRECTORY"
+        subtitle="ORBIT_USER_REGISTRY_v4.5"
+      />
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <div className="text-xl font-black uppercase tracking-tighter">MEMBER_NODES</div>
-          <div className="text-[8px] text-zinc-800 uppercase tracking-widest font-bold">STATUS: COMPLIANT</div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <PixelStatTile label="ADMINS" value={adminCount.toString().padStart(2, "0")} />
+        <PixelStatTile label="MEMBERS" value={memberCount.toString().padStart(2, "0")} />
+      </div>
+
+      <div className="space-y-4">
+        <div className="retro text-[9px] tracking-widest text-zinc-500 border-b-2 border-white/10 pb-2">
+          MEMBER_NODES
         </div>
-        
-        <MemberTable initialMembers={users} currentUserId={session?.user?.id || ""} currentUserRole={session?.user?.role || "member"} />
+        <MemberTable
+          initialMembers={users}
+          currentUserId={session?.user?.id || ""}
+          currentUserRole={session?.user?.role || "member"}
+        />
       </div>
 
       <AllowlistManager

@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { TacticalTable } from "@/components/ui/TacticalTable";
-import { TacticalButton } from "@/components/ui/TacticalButton";
-import { TacticalFeedback } from "@/components/ui/TacticalFeedback";
+import { toast } from "@/components/ui/8bit-toast";
+import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
 import { STATUS_LABELS, type ApprovalStatus } from "@/lib/status";
 
 interface Req {
@@ -20,7 +19,6 @@ interface Req {
 
 export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
   const [isPending, startTransition] = useTransition();
-  const [feedback, setFeedback] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const router = useRouter();
 
   const setStatus = (userId: string, status: ApprovalStatus) =>
@@ -33,37 +31,36 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
         });
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
-        setFeedback({ message: `MEMBER_${status.toUpperCase()}`, type: "success" });
+        toast.success(`MEMBER_${status.toUpperCase()}`);
       } catch (err) {
-        setFeedback({
-          message: "ACTION_FAILED: " + (err instanceof Error ? err.message : "UNKNOWN"),
-          type: "error",
-        });
+        toast.error("ACTION_FAILED: " + (err instanceof Error ? err.message : "UNKNOWN"));
       }
     });
 
-  const columns = [
+  const btn = "retro border-2 px-3 py-1 text-[8px] transition-colors disabled:opacity-50";
+
+  const columns: PixelColumn<Req>[] = [
     {
       key: "name",
       header: "NAME",
-      render: (r: Req) => (
+      render: (r) => (
         <div className="flex flex-col">
           <span className="text-white font-black">{r.name || "UNNAMED"}</span>
           <span className="text-[9px] text-zinc-600 tracking-tighter">{r.email}</span>
         </div>
       ),
     },
-    { key: "usn", header: "USN", render: (r: Req) => r.usn || "N_A" },
+    { key: "usn", header: "USN", render: (r) => <span className="text-white/70">{r.usn || "N_A"}</span> },
     {
       key: "branch",
       header: "BRANCH/YEAR",
-      render: (r: Req) => (r.branch ? `${r.branch} (${r.year}Y)` : "N/A"),
+      render: (r) => <span className="text-white/70">{r.branch ? `${r.branch} (${r.year}Y)` : "N/A"}</span>,
     },
-    { key: "github", header: "GITHUB", render: (r: Req) => r.githubUsername },
+    { key: "github", header: "GITHUB", render: (r) => <span className="text-white/70">{r.githubUsername}</span> },
     {
       key: "status",
       header: "STATUS",
-      render: (r: Req) => (
+      render: (r) => (
         <span
           className={`retro text-[9px] ${
             r.status === "rejected" ? "text-red-500" : "text-[#22c55e]"
@@ -76,40 +73,29 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
     {
       key: "actions",
       header: "ACTIONS",
-      render: (r: Req) => (
+      align: "right",
+      render: (r) => (
         <div className="flex justify-end gap-2">
-          <TacticalButton
-            variant="primary"
-            size="sm"
-            prefix=""
+          <button
+            type="button"
             disabled={isPending || r.status === "approved"}
             onClick={() => setStatus(r.id, "approved")}
+            className={`${btn} border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black`}
           >
             APPROVE
-          </TacticalButton>
-          <TacticalButton
-            variant="danger"
-            size="sm"
-            prefix=""
+          </button>
+          <button
+            type="button"
             disabled={isPending || r.status === "rejected"}
             onClick={() => setStatus(r.id, "rejected")}
+            className={`${btn} border-red-500/40 text-red-400 hover:bg-red-500/10`}
           >
             REJECT
-          </TacticalButton>
+          </button>
         </div>
       ),
     },
   ];
 
-  return (
-    <>
-      <TacticalTable data={initialRequests} columns={columns} id="REQ_QUEUE" />
-      <TacticalFeedback
-        key={feedback?.message || "none"}
-        message={feedback?.message || null}
-        type={feedback?.type || "success"}
-        onClear={() => setFeedback(null)}
-      />
-    </>
-  );
+  return <PixelDataTable data={initialRequests} columns={columns} empty="NO PENDING REQUESTS" />;
 }

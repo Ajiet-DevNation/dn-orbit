@@ -1,5 +1,7 @@
-import { TacticalLoading } from "@/components/ui/TacticalLoading";
-
 export default function Loading() {
-  return <TacticalLoading message="SYNCING_DATABASE_STATE" />;
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <span className="retro animate-pulse text-sm text-[#22c55e]">LOADING…</span>
+    </div>
+  );
 }

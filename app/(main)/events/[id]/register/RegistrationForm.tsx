@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/8bit-toast";
 import { Card } from "@/components/ui/8bit-card";
 import { Label } from "@/components/ui/8bit-label";
 import {

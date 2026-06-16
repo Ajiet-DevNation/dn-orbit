@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { TacticalCard } from "@/components/ui/TacticalCard";
-import { TacticalButton } from "@/components/ui/TacticalButton";
+import { toast } from "@/components/ui/8bit-toast";
 import { useRouter } from "next/navigation";
 
 interface WeightFormProps {
@@ -18,7 +17,9 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
   const [weights, setWeights] = useState(initialWeights);
   const router = useRouter();
 
-  const total = parseFloat((weights.githubWeight + weights.lcWeight + weights.eventWeight).toFixed(2));
+  const total = parseFloat(
+    (weights.githubWeight + weights.lcWeight + weights.eventWeight).toFixed(2)
+  );
   const isValid = Math.abs(total - 1.0) < 0.01;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,72 +31,85 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
         const res = await fetch("/api/admin/config/weights", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(weights)
+          body: JSON.stringify(weights),
         });
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
-        alert("WEIGHTS_COMMITTED: SYSTEM_STABLE");
+        toast.success("WEIGHTS_COMMITTED: SYSTEM_STABLE");
       } catch (err) {
-        alert("COMMIT_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        toast.error("COMMIT_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"));
       }
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-12 max-w-2xl">
-      <TacticalCard title="ALGORITHM_PARAMETERS" subtitle="SCORING_WEIGHT_MATRIX" id="CAL_0xAF42">
-        <div className="space-y-8">
-          {[
-            { label: "GITHUB_CONTRIBUTION", key: "githubWeight" as const },
-            { label: "LEETCODE_PERFORMANCE", key: "lcWeight" as const },
-            { label: "EVENT_ATTENDANCE", key: "eventWeight" as const },
-          ].map((item) => (
-            <div key={item.key} className="space-y-2 group">
-              <div className="flex justify-between items-end">
-                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-600 group-focus-within:text-white transition-colors">
-                  {item.label}
-                </label>
-                <span className="text-xs font-black text-white">{(weights[item.key] * 100).toFixed(0)}%</span>
-              </div>
-              <input 
-                type="range"
-                min="0"
-                max="100"
-                step="1"
-                value={weights[item.key] * 100}
-                onChange={(e) => setWeights({ ...weights, [item.key]: parseInt(e.target.value) / 100 })}
-                className="w-full accent-white bg-zinc-900 appearance-none h-1 border border-white/10"
-              />
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <div className="space-y-6">
+        {[
+          { label: "GITHUB_CONTRIBUTION", key: "githubWeight" as const },
+          { label: "LEETCODE_PERFORMANCE", key: "lcWeight" as const },
+          { label: "EVENT_ATTENDANCE", key: "eventWeight" as const },
+        ].map((item) => (
+          <div key={item.key} className="space-y-2">
+            <div className="flex justify-between items-end">
+              <label className="retro text-[9px] uppercase tracking-widest text-zinc-500">
+                {item.label}
+              </label>
+              <span className="retro text-[9px] text-white">
+                {(weights[item.key] * 100).toFixed(0)}%
+              </span>
             </div>
-          ))}
-
-          <div className="pt-6 border-t border-white/10 flex justify-between items-center">
-             <div className="flex flex-col">
-                <span className="text-[9px] text-zinc-600 uppercase tracking-widest font-black">TOTAL_NORMALIZATION</span>
-                <span className={`text-xl font-black ${isValid ? 'text-white' : 'text-red-500 animate-pulse'}`}>
-                   {total.toFixed(2)} / 1.00
-                </span>
-             </div>
-             {isValid ? (
-                <div className="bg-white text-black px-2 py-0.5 text-[10px] font-black uppercase">NOMINAL</div>
-             ) : (
-                <div className="bg-red-900 text-white px-2 py-0.5 text-[10px] font-black uppercase">SKEWED</div>
-             )}
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={weights[item.key] * 100}
+              onChange={(e) =>
+                setWeights({ ...weights, [item.key]: parseInt(e.target.value) / 100 })
+              }
+              className="w-full accent-[#22c55e] bg-zinc-900 appearance-none h-1 border border-white/10"
+            />
           </div>
-        </div>
-      </TacticalCard>
+        ))}
 
-      <div className="pt-6 space-y-4">
-        <TacticalButton 
-          type="submit" 
+        <div className="border-t-2 border-white/10 pt-4 flex justify-between items-center">
+          <div className="flex flex-col gap-1">
+            <span className="retro text-[8px] text-zinc-600 uppercase tracking-widest">
+              TOTAL_NORMALIZATION
+            </span>
+            <span
+              className={`retro text-lg ${
+                isValid ? "text-white" : "animate-pulse text-red-500"
+              }`}
+            >
+              {total.toFixed(2)} / 1.00
+            </span>
+          </div>
+          <span
+            className={`retro border-2 px-2 py-1 text-[9px] uppercase ${
+              isValid
+                ? "border-[#22c55e] text-[#22c55e]"
+                : "border-red-500/40 text-red-400"
+            }`}
+          >
+            {isValid ? "NOMINAL" : "SKEWED"}
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <button
+          type="submit"
           disabled={isPending || !isValid}
-          size="lg" 
-          className="w-full py-6"
+          className="retro w-full border-2 border-[#22c55e] px-4 py-3 text-[9px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black disabled:opacity-50"
         >
           {isPending ? "COMMITTING_ALGORITHM..." : "COMMIT_WEIGHT_MATRIX"}
-        </TacticalButton>
-        <p className="text-[8px] text-zinc-600 text-center uppercase tracking-widest leading-relaxed">
-           CAUTION: MODIFYING THESE PARAMETERS WILL TRIGGER A PROJECT-WIDE RECALCULATION<br />OF ALL LEADERBOARD NODES IN THE NEXT CRON_CYCLE.
+        </button>
+        <p className="retro text-[8px] text-zinc-600 text-center uppercase tracking-widest leading-relaxed">
+          CAUTION: MODIFYING THESE PARAMETERS WILL TRIGGER A PROJECT-WIDE RECALCULATION
+          <br />
+          OF ALL LEADERBOARD NODES IN THE NEXT CRON_CYCLE.
         </p>
       </div>
     </form>
