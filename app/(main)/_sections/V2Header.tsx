@@ -19,6 +19,7 @@ interface V2HeaderProps {
   userImage: string | null;
   isAuthenticated: boolean;
   profile: ProfileData;
+  role?: string | null;
   isAdmin?: boolean;
 }
 
@@ -34,6 +35,7 @@ export function V2Header({
   userImage,
   isAuthenticated,
   profile,
+  role = null,
   isAdmin = false,
 }: V2HeaderProps) {
   const pathname = usePathname();
@@ -189,6 +191,7 @@ export function V2Header({
           onOpenChange={setProfileOpen}
           userImage={userImage}
           profile={profile}
+          role={role}
           isAdmin={isAdmin}
         />
       )}

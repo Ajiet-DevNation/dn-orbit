@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { signOut } from "next-auth/react";
 
 import { updateProfile } from "@/app/actions/profile";
+import { ROLE_LABELS, isRole } from "@/lib/roles";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/8bit-avatar";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
@@ -50,6 +51,8 @@ interface ProfileModalProps {
   onOpenChange: (open: boolean) => void;
   userImage: string | null;
   profile: ProfileData;
+  /** RBAC tier (e.g. "president", "member"); shown as an 8-bit badge. */
+  role?: string | null;
   /** When true (admin-tier user), show a button into the admin panel. */
   isAdmin?: boolean;
 }
@@ -68,9 +71,12 @@ export function ProfileModal({
   onOpenChange,
   userImage,
   profile = EMPTY_PROFILE,
+  role = null,
   isAdmin = false,
 }: ProfileModalProps) {
   const router = useRouter();
+
+  const roleLabel = isRole(role) ? ROLE_LABELS[role] : null;
 
   const [name, setName] = useState(profile.name);
   const [usn, setUsn] = useState(profile.usn);
@@ -154,6 +160,18 @@ export function ProfileModal({
                   <AvatarFallback>{initials}</AvatarFallback>
                 )}
               </Avatar>
+
+              {roleLabel && (
+                <span
+                  className={`retro inline-block border-2 px-3 py-1.5 text-[9px] tracking-widest uppercase ${
+                    isAdmin
+                      ? "border-[#22c55e] bg-[#22c55e]/[0.08] text-[#22c55e]"
+                      : "border-white/25 bg-white/[0.04] text-zinc-300"
+                  }`}
+                >
+                  {roleLabel}
+                </span>
+              )}
 
               <Button
                 className="text-[10px]"
