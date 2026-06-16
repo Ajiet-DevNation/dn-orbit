@@ -30,8 +30,8 @@ export default async function AdminMembersPage() {
     db.allowlist.findMany({ orderBy: { createdAt: "desc" } }),
   ]);
 
-  const adminCount = users.filter(u => u.role === "admin").length;
-  const memberCount = users.filter(u => u.role === "member").length;
+  const adminCount = users.filter((u) => canAccessAdmin(u.role)).length;
+  const memberCount = users.filter((u) => u.role === "member").length;
 
   return (
     <div className="space-y-12 p-8">
@@ -69,7 +69,7 @@ export default async function AdminMembersPage() {
           <div className="text-[8px] text-zinc-800 uppercase tracking-widest font-bold">STATUS: COMPLIANT</div>
         </div>
         
-        <MemberTable initialMembers={users} currentUserId={session?.user?.id || ""} />
+        <MemberTable initialMembers={users} currentUserId={session?.user?.id || ""} currentUserRole={session?.user?.role || "member"} />
       </div>
 
       <AllowlistManager
