@@ -4,11 +4,13 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TacticalCard } from "@/components/ui/TacticalCard";
 import { TacticalButton } from "@/components/ui/TacticalButton";
+import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 
 export default function EventCreationForm() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  const [bannerUrl, setBannerUrl] = useState("");
   const [formData, setFormData] = useState({
     title: "",
     eventType: "GENERAL_ASSEMBLY",
@@ -43,6 +45,7 @@ export default function EventCreationForm() {
             title: formData.title,
             eventType: formData.eventType,
             description: formData.description,
+            bannerUrl: bannerUrl || null,
             eventDate: new Date(formData.eventDate).toISOString(),
             location: formData.location,
             isPublished: formData.isPublished === "true",
@@ -165,7 +168,25 @@ export default function EventCreationForm() {
         {/* SECTION 04 */}
         <div className="space-y-4">
           <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-white/10 pb-2">
-            04_DEPLOYMENT_CONFIG
+            04_VISUAL_BANNER
+          </h3>
+          <div>
+            <label className="text-[9px] font-black tracking-widest uppercase text-zinc-500 block mb-2">
+              BANNER_IMAGE (16:9)
+            </label>
+            <ImageCropUpload
+              aspect={16 / 9}
+              kind="event"
+              value={bannerUrl}
+              onChange={setBannerUrl}
+            />
+          </div>
+        </div>
+
+        {/* SECTION 05 */}
+        <div className="space-y-4">
+          <h3 className="text-[10px] font-black tracking-widest uppercase text-zinc-500 border-b border-white/10 pb-2">
+            05_DEPLOYMENT_CONFIG
           </h3>
           <div>
             <label className="text-[9px] font-black tracking-widest uppercase text-zinc-500 block mb-2">

@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
@@ -205,14 +206,12 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="ev-banner" className="text-[10px]">
-              BANNER URL
-            </Label>
-            <Input
-              id="ev-banner"
+            <Label className="text-[10px]">BANNER (16:9)</Label>
+            <ImageCropUpload
+              aspect={16 / 9}
+              kind="event"
               value={bannerUrl}
-              onChange={(e) => setBannerUrl(e.target.value)}
-              placeholder="https://…  (optional)"
+              onChange={setBannerUrl}
             />
           </div>
 

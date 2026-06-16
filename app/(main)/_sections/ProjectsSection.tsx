@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { Card } from "@/components/ui/8bit-card";
 import { cn } from "@/lib/utils";
-import { PROJECTS, type ProjectData } from "@/constants/projects";
+import { type ProjectData } from "@/constants/projects";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
 import { useScrollParallax } from "./useScrollParallax";
@@ -177,7 +177,7 @@ function ProjectDetail({
   );
 }
 
-export function ProjectsSection() {
+export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
   const [selected, setSelected] = useState<number | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -200,7 +200,7 @@ export function ProjectsSection() {
   };
 
   const { sectionRef, registerCard, onCardClick, stageHandlers } = useCoverflow({
-    count: PROJECTS.length,
+    count: projects.length,
     spread: SPREAD,
     disabled: selected !== null,
     onActivateCenter: open,
@@ -269,7 +269,7 @@ export function ProjectsSection() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selected]);
 
-  const activeProject = selected !== null ? PROJECTS[selected] : null;
+  const activeProject = selected !== null ? projects[selected] : null;
 
   return (
     <section
@@ -279,7 +279,7 @@ export function ProjectsSection() {
     >
       {/* Title gets its own row so the cards never cover it. */}
       <div className="shrink-0 pt-28">
-        <SectionHeading text="PROJECTS" />
+        <SectionHeading text="projects" />
       </div>
 
       {/* Coverflow stage */}
@@ -292,7 +292,7 @@ export function ProjectsSection() {
         style={{ transition: "opacity 300ms var(--ease-out-quart)" }}
         {...stageHandlers}
       >
-          {PROJECTS.map((project, i) => (
+          {projects.map((project, i) => (
             <div
               key={project.id}
               ref={registerCard(i)}

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { TechStackSelect } from "./TechStackSelect";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
@@ -25,6 +26,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [githubRepoUrl, setGithubRepoUrl] = useState("");
   const [techStack, setTechStack] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -32,6 +34,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
   function reset() {
     setTitle("");
     setDescription("");
+    setImageUrl("");
     setGithubRepoUrl("");
     setTechStack([]);
   }
@@ -49,6 +52,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
         body: JSON.stringify({
           title: title.trim(),
           description: description || null,
+          imageUrl: imageUrl || null,
           githubRepoUrl: githubRepoUrl || null,
           techStack,
           milestones: [],
@@ -128,6 +132,16 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
                 aria-hidden="true"
               />
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label className="text-[10px]">COVER IMAGE (5:4)</Label>
+            <ImageCropUpload
+              aspect={5 / 4}
+              kind="project"
+              value={imageUrl}
+              onChange={setImageUrl}
+            />
           </div>
 
           <div className="grid gap-4">
