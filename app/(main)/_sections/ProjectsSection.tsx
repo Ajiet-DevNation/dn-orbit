@@ -3,10 +3,29 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { Card } from "@/components/ui/8bit-card";
+import { Button } from "@/components/ui/8bit-button";
 import { cn } from "@/lib/utils";
 import { type ProjectData } from "@/constants/projects";
+import { TECH_BY_NAME } from "./techStack";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
+
+// Read-only tech chip: an 8bit button carrying the same tech icon used in the
+// "new project" form (TechStackSelect), so the stack reads consistently.
+function TechChip({ name }: { name: string }) {
+  const Icon = TECH_BY_NAME[name]?.Icon;
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      tabIndex={-1}
+      className="pointer-events-none h-auto gap-1.5 px-2.5 py-1.5 text-[9px]"
+    >
+      {Icon && <Icon className="size-3.5 text-[#22c55e]" />}
+      {name}
+    </Button>
+  );
+}
 import { useScrollParallax } from "./useScrollParallax";
 import { useViewportWidth } from "./useViewportWidth";
 
@@ -93,14 +112,9 @@ function ProjectCard({
 
             {/* Tech stack chips — the glanceable substance that fills the card. */}
             {project.techStack.length > 0 && (
-              <div className="z-10 flex max-w-[85%] flex-wrap justify-center gap-2">
+              <div className="z-10 flex max-w-[85%] flex-wrap justify-center gap-3">
                 {project.techStack.map((tech) => (
-                  <span
-                    key={tech}
-                    className="retro border-2 border-white/15 px-2.5 py-1.5 text-[8px] text-white/70"
-                  >
-                    {tech}
-                  </span>
+                  <TechChip key={tech} name={tech} />
                 ))}
               </div>
             )}
@@ -150,14 +164,9 @@ function ProjectDetail({
         <span className="retro text-[10px] tracking-wider text-[#22c55e]">
           TECH STACK
         </span>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           {project.techStack.map((tech) => (
-            <span
-              key={tech}
-              className="retro border-2 border-white/15 px-2.5 py-1.5 text-[8px] text-white/80"
-            >
-              {tech}
-            </span>
+            <TechChip key={tech} name={tech} />
           ))}
         </div>
       </div>
@@ -329,9 +338,9 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
             <button
               onClick={close}
               aria-label="Close project details"
-              className="retro absolute right-8 top-24 z-10 cursor-pointer border-2 border-white/20 px-3 py-2 text-xs text-white/70 transition-colors duration-200 hover:border-[#22c55e] hover:text-[#22c55e]"
+              className="retro absolute right-8 top-24 z-10 cursor-pointer text-lg text-muted-foreground transition-colors duration-200 hover:text-white"
             >
-              ✕
+              X
             </button>
 
             <div

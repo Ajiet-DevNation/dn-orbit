@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/8bit-button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/8bit-input";
+import { Label } from "@/components/ui/8bit-label";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { TechStackSelect } from "./TechStackSelect";
@@ -96,7 +96,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
           </button>
         </div>
 
-        <p className="mb-8 border-2 border-[#22c55e]/40 p-3 text-sm leading-relaxed text-muted-foreground">
+        <p className="retro mb-8 border-2 border-[#22c55e]/40 p-3 text-[10px] leading-relaxed text-muted-foreground">
           Heads up — your project goes to an admin for review before it&apos;s
           listed.
         </p>
