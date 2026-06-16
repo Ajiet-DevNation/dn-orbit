@@ -45,7 +45,10 @@ export function useScrollParallax(
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduce) {
-      if (stageRef.current) stageRef.current.style.transform = "";
+      if (stageRef.current) {
+        stageRef.current.style.transform = "";
+        stageRef.current.style.willChange = "";
+      }
       return;
     }
 
@@ -74,9 +77,11 @@ export function useScrollParallax(
       const sameScroll = scrollY === lastScrollY;
       lastScrollY = scrollY;
 
-      // Pause when there's nothing left to animate and the user isn't scrolling.
+      // Pause when there's nothing left to animate and the user isn't scrolling,
+      // and demote the layer so it isn't held on the GPU while idle.
       if (settled && sameScroll) {
         raf = 0;
+        if (el) el.style.willChange = "";
         return;
       }
       raf = requestAnimationFrame(frame);
@@ -86,6 +91,8 @@ export function useScrollParallax(
       if (raf || !visible) return;
       last = performance.now();
       lastScrollY = Number.NaN; // force at least one more evaluated frame
+      // Promote only while actively drifting.
+      if (stageRef.current) stageRef.current.style.willChange = "transform";
       raf = requestAnimationFrame(frame);
     };
 
@@ -109,6 +116,7 @@ export function useScrollParallax(
     return () => {
       stop();
       io.disconnect();
+      if (stageRef.current) stageRef.current.style.willChange = "";
       window.removeEventListener("scroll", kick);
       window.removeEventListener("resize", kick);
     };
