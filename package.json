@@ -7,6 +7,7 @@
     "build": "bunx prisma generate && bunx prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "bun test lib",
     "test:api": "node scripts/test-api.mjs",
     "test:api:auth": "node scripts/test-api.mjs",
     "test:api:base": "node scripts/test-api.mjs --base-url=http://localhost:3000"

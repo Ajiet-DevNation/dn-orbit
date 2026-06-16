@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Bebas_Neue,
   IBM_Plex_Mono,
@@ -45,10 +45,66 @@ const pressStart = Press_Start_2P({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dn-orbit.vercel.app";
+const SITE_DESCRIPTION =
+  "ORBIT is the platform for DevNation — the student developer community at A J Institute of Engineering & Technology (AJIET), Mangaluru. Track the live leaderboard, explore club events and projects, and meet the members.";
+
 export const metadata: Metadata = {
-  title: "ORBIT — DevNation",
-  description:
-    "Terminal interface for the DevNation collective. Access encrypted project logs, member databases, and upcoming tactical events.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "ORBIT — DevNation",
+    template: "%s — ORBIT",
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: "ORBIT",
+  keywords: [
+    "DevNation",
+    "AJIET",
+    "ORBIT",
+    "student developer community",
+    "coding club",
+    "leaderboard",
+    "LeetCode",
+    "GitHub",
+    "hackathons",
+    "Mangaluru",
+  ],
+  authors: [{ name: "DevNation" }],
+  creator: "DevNation",
+  publisher: "DevNation",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "ORBIT — DevNation",
+    title: "ORBIT — DevNation",
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    images: [
+      {
+        url: "/assets/DNLogoTransparent.png",
+        width: 512,
+        height: 512,
+        alt: "DevNation ORBIT",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "ORBIT — DevNation",
+    description: SITE_DESCRIPTION,
+    images: ["/assets/DNLogoTransparent.png"],
+  },
+  icons: { icon: "/favicon.ico" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0a",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({

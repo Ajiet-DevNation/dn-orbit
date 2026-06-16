@@ -1,0 +1,305 @@
+"use client";
+
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { FaGithub } from "react-icons/fa";
+import { Card } from "@/components/ui/8bit-card";
+import { cn } from "@/lib/utils";
+import { PROJECTS, type ProjectData } from "@/constants/projects";
+import { SectionHeading } from "./SectionHeading";
+import { useCoverflow } from "./useCoverflow";
+
+// ─── tuning ──────────────────────────────────────────────────────────────────
+const SECTION_VH = 340; // pinned scrub region height
+const CARD_W = 680; // centre-card width (px)
+const CARD_H = 600; // centre-card height (px)
+const SPREAD = 400; // centre-to-centre gap (< CARD_W → cards overlap behind)
+
+function statusColor(status: string): string {
+  switch (status) {
+    case "ACTIVE":
+      return "#22c55e";
+    case "SHIPPED":
+      return "#3b82f6";
+    case "WIP":
+      return "#f59e0b";
+    default:
+      return "#888888";
+  }
+}
+
+// ─── Presentational project card (carousel + detail view) ─────────────────────
+function ProjectCard({
+  project,
+  className,
+  style,
+}: {
+  project: ProjectData;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const color = statusColor(project.status);
+  return (
+    <Card
+      className={cn(
+        "h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.04)]",
+        className
+      )}
+      style={style}
+    >
+      <div className="flex items-center justify-between gap-3 border-b-[6px] border-white/10 px-5 py-4">
+        <h3 className="retro truncate text-sm text-white">{project.title}</h3>
+        <span
+          className="retro shrink-0 border-2 px-2 py-1 text-[7px]"
+          style={{ color, borderColor: color }}
+        >
+          {project.status}
+        </span>
+      </div>
+
+      {/* Picture — fills the rest. Plain <img> (pixelated) or pixel placeholder. */}
+      <div className="relative flex-1 overflow-hidden bg-[#0d0d0d]">
+        {project.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={project.imageUrl}
+            alt={project.title}
+            loading="lazy"
+            className="pixelated h-full w-full object-cover"
+          />
+        ) : (
+          <div className="dot-grid-bg flex h-full w-full items-center justify-center">
+            <span className="retro text-6xl text-[#22c55e]/25 select-none">
+              {project.title.trim()[0] ?? "?"}
+            </span>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+// ─── Detail panel (slides in beside the expanded card) ────────────────────────
+function ProjectDetail({
+  project,
+  open,
+}: {
+  project: ProjectData;
+  open: boolean;
+}) {
+  const color = statusColor(project.status);
+  return (
+    <div
+      className="flex w-full max-w-xl flex-col gap-6"
+      style={{
+        opacity: open ? 1 : 0,
+        transform: `translateX(${open ? 0 : 40}px)`,
+        transition:
+          "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)",
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <span
+          className="retro border-2 px-2 py-1 text-[8px]"
+          style={{ color, borderColor: color }}
+        >
+          {project.status}
+        </span>
+        <h3 className="retro text-2xl text-white">{project.title}</h3>
+      </div>
+
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        {project.description}
+      </p>
+
+      <div className="flex flex-col gap-3">
+        <span className="retro text-[10px] tracking-wider text-[#22c55e]">
+          TECH STACK
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {project.techStack.map((tech) => (
+            <span
+              key={tech}
+              className="retro border-2 border-white/15 px-2.5 py-1.5 text-[8px] text-white/80"
+            >
+              {tech}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {project.githubUrl && (
+        <a
+          href={project.githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="retro inline-flex w-fit cursor-pointer items-center gap-2 border-2 border-[#22c55e] px-4 py-3 text-[9px] text-[#22c55e] transition-colors duration-200 hover:bg-[#22c55e] hover:text-[#0a0a0a]"
+        >
+          <FaGithub className="size-4" />
+          VIEW ON GITHUB
+        </a>
+      )}
+    </div>
+  );
+}
+
+export function ProjectsSection() {
+  const [selected, setSelected] = useState<number | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  // Rect of the centre card at the moment it was opened, so the *same* card can
+  // fly from there into the detail view (a FLIP shared-element transition).
+  const clickedRectRef = useRef<DOMRect | null>(null);
+  const flipRef = useRef<HTMLDivElement>(null);
+
+  const open = (index: number, el: HTMLElement) => {
+    clickedRectRef.current = el.getBoundingClientRect();
+    setSelected(index);
+  };
+
+  const { sectionRef, registerCard, onCardClick, stageHandlers } = useCoverflow({
+    count: PROJECTS.length,
+    spread: SPREAD,
+    disabled: selected !== null,
+    onActivateCenter: open,
+  });
+
+  // FLIP: place the detail card over the clicked card, then play it to its slot.
+  useLayoutEffect(() => {
+    const el = flipRef.current;
+    const from = clickedRectRef.current;
+    if (selected === null || !el || !from) return;
+    const to = el.getBoundingClientRect();
+    const dx = from.left - to.left;
+    const dy = from.top - to.top;
+    const sx = to.width ? from.width / to.width : 1;
+    const sy = to.height ? from.height / to.height : 1;
+    el.style.transition = "none";
+    el.style.transformOrigin = "top left";
+    el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+    void el.offsetWidth;
+    requestAnimationFrame(() => {
+      el.style.transition = "transform 480ms var(--ease-out-quart)";
+      el.style.transform = "translate(0px, 0px) scale(1, 1)";
+      setDetailOpen(true);
+    });
+  }, [selected]);
+
+  const close = () => {
+    const el = flipRef.current;
+    const from = clickedRectRef.current;
+    setDetailOpen(false);
+    if (!el || !from) {
+      setSelected(null);
+      return;
+    }
+    const to = el.getBoundingClientRect();
+    const dx = from.left - to.left;
+    const dy = from.top - to.top;
+    const sx = to.width ? from.width / to.width : 1;
+    const sy = to.height ? from.height / to.height : 1;
+    el.style.transition = "transform 420ms var(--ease-out-quart)";
+    el.style.transformOrigin = "top left";
+    el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+    const done = () => {
+      el.removeEventListener("transitionend", done);
+      setSelected(null);
+    };
+    el.addEventListener("transitionend", done);
+  };
+
+  // Keep a ref to the latest close() so the Escape listener depends only on
+  // `selected` (close is a fresh closure each render under React Compiler).
+  const closeRef = useRef(close);
+  useEffect(() => {
+    closeRef.current = close;
+  });
+  useEffect(() => {
+    if (selected === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected]);
+
+  const activeProject = selected !== null ? PROJECTS[selected] : null;
+
+  return (
+    <section
+      ref={sectionRef}
+      id="projects"
+      className="relative w-full scroll-mt-24"
+      style={{ height: `${SECTION_VH}vh` }}
+    >
+      <div className="sticky top-0 flex h-screen w-full flex-col overflow-hidden">
+        {/* Title gets its own row so the cards never cover it. */}
+        <div className="shrink-0 pt-28">
+          <SectionHeading text="PROJECTS" />
+        </div>
+
+        {/* Coverflow stage */}
+        <div
+          className={cn(
+            "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
+            selected !== null && "pointer-events-none opacity-0"
+          )}
+          style={{ transition: "opacity 300ms var(--ease-out-quart)" }}
+          {...stageHandlers}
+        >
+          {PROJECTS.map((project, i) => (
+            <div
+              key={project.id}
+              ref={registerCard(i)}
+              role="button"
+              tabIndex={0}
+              onClick={() => onCardClick(i)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onCardClick(i);
+                }
+              }}
+              className="group absolute left-1/2 top-1/2 cursor-pointer will-change-transform"
+              style={{
+                width: CARD_W,
+                height: CARD_H,
+                marginLeft: -CARD_W / 2,
+                marginTop: -CARD_H / 2,
+              }}
+            >
+              <ProjectCard
+                project={project}
+                className="transition-[box-shadow,border-color] duration-300 group-hover:border-[#22c55e]/50 group-hover:shadow-[0_0_34px_rgba(34,197,94,0.2)]"
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Detail overlay — the card flies here (FLIP) from the centre. Solid
+            backdrop so it cleanly covers the title + carousel; padded down so it
+            sits clear of the sticky nav and reads as centred. */}
+        {activeProject && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center gap-8 bg-[#0a0a0a] px-[6%] pt-24 lg:gap-16">
+            <button
+              onClick={close}
+              aria-label="Close project details"
+              className="retro absolute right-8 top-24 z-10 cursor-pointer border-2 border-white/20 px-3 py-2 text-xs text-white/70 transition-colors duration-200 hover:border-[#22c55e] hover:text-[#22c55e]"
+            >
+              ✕
+            </button>
+
+            <div
+              ref={flipRef}
+              className="shrink-0 will-change-transform"
+              style={{ width: CARD_W, height: CARD_H }}
+            >
+              <ProjectCard project={activeProject} className="h-full w-full" />
+            </div>
+
+            <ProjectDetail project={activeProject} open={detailOpen} />
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}

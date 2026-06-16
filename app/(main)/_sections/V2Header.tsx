@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
+import { PixelTabFill } from "./PixelTabFill";
 import {
   Avatar,
   AvatarImage,
@@ -23,8 +24,8 @@ interface V2HeaderProps {
 const NAV_TABS = [
   { value: "events", label: "EVENTS" },
   { value: "leaderboard", label: "LEADERBOARD" },
-  { value: "members", label: "MEMBERS" },
   { value: "projects", label: "PROJECTS" },
+  { value: "members", label: "MEMBERS" },
 ];
 
 export function V2Header({
@@ -57,6 +58,29 @@ export function V2Header({
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, [isLandingPage]);
+
+  // Scrollspy: keep the active tab in sync with whichever section is crossing
+  // the viewport's vertical centre, so the nav highlight follows the scroll.
+  useEffect(() => {
+    if (!isLandingPage) return;
+    const sections = NAV_TABS.map((t) => document.getElementById(t.value)).filter(
+      (el): el is HTMLElement => el !== null
+    );
+    if (sections.length === 0) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActiveTab(entry.target.id);
+        }
+      },
+      // A 1px detection band at the viewport's middle — the section spanning the
+      // centre is the "current" one.
+      { rootMargin: "-50% 0px -50% 0px", threshold: 0 }
+    );
+    sections.forEach((el) => io.observe(el));
+    return () => io.disconnect();
   }, [isLandingPage]);
 
   const handleTabChange = (value: string) => {
@@ -115,9 +139,11 @@ export function V2Header({
                   <TabsTrigger
                     key={tab.value}
                     value={tab.value}
-                    className="px-4 py-2 text-xs"
+                    className="relative overflow-hidden px-4 py-2 text-xs transition-none data-[state=active]:bg-transparent! data-[state=active]:text-[#0a0a0a]"
                   >
-                    {tab.label}
+                    {/* Green selection drawn in as scattered pixel blocks. */}
+                    <PixelTabFill />
+                    <span className="relative z-10">{tab.label}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>

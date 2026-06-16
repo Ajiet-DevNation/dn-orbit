@@ -392,6 +392,29 @@ body {
   image-rendering: crisp-edges;
 }
 
+/* ── Navbar tab selection: pixel-block green fill ──
+   The active tab's green fill is a grid of cells (see PixelTabFill) that pop in
+   in a scattered order — an 8-bit "draw-in", like the loading logo — rather than
+   sliding. Sits behind the label (label lifted with z-10). */
+.pixel-tab-cell {
+  background-color: #22c55e;
+  opacity: 0;
+  transition: opacity 90ms steps(2, end);
+}
+[data-state="active"] .pixel-tab-cell {
+  opacity: 1;
+}
+
+/* Pointer cursor on everything clickable across the v2 app (buttons, links,
+   role="button" cards, etc.). Disabled controls keep the default cursor. */
+[data-v2] button:not(:disabled),
+[data-v2] a,
+[data-v2] [role="button"],
+[data-v2] summary,
+[data-v2] [tabindex]:not([tabindex="-1"]) {
+  cursor: pointer;
+}
+
 /*
   8bit-avatar clips the photo into a circle (rounded-full) so its corners sit
   inside the octagon pixel frame. The global border-radius reset above wipes
