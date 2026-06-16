@@ -53,6 +53,7 @@ export default async function V2Page() {
     where: { isPublished: true },
     orderBy: { eventDate: "asc" },
     take: 12,
+    include: { _count: { select: { registrations: true } } },
   });
 
   // Latest cached stats + leaderboard standing for the signed-in user.
@@ -79,15 +80,23 @@ export default async function V2Page() {
     meta: [formatDate(e.eventDate), e.location].filter(Boolean).join(" · "),
   }));
 
-  const eventCards: EventCardData[] = events.map((e) => ({
-    id: e.id,
-    type: (e.eventType ?? "EVENT").toUpperCase(),
-    title: e.title,
-    description: e.description,
-    dateLabel: formatEventDateLong(e.eventDate),
-    location: e.location,
-    bannerUrl: e.bannerUrl,
-  }));
+  const eventCards: EventCardData[] = events.map((e) => {
+    const deadline = e.registrationDeadline ?? e.eventDate;
+    const full = e.capacity != null && e._count.registrations >= e.capacity;
+    return {
+      id: e.id,
+      type: (e.eventType ?? "EVENT").toUpperCase(),
+      title: e.title,
+      description: e.description,
+      dateLabel: formatEventDateLong(e.eventDate),
+      location: e.location,
+      bannerUrl: e.bannerUrl,
+      audience: e.audience as EventCardData["audience"],
+      capacityLabel:
+        e.capacity != null ? `${e._count.registrations} / ${e.capacity} registered` : null,
+      registrationClosed: full || (deadline ? new Date() > deadline : false),
+    };
+  });
 
   // Public leaderboard: top 20 *visible* users by computed total score. Display
   // rank is positional (1..N) so the board reads cleanly even if a hidden user
