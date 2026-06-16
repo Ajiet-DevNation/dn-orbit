@@ -40,14 +40,17 @@ export function useScrollParallax(
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
+    // Capture the node once: stable for this mount, and lets the cleanup avoid
+    // reading a ref that lint warns may have changed by teardown.
+    const stage = stageRef.current;
 
     const reduce =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduce) {
-      if (stageRef.current) {
-        stageRef.current.style.transform = "";
-        stageRef.current.style.willChange = "";
+      if (stage) {
+        stage.style.transform = "";
+        stage.style.willChange = "";
       }
       return;
     }
@@ -69,7 +72,7 @@ export function useScrollParallax(
       // Frame-rate-independent exponential ease toward the per-frame target.
       displayed += (target - displayed) * (1 - Math.exp(-dt / tau));
 
-      const el = stageRef.current;
+      const el = stage;
       if (el) el.style.transform = `translate3d(${displayed * maxPx}px,0,0)`;
 
       const scrollY = window.scrollY;
@@ -92,7 +95,7 @@ export function useScrollParallax(
       last = performance.now();
       lastScrollY = Number.NaN; // force at least one more evaluated frame
       // Promote only while actively drifting.
-      if (stageRef.current) stageRef.current.style.willChange = "transform";
+      if (stage) stage.style.willChange = "transform";
       raf = requestAnimationFrame(frame);
     };
 
@@ -116,7 +119,7 @@ export function useScrollParallax(
     return () => {
       stop();
       io.disconnect();
-      if (stageRef.current) stageRef.current.style.willChange = "";
+      if (stage) stage.style.willChange = "";
       window.removeEventListener("scroll", kick);
       window.removeEventListener("resize", kick);
     };
