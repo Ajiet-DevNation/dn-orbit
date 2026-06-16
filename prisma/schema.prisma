@@ -36,6 +36,12 @@ enum ProjectStatus {
   stalled
 }
 
+enum EventAudience {
+  members
+  college
+  public
+}
+
 // ─────────────────────────────────────────────
 // USERS — central hub
 // ─────────────────────────────────────────────
@@ -194,8 +200,12 @@ model Event {
   eventType   String?  @map("event_type")
   eventDate   DateTime @map("event_date")
   location    String?
-  isPublished Boolean  @default(false) @map("is_published")
-  createdAt   DateTime @default(now()) @map("created_at")
+  isPublished          Boolean       @default(false) @map("is_published")
+  audience             EventAudience @default(public)
+  capacity             Int?
+  registrationDeadline DateTime?     @map("registration_deadline")
+  formSchema           Json?         @map("form_schema")
+  createdAt            DateTime      @default(now()) @map("created_at")
 
   creator       User           @relation("EventCreator", fields: [createdBy], references: [id])
   registrations Registration[]
@@ -210,15 +220,19 @@ model Event {
 
 model Registration {
   id           String   @id @default(uuid())
-  userId       String   @map("user_id")
+  userId       String?  @map("user_id")
   eventId      String   @map("event_id")
+  name         String
+  email        String
+  usn          String?
+  responses    Json     @default("{}")
   attended     Boolean  @default(false)
   registeredAt DateTime @default(now()) @map("registered_at")
 
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, eventId]) // one registration per user per event
+  @@unique([eventId, email])
   @@map("registrations")
 }
 
