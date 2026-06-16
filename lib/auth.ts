@@ -6,12 +6,14 @@ import { db } from "@/lib/db";
 import type { Adapter, AdapterUser } from "next-auth/adapters";
 import type { DefaultSession } from "next-auth";
 import type { Role } from "@/lib/roles";
+import type { ApprovalStatus } from "@/lib/status";
 
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
       role: Role;
+      status: ApprovalStatus;
       usn: string | null;
       branch: string | null;
       lcUsername: string | null;
@@ -20,6 +22,7 @@ declare module "next-auth" {
   }
   interface User {
     role: Role;
+    status: ApprovalStatus;
     usn: string | null;
     branch: string | null;
     lcUsername: string | null;
@@ -68,6 +71,25 @@ async function isAllowedToSignIn(
   return !!entry;
 }
 
+// Second gate (on top of the allowlist): a user an admin has rejected can no
+// longer sign in. New users (no row yet) and pending/approved users pass.
+async function isRejected(
+  githubUsername?: string | null,
+  email?: string | null
+): Promise<boolean> {
+  const u = githubUsername?.toLowerCase() || null;
+  const e = email?.toLowerCase() || null;
+  if (!u && !e) return false;
+  const or: object[] = [];
+  if (u) or.push({ githubUsername: { equals: u, mode: "insensitive" } });
+  if (e) or.push({ email: { equals: e, mode: "insensitive" } });
+  const row = await db.user.findFirst({
+    where: { OR: or },
+    select: { status: true },
+  });
+  return row?.status === "rejected";
+}
+
 const customAdapter: Adapter = {
   ...baseAdapter,
   createUser: async (user) => {
@@ -85,6 +107,7 @@ const customAdapter: Adapter = {
         image: u.image,
         emailVerified: u.emailVerified,
         role: isBootstrapAdmin(u.githubUsername) ? "president" : "member",
+        status: isBootstrapAdmin(u.githubUsername) ? "approved" : "pending",
       },
     }) as unknown as AdapterUser;
   },
@@ -113,6 +136,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           githubId: profile.id.toString(),
           githubUsername: profile.login,
           role: "member",
+          status: "pending",
           usn: null,
           branch: null,
           lcUsername: null,
@@ -130,7 +154,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (profile?.login as string | undefined) ??
         (user as { githubUsername?: string } | undefined)?.githubUsername;
       const email = (profile?.email as string | undefined) ?? user?.email;
-      return isAllowedToSignIn(githubUsername, email);
+      if (!(await isAllowedToSignIn(githubUsername, email))) return false;
+      if (await isRejected(githubUsername, email)) return false;
+      return true;
     },
     async jwt({ token, user, account, trigger, session }) {
       // Handle manual session updates from the client
@@ -144,6 +170,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.status = user.status;
         token.usn = user.usn;
         token.branch = user.branch;
         token.lcUsername = user.lcUsername;
@@ -151,6 +178,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // var (createUser only runs once, on first sign-in).
         if (isBootstrapAdmin((user as { githubUsername?: string }).githubUsername)) {
           token.role = "president";
+          token.status = "approved";
         }
       }
       if (account) {
@@ -161,6 +189,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       session.user.id = token.id as string;
       session.user.role = token.role as Role;
+      session.user.status = token.status as ApprovalStatus;
       session.user.usn = token.usn as string | null;
       session.user.branch = token.branch as string | null;
       session.user.lcUsername = token.lcUsername as string | null;
