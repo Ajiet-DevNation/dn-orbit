@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { TacticalCard } from "@/components/ui/TacticalCard";
@@ -8,7 +9,7 @@ import { EventTable } from "./EventTable";
 
 export default async function AdminEventsPage() {
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  if (!canAccessAdmin(session?.user?.role)) {
     redirect("/");
   }
 

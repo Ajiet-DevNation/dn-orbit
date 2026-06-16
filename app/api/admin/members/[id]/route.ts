@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { Prisma } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
@@ -8,7 +9,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const session = await auth();
-    if (!session || session.user.role !== "admin") {
+    if (!session || !canAccessAdmin(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

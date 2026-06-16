@@ -1,12 +1,13 @@
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import { ProjectTable } from "./ProjectTable";
 import { TacticalCard } from "@/components/ui/TacticalCard";
 
 export default async function AdminProjectsPage() {
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  if (!canAccessAdmin(session?.user?.role)) {
     redirect("/");
   }
 

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import { TacticalCard } from "@/components/ui/TacticalCard";
 import { MemberTable } from "./MemberTable";
@@ -7,7 +8,7 @@ import { AllowlistManager } from "./AllowlistManager";
 
 export default async function AdminMembersPage() {
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  if (!canAccessAdmin(session?.user?.role)) {
     redirect("/");
   }
 

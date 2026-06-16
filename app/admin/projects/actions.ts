@@ -3,10 +3,11 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 
 export async function deleteProject(projectId: string) {
   const session = await auth();
-  if (session?.user?.role !== "admin") throw new Error("UNAUTHORIZED_ACCESS: ADMIN_CLEARANCE_REQUIRED");
+  if (!canAccessAdmin(session?.user?.role)) throw new Error("UNAUTHORIZED_ACCESS: ADMIN_CLEARANCE_REQUIRED");
 
   await db.project.delete({
     where: { id: projectId }
@@ -17,7 +18,7 @@ export async function deleteProject(projectId: string) {
 
 export async function updateProjectStatus(projectId: string, status: "planning" | "active" | "completed" | "stalled") {
   const session = await auth();
-  if (session?.user?.role !== "admin") throw new Error("UNAUTHORIZED_ACCESS: ADMIN_CLEARANCE_REQUIRED");
+  if (!canAccessAdmin(session?.user?.role)) throw new Error("UNAUTHORIZED_ACCESS: ADMIN_CLEARANCE_REQUIRED");
 
   await db.project.update({
     where: { id: projectId },

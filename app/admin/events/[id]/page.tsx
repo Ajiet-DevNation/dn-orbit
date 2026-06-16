@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { redirect, notFound } from "next/navigation";
 import EventRosterClient from "./EventRosterClient";
 
@@ -14,7 +15,7 @@ export default async function AdminEventRosterPage({
 }) {
   // 1. Enforce high-level security clearance
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  if (!canAccessAdmin(session?.user?.role)) {
     redirect("/");
   }
 

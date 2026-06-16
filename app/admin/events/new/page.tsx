@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import EventCreationForm from "./EventCreationForm";
 
@@ -10,7 +11,7 @@ export default async function AdminNewEventPage() {
   const session = await auth();
   
   // Guard: Admin clearance only
-  if (session?.user?.role !== "admin") {
+  if (!canAccessAdmin(session?.user?.role)) {
     redirect("/");
   }
 

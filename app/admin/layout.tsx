@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import { 
   Users, 
@@ -20,7 +21,7 @@ export default async function AdminLayout({
 }) {
   const session = await auth();
 
-  if (session?.user?.role !== "admin") {
+  if (!canAccessAdmin(session?.user?.role)) {
     redirect("/");
   }
 
