@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import { Prisma } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
 // Helper to verify authorization
 async function isAuthorized(projectId: string, userId: string, role: string) {
-  if (role === "admin") return true;
+  if (canAccessAdmin(role)) return true;
   const project = await db.project.findUnique({
     where: { id: projectId },
     select: { leadId: true }

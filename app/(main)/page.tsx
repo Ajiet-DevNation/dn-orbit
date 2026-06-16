@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 import {
   AnnouncementCarousel,
   type Announcement,
@@ -44,7 +45,7 @@ export default async function V2Page() {
   const userId = session?.user?.id;
   const hasGithubToken = !!session?.user?.accessToken;
   const hasLcUsername = !!session?.user?.lcUsername;
-  const isAdmin = session?.user?.role === "admin";
+  const isAdmin = canAccessAdmin(session?.user?.role);
 
   // Published events feed two surfaces: the top announcement strip (first few)
   // and the full Events grid below the terminal. Fetched once, mapped twice.

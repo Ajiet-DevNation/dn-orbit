@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 
 export async function POST(
   req: Request,
@@ -9,7 +10,7 @@ export async function POST(
   try {
     // 1. Enforce Admin Security Clearance
     const session = await auth();
-    if (session?.user?.role !== "admin") {
+    if (!canAccessAdmin(session?.user?.role)) {
       return new NextResponse("UNAUTHORIZED_ACCESS", { status: 403 });
     }
 
