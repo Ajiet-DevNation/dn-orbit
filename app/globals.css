@@ -84,6 +84,10 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-mono), ui-monospace, monospace;
+  /* Backstop against any stray full-bleed/overflowing element causing a
+     horizontal scrollbar on mobile. `clip` (not `hidden`) doesn't create a
+     scroll container, so it never breaks position: sticky. */
+  overflow-x: clip;
 }
 
 /* ── Accessibility: honour reduced-motion ──
