@@ -45,7 +45,8 @@ function EventCard({ data }: { data: EventCardData }) {
                 src={data.bannerUrl}
                 alt={data.title}
                 loading="lazy"
-                className="pixelated h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                draggable={false}
+                className="pixelated h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 select-none [-webkit-user-drag:none]"
               />
             ) : (
               <div className="dot-grid-bg flex h-full w-full items-center justify-center transition-transform duration-500 ease-out group-hover:scale-110">
