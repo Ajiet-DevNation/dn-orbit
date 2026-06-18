@@ -406,6 +406,14 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
     if (!backCanvas || !frontCanvas) return;
 
     let frame: number;
+    // The ring is a *static* ellipse — only the planets move along it. So during
+    // idle its pixels never change, yet the old loop re-stroked it (with an
+    // expensive shadowBlur) on every frame. We now cache the last drawn
+    // opacity/scale and skip the redraw when nothing changed, which frees the
+    // main thread for buttery planet motion. It only actually re-strokes during
+    // the shatter/reform beat (when opacity & scale animate).
+    let lastOpacity = Number.NaN;
+    let lastScale = Number.NaN;
 
     const drawOrbitRing = () => {
       const w = backCanvas.width;
@@ -421,14 +429,22 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       if (phys.isShattered) {
         const timeSinceShatter = now - phys.shatterStartTime;
         if (timeSinceShatter < 6000) {
-          ringOpacity = 0; 
+          ringOpacity = 0;
         } else {
           const progress = Math.min((timeSinceShatter - 6000) / 11000, 1);
           const easeOut = 1 - Math.pow(1 - progress, 3);
-          ringOpacity = progress; 
-          ringScale = 0.8 + 0.2 * easeOut; 
+          ringOpacity = progress;
+          ringScale = 0.8 + 0.2 * easeOut;
         }
       }
+
+      // Nothing visibly changed since the last stroke → don't touch the canvas.
+      if (ringOpacity === lastOpacity && ringScale === lastScale) {
+        frame = requestAnimationFrame(drawOrbitRing);
+        return;
+      }
+      lastOpacity = ringOpacity;
+      lastScale = ringScale;
 
       const bctx = backCanvas.getContext("2d");
       const fctx = frontCanvas.getContext("2d");
@@ -443,26 +459,27 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       const drawSaturnRing = (ctx: CanvasRenderingContext2D, isBack: boolean) => {
         const startAngle = isBack ? Math.PI : 0;
         const endAngle = isBack ? 2 * Math.PI : Math.PI;
-        
+
         ctx.save();
-        
+
         ctx.translate(cx, cy);
         ctx.scale(ringScale, ringScale);
         ctx.translate(-cx, -cy);
 
-        ctx.shadowColor = `rgba(34, 197, 94, ${0.8 * ringOpacity})`;
-        ctx.shadowBlur = 15;
+        ctx.shadowColor = `rgba(34, 197, 94, ${0.85 * ringOpacity})`;
+        ctx.shadowBlur = 18;
 
+        // Slightly thicker ring for more presence.
         ctx.beginPath();
         ctx.ellipse(cx, cy, ORBIT_RX, ORBIT_RY, ORBIT_TILT, startAngle, endAngle);
-        ctx.strokeStyle = `rgba(34, 197, 94, ${(isBack ? 0.2 : 0.4) * ringOpacity})`;
-        ctx.lineWidth = 4;
+        ctx.strokeStyle = `rgba(34, 197, 94, ${(isBack ? 0.22 : 0.45) * ringOpacity})`;
+        ctx.lineWidth = 6;
         ctx.stroke();
 
         ctx.beginPath();
         ctx.ellipse(cx, cy, ORBIT_RX, ORBIT_RY, ORBIT_TILT, startAngle, endAngle);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${(isBack ? 0.1 : 0.3) * ringOpacity})`;
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${(isBack ? 0.12 : 0.32) * ringOpacity})`;
+        ctx.lineWidth = 2.5;
         ctx.stroke();
 
         ctx.restore();
@@ -505,8 +522,12 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       const phys = physics.current;
 
       if (!phys.isDragging && (!isPausedRef.current || phys.isShattered)) {
-        phys.spinVelocity += (1 - phys.spinVelocity) * 0.05;
-        
+        // Frame-rate-independent return to the resting spin (1×). Normalising the
+        // old fixed 0.05-per-frame factor to the real frame delta keeps the
+        // settle identical on 60Hz and 120Hz displays instead of twice as fast.
+        const returnK = 1 - Math.pow(1 - 0.05, Math.min(delta, 50) / (1000 / 60));
+        phys.spinVelocity += (1 - phys.spinVelocity) * returnK;
+
         let currentSpin = phys.spinVelocity;
 
         if (phys.isShattered) {
@@ -669,22 +690,30 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!physics.current.isDragging || physics.current.isShattered || phase !== "orbiting") return;
-    
+
     const deltaY = e.clientY - physics.current.lastMouseY;
     physics.current.lastMouseY = e.clientY;
-    
-    physics.current.accumulatedTime -= deltaY * 30; 
-    physics.current.spinVelocity = -deltaY; 
+
+    // The orbit follows the cursor 1:1 (responsive), but the fling velocity is a
+    // low-pass average of the recent motion rather than the last jittery frame —
+    // so releasing reflects the gesture's true speed and the fling feels smooth
+    // instead of snapping to whatever the final mouse event happened to be.
+    physics.current.accumulatedTime -= deltaY * 30;
+    physics.current.spinVelocity =
+      physics.current.spinVelocity * 0.6 + -deltaY * 0.4;
   };
 
   const handleMouseUp = () => {
     if (!physics.current.isDragging || physics.current.isShattered) return;
     physics.current.isDragging = false;
-    
-    if (Math.abs(physics.current.spinVelocity) > 20) {
+
+    // Threshold lowered from 20 → 16 to match the smoothed (averaged, so
+    // lower-peak) release velocity, keeping the fling as easy to trigger as
+    // before while the motion itself is gentler.
+    if (Math.abs(physics.current.spinVelocity) > 16) {
       triggerShatter();
     } else {
-      physics.current.spinVelocity *= 0.8; 
+      physics.current.spinVelocity *= 0.8;
       if (Math.abs(physics.current.spinVelocity) < 1) {
         physics.current.spinVelocity = 1;
       }

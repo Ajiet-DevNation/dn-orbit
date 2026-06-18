@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/roles";
+import { toTitleCase } from "@/lib/names";
 import {
   AnnouncementCarousel,
   type Announcement,
@@ -103,18 +104,24 @@ export default async function V2Page() {
   // rank is positional (1..N) so the board reads cleanly even if a hidden user
   // sits between visible ones in the global ranking. Empty until the nightly
   // recompute (or an admin trigger) has populated leaderboard_scores.
+  // Up to 100 ranked members — the board paginates these client-side in pages of
+  // 10 (Top 1–10, 11–20, …). 100 is a generous cap that keeps the payload small
+  // while covering realistic club sizes.
   const topScores = await db.leaderboardScore.findMany({
     where: { user: { isVisible: true, status: "approved" } },
     orderBy: [{ totalScore: "desc" }],
-    take: 20,
+    take: 100,
     include: { user: { select: { name: true, image: true } } },
   });
 
   const leaderboard: LeaderboardEntry[] = topScores.map((s, i) => ({
     rank: i + 1,
-    name: s.user.name,
+    name: toTitleCase(s.user.name),
     image: s.user.image,
     score: Math.round(s.totalScore),
+    githubScore: Math.round(s.githubScore),
+    lcScore: Math.round(s.lcScore),
+    eventScore: Math.round(s.eventScore),
   }));
 
   // The player's "GLOBAL STANDING" must agree with the public board, so we
@@ -153,6 +160,7 @@ export default async function V2Page() {
     description: p.description ?? "",
     techStack: Array.isArray(p.techStack) ? (p.techStack as string[]) : [],
     githubUrl: p.githubRepoUrl,
+    demoUrl: p.demoUrl,
     status: PROJECT_STATUS_LABEL[p.status] ?? "ACTIVE",
   }));
   const projects: ProjectData[] = [...submittedProjects, ...scrapedProjects];

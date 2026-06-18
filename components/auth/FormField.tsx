@@ -1,4 +1,5 @@
 import { InputHTMLAttributes, SelectHTMLAttributes } from "react";
+import { Input } from "@/components/ui/8bit-input";
 
 interface BaseFieldProps {
   label: string;
@@ -24,21 +25,11 @@ type FormFieldProps = InputFieldProps | SelectFieldProps;
 export function FormField(props: FormFieldProps) {
   const { label, id, error, hint, locked, as = "input", ...rest } = props;
 
-  const baseInputClass = `
-    w-full border bg-[#111111] px-4 py-2.5 font-mono text-sm
-    text-[#ededed] placeholder-[#555555] outline-none
-    transition-all duration-200
-    focus:border-[#22c55e] focus:ring-1 focus:ring-[#22c55e]
-    disabled:cursor-not-allowed disabled:opacity-50
-    ${error ? "border-[#ef4444]" : "border-[#333333]"}
-    ${locked ? "opacity-60 cursor-not-allowed" : ""}
-  `;
-
   return (
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={id}
-        className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-[#888888]"
+        className="retro flex items-center gap-2 text-[9px] uppercase tracking-widest text-[#888888]"
       >
         {locked && (
           <svg
@@ -57,29 +48,44 @@ export function FormField(props: FormFieldProps) {
       </label>
 
       {as === "select" ? (
-        <select
-          id={id}
-          className={baseInputClass + " cursor-pointer appearance-none"}
-          {...(rest as SelectHTMLAttributes<HTMLSelectElement>)}
-        >
-          {(props as SelectFieldProps).children}
-        </select>
+        // Native <select> (keeps the simple <option> children API) wrapped in the
+        // same 8-bit pixel frame as the Input, so the auth form matches the rest.
+        <div className="relative flex min-w-0 items-center border-y-[6px] border-foreground dark:border-ring">
+          <select
+            id={id}
+            className="retro w-full min-w-0 cursor-pointer appearance-none rounded-none border-none bg-transparent px-3 py-2.5 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ colorScheme: "dark" }}
+            {...(rest as SelectHTMLAttributes<HTMLSelectElement>)}
+          >
+            {(props as SelectFieldProps).children}
+          </select>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute right-3 text-[10px] text-muted-foreground"
+          >
+            ▾
+          </span>
+          <div
+            className="pointer-events-none absolute inset-0 -mx-[6px] border-x-[6px] border-foreground dark:border-ring"
+            aria-hidden="true"
+          />
+        </div>
       ) : (
-        <input
+        <Input
           id={id}
           disabled={locked}
-          className={baseInputClass}
+          aria-invalid={!!error}
           {...(rest as InputHTMLAttributes<HTMLInputElement>)}
         />
       )}
 
       {hint && !error && (
-        <p className="font-mono text-[10px] uppercase tracking-wider text-[#555555]">
+        <p className="retro text-[9px] uppercase tracking-wider text-[#555555]">
           {hint}
         </p>
       )}
       {error && (
-        <p className="font-mono text-[10px] uppercase tracking-wider text-[#ef4444]">
+        <p className="retro text-[10px] uppercase tracking-wider text-[#ef4444]">
           ⚠ {error}
         </p>
       )}

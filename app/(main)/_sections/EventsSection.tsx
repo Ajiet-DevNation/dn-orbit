@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/8bit-card";
 import { SectionHeading } from "./SectionHeading";
 import { PixelReveal } from "./PixelReveal";
 import { useFlipDetail } from "./useFlipDetail";
+import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
 
 // Plain, serializable shape — mapped from the DB Event in the server page so no
 // Date objects cross the client boundary.
@@ -182,18 +183,21 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
       )}
 
       {active && (
-        <div className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-8 overflow-y-auto bg-[#0a0a0a] px-[6%] pt-24 lg:flex-row lg:gap-16">
-          <button
-            onClick={close}
-            aria-label="Close event details"
-            className="retro absolute right-6 top-6 z-10 flex cursor-pointer items-center gap-2 border-2 border-[#22c55e] bg-[#0a0a0a] px-3 py-2 text-[10px] text-[#22c55e] shadow-[0_0_12px_rgba(34,197,94,0.25)] transition-colors duration-200 hover:bg-[#22c55e] hover:text-[#0a0a0a]"
-          >
-            <span aria-hidden>✕</span> CLOSE
-          </button>
-          <div ref={flipRef} className="w-full max-w-sm shrink-0">
-            <EventCard data={active} />
+        <div className="fixed inset-0 z-40 overflow-y-auto bg-[#0a0a0a]">
+          {/* Centred content container — the close anchors to ITS top-right
+              (within reach of the content) rather than the far viewport edge,
+              and sits below the header band. */}
+          <div className="relative mx-auto flex min-h-full w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 py-24 lg:flex-row lg:gap-16">
+            <OverlayCloseButton
+              onClick={close}
+              label="Close event details"
+              className="absolute right-2 top-24"
+            />
+            <div ref={flipRef} className="w-full max-w-sm shrink-0">
+              <EventCard data={active} />
+            </div>
+            <EventDetail data={active} open={detailOpen} />
           </div>
-          <EventDetail data={active} open={detailOpen} />
         </div>
       )}
     </section>

@@ -21,12 +21,22 @@ interface AnnouncementCarouselProps {
   announcements: Announcement[];
 }
 
-// One card's footprint: width (CARD_W) + right margin (CARD_GAP). Used to figure
-// out how many cards are needed to fill the screen and how far one loop spans.
+// One card's footprint: width + right margin. Desktop reference values; on
+// narrow screens the card is capped to the viewport so it never overflows the
+// strip (the old fixed 550px card spilled off the right edge on phones).
 const CARD_W = 550;
 const CARD_GAP = 50;
-const UNIT = CARD_W + CARD_GAP;
 const SPEED = 0.05; // px per ms ≈ 50px/s drift
+
+// Resolve the card footprint for the current viewport width.
+function cardDims(vw: number): { w: number; gap: number } {
+  if (vw <= 0) return { w: CARD_W, gap: CARD_GAP };
+  const gap = vw < 640 ? 16 : CARD_GAP;
+  // Leave a sliver of the next card peeking on phones so the strip reads as
+  // scrollable; cap at the desktop width on large screens.
+  const w = Math.min(CARD_W, Math.round(vw * (vw < 640 ? 0.84 : 0.7)));
+  return { w, gap };
+}
 
 // Real campus news scraped from the college site (ajiet.edu.in → "News &
 // Events") into constants/campusAnnouncements.json by scripts/scrapeAnnouncements.ts,
@@ -64,11 +74,15 @@ const BASELINE_ANNOUNCEMENTS: Announcement[] = [
 function AnnouncementSlide({
   item,
   onNavGuard,
+  width,
+  gap,
 }: {
   item: Announcement;
   // Suppresses navigation if the pointer was dragging the strip (so a drag that
   // happens to end on a card doesn't fire its link).
   onNavGuard: (e: React.MouseEvent) => void;
+  width: number;
+  gap: number;
 }) {
   const card = (
     // h-full (not a fixed length) so the Card fills the fixed-height wrapper
@@ -84,25 +98,25 @@ function AnnouncementSlide({
       )}
     >
       {item.tag && (
-        <div className="px-8">
+        <div className="px-6 sm:px-8">
           <span className="retro inline-block border-2 border-[#22c55e] px-3 py-1.5 text-[9px] text-[#22c55e]">
             {item.tag}
           </span>
         </div>
       )}
 
-      <h3 className="retro px-8 text-lg leading-relaxed text-white line-clamp-3">
+      <h3 className="retro px-6 sm:px-8 text-lg leading-relaxed text-white line-clamp-3">
         {item.title}
       </h3>
 
       {item.body && (
-        <p className="px-8 text-sm leading-relaxed text-muted-foreground line-clamp-3">
+        <p className="px-6 sm:px-8 text-sm leading-relaxed text-muted-foreground line-clamp-3">
           {item.body}
         </p>
       )}
 
       {/* mt-auto pins the meta row to the bottom edge of every card. */}
-      <div className="mt-auto flex items-center justify-between gap-4 px-8">
+      <div className="mt-auto flex items-center justify-between gap-4 px-6 sm:px-8">
         {item.meta && (
           <p className="retro text-[9px] text-muted-foreground">{item.meta}</p>
         )}
@@ -117,8 +131,8 @@ function AnnouncementSlide({
     // Fixed height lives here (the definite parent); the Card fills it via
     // h-full. Keeps every card identical without the inner div overflowing.
     <div
-      className="shrink-0 h-[21rem]"
-      style={{ width: CARD_W, marginRight: CARD_GAP }}
+      className="h-[19rem] shrink-0 sm:h-[21rem]"
+      style={{ width, marginRight: gap }}
     >
       {item.href ? (
         <a
@@ -156,10 +170,14 @@ export function AnnouncementCarousel({
   // How many cards make up ONE loop set — enough to overflow the screen so it
   // always looks full, even with just 1–2 real announcements (circular repeat).
   const [fillCount, setFillCount] = useState(items.length);
+  // Responsive card footprint, recomputed on resize.
+  const [dims, setDims] = useState({ w: CARD_W, gap: CARD_GAP });
 
   useEffect(() => {
     const calc = () => {
-      const needed = Math.ceil((window.innerWidth * 1.4) / UNIT) + 1;
+      const d = cardDims(window.innerWidth);
+      setDims(d);
+      const needed = Math.ceil((window.innerWidth * 1.4) / (d.w + d.gap)) + 1;
       setFillCount(Math.max(items.length, needed));
     };
     calc();
@@ -171,7 +189,7 @@ export function AnnouncementCarousel({
     { length: fillCount },
     (_, i) => items[i % items.length]
   );
-  const copyWidth = fillCount * UNIT;
+  const copyWidth = fillCount * (dims.w + dims.gap);
 
   // Live, mutable animation/drag state kept in refs so the rAF loop reads the
   // latest values without re-subscribing every render.
@@ -183,6 +201,10 @@ export function AnnouncementCarousel({
   // True once a pointer-down has moved far enough to count as a drag — used to
   // cancel the click that would otherwise follow and open a card's link.
   const movedRef = useRef(false);
+  // Pointer capture is deferred until an actual drag starts. Capturing on
+  // pointer-down (the old behaviour) redirected the follow-up `click` to the
+  // strip container, so a plain tap on a card's VIEW link never navigated.
+  const capturedRef = useRef(false);
 
   // Keep offset within (-copyWidth, 0] so the two stacked copies loop seamlessly.
   const normalize = () => {
@@ -243,16 +265,26 @@ export function AnnouncementCarousel({
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     draggingRef.current = true;
     movedRef.current = false;
+    capturedRef.current = false;
     dragStartXRef.current = e.clientX;
     dragStartOffsetRef.current = offsetRef.current;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    // NOTE: do NOT capture the pointer here — capture is claimed lazily in
+    // onPointerMove only once the gesture is clearly a drag, so a tap still
+    // delivers its `click` to the card link underneath.
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!draggingRef.current) return;
     const dx = e.clientX - dragStartXRef.current;
     // 5px of travel distinguishes a deliberate drag from a jittery click.
-    if (Math.abs(dx) > 5) movedRef.current = true;
+    if (Math.abs(dx) > 5 && !movedRef.current) {
+      movedRef.current = true;
+      // Now that it's a real drag, capture the pointer so the strip keeps
+      // tracking even if the cursor leaves a card.
+      capturedRef.current = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    if (!movedRef.current) return; // below threshold → leave it as a potential click
     offsetRef.current = dragStartOffsetRef.current + dx;
     normalize();
     applyTransform();
@@ -267,9 +299,10 @@ export function AnnouncementCarousel({
   const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+    if (capturedRef.current && e.currentTarget.hasPointerCapture(e.pointerId)) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
+    capturedRef.current = false;
   };
 
   return (
@@ -299,6 +332,8 @@ export function AnnouncementCarousel({
               key={`${item.id}-${i}`}
               item={item}
               onNavGuard={onNavGuard}
+              width={dims.w}
+              gap={dims.gap}
             />
           ))}
         </div>

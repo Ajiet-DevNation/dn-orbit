@@ -4,16 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "@/components/ui/8bit-toast";
 import { Card } from "@/components/ui/8bit-card";
-import { Label } from "@/components/ui/8bit-label";
+import { Input } from "@/components/ui/8bit-input";
 import {
   validateSubmission,
   type EventAudience,
   type FormFieldDef,
 } from "@/lib/forms";
 import { PixelFormField } from "./PixelFormField";
-
-const inputBase =
-  "w-full bg-black border-2 border-white/15 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 focus:outline-none focus:border-[#22c55e] transition-colors disabled:opacity-50";
+import { FieldCard } from "./FieldCard";
 
 export function RegistrationForm({
   eventId,
@@ -50,7 +48,9 @@ export function RegistrationForm({
   if (closed) {
     return (
       <Shell title={title} meta={meta}>
-        <p className="retro text-sm text-white/70">REGISTRATION IS CLOSED.</p>
+        <Card className="w-full items-start gap-4 border-white/10 p-8">
+          <p className="retro text-sm text-white/70">REGISTRATION IS CLOSED.</p>
+        </Card>
       </Shell>
     );
   }
@@ -58,8 +58,13 @@ export function RegistrationForm({
   if (done) {
     return (
       <Shell title={title} meta={meta}>
-        <span className="retro text-4xl text-[#22c55e]">✓</span>
-        <p className="retro text-sm text-white">YOU&apos;RE REGISTERED!</p>
+        <Card className="w-full items-center gap-4 border-[#22c55e]/30 p-10 text-center">
+          <span className="retro text-4xl text-[#22c55e]">✓</span>
+          <p className="retro text-sm text-white">YOU&apos;RE REGISTERED!</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            We&apos;ve saved your spot. See you there.
+          </p>
+        </Card>
       </Shell>
     );
   }
@@ -102,30 +107,48 @@ export function RegistrationForm({
 
   return (
     <Shell title={title} meta={meta}>
-      <form onSubmit={submit} className="flex w-full flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <Label className="retro text-[9px] tracking-widest text-[#22c55e]">NAME *</Label>
-          <input className={inputBase} value={name} onChange={(e) => setName(e.target.value)} />
-          {errors.name && <p className="retro text-[8px] text-red-400">{errors.name}</p>}
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label className="retro text-[9px] tracking-widest text-[#22c55e]">EMAIL *</Label>
-          <input
-            className={inputBase}
+      <form onSubmit={submit} noValidate className="flex w-full flex-col gap-5">
+        <FieldCard label="NAME" required error={errors.name}>
+          <Input
+            font="normal"
+            value={name}
+            autoComplete="name"
+            placeholder="Your full name"
+            aria-invalid={!!errors.name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </FieldCard>
+
+        <FieldCard
+          label="EMAIL"
+          required
+          error={errors.email}
+          description={emailLocked ? "Linked to your account." : undefined}
+        >
+          <Input
+            font="normal"
             type="email"
             value={email}
             disabled={emailLocked}
+            autoComplete="email"
+            placeholder="you@example.com"
+            aria-invalid={!!errors.email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          {errors.email && <p className="retro text-[8px] text-red-400">{errors.email}</p>}
-        </div>
+        </FieldCard>
+
         {audience === "college" && (
-          <div className="flex flex-col gap-2">
-            <Label className="retro text-[9px] tracking-widest text-[#22c55e]">USN / COLLEGE ID *</Label>
-            <input className={inputBase} value={usn} onChange={(e) => setUsn(e.target.value)} />
-            {errors.usn && <p className="retro text-[8px] text-red-400">{errors.usn}</p>}
-          </div>
+          <FieldCard label="USN / COLLEGE ID" required error={errors.usn}>
+            <Input
+              font="normal"
+              value={usn}
+              placeholder="e.g. 4JK24CS069"
+              aria-invalid={!!errors.usn}
+              onChange={(e) => setUsn(e.target.value)}
+            />
+          </FieldCard>
         )}
+
         {schema.map((f) => (
           <PixelFormField
             key={f.id}
@@ -135,13 +158,19 @@ export function RegistrationForm({
             onChange={(v) => setResponses((p) => ({ ...p, [f.id]: v }))}
           />
         ))}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="retro mt-2 w-fit cursor-pointer border-2 border-[#22c55e] px-6 py-3 text-[10px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black disabled:opacity-50"
-        >
-          {submitting ? "SUBMITTING…" : "SUBMIT REGISTRATION"}
-        </button>
+
+        <div className="mt-1 flex flex-col gap-3">
+          <p className="retro text-[8px] tracking-widest text-muted-foreground">
+            <span className="text-[#ef4444]">*</span> REQUIRED
+          </p>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="retro w-full cursor-pointer border-2 border-[#22c55e] bg-[#22c55e] px-6 py-4 text-[11px] tracking-widest text-black transition-colors hover:bg-[#16a34a] hover:border-[#16a34a] disabled:cursor-not-allowed disabled:opacity-50 sm:w-fit sm:px-10"
+          >
+            {submitting ? "SUBMITTING…" : "SUBMIT REGISTRATION"}
+          </button>
+        </div>
       </form>
     </Shell>
   );
@@ -166,11 +195,13 @@ function Shell({
 }) {
   const when = [meta.dateLabel, meta.location].filter(Boolean).join(" · ");
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-28">
+    <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 px-5 py-24 sm:gap-8 sm:px-6 sm:py-28">
       <Back />
-      <div className="flex flex-col gap-3">
+      {/* Google-Forms-style header card: a green top accent bar + the event
+          identity, sitting above the question cards. */}
+      <div className="flex flex-col gap-3 border-2 border-white/10 border-t-[6px] border-t-[#22c55e] bg-[#0a0a0a] p-6 sm:p-8">
         <span className="retro text-[9px] tracking-widest text-[#22c55e]">EVENT REGISTRATION</span>
-        <h1 className="retro text-xl text-white">{title}</h1>
+        <h1 className="retro text-lg leading-relaxed text-white sm:text-xl">{title}</h1>
         <div className="flex flex-wrap items-center gap-3">
           <AudienceBadge audience={meta.audience} />
           {when && <p className="retro text-[10px] text-[#22c55e]">{when}</p>}
@@ -182,7 +213,7 @@ function Shell({
           <p className="text-sm leading-relaxed text-muted-foreground">{meta.description}</p>
         )}
       </div>
-      <Card className="flex flex-col items-start gap-4 border-white/10 p-8">{children}</Card>
+      {children}
     </div>
   );
 }

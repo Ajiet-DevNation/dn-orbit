@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaExternalLinkAlt } from "react-icons/fa";
 import { Card } from "@/components/ui/8bit-card";
 import { cn } from "@/lib/utils";
 import { type ProjectData } from "@/constants/projects";
 import { TECH_BY_NAME } from "./techStack";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
+import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
 
 // Read-only tech chip: dark background + green pixel border + green tech icon,
 // matching the chips in the "new project" form (TechStackSelect) where the icons
@@ -167,16 +168,31 @@ function ProjectDetail({
         </div>
       </div>
 
-      {project.githubUrl && (
-        <a
-          href={project.githubUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="retro inline-flex w-fit cursor-pointer items-center gap-2 border-2 border-[#22c55e] px-4 py-3 text-[9px] text-[#22c55e] transition-colors duration-200 hover:bg-[#22c55e] hover:text-[#0a0a0a]"
-        >
-          <FaGithub className="size-4" />
-          VIEW ON GITHUB
-        </a>
+      {(project.githubUrl || project.demoUrl) && (
+        <div className="flex flex-wrap gap-3">
+          {project.githubUrl && (
+            <a
+              href={project.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="retro inline-flex w-fit cursor-pointer items-center gap-2 border-2 border-[#22c55e] px-4 py-3 text-[9px] text-[#22c55e] transition-colors duration-200 hover:bg-[#22c55e] hover:text-[#0a0a0a]"
+            >
+              <FaGithub className="size-4" />
+              VIEW ON GITHUB
+            </a>
+          )}
+          {project.demoUrl && (
+            <a
+              href={project.demoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="retro inline-flex w-fit cursor-pointer items-center gap-2 border-2 border-[#22c55e] px-4 py-3 text-[9px] text-[#22c55e] transition-colors duration-200 hover:bg-[#22c55e] hover:text-[#0a0a0a]"
+            >
+              <FaExternalLinkAlt className="size-3.5" />
+              LIVE DEMO
+            </a>
+          )}
+        </div>
       )}
     </div>
   );
@@ -284,7 +300,7 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
     >
       {/* Title gets its own row so the cards never cover it. */}
       <div className="shrink-0 pt-28">
-        <SectionHeading text="projects" />
+        <SectionHeading text="PROJECTS" />
       </div>
 
       {/* Coverflow stage */}
@@ -330,24 +346,26 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
             backdrop so it cleanly covers the title + carousel; padded down so it
             sits clear of the sticky nav and reads as centred. */}
         {activeProject && (
-          <div className="absolute inset-0 z-20 flex flex-col lg:flex-row items-center justify-center gap-8 overflow-y-auto bg-[#0a0a0a] px-[6%] pt-24 lg:gap-16">
-            <button
-              onClick={close}
-              aria-label="Close project details"
-              className="retro absolute right-8 top-24 z-10 cursor-pointer text-lg text-muted-foreground transition-colors duration-200 hover:text-white"
-            >
-              X
-            </button>
+          <div className="absolute inset-0 z-20 overflow-y-auto bg-[#0a0a0a]">
+            {/* Same centred-content + anchored-close pattern as the events
+                overlay, for one consistent close button everywhere. */}
+            <div className="relative mx-auto flex min-h-full w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 py-24 lg:flex-row lg:gap-16">
+              <OverlayCloseButton
+                onClick={close}
+                label="Close project details"
+                className="absolute right-2 top-24"
+              />
 
-            <div
-              ref={flipRef}
-              className="shrink-0"
-              style={{ width: CARD_W, height: CARD_H }}
-            >
-              <ProjectCard project={activeProject} className="h-full w-full" />
+              <div
+                ref={flipRef}
+                className="shrink-0"
+                style={{ width: CARD_W, height: CARD_H }}
+              >
+                <ProjectCard project={activeProject} className="h-full w-full" />
+              </div>
+
+              <ProjectDetail project={activeProject} open={detailOpen} />
             </div>
-
-            <ProjectDetail project={activeProject} open={detailOpen} />
           </div>
         )}
     </section>

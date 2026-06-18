@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { isApproved } from "@/lib/access";
+import { logAudit } from "@/lib/audit";
 import {
   parseFormSchema,
   validateSubmission,
@@ -75,6 +76,12 @@ export async function POST(req: NextRequest, { params }: Params) {
         usn: result.value.usn ?? null,
         responses: result.value.responses as Prisma.InputJsonValue,
       },
+    });
+    void logAudit({
+      action: "registration.create",
+      actorId: session?.user.id ?? null,
+      actorName: result.value.name,
+      summary: `${result.value.name} registered for "${event.title}"`,
     });
     return NextResponse.json({ id: registration.id }, { status: 201 });
   } catch (e) {

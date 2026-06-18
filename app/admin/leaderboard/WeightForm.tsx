@@ -3,6 +3,8 @@
 import React, { useState, useTransition } from "react";
 import { toast } from "@/components/ui/8bit-toast";
 import { useRouter } from "next/navigation";
+import { PixelSlider } from "@/components/ui/PixelSlider";
+import { Button } from "@/components/ui/8bit-button";
 
 interface WeightFormProps {
   initialWeights: {
@@ -35,9 +37,9 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
         });
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
-        toast.success("WEIGHTS_COMMITTED: SYSTEM_STABLE");
+        toast.success("Weights saved");
       } catch (err) {
-        toast.error("COMMIT_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        toast.error("Failed to save: " + (err instanceof Error ? err.message : "UNKNOWN"));
       }
     });
   };
@@ -46,9 +48,9 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="space-y-6">
         {[
-          { label: "GITHUB_CONTRIBUTION", key: "githubWeight" as const },
-          { label: "LEETCODE_PERFORMANCE", key: "lcWeight" as const },
-          { label: "EVENT_ATTENDANCE", key: "eventWeight" as const },
+          { label: "GITHUB", key: "githubWeight" as const },
+          { label: "LEETCODE", key: "lcWeight" as const },
+          { label: "EVENT ATTENDANCE", key: "eventWeight" as const },
         ].map((item) => (
           <div key={item.key} className="space-y-2">
             <div className="flex justify-between items-end">
@@ -59,16 +61,15 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
                 {(weights[item.key] * 100).toFixed(0)}%
               </span>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={weights[item.key] * 100}
-              onChange={(e) =>
-                setWeights({ ...weights, [item.key]: parseInt(e.target.value) / 100 })
+            <PixelSlider
+              aria-label={item.label}
+              value={Math.round(weights[item.key] * 100)}
+              onChange={(v) =>
+                setWeights({ ...weights, [item.key]: v / 100 })
               }
-              className="w-full accent-[#22c55e] bg-zinc-900 appearance-none h-1 border border-white/10"
+              min={0}
+              max={100}
+              step={1}
             />
           </div>
         ))}
@@ -76,7 +77,7 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
         <div className="border-t-2 border-white/10 pt-4 flex justify-between items-center">
           <div className="flex flex-col gap-1">
             <span className="retro text-[8px] text-zinc-600 uppercase tracking-widest">
-              TOTAL_NORMALIZATION
+              TOTAL
             </span>
             <span
               className={`retro text-lg ${
@@ -93,23 +94,21 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
                 : "border-red-500/40 text-red-400"
             }`}
           >
-            {isValid ? "NOMINAL" : "SKEWED"}
+            {isValid ? "BALANCED" : "OFF"}
           </span>
         </div>
       </div>
 
       <div className="space-y-4">
-        <button
+        <Button
           type="submit"
           disabled={isPending || !isValid}
-          className="retro w-full border-2 border-[#22c55e] px-4 py-3 text-[9px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black disabled:opacity-50"
+          className="w-full text-[9px] !bg-[#22c55e] !text-black hover:!bg-[#16a34a]"
         >
-          {isPending ? "COMMITTING_ALGORITHM..." : "COMMIT_WEIGHT_MATRIX"}
-        </button>
+          {isPending ? "SAVING…" : "SAVE WEIGHTS"}
+        </Button>
         <p className="retro text-[8px] text-zinc-600 text-center uppercase tracking-widest leading-relaxed">
-          CAUTION: MODIFYING THESE PARAMETERS WILL TRIGGER A PROJECT-WIDE RECALCULATION
-          <br />
-          OF ALL LEADERBOARD NODES IN THE NEXT CRON_CYCLE.
+          Changing these triggers a full leaderboard recalculation on the next cron run.
         </p>
       </div>
     </form>

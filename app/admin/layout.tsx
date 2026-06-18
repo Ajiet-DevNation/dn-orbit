@@ -15,7 +15,11 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-black text-white font-mono">
+    // `dark` so the 8-bit components and CSS theme vars (--foreground, --ring …)
+    // resolve to the dark theme like the rest of the app. Without it, admin sat
+    // in the light theme and `text-foreground` rendered near-black (e.g. the
+    // description textarea was invisible).
+    <div className="dark min-h-screen bg-black text-white font-mono">
       <AdminSidebar userName={session?.user?.name ?? null} />
 
       {/* Offset for the fixed sidebar on desktop; full width on mobile. The

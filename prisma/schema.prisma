@@ -296,6 +296,26 @@ model ScoreWeight {
 }
 
 // ─────────────────────────────────────────────
+// AUDIT LOG (system activity feed)
+// ─────────────────────────────────────────────
+// Append-only record of every meaningful mutation across the app (events,
+// projects, registrations, allowlist, roles, weights, …). actorName is
+// denormalised so the log line survives the actor being deleted. Indexed on
+// createdAt so the dashboard can pull the newest N cheaply even at high volume.
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String // machine tag, e.g. "event.create"
+  actorId   String?  @map("actor_id") // user id, null for anonymous/public actors
+  actorName String?  @map("actor_name") // denormalised display name
+  summary   String // human-readable line shown in the feed
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────
 // PROJECTS
 // ─────────────────────────────────────────────
 
@@ -308,6 +328,7 @@ model Project {
   status        ProjectStatus @default(planning)
   progressPct   Int           @default(0) @map("progress_pct") // 0–100
   githubRepoUrl String?       @map("github_repo_url")
+  demoUrl       String?       @map("demo_url")
   techStack     Json          @default("[]") @map("tech_stack")  // string[]
   milestones    Json          @default("[]") // { label: string, done: boolean }[]
   reviewStatus  ApprovalStatus @default(pending) @map("review_status")

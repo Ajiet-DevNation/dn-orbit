@@ -5,13 +5,25 @@ import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/8bit-toast";
 import { PixelPanel } from "@/components/admin/PixelPanel";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
+import { Button } from "@/components/ui/8bit-button";
+import { Input } from "@/components/ui/8bit-input";
+import { Label } from "@/components/ui/8bit-label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/8bit-select";
 import { FormBuilder } from "../_form/FormBuilder";
 import type { FormFieldDef } from "@/lib/forms";
 
-const ctl =
-  "w-full bg-black border-2 border-white/15 px-4 py-3 text-xs font-mono text-white placeholder:text-zinc-700 focus:outline-none focus:border-[#22c55e] transition-colors disabled:opacity-50";
-const labelCls =
-  "retro mb-2 block text-[9px] tracking-widest text-[#22c55e]";
+const EVENT_TYPES = [
+  "GENERAL_ASSEMBLY",
+  "HACKATHON",
+  "WORKSHOP",
+  "TECHNICAL_SEMINAR",
+];
 
 interface EventFormState {
   title: string;
@@ -61,6 +73,10 @@ export default function EventCreationForm({
       toast.error("Title and date are required");
       return;
     }
+    if (schema.some((q) => !q.label.trim())) {
+      toast.error("Every custom question needs a label");
+      return;
+    }
     startTransition(async () => {
       try {
         const payload = {
@@ -99,47 +115,51 @@ export default function EventCreationForm({
   };
 
   return (
-    <form onSubmit={submit} className="flex max-w-3xl flex-col gap-8">
+    <form onSubmit={submit} className="flex max-w-6xl flex-col gap-8">
       <PixelPanel title="01 · DETAILS">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label className={labelCls}>EVENT TITLE</label>
-            <input
-              className={ctl}
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 [&>div]:min-w-0">
+          <div className="grid gap-2">
+            <Label className="text-[10px]">EVENT TITLE *</Label>
+            <Input
               value={f.title}
               placeholder="Enter title…"
               onChange={(e) => set("title", e.target.value)}
               disabled={isPending}
             />
           </div>
-          <div>
-            <label className={labelCls}>TYPE</label>
-            <select
-              className={`${ctl} appearance-none uppercase`}
+          <div className="grid gap-2">
+            <Label className="text-[10px]">TYPE</Label>
+            <Select
               value={f.eventType}
-              onChange={(e) => set("eventType", e.target.value)}
+              onValueChange={(v) => set("eventType", v)}
               disabled={isPending}
             >
-              <option value="GENERAL_ASSEMBLY">GENERAL_ASSEMBLY</option>
-              <option value="HACKATHON">HACKATHON</option>
-              <option value="WORKSHOP">WORKSHOP</option>
-              <option value="TECHNICAL_SEMINAR">TECHNICAL_SEMINAR</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="SELECT" />
+              </SelectTrigger>
+              <SelectContent className="z-[200] dark">
+                {EVENT_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div>
-            <label className={labelCls}>DATE &amp; TIME</label>
-            <input
+          <div className="grid gap-2">
+            <Label className="text-[10px]">DATE &amp; TIME *</Label>
+            <Input
               type="datetime-local"
-              className={ctl}
+              className="text-[10px]"
+              style={{ colorScheme: "dark" }}
               value={f.eventDate}
               onChange={(e) => set("eventDate", e.target.value)}
               disabled={isPending}
             />
           </div>
-          <div>
-            <label className={labelCls}>LOCATION</label>
-            <input
-              className={ctl}
+          <div className="grid gap-2">
+            <Label className="text-[10px]">LOCATION</Label>
+            <Input
               value={f.location}
               placeholder="Room or URL…"
               onChange={(e) => set("location", e.target.value)}
@@ -147,50 +167,62 @@ export default function EventCreationForm({
             />
           </div>
         </div>
-        <div className="mt-4">
-          <label className={labelCls}>DESCRIPTION</label>
-          <textarea
-            className={`${ctl} min-h-[140px] resize-none`}
-            value={f.description}
-            placeholder="What is this event about?"
-            onChange={(e) => set("description", e.target.value)}
-            disabled={isPending}
-          />
+        <div className="mt-4 grid gap-2">
+          <Label className="text-[10px]">DESCRIPTION</Label>
+          {/* Multiline pixel-frame textarea — matches the 8bit Input border. */}
+          <div className="relative flex border-y-6 border-foreground dark:border-ring">
+            <textarea
+              value={f.description}
+              placeholder="What is this event about?"
+              rows={5}
+              onChange={(e) => set("description", e.target.value)}
+              disabled={isPending}
+              className="retro w-full resize-none rounded-none bg-transparent px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50"
+            />
+            <div
+              className="pointer-events-none absolute inset-0 -mx-1.5 border-x-6 border-foreground dark:border-ring"
+              aria-hidden="true"
+            />
+          </div>
         </div>
       </PixelPanel>
 
       <PixelPanel title="02 · AUDIENCE & CAPACITY">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div>
-            <label className={labelCls}>WHO CAN REGISTER</label>
-            <select
-              className={`${ctl} appearance-none`}
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3 [&>div]:min-w-0">
+          <div className="grid gap-2">
+            <Label className="text-[10px]">WHO CAN REGISTER</Label>
+            <Select
               value={f.audience}
-              onChange={(e) => set("audience", e.target.value)}
+              onValueChange={(v) => set("audience", v)}
               disabled={isPending}
             >
-              <option value="public">Anyone (public)</option>
-              <option value="college">College only (USN required)</option>
-              <option value="members">Members only</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="SELECT" />
+              </SelectTrigger>
+              <SelectContent className="z-[200] dark">
+                <SelectItem value="public">ANYONE (PUBLIC)</SelectItem>
+                <SelectItem value="college">COLLEGE ONLY (USN)</SelectItem>
+                <SelectItem value="members">MEMBERS ONLY</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div>
-            <label className={labelCls}>CAPACITY (BLANK = ∞)</label>
-            <input
+          <div className="grid gap-2">
+            <Label className="text-[10px]">CAPACITY (INF IF BLANK)</Label>
+            <Input
               type="number"
-              min="1"
-              className={ctl}
+              min={1}
               value={f.capacity}
               placeholder="Unlimited"
               onChange={(e) => set("capacity", e.target.value)}
               disabled={isPending}
             />
           </div>
-          <div>
-            <label className={labelCls}>REG. DEADLINE (OPTIONAL)</label>
-            <input
+          <div className="grid gap-2">
+            <Label className="text-[10px]">REG. DEADLINE</Label>
+            <Input
               type="datetime-local"
-              className={ctl}
+              className="text-[10px]"
+              style={{ colorScheme: "dark" }}
               value={f.registrationDeadline}
               onChange={(e) => set("registrationDeadline", e.target.value)}
               disabled={isPending}
@@ -200,7 +232,7 @@ export default function EventCreationForm({
       </PixelPanel>
 
       <PixelPanel title="03 · BANNER">
-        <label className={labelCls}>BANNER IMAGE (16:9)</label>
+        <Label className="mb-2 block text-[10px]">BANNER IMAGE (16:9)</Label>
         <ImageCropUpload
           aspect={16 / 9}
           kind="event"
@@ -214,23 +246,25 @@ export default function EventCreationForm({
       </PixelPanel>
 
       <PixelPanel title="05 · DEPLOYMENT">
-        <label className={labelCls}>INITIAL STATE</label>
-        <select
-          className={`${ctl} appearance-none`}
-          value={f.isPublished}
-          onChange={(e) => set("isPublished", e.target.value)}
-          disabled={isPending}
-        >
-          <option value="false">Save as draft (offline)</option>
-          <option value="true">Publish immediately (live)</option>
-        </select>
+        <div className="grid gap-2">
+          <Label className="text-[10px]">INITIAL STATE</Label>
+          <Select
+            value={f.isPublished}
+            onValueChange={(v) => set("isPublished", v)}
+            disabled={isPending}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="z-[200] dark">
+              <SelectItem value="false">SAVE AS DRAFT (OFFLINE)</SelectItem>
+              <SelectItem value="true">PUBLISH IMMEDIATELY (LIVE)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </PixelPanel>
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="retro w-fit border-2 border-[#22c55e] px-6 py-3 text-[10px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black disabled:opacity-50"
-      >
+      <Button type="submit" disabled={isPending} className="w-fit text-[10px]">
         {isPending
           ? isEdit
             ? "SAVING…"
@@ -238,7 +272,7 @@ export default function EventCreationForm({
           : isEdit
             ? "SAVE CHANGES"
             : "CREATE EVENT"}
-      </button>
+      </Button>
     </form>
   );
 }

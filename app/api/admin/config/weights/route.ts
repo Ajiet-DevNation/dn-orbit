@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/roles";
+import { logAudit } from "@/lib/audit";
 
 export async function GET() {
   try {
@@ -51,6 +52,13 @@ export async function PATCH(req: NextRequest) {
     // Ensure weights sum approximately to 1 or 100% depending on the formula, 
     // but we will just blindly save them as numbers as per CMS spec.
     const existingWeights = await db.scoreWeight.findFirst();
+
+    void logAudit({
+      action: "weights.update",
+      actorId: session.user.id,
+      actorName: session.user.name,
+      summary: `Updated leaderboard weights — GH ${Math.round(githubWeight * 100)}% · LC ${Math.round(lcWeight * 100)}% · EVT ${Math.round(eventWeight * 100)}%`,
+    });
 
     if (existingWeights) {
       const updated = await db.scoreWeight.update({

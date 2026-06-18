@@ -173,24 +173,29 @@ export function ProfileModal({
                 </span>
               )}
 
-              <Button
-                className="text-[10px]"
-                onClick={() => setPhotoPopup(true)}
-              >
-                EDIT PHOTO
-              </Button>
-
-              {isAdmin && (
+              {/* Equal-width action buttons — full-width within the avatar column
+                  so EDIT PHOTO and ADMIN line up identically regardless of label
+                  length. mt-auto keeps them grouped under the badge. */}
+              <div className="flex w-full max-w-[220px] flex-col gap-4">
                 <Button
-                  className="text-[10px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
-                  onClick={() => {
-                    onOpenChange(false);
-                    router.push("/admin");
-                  }}
+                  className="w-full text-[10px]"
+                  onClick={() => setPhotoPopup(true)}
                 >
-                  ADMIN
+                  EDIT PHOTO
                 </Button>
-              )}
+
+                {isAdmin && (
+                  <Button
+                    className="w-full text-[10px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+                    onClick={() => {
+                      onOpenChange(false);
+                      router.push("/admin");
+                    }}
+                  >
+                    ADMIN
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* ── Right: editable details ── */}

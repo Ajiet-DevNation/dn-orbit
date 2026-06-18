@@ -39,8 +39,6 @@ export async function proxy(req: NextRequest) {
   const isLoggedIn = !!token;
   const path = req.nextUrl.pathname;
 
-  console.log(`[Proxy] Path: ${path} | isLoggedIn: ${isLoggedIn}`);
-
   // Let API auth routes, next internal routes, and public assets pass through
   if (path.startsWith("/api/auth") || path.startsWith("/_next") || path.includes("favicon.ico")) {
     return NextResponse.next();
@@ -49,7 +47,6 @@ export async function proxy(req: NextRequest) {
   // Only the member-only areas require a session. The landing page and all other
   // public routes render for anonymous visitors.
   if (!isLoggedIn && isProtectedRoute(path)) {
-    console.log(`[Proxy] Redirecting unauthenticated user to /login`);
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
@@ -61,29 +58,24 @@ export async function proxy(req: NextRequest) {
     const role = token.role as string | undefined;
 
     const isOnboarded = !!(usn && branch && lcUsername);
-    console.log(`[Proxy] User onboarded: ${isOnboarded} (USN: ${usn})`);
 
     // If on login page but logged in, redirect based on onboarding status
     if (path.startsWith("/login")) {
-      console.log(`[Proxy] Logged in user on /login, redirecting to ${isOnboarded ? "/" : "/onboarding"}`);
       return NextResponse.redirect(new URL(isOnboarded ? "/" : "/onboarding", req.nextUrl));
     }
 
     // If not onboarded and trying to access protected route (except onboarding and public APIs)
     if (!isOnboarded && !path.startsWith("/onboarding") && !path.startsWith("/api")) {
-      console.log(`[Proxy] User not onboarded, redirecting to /onboarding`);
       return NextResponse.redirect(new URL("/onboarding", req.nextUrl));
     }
 
     // If onboarded and trying to access onboarding, redirect away
     if (isOnboarded && path.startsWith("/onboarding")) {
-      console.log(`[Proxy] User already onboarded, redirecting away from /onboarding`);
       return NextResponse.redirect(new URL("/", req.nextUrl));
     }
 
     // Admin Route Protection
     if (path.startsWith("/admin") && !canAccessAdmin(role)) {
-      console.log(`[Proxy] Non-admin tried to access /admin`);
       return NextResponse.redirect(new URL("/", req.nextUrl));
     }
   }
