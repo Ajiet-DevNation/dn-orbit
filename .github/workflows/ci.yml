@@ -7,6 +7,14 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      # Auth.js v5 throws "MissingSecret" during a production build; a throwaway
+      # value is fine here since CI never serves real sessions.
+      AUTH_SECRET: ci-build-secret
+      # Used by `next build` when it evaluates server routes/pages during the
+      # prerender pass. Point this at a dev/branch DB, not prod.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.DIRECT_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
@@ -14,3 +22,6 @@ jobs:
       - run: bunx prisma generate
       - run: bun run lint
       - run: bunx tsc --noEmit
+      # Build directly (not `bun run build`) so CI never runs `prisma migrate
+      # deploy` against the database — this is a compile check only.
+      - run: bunx next build
