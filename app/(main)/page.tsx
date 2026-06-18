@@ -117,6 +117,23 @@ export default async function V2Page() {
     score: Math.round(s.totalScore),
   }));
 
+  // The player's "GLOBAL STANDING" must agree with the public board, so we
+  // derive it from the *same* population the board ranks over (visible, approved
+  // members) instead of trusting leaderboardScore.rank — that stored rank is
+  // computed across *every* user (hidden/pending/rejected included), so a hidden
+  // member who outscores you would inflate it by one. Counting members who
+  // strictly outscore the player (+1) is also immune to stale nightly recomputes
+  // and manual DB deletions.
+  const playerRank =
+    userId && leaderboardScore
+      ? (await db.leaderboardScore.count({
+          where: {
+            user: { isVisible: true, status: "approved" },
+            totalScore: { gt: leaderboardScore.totalScore },
+          },
+        })) + 1
+      : null;
+
   // Member-submitted, admin-approved projects (with uploaded cover images) shown
   // in the public carousel alongside the GitHub-org scraped projects.
   const dbProjects = await db.project.findMany({
@@ -181,7 +198,7 @@ export default async function V2Page() {
         rank={
           leaderboardScore
             ? {
-                rank: leaderboardScore.rank,
+                rank: playerRank,
                 totalScore: leaderboardScore.totalScore,
               }
             : null

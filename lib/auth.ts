@@ -136,7 +136,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: "read:user user:email repo",
+          // Minimal, read-only scopes. We only ever *read* public GitHub data
+          // (public repos, merged PRs, contribution counts — see lib/github.ts),
+          // so we deliberately omit `repo`/`public_repo`: public repository data
+          // is readable without any repo scope, and dropping it means we never
+          // request write access or private-repo permissions on the consent
+          // screen. `read:user` + `user:email` cover profile and email only.
+          scope: "read:user user:email",
         },
       },
       profile(profile) {
