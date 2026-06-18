@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/roles";
+import { logAudit } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
 
 // GET — list allowlist entries (newest first). POST — add an entry by GitHub
@@ -51,6 +52,13 @@ export async function POST(req: NextRequest) {
 
     const entry = await db.allowlist.create({
       data: { githubUsername, email, note, addedBy: session.user.id },
+    });
+
+    void logAudit({
+      action: "allowlist.add",
+      actorId: session.user.id,
+      actorName: session.user.name,
+      summary: `Added ${githubUsername ?? email} to the allowlist`,
     });
 
     return NextResponse.json({ success: true, entry });

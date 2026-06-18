@@ -36,12 +36,12 @@ export default async function AdminLeaderboardPage() {
     <div className="space-y-8 p-8">
       <PixelPageHeader
         title="LEADERBOARD CONFIGURATION"
-        subtitle="SCORING_ENGINE_v2.0"
+        subtitle="SCORING ENGINE"
       />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <PixelPanel title="WEIGHT_CONFIG">
+          <PixelPanel title="SCORING WEIGHTS">
             <WeightForm
               initialWeights={
                 weights || { githubWeight: 0.33, lcWeight: 0.33, eventWeight: 0.34 }

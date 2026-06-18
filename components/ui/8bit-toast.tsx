@@ -1459,9 +1459,9 @@ function Toast2(props) {
   const isError = variant === "error";
 
   return <div className={`relative ${"retro"}`}>
-    <div className={`flex rounded-none shadow-lg ring-1 ring-black/5 w-full md:max-w-[364px] items-center p-4 ${isError ? "bg-destructive text-destructive-foreground" : "bg-background"}`}>
+    <div className={`flex rounded-none shadow-lg ring-1 ring-black/5 w-full md:max-w-[364px] items-center p-4 ${isError ? "bg-[#ef4444] text-white" : "bg-background"}`}>
       <div className="flex flex-1 items-center gap-3">
-        {isError && <span className="flex-shrink-0 bg-white text-destructive rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs">X</span>}
+        {isError && <span className="flex-shrink-0 bg-white text-[#ef4444] rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs">X</span>}
         <div className="w-full">
           <p className="text-xs uppercase tracking-widest font-medium">{title}</p>
         </div>

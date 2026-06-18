@@ -4,7 +4,15 @@ import React, { useTransition } from "react";
 import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
 import { useRouter } from "next/navigation";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/8bit-select";
 import { ROLES, ROLE_LABELS, canManageRoles, type Role } from "@/lib/roles";
+import { toTitleCase } from "@/lib/names";
 
 interface Member {
   id: string;
@@ -58,7 +66,7 @@ export function MemberTable({ initialMembers, currentUserId, currentUserRole }: 
       header: "NAME",
       render: (m) => (
         <div className="flex flex-col">
-          <span className="text-white font-black">{m.name || "UNNAMED_NODE"}</span>
+          <span className="text-white font-black">{m.name ? toTitleCase(m.name) : "UNNAMED_NODE"}</span>
           <span className="text-[9px] text-zinc-600 tracking-tighter">{m.email}</span>
         </div>
       ),
@@ -97,19 +105,25 @@ export function MemberTable({ initialMembers, currentUserId, currentUserRole }: 
       render: (m) => (
         <div className="flex justify-end">
           {canEdit ? (
-            <select
-              aria-label={`Set role for ${m.name ?? m.id}`}
+            <Select
               value={m.role}
               disabled={isPending}
-              onChange={(e) => handleRoleChange(m.id, e.target.value as Role)}
-              className="retro border-2 border-white/20 bg-[#0a0a0a] px-2 py-1 text-[10px] text-white focus:border-[#22c55e] focus:outline-none disabled:opacity-50"
+              onValueChange={(v) => handleRoleChange(m.id, v as Role)}
             >
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                aria-label={`Set role for ${m.name ?? m.id}`}
+                className="w-[190px] text-[10px]"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="z-[200] dark">
+                {ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           ) : (
             <span className="retro text-[10px] text-zinc-600">LOCKED</span>
           )}

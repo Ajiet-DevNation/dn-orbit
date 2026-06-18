@@ -66,7 +66,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
         )}
       >
         <div className="flex items-center justify-between md:block">
-          <SidebarBrand sectorLabel="COMMAND_SEC_V4" />
+          <SidebarBrand />
           <button
             onClick={() => setOpen(false)}
             aria-label="Close menu"
@@ -105,15 +105,15 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
           })}
         </nav>
 
-        <div className="space-y-4 border-t-2 border-white/10 bg-[#22c55e]/[0.03] p-6">
-          <div className="border-2 border-[#22c55e]/20 bg-[#22c55e]/[0.06] px-4 py-3">
+        <div className="space-y-4 border-t-2 border-white/10 p-6">
+          <div className="border-2 border-white/10 bg-white/[0.02] px-4 py-3">
             <div className="mb-2 flex items-center justify-between">
-              <span className="retro text-[7px] tracking-[0.2em] text-[#22c55e]/60">
+              <span className="retro text-[7px] tracking-[0.2em] text-zinc-600">
                 ADM_SESSION
               </span>
               <div className="h-1 w-1 animate-pulse bg-[#22c55e]" />
             </div>
-            <div className="retro truncate text-[9px] uppercase tracking-tighter text-[#22c55e]">
+            <div className="retro truncate text-[9px] uppercase tracking-tighter text-white">
               {userName || "COMMANDER"}
             </div>
           </div>

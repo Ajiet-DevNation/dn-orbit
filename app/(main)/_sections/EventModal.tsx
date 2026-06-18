@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/8bit-select";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
+import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
+import { FormBuilder } from "@/app/admin/events/_form/FormBuilder";
+import type { FormFieldDef } from "@/lib/forms";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
@@ -31,10 +34,26 @@ const EVENT_TYPES = [
   "OTHER",
 ];
 
+const AUDIENCES: { value: string; label: string }[] = [
+  { value: "public", label: "ANYONE (PUBLIC)" },
+  { value: "college", label: "COLLEGE ONLY (USN)" },
+  { value: "members", label: "MEMBERS ONLY" },
+];
+
 interface EventModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isAdmin: boolean;
+}
+
+// ── Section divider — numbered pixel heading, mirroring the admin event-builder
+// panels so the modal reads as the same "create event" surface. ──
+function SectionHeading({ children }: { children: ReactNode }) {
+  return (
+    <h3 className="retro mt-2 border-b-2 border-white/10 pb-2 text-[10px] tracking-widest text-[#22c55e]">
+      {children}
+    </h3>
+  );
 }
 
 export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
@@ -46,6 +65,10 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
+  const [audience, setAudience] = useState("public");
+  const [capacity, setCapacity] = useState("");
+  const [registrationDeadline, setRegistrationDeadline] = useState("");
+  const [schema, setSchema] = useState<FormFieldDef[]>([]);
   const [publishNow, setPublishNow] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -56,6 +79,10 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
     setLocation("");
     setDescription("");
     setBannerUrl("");
+    setAudience("public");
+    setCapacity("");
+    setRegistrationDeadline("");
+    setSchema([]);
     setPublishNow(false);
   }
 
@@ -64,6 +91,26 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
       notify("error", "✗ Title and date are required");
       return;
     }
+    // Every builder question needs a label; an "Untitled question" left in the
+    // schema produces a confusing registration field, so block on it early.
+    const blankLabel = schema.find((f) => !f.label.trim());
+    if (blankLabel) {
+      notify("error", "✗ Every custom question needs a label");
+      return;
+    }
+    if (capacity && (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)) {
+      notify("error", "✗ Capacity must be a whole number ≥ 1");
+      return;
+    }
+    if (
+      registrationDeadline &&
+      eventDate &&
+      new Date(registrationDeadline) > new Date(eventDate)
+    ) {
+      notify("error", "✗ Registration deadline can't be after the event");
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await fetch("/api/events", {
@@ -76,6 +123,10 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
           eventType: eventType || null,
           eventDate,
           location: location || null,
+          audience,
+          capacity: capacity ? Number(capacity) : null,
+          registrationDeadline: registrationDeadline || null,
+          formSchema: schema,
           isPublished: isAdmin ? publishNow : false,
         }),
       });
@@ -128,6 +179,9 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
         )}
 
         <div className="grid gap-5">
+          {/* ── 01 · DETAILS ── */}
+          <SectionHeading>01 · DETAILS</SectionHeading>
+
           <div className="grid gap-2">
             <Label htmlFor="ev-title" className="text-[10px]">
               TITLE *
@@ -140,7 +194,10 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-5">
+          {/* [&>div]:min-w-0 lets each cell shrink to its track so the native
+              datetime/number inputs (which have a wide intrinsic min-width)
+              clip instead of overflowing the modal. */}
+          <div className="grid grid-cols-2 gap-5 [&>div]:min-w-0">
             <div className="grid gap-2">
               <Label className="text-[10px]">TYPE</Label>
               <Select value={eventType} onValueChange={setEventType}>
@@ -205,28 +262,89 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label className="text-[10px]">BANNER (16:9)</Label>
-            <ImageCropUpload
-              aspect={16 / 9}
-              kind="event"
-              value={bannerUrl}
-              onChange={setBannerUrl}
-            />
+          {/* ── 02 · AUDIENCE & CAPACITY ── */}
+          <SectionHeading>02 · AUDIENCE &amp; CAPACITY</SectionHeading>
+
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 [&>div]:min-w-0">
+            <div className="grid gap-2">
+              <Label className="text-[10px]">WHO CAN REGISTER</Label>
+              <Select value={audience} onValueChange={setAudience}>
+                <SelectTrigger>
+                  <SelectValue placeholder="SELECT" />
+                </SelectTrigger>
+                <SelectContent className="z-[200] dark">
+                  {AUDIENCES.map((a) => (
+                    <SelectItem key={a.value} value={a.value}>
+                      {a.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ev-cap" className="text-[10px]">
+                CAPACITY (INF IF BLANK)
+              </Label>
+              <Input
+                id="ev-cap"
+                type="number"
+                min={1}
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                placeholder="Unlimited"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ev-deadline" className="text-[10px]">
+                REG. DEADLINE
+              </Label>
+              <Input
+                id="ev-deadline"
+                type="datetime-local"
+                value={registrationDeadline}
+                onChange={(e) => setRegistrationDeadline(e.target.value)}
+                className="text-[10px]"
+                style={{ colorScheme: "dark" }}
+              />
+            </div>
           </div>
 
+          {/* ── 03 · BANNER ── */}
+          <SectionHeading>03 · BANNER (16:9)</SectionHeading>
+          <ImageCropUpload
+            aspect={16 / 9}
+            kind="event"
+            value={bannerUrl}
+            onChange={setBannerUrl}
+          />
+
+          {/* ── 04 · REGISTRATION FORM (Google-Forms-style builder) ── */}
+          <SectionHeading>04 · REGISTRATION FORM</SectionHeading>
+          <p className="retro -mt-1 text-[9px] leading-relaxed text-muted-foreground">
+            Name &amp; email are always collected. Add your own questions below —
+            registrants see them in order.
+          </p>
+          <FormBuilder value={schema} onChange={setSchema} />
+
+          {/* ── 05 · DEPLOYMENT ── */}
           {isAdmin && (
-            <label className="flex cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
-                checked={publishNow}
-                onChange={(e) => setPublishNow(e.target.checked)}
-                className="size-4 accent-[#22c55e]"
-              />
-              <span className="text-[10px] tracking-wider text-muted-foreground">
-                PUBLISH IMMEDIATELY
-              </span>
-            </label>
+            <>
+              <SectionHeading>05 · DEPLOYMENT</SectionHeading>
+              <div className="flex w-fit items-center gap-3">
+                <PixelCheckbox
+                  checked={publishNow}
+                  onChange={setPublishNow}
+                  aria-label="Publish immediately"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPublishNow(!publishNow)}
+                  className="retro cursor-pointer text-[10px] tracking-wider text-muted-foreground hover:text-white"
+                >
+                  PUBLISH IMMEDIATELY
+                </button>
+              </div>
+            </>
           )}
 
           <Button

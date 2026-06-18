@@ -5,6 +5,7 @@ import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
 import { MEMBERS, type MemberData } from "@/constants/members";
+import { toTitleCase } from "@/lib/names";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
 import { useScrollParallax } from "./useScrollParallax";
@@ -61,7 +62,7 @@ function MemberFront({ member }: { member: MemberData }) {
 
       <div className="border-t-[6px] border-white/10 px-3 py-3 text-center">
         <span className="retro block truncate text-[11px] text-white">
-          {member.name}
+          {toTitleCase(member.name)}
         </span>
       </div>
     </Card>
@@ -74,7 +75,7 @@ function MemberBack({ member }: { member: MemberData }) {
     <Card className="h-full justify-start gap-4 border-[#22c55e]/30 py-6 shadow-[0_0_24px_rgba(34,197,94,0.14)]">
       <div className="px-5">
         <p className="retro text-[12px] leading-relaxed text-white">
-          {member.name}
+          {toTitleCase(member.name)}
         </p>
         <p className="retro mt-2 text-[9px] tracking-wider text-[#22c55e]">
           {member.role}

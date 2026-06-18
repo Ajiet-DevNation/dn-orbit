@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/roles";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -58,6 +59,13 @@ export async function POST(req: NextRequest) {
       isPublished: isAdmin ? (isPublished ?? false) : false,
       createdBy: session.user.id,
     },
+  });
+
+  void logAudit({
+    action: "event.create",
+    actorId: session.user.id,
+    actorName: session.user.name,
+    summary: `${isAdmin ? "Created" : "Submitted"} event "${event.title}"`,
   });
 
   return NextResponse.json(event, { status: 201 });

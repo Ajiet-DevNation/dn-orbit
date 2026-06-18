@@ -4,6 +4,8 @@ import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/8bit-toast";
 import { PixelPanel } from "@/components/admin/PixelPanel";
+import { Input } from "@/components/ui/8bit-input";
+import { Button } from "@/components/ui/8bit-button";
 
 export interface AllowlistEntry {
   id: string;
@@ -31,12 +33,9 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
 
-  const inputClass =
-    "retro bg-black border-2 border-white/10 focus:border-[#22c55e] outline-none px-3 py-2 text-[11px] text-white placeholder:text-zinc-700 tracking-wider transition-colors w-full";
-
   const handleAdd = async () => {
     if (!githubUsername.trim() && !email.trim()) {
-      toast.error("PROVIDE_A_GITHUB_USERNAME_OR_EMAIL");
+      toast.error("Provide a GitHub username or email");
       return;
     }
 
@@ -54,9 +53,9 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
         setEmail("");
         setNote("");
         router.refresh();
-        toast.success("ACCESS_GRANTED: ENTRY_ADDED_TO_ALLOWLIST");
+        toast.success("Added to allowlist");
       } catch (err) {
-        toast.error("ADD_FAILED: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        toast.error("Failed: " + (err instanceof Error ? err.message : "UNKNOWN"));
       }
     });
   };
@@ -69,67 +68,73 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
         });
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
-        toast.success("ACCESS_REVOKED: ENTRY_REMOVED_FROM_ALLOWLIST");
+        toast.success("Removed from allowlist");
       } catch (err) {
-        toast.error("REMOVE_FAILED: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        toast.error("Failed: " + (err instanceof Error ? err.message : "UNKNOWN"));
       }
     });
   };
 
   return (
     <div className="space-y-6">
-      <PixelPanel title="ACCESS_ALLOWLIST">
+      <PixelPanel title="ALLOWLIST">
         <div className="space-y-6">
           <p className="retro text-[9px] text-zinc-500 uppercase tracking-[0.2em] leading-relaxed max-w-2xl">
             Only GitHub accounts whose username or email appears below (or in the ADMIN_GITHUB_USERNAMES env) may sign in. The public can browse without an account.
           </p>
 
-          {/* Add form */}
-          <div className="flex flex-col gap-3 border-2 border-dashed border-white/20 p-4 md:flex-row md:items-end">
-            <div className="flex flex-1 flex-col gap-1">
+          {/* Add form — grid so the 8-bit inputs each get an equal track and
+              shrink (min-w-0) instead of overflowing; the button takes an auto
+              column. Cells stretch to the row height so the button can bottom-
+              anchor and match the inputs' height exactly. */}
+          <div className="grid grid-cols-1 gap-4 border-2 border-dashed border-white/20 p-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-stretch [&>*]:min-w-0">
+            <div className="flex flex-col gap-1.5">
               <label className="retro text-[8px] text-zinc-600 uppercase tracking-widest">
-                GitHub_Username
+                GITHUB USERNAME
               </label>
-              <input
+              <Input
                 value={githubUsername}
                 onChange={(e) => setGithubUsername(e.target.value)}
                 placeholder="octocat"
-                className={inputClass}
                 disabled={isPending}
               />
             </div>
-            <div className="flex flex-1 flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <label className="retro text-[8px] text-zinc-600 uppercase tracking-widest">
-                Email_(optional)
+                EMAIL (OPTIONAL)
               </label>
-              <input
+              <Input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="member@ajiet.edu.in"
-                className={inputClass}
                 disabled={isPending}
               />
             </div>
-            <div className="flex flex-1 flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <label className="retro text-[8px] text-zinc-600 uppercase tracking-widest">
-                Note_(optional)
+                NOTE (OPTIONAL)
               </label>
-              <input
+              <Input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="3rd yr CSE"
-                className={inputClass}
                 disabled={isPending}
               />
             </div>
-            <button
-              type="button"
-              onClick={handleAdd}
-              disabled={isPending}
-              className="retro border-2 border-[#22c55e] px-4 py-2 text-[9px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black disabled:opacity-50 md:self-stretch"
-            >
-              {isPending ? "..." : "GRANT_ACCESS"}
-            </button>
+            {/* 8-bit button, bottom-anchored. Its layout box is h-9 (36px) and
+                the pixel-border decorations extend 6px above & below → 48px
+                visual, the same as an input frame. mb-1.5 lifts the box 6px so
+                that 48px visual aligns flush with the input boxes' edges. */}
+            <div className="flex flex-col justify-end">
+              <Button
+                type="button"
+                onClick={handleAdd}
+                disabled={isPending}
+                className="mb-1.5 text-[9px] !bg-[#22c55e] !text-black hover:!bg-[#16a34a]"
+              >
+                {isPending ? "…" : "GRANT ACCESS"}
+              </Button>
+            </div>
           </div>
 
           {/* Entry list */}
@@ -143,7 +148,7 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
 
             {initialEntries.length === 0 ? (
               <div className="px-4 py-6 text-center retro text-[10px] text-zinc-700 uppercase tracking-widest">
-                NO_ENTRIES — ONLY ENV-BOOTSTRAP ADMINS CAN SIGN IN
+                No entries yet — only env-bootstrap admins can sign in
               </div>
             ) : (
               initialEntries.map((entry) => (

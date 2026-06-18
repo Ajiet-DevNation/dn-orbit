@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { canAccessAdmin, canManageRoles, isRole } from "@/lib/roles";
 import { isApprovalStatus } from "@/lib/status";
+import { logAudit } from "@/lib/audit";
+import { toTitleCase } from "@/lib/names";
 import { Prisma } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
@@ -62,6 +64,25 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       where: { id },
       data: updateData,
     });
+
+    // Log the meaningful member mutations (role / membership status changes).
+    const who = toTitleCase(updatedUser.name) || "a member";
+    if (role !== undefined) {
+      void logAudit({
+        action: "member.role_change",
+        actorId: session.user.id,
+        actorName: session.user.name,
+        summary: `Set ${who}'s role to ${role}`,
+      });
+    }
+    if (status !== undefined) {
+      void logAudit({
+        action: "member.status_change",
+        actorId: session.user.id,
+        actorName: session.user.name,
+        summary: `${status === "approved" ? "Approved" : status === "rejected" ? "Rejected" : "Updated"} membership for ${who}`,
+      });
+    }
 
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {

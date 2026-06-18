@@ -49,6 +49,12 @@ export function useCoverflow({
 }: CoverflowOptions) {
   const sectionRef = useRef<HTMLElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // Last-written z-index / pointer-events per card. transform & opacity are
+  // compositor-only (cheap to rewrite each frame), but z-index and
+  // pointer-events force a style recalc, so we only touch them when they
+  // actually change — this is what keeps the drag buttery instead of steppy.
+  const lastZRef = useRef<number[]>([]);
+  const lastPeRef = useRef<("auto" | "none")[]>([]);
 
   const focusRef = useRef(0);
   const targetRef = useRef(0);
@@ -76,18 +82,31 @@ export function useCoverflow({
   const applyCards = useCallback(() => {
     const f = focusRef.current;
     const refs = cardRefs.current;
+    const lastZ = lastZRef.current;
+    const lastPe = lastPeRef.current;
     for (let i = 0; i < refs.length; i++) {
       const el = refs[i];
       if (!el) continue;
       const d = wrapDelta(i - f, count);
       const ad = Math.min(Math.abs(d), MAX_VISUAL_DISTANCE);
+      // Compositor-only — safe to write every frame.
       el.style.transform = `translateX(${d * spread}px) scale(${Math.max(
         0.62,
         1 - ad * scaleStep
       )})`;
       el.style.opacity = String(Math.max(0, 1 - ad * opacityStep));
-      el.style.zIndex = String(1000 - Math.round(Math.abs(d) * 10));
-      el.style.pointerEvents = 1 - ad * opacityStep < 0.1 ? "none" : "auto";
+
+      // Recalc-triggering — only write when changed.
+      const z = 1000 - Math.round(Math.abs(d) * 10);
+      if (lastZ[i] !== z) {
+        el.style.zIndex = String(z);
+        lastZ[i] = z;
+      }
+      const pe: "auto" | "none" = 1 - ad * opacityStep < 0.1 ? "none" : "auto";
+      if (lastPe[i] !== pe) {
+        el.style.pointerEvents = pe;
+        lastPe[i] = pe;
+      }
     }
   }, [count, spread, scaleStep, opacityStep]);
 

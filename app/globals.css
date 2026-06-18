@@ -409,13 +409,21 @@ body {
   opacity: 1;
 }
 
-/* Pointer cursor on everything clickable across the v2 app (buttons, links,
-   role="button" cards, etc.). Disabled controls keep the default cursor. */
-[data-v2] button:not(:disabled),
-[data-v2] a,
-[data-v2] [role="button"],
-[data-v2] summary,
-[data-v2] [tabindex]:not([tabindex="-1"]) {
+/* Pointer cursor on everything clickable across the WHOLE app (buttons, links,
+   selects, checkboxes, role="button" cards, sliders, labels, etc.). Applied
+   globally — not just [data-v2] — so the admin panel and auth flows get it too.
+   Disabled controls keep the default cursor. */
+button:not(:disabled),
+a,
+select:not(:disabled),
+summary,
+label[for],
+[role="button"],
+[role="slider"],
+[role="checkbox"],
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+[tabindex]:not([tabindex="-1"]) {
   cursor: pointer;
 }
 
@@ -445,4 +453,16 @@ body {
 .border-y-3 {
   border-top-width: 3px;
   border-bottom-width: 3px;
+}
+
+/* Strip the native number-input spinner buttons — they render as a non-pixel
+   widget that pokes out of the 8-bit input frame. Numbers are still typable. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }

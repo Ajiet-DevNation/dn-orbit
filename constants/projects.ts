@@ -14,6 +14,8 @@ export interface ProjectData {
   description: string;
   techStack: string[];
   githubUrl: string | null;
+  /** Optional live/demo URL. Scraped projects omit it. */
+  demoUrl?: string | null;
   /** Short status tag, e.g. "ACTIVE" / "SHIPPED" / "WIP". */
   status: string;
 }

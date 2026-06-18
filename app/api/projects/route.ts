@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { isApproved } from "@/lib/access";
+import { logAudit } from "@/lib/audit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,10 +12,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Pending approval" }, { status: 403 });
 
     const body = await req.json();
-    const { title, description, imageUrl, githubRepoUrl, techStack, milestones } = body;
+    const { title, description, imageUrl, githubRepoUrl, demoUrl, techStack, milestones } = body;
 
     if (!title) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
+    }
+    // GitHub repo is mandatory for a project submission.
+    if (!githubRepoUrl || !String(githubRepoUrl).trim()) {
+      return NextResponse.json({ error: "GitHub repo URL is required" }, { status: 400 });
     }
 
     const project = await db.project.create({
@@ -23,6 +28,7 @@ export async function POST(req: NextRequest) {
         description,
         imageUrl,
         githubRepoUrl,
+        demoUrl: demoUrl || null,
         techStack: techStack ?? [],
         milestones: milestones ?? [],
         status: "planning",
@@ -35,6 +41,13 @@ export async function POST(req: NextRequest) {
           }
         }
       },
+    });
+
+    void logAudit({
+      action: "project.create",
+      actorId: session.user.id,
+      actorName: session.user.name,
+      summary: `Submitted project "${project.title}"`,
     });
 
     return NextResponse.json(project, { status: 201 });

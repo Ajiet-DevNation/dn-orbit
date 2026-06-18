@@ -28,6 +28,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [githubRepoUrl, setGithubRepoUrl] = useState("");
+  const [demoUrl, setDemoUrl] = useState("");
   const [techStack, setTechStack] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -36,12 +37,17 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
     setDescription("");
     setImageUrl("");
     setGithubRepoUrl("");
+    setDemoUrl("");
     setTechStack([]);
   }
 
   async function handleCreate() {
     if (!title.trim()) {
       notify("error", "✗ Title is required");
+      return;
+    }
+    if (!githubRepoUrl.trim()) {
+      notify("error", "✗ GitHub repo URL is required");
       return;
     }
     setSaving(true);
@@ -53,7 +59,8 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
           title: title.trim(),
           description: description || null,
           imageUrl: imageUrl || null,
-          githubRepoUrl: githubRepoUrl || null,
+          githubRepoUrl: githubRepoUrl.trim(),
+          demoUrl: demoUrl.trim() || null,
           techStack,
           milestones: [],
         }),
@@ -146,13 +153,27 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
 
           <div className="grid gap-4">
             <Label htmlFor="pr-repo" className="text-[10px]">
-              GITHUB REPO URL
+              GITHUB REPO URL *
             </Label>
             <Input
               id="pr-repo"
+              type="url"
               value={githubRepoUrl}
               onChange={(e) => setGithubRepoUrl(e.target.value)}
-              placeholder="https://github.com/…  (optional)"
+              placeholder="https://github.com/your/repo"
+            />
+          </div>
+
+          <div className="grid gap-4">
+            <Label htmlFor="pr-demo" className="text-[10px]">
+              DEMO LINK
+            </Label>
+            <Input
+              id="pr-demo"
+              type="url"
+              value={demoUrl}
+              onChange={(e) => setDemoUrl(e.target.value)}
+              placeholder="https://your-demo.app  (optional)"
             />
           </div>
 

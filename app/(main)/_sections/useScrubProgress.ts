@@ -27,6 +27,15 @@ interface ScrubOptions {
   end?: number;
   /** Smoothing time-constant in ms. Lower = snappier, higher = floatier. */
   tau?: number;
+  /**
+   * Entry lead-in, as a fraction of the viewport height. With `lead = 0`,
+   * progress only leaves 0 once the section is fully pinned (its top hits the
+   * viewport top). A positive lead starts the scrub *while the section is still
+   * rising into view* — progress hits 0 when the section's top is `lead × 100%`
+   * of the way down the viewport — so the animation is already underway by the
+   * time it pins, instead of sitting empty until then.
+   */
+  lead?: number;
 }
 
 function clamp01(n: number): number {
@@ -42,7 +51,7 @@ const MAX_DT_MS = 50; // clamp dt so returning from an idle tab can't leap
 
 export function useScrubProgress(
   ref: React.RefObject<HTMLElement | null>,
-  { start = 0, end = 1, tau = 90 }: ScrubOptions = {}
+  { start = 0, end = 1, tau = 90, lead = 0 }: ScrubOptions = {}
 ): number {
   const [progress, setProgress] = useState(0);
 
@@ -89,11 +98,14 @@ export function useScrubProgress(
 
       const rect = el.getBoundingClientRect();
       const scrubDistance = rect.height - window.innerHeight;
-      // While pinned, rect.top runs from 0 down to -scrubDistance. Before the
-      // section reaches the top of the viewport raw is < 0; after it unpins it's
-      // > 1 — clamp handles both ends.
+      // Entry lead-in distance (px). When > 0 the scrub starts before the pin:
+      // raw = 0 when rect.top === leadPx (section top `lead` of the way down the
+      // viewport), passes lead/total at the pin (rect.top === 0), and reaches 1
+      // at the end of travel (rect.top === -scrubDistance).
+      const leadPx = lead * window.innerHeight;
+      const total = scrubDistance + leadPx;
       const raw =
-        scrubDistance > 0 ? -rect.top / scrubDistance : rect.top <= 0 ? 1 : 0;
+        total > 0 ? (leadPx - rect.top) / total : rect.top <= 0 ? 1 : 0;
       targetRef.current = clamp01((raw - start) / (end - start));
       wake();
     };
@@ -113,7 +125,7 @@ export function useScrubProgress(
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [ref, start, end, wake]);
+  }, [ref, start, end, lead, wake]);
 
   return progress;
 }
