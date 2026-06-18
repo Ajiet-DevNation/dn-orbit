@@ -21,6 +21,10 @@ export function RegistrationForm({
   audience,
   closed,
   schema,
+  dateLabel,
+  location,
+  description,
+  capacityLabel,
   prefill,
 }: {
   eventId: string;
@@ -28,8 +32,13 @@ export function RegistrationForm({
   audience: EventAudience;
   closed: boolean;
   schema: FormFieldDef[];
+  dateLabel: string;
+  location: string | null;
+  description: string | null;
+  capacityLabel: string | null;
   prefill: { name: string; email: string } | null;
 }) {
+  const meta: EventMeta = { audience, dateLabel, location, description, capacityLabel };
   const [name, setName] = useState(prefill?.name ?? "");
   const [email, setEmail] = useState(prefill?.email ?? "");
   const [usn, setUsn] = useState("");
@@ -40,19 +49,17 @@ export function RegistrationForm({
 
   if (closed) {
     return (
-      <Shell title={title}>
+      <Shell title={title} meta={meta}>
         <p className="retro text-sm text-white/70">REGISTRATION IS CLOSED.</p>
-        <Back />
       </Shell>
     );
   }
 
   if (done) {
     return (
-      <Shell title={title}>
+      <Shell title={title} meta={meta}>
         <span className="retro text-4xl text-[#22c55e]">✓</span>
         <p className="retro text-sm text-white">YOU&apos;RE REGISTERED!</p>
-        <Back />
       </Shell>
     );
   }
@@ -94,7 +101,7 @@ export function RegistrationForm({
   const emailLocked = audience === "members" && !!prefill;
 
   return (
-    <Shell title={title}>
+    <Shell title={title} meta={meta}>
       <form onSubmit={submit} className="flex w-full flex-col gap-6">
         <div className="flex flex-col gap-2">
           <Label className="retro text-[9px] tracking-widest text-[#22c55e]">NAME *</Label>
@@ -140,21 +147,61 @@ export function RegistrationForm({
   );
 }
 
-function Shell({ title, children }: { title: string; children: React.ReactNode }) {
+type EventMeta = {
+  audience: EventAudience;
+  dateLabel: string;
+  location: string | null;
+  description: string | null;
+  capacityLabel: string | null;
+};
+
+function Shell({
+  title,
+  meta,
+  children,
+}: {
+  title: string;
+  meta: EventMeta;
+  children: React.ReactNode;
+}) {
+  const when = [meta.dateLabel, meta.location].filter(Boolean).join(" · ");
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-28">
-      <div className="flex flex-col gap-2">
+      <Back />
+      <div className="flex flex-col gap-3">
         <span className="retro text-[9px] tracking-widest text-[#22c55e]">EVENT REGISTRATION</span>
         <h1 className="retro text-xl text-white">{title}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <AudienceBadge audience={meta.audience} />
+          {when && <p className="retro text-[10px] text-[#22c55e]">{when}</p>}
+        </div>
+        {meta.capacityLabel && (
+          <p className="retro text-[9px] text-muted-foreground">{meta.capacityLabel}</p>
+        )}
+        {meta.description && (
+          <p className="text-sm leading-relaxed text-muted-foreground">{meta.description}</p>
+        )}
       </div>
       <Card className="flex flex-col items-start gap-4 border-white/10 p-8">{children}</Card>
     </div>
   );
 }
 
+function AudienceBadge({ audience }: { audience: EventAudience }) {
+  const label = audience === "members" ? "MEMBERS" : audience === "college" ? "COLLEGE" : "OPEN";
+  return (
+    <span className="retro border-2 border-[#22c55e] px-2 py-1 text-[8px] text-[#22c55e]">
+      {label}
+    </span>
+  );
+}
+
 function Back() {
   return (
-    <Link href="/#events" className="retro text-[9px] text-[#22c55e] underline">
+    <Link
+      href="/#events"
+      className="retro flex w-fit items-center gap-2 text-[9px] text-[#22c55e] transition-colors duration-200 hover:text-white"
+    >
       ◂ BACK TO EVENTS
     </Link>
   );

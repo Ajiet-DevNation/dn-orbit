@@ -186,9 +186,9 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
           <button
             onClick={close}
             aria-label="Close event details"
-            className="retro absolute right-8 top-24 z-10 cursor-pointer border-2 border-white/20 px-3 py-2 text-xs text-white/70 transition-colors duration-200 hover:border-[#22c55e] hover:text-[#22c55e]"
+            className="retro absolute right-6 top-6 z-10 flex cursor-pointer items-center gap-2 border-2 border-[#22c55e] bg-[#0a0a0a] px-3 py-2 text-[10px] text-[#22c55e] shadow-[0_0_12px_rgba(34,197,94,0.25)] transition-colors duration-200 hover:bg-[#22c55e] hover:text-[#0a0a0a]"
           >
-            ✕
+            <span aria-hidden>✕</span> CLOSE
           </button>
           <div ref={flipRef} className="w-full max-w-sm shrink-0">
             <EventCard data={active} />
