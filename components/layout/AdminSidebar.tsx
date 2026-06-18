@@ -117,7 +117,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
               {userName || "COMMANDER"}
             </div>
           </div>
-          <SignOutButton className="retro flex w-full items-center justify-center gap-3 border-2 border-white/20 bg-transparent px-4 py-3 text-[8px] uppercase tracking-[0.3em] text-zinc-500 transition-all hover:border-[#22c55e] hover:bg-[#22c55e] hover:text-black">
+          <SignOutButton className="retro flex w-full items-center justify-center gap-3 border-2 border-white/20 bg-transparent px-4 py-3 text-[8px] uppercase tracking-[0.3em] text-zinc-500 transition-all hover:border-[#ef4444] hover:bg-[#ef4444] hover:text-black">
             <LogOut className="h-3 w-3" /> TERMINATE
           </SignOutButton>
         </div>
