@@ -3,10 +3,27 @@
 import React, { useTransition, useOptimistic } from "react";
 import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
-import { deleteProject } from "./actions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/8bit-select";
+import { deleteProject, updateProjectStatus } from "./actions";
 import { useRouter } from "next/navigation";
 
 type ReviewStatus = "pending" | "approved" | "rejected";
+
+// DB enum values (prisma ProjectStatus) paired with friendlier labels. Values
+// must stay in sync with the enum / updateProjectStatus signature.
+type ProjectStatus = "planning" | "active" | "completed" | "stalled";
+const STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
+  { value: "planning", label: "PLANNING" },
+  { value: "active", label: "BUILDING" },
+  { value: "completed", label: "COMPLETED" },
+  { value: "stalled", label: "STALLED" },
+];
 
 interface Project {
   id: string;
@@ -31,7 +48,12 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
 
   const [optimisticProjects, addOptimisticAction] = useOptimistic(
     initialProjects,
-    (state, action: { type: "approve" | "reject" | "delete"; id: string }) => {
+    (
+      state,
+      action:
+        | { type: "approve" | "reject" | "delete"; id: string }
+        | { type: "status"; id: string; status: ProjectStatus },
+    ) => {
       if (action.type === "approve") {
         return state.map((p) =>
           p.id === action.id ? { ...p, reviewStatus: "approved" as const } : p,
@@ -42,12 +64,31 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
           p.id === action.id ? { ...p, reviewStatus: "rejected" as const } : p,
         );
       }
+      if (action.type === "status") {
+        return state.map((p) =>
+          p.id === action.id ? { ...p, status: action.status } : p,
+        );
+      }
       if (action.type === "delete") {
         return state.filter((p) => p.id !== action.id);
       }
       return state;
     }
   );
+
+  const handleStatus = (id: string, status: ProjectStatus) => {
+    startTransition(async () => {
+      addOptimisticAction({ type: "status", id, status });
+      try {
+        await updateProjectStatus(id, status);
+        toast.success("STATUS_UPDATED");
+      } catch (err) {
+        toast.error(
+          "STATUS_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"),
+        );
+      }
+    });
+  };
 
   const handleReview = async (id: string, action: "approve" | "reject") => {
     startTransition(async () => {
@@ -117,16 +158,23 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       key: "status",
       header: "STATUS",
       render: (p) => (
-        <div className="flex items-center gap-4">
-          <span
-            className={`retro inline-block border-2 px-2 py-1 text-[8px] ${
-              p.status === "completed"
-                ? "border-white bg-white text-black"
-                : "border-white/10 text-zinc-500"
-            }`}
+        <div className="flex items-center gap-3">
+          <Select
+            value={p.status}
+            onValueChange={(v) => handleStatus(p.id, v as ProjectStatus)}
+            disabled={isPending}
           >
-            {p.status.toUpperCase()}
-          </span>
+            <SelectTrigger className="h-auto min-w-[8.5rem] py-1 text-[8px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="z-[200] dark">
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s.value} value={s.value} className="text-[8px]">
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <span className="retro text-[9px] tabular-nums text-zinc-400">{p.progressPct}%</span>
         </div>
       ),
