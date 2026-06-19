@@ -62,7 +62,12 @@ export default async function RegisterPage({
       }
       prefill={
         isMember && session
-          ? { name: session.user.name ?? "", email: session.user.email ?? "" }
+          ? {
+              name: session.user.name ?? "",
+              email: session.user.email ?? "",
+              // Members onboarded with a USN — reuse it so they don't re-enter it.
+              usn: session.user.usn ?? undefined,
+            }
           : null
       }
     />
