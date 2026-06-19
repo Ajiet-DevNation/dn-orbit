@@ -134,6 +134,11 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
           ? "✓ Event published"
           : "✓ Event submitted for admin review"
       );
+      // First-ever event: point the user to where they can track it and see who
+      // registers, since that page isn't obvious. Shown once (server flag).
+      if (body.isFirstEvent) {
+        notify("success", "✓ Find it under YOUR EVENTS in your profile");
+      }
       reset();
       onOpenChange(false);
       router.refresh();
@@ -241,7 +246,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
             </Label>
             {/* Multiline — same pixel-border frame as the 8bit Input, but a
                 textarea so text wraps onto new lines instead of scrolling. */}
-            <div className="relative flex border-y-6 border-foreground dark:border-ring">
+            <div className="relative flex border-y-[4px] border-foreground dark:border-ring">
               <textarea
                 id="ev-desc"
                 value={description}
@@ -251,7 +256,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
                 className="retro w-full resize-none rounded-none bg-transparent px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
               />
               <div
-                className="pointer-events-none absolute inset-0 -mx-1.5 border-x-6 border-foreground dark:border-ring"
+                className="pointer-events-none absolute inset-0 -mx-1 border-x-[4px] border-foreground dark:border-ring"
                 aria-hidden="true"
               />
             </div>

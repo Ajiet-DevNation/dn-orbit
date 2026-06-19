@@ -6,6 +6,13 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/8bit-select";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { TechStackSelect } from "./TechStackSelect";
@@ -15,6 +22,17 @@ function notify(kind: "success" | "error", message: string) {
   const color = kind === "success" ? "text-green-500" : "text-red-500";
   toast(<span className={color}>{message}</span>);
 }
+
+// DB enum (prisma ProjectStatus) paired with the same friendly labels the admin
+// panel uses, so a member sees consistent wording. Values must stay in sync with
+// the enum and the /api/projects whitelist.
+type ProjectStatus = "planning" | "active" | "completed" | "stalled";
+const STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
+  { value: "planning", label: "PLANNING" },
+  { value: "active", label: "BUILDING" },
+  { value: "completed", label: "COMPLETED" },
+  { value: "stalled", label: "STALLED" },
+];
 
 interface ProjectModalProps {
   open: boolean;
@@ -30,6 +48,8 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
   const [githubRepoUrl, setGithubRepoUrl] = useState("");
   const [demoUrl, setDemoUrl] = useState("");
   const [techStack, setTechStack] = useState<string[]>([]);
+  const [status, setStatus] = useState<ProjectStatus>("planning");
+  const [progressPct, setProgressPct] = useState("0");
   const [saving, setSaving] = useState(false);
 
   function reset() {
@@ -39,6 +59,8 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
     setGithubRepoUrl("");
     setDemoUrl("");
     setTechStack([]);
+    setStatus("planning");
+    setProgressPct("0");
   }
 
   async function handleCreate() {
@@ -62,6 +84,8 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
           githubRepoUrl: githubRepoUrl.trim(),
           demoUrl: demoUrl.trim() || null,
           techStack,
+          status,
+          progressPct: Math.max(0, Math.min(100, Math.round(Number(progressPct) || 0))),
           milestones: [],
         }),
       });
@@ -125,7 +149,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
             <Label htmlFor="pr-desc" className="text-[10px]">
               DESCRIPTION
             </Label>
-            <div className="relative flex border-y-6 border-foreground dark:border-ring">
+            <div className="relative flex border-y-[4px] border-foreground dark:border-ring">
               <textarea
                 id="pr-desc"
                 value={description}
@@ -135,7 +159,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
                 className="retro w-full resize-none rounded-none bg-transparent px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
               />
               <div
-                className="pointer-events-none absolute inset-0 -mx-1.5 border-x-6 border-foreground dark:border-ring"
+                className="pointer-events-none absolute inset-0 -mx-1 border-x-[4px] border-foreground dark:border-ring"
                 aria-hidden="true"
               />
             </div>
@@ -175,6 +199,48 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
               onChange={(e) => setDemoUrl(e.target.value)}
               placeholder="https://your-demo.app  (optional)"
             />
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label className="text-[10px]">STATUS</Label>
+              <Select
+                value={status}
+                onValueChange={(v) => setStatus(v as ProjectStatus)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="z-[200] dark">
+                  {STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="pr-progress" className="text-[10px]">
+                PROGRESS %
+              </Label>
+              <Input
+                id="pr-progress"
+                type="number"
+                min={0}
+                max={100}
+                value={progressPct}
+                onChange={(e) => setProgressPct(e.target.value)}
+                onBlur={(e) =>
+                  setProgressPct(
+                    String(
+                      Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)))
+                    )
+                  )
+                }
+                placeholder="0"
+              />
+            </div>
           </div>
 
           <div className="grid gap-6">

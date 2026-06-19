@@ -3,6 +3,7 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FaGithub, FaExternalLinkAlt } from "react-icons/fa";
 import { Card } from "@/components/ui/8bit-card";
+import { Button } from "@/components/ui/8bit-button";
 import { cn } from "@/lib/utils";
 import { type ProjectData } from "@/constants/projects";
 import { TECH_BY_NAME } from "./techStack";
@@ -143,10 +144,8 @@ function ProjectDetail({
           "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)",
       }}
     >
-      {/* pr-28 reserves room for the absolutely-positioned CLOSE button at the
-          overlay's top-right; min-w-0 + break-words lets a long title wrap
-          instead of sliding under it. */}
-      <div className="flex items-center gap-3 pr-28">
+      {/* min-w-0 + break-words lets a long title wrap cleanly. */}
+      <div className="flex items-center gap-3">
         <span
           className="retro shrink-0 border-2 px-2 py-1 text-[8px]"
           style={{ color, borderColor: color }}
@@ -174,28 +173,22 @@ function ProjectDetail({
       </div>
 
       {(project.githubUrl || project.demoUrl) && (
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-4">
           {project.githubUrl && (
-            <a
-              href={project.githubUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="retro inline-flex w-fit cursor-pointer items-center gap-2 border-2 border-[#22c55e] px-4 py-3 text-[9px] text-[#22c55e] transition-colors duration-200 hover:bg-[#22c55e] hover:text-[#0a0a0a]"
-            >
-              <FaGithub className="size-4" />
-              VIEW ON GITHUB
-            </a>
+            <Button asChild size="sm" className="text-[9px]">
+              <a href={project.githubUrl} target="_blank" rel="noopener noreferrer">
+                <FaGithub className="size-4" />
+                VIEW ON GITHUB
+              </a>
+            </Button>
           )}
           {project.demoUrl && (
-            <a
-              href={project.demoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="retro inline-flex w-fit cursor-pointer items-center gap-2 border-2 border-[#22c55e] px-4 py-3 text-[9px] text-[#22c55e] transition-colors duration-200 hover:bg-[#22c55e] hover:text-[#0a0a0a]"
-            >
-              <FaExternalLinkAlt className="size-3.5" />
-              LIVE DEMO
-            </a>
+            <Button asChild size="sm" className="text-[9px]">
+              <a href={project.demoUrl} target="_blank" rel="noopener noreferrer">
+                <FaExternalLinkAlt className="size-3.5" />
+                LIVE DEMO
+              </a>
+            </Button>
           )}
         </div>
       )}
@@ -357,14 +350,14 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
             backdrop so it cleanly covers the title + carousel; padded down so it
             sits clear of the sticky nav and reads as centred. */}
         {activeProject && (
-          <div className="absolute inset-0 z-20 overflow-y-auto bg-[#0a0a0a]">
-            {/* Same centred-content + anchored-close pattern as the events
-                overlay, for one consistent close button everywhere. */}
+          <div className="fixed inset-0 z-[60] overflow-y-auto bg-[#0a0a0a]">
+            {/* Full-screen modal (above the sticky header), matching the events
+                overlay — one consistent, always-reachable close button. */}
             <div className="relative mx-auto flex min-h-full w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 py-24 lg:flex-row lg:gap-16">
               <OverlayCloseButton
                 onClick={close}
                 label="Close project details"
-                className="absolute right-2 top-24"
+                className="fixed right-4 top-4 z-[70]"
               />
 
               <div

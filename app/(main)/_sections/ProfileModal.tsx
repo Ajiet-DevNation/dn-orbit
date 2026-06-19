@@ -184,6 +184,18 @@ export function ProfileModal({
                   EDIT PHOTO
                 </Button>
 
+                {/* Open to every signed-in member — their own created events +
+                    registration rosters live behind this, not just admins'. */}
+                <Button
+                  className="w-full text-[10px]"
+                  onClick={() => {
+                    onOpenChange(false);
+                    router.push("/my-events");
+                  }}
+                >
+                  YOUR EVENTS
+                </Button>
+
                 {isAdmin && (
                   <Button
                     className="w-full text-[10px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"

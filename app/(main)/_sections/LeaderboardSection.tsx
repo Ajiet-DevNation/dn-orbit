@@ -7,6 +7,7 @@ import {
   AvatarImage,
 } from "@/components/ui/8bit-avatar";
 import { Card } from "@/components/ui/8bit-card";
+import { Button } from "@/components/ui/8bit-button";
 import { cn } from "@/lib/utils";
 import { SectionHeading } from "./SectionHeading";
 import { useScrubProgress } from "./useScrubProgress";
@@ -379,8 +380,8 @@ function LeaderboardList({
   );
 }
 
-// Pixel-framed pager control: green when active, dimmed + non-interactive at the
-// ends of the range.
+// Pixel pager control on the shared 8-bit Button (chunky border + shadow),
+// matching the events grid pager. Disabled + dimmed at the ends of the range.
 function PagerButton({
   label,
   disabled,
@@ -391,14 +392,15 @@ function PagerButton({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      size="sm"
       onClick={onClick}
       disabled={disabled}
-      className="retro cursor-pointer border-2 border-[#22c55e] px-3 py-2 text-[9px] tracking-widest text-[#22c55e] transition-colors duration-200 hover:bg-[#22c55e] hover:text-[#0a0a0a] disabled:cursor-not-allowed disabled:border-white/15 disabled:text-white/25 disabled:hover:bg-transparent disabled:hover:text-white/25"
+      className="text-[9px]"
     >
       {label}
-    </button>
+    </Button>
   );
 }
 

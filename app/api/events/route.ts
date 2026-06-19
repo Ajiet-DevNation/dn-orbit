@@ -68,5 +68,10 @@ export async function POST(req: NextRequest) {
     summary: `${isAdmin ? "Created" : "Submitted"} event "${event.title}"`,
   });
 
-  return NextResponse.json(event, { status: 201 });
+  // Was this the creator's very first event? Used by the client to show a
+  // one-time pointer to the "Your Events" page (=== 1 since the row above just
+  // committed). Cheap indexed count; only the creator's own rows are counted.
+  const createdCount = await db.event.count({ where: { createdBy: session.user.id } });
+
+  return NextResponse.json({ ...event, isFirstEvent: createdCount === 1 }, { status: 201 });
 }

@@ -30,24 +30,37 @@ export function TechStackSelect({ value, onChange }: TechStackSelectProps) {
     <div className="space-y-5">
       {/* Selected chips */}
       {value.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          {value.map((name) => {
-            const tech = TECH_BY_NAME[name];
-            const Icon = tech?.Icon;
-            return (
-              <button
-                key={name}
-                type="button"
-                onClick={() => toggle(name)}
-                className="flex items-center gap-2 border-2 border-[#22c55e] px-2 py-1 text-[10px] text-white hover:border-red-500"
-                title="Remove"
-              >
-                {Icon && <Icon className="size-3.5 text-[#22c55e]" />}
-                {name}
-                <span className="text-muted-foreground">×</span>
-              </button>
-            );
-          })}
+        <div className="space-y-3">
+          <p className="retro text-[8px] tracking-widest text-muted-foreground">
+            SELECTED ({value.length}) — CLICK TO REMOVE
+          </p>
+          <div className="flex flex-wrap gap-2.5">
+            {value.map((name) => {
+              const tech = TECH_BY_NAME[name];
+              const Icon = tech?.Icon;
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => toggle(name)}
+                  aria-label={`Remove ${name}`}
+                  title="Remove"
+                  className="group/chip retro flex h-9 items-center gap-2 border-2 border-[#22c55e]/70 bg-[#22c55e]/[0.06] px-3 text-[10px] leading-none text-white transition-colors hover:border-red-500 hover:bg-red-500/10"
+                >
+                  {Icon && (
+                    <Icon className="size-4 shrink-0 text-[#22c55e] transition-colors group-hover/chip:text-red-400" />
+                  )}
+                  <span>{name}</span>
+                  <span
+                    aria-hidden="true"
+                    className="ml-0.5 grid size-4 place-items-center border border-[#22c55e]/50 text-[9px] leading-none text-[#22c55e]/80 transition-colors group-hover/chip:border-red-500 group-hover/chip:text-red-400"
+                  >
+                    ×
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

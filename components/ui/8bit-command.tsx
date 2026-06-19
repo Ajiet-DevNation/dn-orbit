@@ -86,11 +86,11 @@ function CommandInput({
   return (
     <div
       data-slot="command-input-wrapper"
-      className="flex h-10 items-center gap-2 border-b px-3"
+      className="flex h-9 items-center gap-2 border-b px-3"
     >
       <svg
-        width="30"
-        height="30"
+        width="22"
+        height="22"
         viewBox="0 0 256 256"
         fill="currentColor"
         xmlns="http://www.w3.org/2000/svg"
@@ -121,7 +121,7 @@ function CommandInput({
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(
-          "placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+          "placeholder:text-muted-foreground flex h-8 w-full rounded-md bg-transparent py-1.5 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         {...props}
