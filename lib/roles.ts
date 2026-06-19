@@ -7,11 +7,16 @@ export const ROLES = [
   "vice_president",
   "core_member",
   "member",
+  // Non-DevNation AJIET students: no club membership, no admin access — a
+  // classification tier so AJIET-only events can recognise them. Kept last so
+  // it sorts below the membership tiers in role pickers.
+  "ajiet_student",
 ] as const;
 
 export type Role = (typeof ROLES)[number];
 
-// The three tiers allowed into the admin panel. `member` is excluded.
+// The three tiers allowed into the admin panel. `member` and `ajiet_student`
+// are excluded.
 export const ADMIN_ROLES: readonly Role[] = [
   "president",
   "vice_president",
@@ -23,6 +28,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   vice_president: "Vice President",
   core_member: "Core Member",
   member: "Member",
+  ajiet_student: "AJIET Student",
 };
 
 export function isRole(value: unknown): value is Role {

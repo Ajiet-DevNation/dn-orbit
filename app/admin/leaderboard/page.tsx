@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { PixelPanel } from "@/components/admin/PixelPanel";
 import { WeightForm } from "./WeightForm";
+import { LeaderboardPreview } from "./LeaderboardPreview";
 
 export default async function AdminLeaderboardPage() {
   const session = await auth();
@@ -13,11 +14,12 @@ export default async function AdminLeaderboardPage() {
   }
 
   const weights = await db.scoreWeight.findFirst();
+  // Pull the full score-sorted roster so the preview's name search can reach
+  // past the top 10; the client component slices to the top 10 by default.
   const scores = await db.leaderboardScore.findMany({
     select: {
       id: true,
       totalScore: true,
-      rank: true,
       user: {
         select: {
           name: true,
@@ -29,7 +31,6 @@ export default async function AdminLeaderboardPage() {
     orderBy: {
       totalScore: "desc",
     },
-    take: 10,
   });
 
   return (
@@ -50,40 +51,16 @@ export default async function AdminLeaderboardPage() {
           </PixelPanel>
         </div>
 
-        <div className="space-y-4 lg:col-span-2">
-          <div className="retro text-[9px] tracking-widest text-zinc-500 border-b-2 border-white/10 pb-2">
-            PREVIEW_TELEMETRY (TOP_10)
-          </div>
-          <div className="border-2 border-white/10 divide-y-2 divide-zinc-900 overflow-hidden">
-            {scores.map((s, idx) => (
-              <div
-                key={s.id}
-                className="p-4 flex items-center justify-between hover:bg-zinc-950 transition-all group"
-              >
-                <div className="flex items-center gap-6">
-                  <span className="retro text-xl text-zinc-700 group-hover:text-[#22c55e] transition-colors">
-                    {(idx + 1).toString().padStart(2, "0")}
-                  </span>
-                  <div className="flex flex-col">
-                    <span className="retro text-[10px] uppercase tracking-tight text-white">
-                      {s.user.name || "ANONYMOUS"}
-                    </span>
-                    <span className="retro text-[8px] text-zinc-600 tracking-widest uppercase">
-                      {s.user.branch} ({s.user.year}y)
-                    </span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="retro text-base text-[#22c55e] tabular-nums">
-                    {s.totalScore.toFixed(2)}
-                  </div>
-                  <div className="retro text-[8px] text-zinc-700 uppercase tracking-widest">
-                    SCORE_VALUE
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="lg:col-span-2">
+          <LeaderboardPreview
+            rows={scores.map((s) => ({
+              id: s.id,
+              totalScore: s.totalScore,
+              name: s.user.name,
+              branch: s.user.branch,
+              year: s.user.year,
+            }))}
+          />
         </div>
       </div>
     </div>

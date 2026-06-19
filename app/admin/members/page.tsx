@@ -33,6 +33,7 @@ export default async function AdminMembersPage() {
 
   const adminCount = users.filter((u) => canAccessAdmin(u.role)).length;
   const memberCount = users.filter((u) => u.role === "member").length;
+  const ajietCount = users.filter((u) => u.role === "ajiet_student").length;
 
   return (
     <div className="space-y-8 p-8">
@@ -44,6 +45,7 @@ export default async function AdminMembersPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <PixelStatTile label="ADMINS" value={adminCount.toString().padStart(2, "0")} />
         <PixelStatTile label="MEMBERS" value={memberCount.toString().padStart(2, "0")} />
+        <PixelStatTile label="AJIET STUDENTS" value={ajietCount.toString().padStart(2, "0")} />
       </div>
 
       <div className="space-y-4">

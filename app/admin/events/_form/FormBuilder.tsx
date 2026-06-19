@@ -133,6 +133,20 @@ export function FormBuilder({
         </p>
       </div>
 
+      {/* Branching primer — surfaces the conditional-display feature so admins
+          know follow-up questions can be gated on an earlier answer. */}
+      <div className="flex flex-col gap-1.5 border-2 border-[#22c55e]/25 bg-black/30 p-4">
+        <span className="retro inline-flex items-center gap-2 text-[9px] tracking-widest text-[#22c55e]">
+          <span aria-hidden>⑂</span> BRANCHING SUPPORTED
+        </span>
+        <p className="retro text-[8px] leading-relaxed text-muted-foreground">
+          ADD A MULTIPLE-CHOICE QUESTION (e.g. INDIVIDUAL / TEAM), THEN ADD
+          FOLLOW-UP QUESTIONS BELOW IT. EACH ONE HAS A “SHOW ONLY IF” CONTROL TO
+          REVEAL IT ONLY FOR A CHOSEN ANSWER — e.g. ASK FOR TEAM LEADERS ONLY
+          WHEN “TEAM” IS PICKED.
+        </p>
+      </div>
+
       {value.length === 0 && (
         <div className="border-2 border-dashed border-white/15 bg-black/30 p-6 text-center">
           <p className="retro text-[9px] leading-relaxed text-muted-foreground">
@@ -297,7 +311,10 @@ export function FormBuilder({
                 to an earlier choice question (branching forms). */}
             {condCandidates.length > 0 && (
               <div className="grid gap-2 border-t-2 border-white/10 pt-4">
-                <Label className="text-[9px]">SHOW ONLY IF</Label>
+                <Label className="inline-flex items-center gap-2 text-[9px]">
+                  <span aria-hidden className="text-[#22c55e]">⑂</span>
+                  SHOW ONLY IF <span className="text-muted-foreground">(BRANCHING — OPTIONAL)</span>
+                </Label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Select
                     value={f.visibleWhen?.fieldId ?? NONE}
@@ -350,13 +367,13 @@ export function FormBuilder({
                     </Select>
                   )}
                 </div>
-                {f.visibleWhen && (
-                  <p className="retro text-[8px] leading-relaxed text-muted-foreground">
-                    SHOWN ONLY WHEN “
-                    {controlling?.label.trim() || "QUESTION ABOVE"}” IS “
-                    {f.visibleWhen.equals || "…"}”.
-                  </p>
-                )}
+                <p className="retro text-[8px] leading-relaxed text-muted-foreground">
+                  {f.visibleWhen
+                    ? `SHOWN ONLY WHEN “${
+                        controlling?.label.trim() || "QUESTION ABOVE"
+                      }” IS “${f.visibleWhen.equals || "…"}”.`
+                    : "LEAVE AS “ALWAYS SHOWN” TO ASK EVERYONE, OR PICK AN EARLIER ANSWER TO BRANCH."}
+                </p>
               </div>
             )}
 
