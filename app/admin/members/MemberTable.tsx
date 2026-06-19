@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useTransition } from "react";
+import React, { useMemo, useState, useTransition } from "react";
 import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
+import { Command, CommandInput } from "@/components/ui/8bit-command";
 import { useRouter } from "next/navigation";
 import {
   Select,
@@ -11,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
-import { ROLES, ROLE_LABELS, canManageRoles, type Role } from "@/lib/roles";
+import { ROLES, ROLE_LABELS, canAccessAdmin, canManageRoles, type Role } from "@/lib/roles";
 import { toTitleCase } from "@/lib/names";
 
 interface Member {
@@ -30,12 +31,43 @@ interface MemberTableProps {
   currentUserRole: string;
 }
 
+// Flatten a member into one lowercase haystack so a single query can match
+// across name, email, USN, role (raw + label), branch and year.
+function memberHaystack(m: Member): string {
+  return [
+    m.name,
+    m.email,
+    m.usn,
+    m.role,
+    ROLE_LABELS[m.role as Role] ?? m.role,
+    m.branch,
+    m.year != null ? `${m.year}y` : null,
+    m.branch && m.year != null ? `${m.branch} ${m.year}y` : null,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
 export function MemberTable({ initialMembers, currentUserId, currentUserRole }: MemberTableProps) {
   const [isPending, startTransition] = useTransition();
+  const [query, setQuery] = useState("");
   const router = useRouter();
 
   // Only the President may change role tiers (server enforces this too).
   const canEdit = canManageRoles(currentUserRole);
+
+  // Filter client-side: the full directory is already in memory, so each
+  // keystroke narrows it instantly without a round-trip. Whitespace-tolerant —
+  // every space-separated term must match somewhere in the row.
+  const filtered = useMemo(() => {
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return initialMembers;
+    return initialMembers.filter((m) => {
+      const hay = memberHaystack(m);
+      return terms.every((t) => hay.includes(t));
+    });
+  }, [initialMembers, query]);
 
   const handleRoleChange = async (userId: string, newRole: Role) => {
     if (userId === currentUserId && newRole !== "president") {
@@ -82,7 +114,7 @@ export function MemberTable({ initialMembers, currentUserId, currentUserRole }: 
       render: (m) => (
         <span
           className={`retro inline-block border-2 px-2 py-1 text-[8px] ${
-            m.role !== "member"
+            canAccessAdmin(m.role)
               ? "border-[#22c55e] bg-[#22c55e] text-black"
               : "border-white/10 text-zinc-500"
           }`}
@@ -132,5 +164,31 @@ export function MemberTable({ initialMembers, currentUserId, currentUserRole }: 
     },
   ];
 
-  return <PixelDataTable data={initialMembers} columns={columns} empty="NO MEMBERS" />;
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1.5">
+        <div className="max-w-sm px-1.5">
+          <Command shouldFilter={false} className="w-full border-white/10">
+            <CommandInput
+              value={query}
+              onValueChange={setQuery}
+              placeholder="SEARCH — NAME, USN, ROLE, BRANCH, YEAR…"
+              aria-label="Search members"
+              className="text-[10px] uppercase tracking-wider"
+            />
+          </Command>
+        </div>
+        <span className="retro px-1.5 text-[8px] tracking-widest text-zinc-600">
+          {filtered.length === initialMembers.length
+            ? `${initialMembers.length} NODES`
+            : `${filtered.length} / ${initialMembers.length} MATCH`}
+        </span>
+      </div>
+      <PixelDataTable
+        data={filtered}
+        columns={columns}
+        empty={query ? "NO MATCHING MEMBERS" : "NO MEMBERS"}
+      />
+    </div>
+  );
 }

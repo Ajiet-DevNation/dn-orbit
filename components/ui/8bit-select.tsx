@@ -76,7 +76,7 @@ function SelectTrigger({ children, ...props }: BitSelectTriggerProps) {
       className={cn(
         // w-full + min-w-0 so the trigger fills its column and can shrink,
         // letting a long value truncate (line-clamp) instead of overflowing.
-        "relative w-full min-w-0 border-y-6 border-foreground dark:border-ring",
+        "relative w-full min-w-0 border-y-[4px] border-foreground dark:border-ring",
         className,
         font !== "normal" && "retro"
       )}
@@ -93,7 +93,7 @@ function SelectTrigger({ children, ...props }: BitSelectTriggerProps) {
       </ShadcnSelectTrigger>
 
       <div
-        className="absolute inset-0 border-x-6 -mx-1.5 border-foreground dark:border-ring pointer-events-none"
+        className="absolute inset-0 border-x-[4px] -mx-1 border-foreground dark:border-ring pointer-events-none"
         aria-hidden="true"
       />
     </div>

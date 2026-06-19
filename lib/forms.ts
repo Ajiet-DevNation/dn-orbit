@@ -6,15 +6,15 @@ export type EventAudience = "members" | "college" | "members_college" | "public"
 // Admin "who can register" options (single source of truth for the label copy).
 export const AUDIENCE_OPTIONS: { value: EventAudience; label: string }[] = [
   { value: "public", label: "ANYONE (PUBLIC)" },
-  { value: "college", label: "AJIET STUDENT (USN)" },
+  { value: "college", label: "ONLY AJIET STUDENTS (USN)" },
   { value: "members", label: "MEMBERS ONLY" },
   { value: "members_college", label: "MEMBERS + AJIET" },
 ];
 
 // Short labels for the audience badge on event cards / the registration header.
 export const AUDIENCE_BADGE_LABELS: Record<EventAudience, string> = {
-  members: "MEMBERS",
-  college: "AJIET STUDENT",
+  members: "MEMBERS ONLY",
+  college: "AJIET ONLY",
   members_college: "MEMBERS + AJIET",
   public: "OPEN",
 };

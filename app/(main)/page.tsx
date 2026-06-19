@@ -15,6 +15,7 @@ import {
 } from "./_sections/LeaderboardSection";
 import { ProjectsSection } from "./_sections/ProjectsSection";
 import { MembersSection } from "./_sections/MembersSection";
+import { Footer } from "./_sections/Footer";
 import { PROJECTS as scrapedProjects, type ProjectData } from "@/constants/projects";
 import { languagesFromRecord } from "./_sections/stats-utils";
 import { PixelLoadingScreen } from "@/components/ui/PixelLoadingScreen";
@@ -49,12 +50,15 @@ export default async function V2Page() {
   const hasLcUsername = !!session?.user?.lcUsername;
   const isAdmin = canAccessAdmin(session?.user?.role);
 
-  // Published events feed two surfaces: the top announcement strip (first few)
-  // and the full Events grid below the terminal. Fetched once, mapped twice.
+  // Published events feed two surfaces: the top announcement strip (first 6) and
+  // the full Events grid below the terminal, which paginates (6/page) and is
+  // searchable client-side. Fetched once, mapped twice. Capped at 100 — a
+  // generous bound (mirroring the leaderboard cap) that keeps the payload small
+  // while comfortably covering realistic event volumes.
   const events = await db.event.findMany({
     where: { reviewStatus: "approved", isPublished: true },
     orderBy: { eventDate: "asc" },
-    take: 12,
+    take: 100,
     include: { _count: { select: { registrations: true } } },
   });
 
@@ -218,6 +222,7 @@ export default async function V2Page() {
       <LeaderboardSection entries={leaderboard} />
       <ProjectsSection projects={projects} />
       <MembersSection />
+      <Footer />
     </div>
   );
 }

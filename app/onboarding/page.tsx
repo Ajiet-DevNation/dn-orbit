@@ -136,7 +136,7 @@ export default function OnboardingPage() {
         <Card>
           <CardHeader className="p-6 pb-2 flex flex-col items-center text-center space-y-0">
             <div className="flex items-center justify-center gap-2">
-              <Image src="/assets/DNLogoTransparent.png" alt="DN Logo" width={84} height={84} className="w-[84px] h-[84px] pixelated drop-shadow-md" />
+              <Image src="/assets/DNLogoTransparent.png" alt="DN Logo" width={84} height={84} priority className="w-[84px] h-[84px] pixelated drop-shadow-md" />
               <div className="font-black text-[32px] tracking-widest uppercase mt-1">ORBIT</div>
             </div>
             <CardTitle className="text-2xl leading-tight uppercase">

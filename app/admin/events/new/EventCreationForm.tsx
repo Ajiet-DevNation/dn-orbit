@@ -170,7 +170,7 @@ export default function EventCreationForm({
         <div className="mt-4 grid gap-2">
           <Label className="text-[10px]">DESCRIPTION</Label>
           {/* Multiline pixel-frame textarea — matches the 8bit Input border. */}
-          <div className="relative flex border-y-6 border-foreground dark:border-ring">
+          <div className="relative flex border-y-[4px] border-foreground dark:border-ring">
             <textarea
               value={f.description}
               placeholder="What is this event about?"
@@ -180,7 +180,7 @@ export default function EventCreationForm({
               className="retro w-full resize-none rounded-none bg-transparent px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50"
             />
             <div
-              className="pointer-events-none absolute inset-0 -mx-1.5 border-x-6 border-foreground dark:border-ring"
+              className="pointer-events-none absolute inset-0 -mx-1 border-x-[4px] border-foreground dark:border-ring"
               aria-hidden="true"
             />
           </div>

@@ -111,7 +111,9 @@ const customAdapter: Adapter = {
         name: u.name ?? u.githubUsername ?? "Unknown",
         image: u.image,
         emailVerified: u.emailVerified,
-        role: isBootstrapAdmin(u.githubUsername) ? "president" : "member",
+        // New sign-ins are AJIET students by default — the President promotes
+        // them into membership/admin tiers. Bootstrap admins are the exception.
+        role: isBootstrapAdmin(u.githubUsername) ? "president" : "ajiet_student",
         status: isBootstrapAdmin(u.githubUsername) ? "approved" : "pending",
       },
     }) as unknown as AdapterUser;
@@ -153,7 +155,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           image: profile.avatar_url,
           githubId: profile.id.toString(),
           githubUsername: profile.login,
-          role: "member",
+          role: "ajiet_student",
           status: "pending",
           usn: null,
           branch: null,

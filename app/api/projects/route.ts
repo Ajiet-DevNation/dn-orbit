@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Pending approval" }, { status: 403 });
 
     const body = await req.json();
-    const { title, description, imageUrl, githubRepoUrl, demoUrl, techStack, milestones } = body;
+    const { title, description, imageUrl, githubRepoUrl, demoUrl, techStack, milestones, status, progressPct } = body;
 
     if (!title) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
@@ -21,6 +21,15 @@ export async function POST(req: NextRequest) {
     if (!githubRepoUrl || !String(githubRepoUrl).trim()) {
       return NextResponse.json({ error: "GitHub repo URL is required" }, { status: 400 });
     }
+
+    // Whitelist status against the ProjectStatus enum and clamp progress to an
+    // integer 0–100 — never trust the client. Unknown/missing values fall back
+    // to a fresh "planning, 0%" project.
+    const ALLOWED_STATUS = ["planning", "active", "completed", "stalled"] as const;
+    const safeStatus = ALLOWED_STATUS.includes(status)
+      ? (status as (typeof ALLOWED_STATUS)[number])
+      : "planning";
+    const safeProgress = Math.max(0, Math.min(100, Math.round(Number(progressPct) || 0)));
 
     const project = await db.project.create({
       data: {
@@ -31,7 +40,8 @@ export async function POST(req: NextRequest) {
         demoUrl: demoUrl || null,
         techStack: techStack ?? [],
         milestones: milestones ?? [],
-        status: "planning",
+        status: safeStatus,
+        progressPct: safeProgress,
         reviewStatus: "pending",
         leadId: session.user.id,
         members: {

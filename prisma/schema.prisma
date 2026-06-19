@@ -21,6 +21,9 @@ enum Role {
   vice_president
   core_member
   member
+  // Non-DevNation AJIET students: no club membership and no admin access, but
+  // recognised so AJIET-only events can identify them. See lib/roles.ts.
+  ajiet_student
 }
 
 enum ApprovalStatus {
@@ -58,7 +61,7 @@ model User {
   /// Auth.js profile image (`avatar_url` in DB)
   image           String?   @map("avatar_url")
   emailVerified   DateTime? @map("email_verified")
-  role            Role      @default(member)
+  role            Role      @default(ajiet_student)
   status          ApprovalStatus @default(pending)
 
   // Onboarding fields

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Button } from "@/components/ui/8bit-button";
 import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { PixelStatTile } from "@/components/admin/PixelStatTile";
 import { EventTable } from "./EventTable";
@@ -28,12 +29,9 @@ export default async function AdminEventsPage() {
         title="EVENT MANAGEMENT"
         subtitle="CS_EVENT_ARCHIVE"
         actions={
-          <Link
-            href="/admin/events/new"
-            className="retro border-2 border-[#22c55e] px-5 py-3 text-[9px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black"
-          >
-            + NEW EVENT
-          </Link>
+          <Button asChild size="sm" className="text-[9px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black">
+            <Link href="/admin/events/new">+ NEW EVENT</Link>
+          </Button>
         }
       />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

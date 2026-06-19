@@ -15,7 +15,7 @@ const Input8Bit = React.forwardRef<HTMLInputElement, InputProps>(
           // min-w-0 lets the frame shrink below its content's intrinsic width
           // (e.g. native date/number widgets) when it sits in a constrained
           // grid/flex cell, so it clips instead of overflowing the container.
-          "relative border-y-[6px] border-foreground dark:border-ring !p-0 flex items-center min-w-0",
+          "relative border-y-[4px] border-foreground dark:border-ring !p-0 flex items-center min-w-0",
           className
         )}
       >
@@ -31,7 +31,7 @@ const Input8Bit = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         />
         <div
-          className="absolute inset-0 border-x-[6px] -mx-[6px] border-foreground dark:border-ring pointer-events-none"
+          className="absolute inset-0 border-x-[4px] -mx-[4px] border-foreground dark:border-ring pointer-events-none"
           aria-hidden="true"
         />
       </div>

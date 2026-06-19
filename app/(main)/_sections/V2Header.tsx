@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
 import { PixelTabFill } from "./PixelTabFill";
+import { BrandLink } from "./BrandLink";
 import {
   Avatar,
   AvatarImage,
@@ -104,20 +104,17 @@ export function V2Header({
       <header className="sticky top-0 z-50 w-full bg-transparent">
       <div className="relative flex items-center justify-between px-6 pt-6 pb-3 gap-4">
 
-        {/* Left: Logo + Brand */}
-        <div className="flex items-center gap-0 shrink-0">
-          <Image
-            src="/assets/DNLogoTransparent.png"
-            alt="DevNation"
-            width={64}
-            height={64}
-            priority
-            className="pixelated opacity-90 h-14 w-14 sm:h-16 sm:w-16 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
-          />
-          <span className="font-[family-name:var(--font-pixel)] text-white text-2xl leading-none hidden sm:block mt-1">
-            ORBIT
-          </span>
-        </div>
+        {/* Left: Logo + Brand — links home (smooth-scrolls to top when already on
+            the landing page). Dark-grey pixel fill draws in on hover. */}
+        <BrandLink
+          className="shrink-0"
+          imageClassName="h-14 w-14 sm:h-16 sm:w-16 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
+          wordmarkClassName="text-2xl mt-1 hidden sm:block"
+          priority
+          onClick={() => {
+            if (isLandingPage) window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
 
         {/* Center: 8-bit nav tabs — absolutely centered to the viewport so the
             differing logo/avatar widths don't push it off-centre. */}

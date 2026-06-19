@@ -18,6 +18,7 @@ import {
   Home,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/8bit-button";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { SidebarBrand } from "@/components/layout/SidebarBrand";
 
@@ -77,13 +78,15 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
         </div>
 
         <nav className="flex-1 space-y-2 overflow-y-auto p-6">
-          <Link
-            href="/"
-            onClick={() => setOpen(false)}
-            className="retro mb-4 flex items-center gap-3 border-2 border-[#22c55e]/50 bg-[#22c55e]/[0.08] px-4 py-3 text-[9px] tracking-widest text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black"
+          <Button
+            asChild
+            size="sm"
+            className="mb-6 w-full text-[9px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
           >
-            <Home className="h-4 w-4" /> ← EXIT TO ORBIT
-          </Link>
+            <Link href="/" onClick={() => setOpen(false)}>
+              <Home className="h-4 w-4" /> ← EXIT TO ORBIT
+            </Link>
+          </Button>
           {navItems.map((item) => {
             const active = pathname === item.href;
             return (
@@ -95,7 +98,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
                   "retro group flex items-center gap-4 border-2 px-4 py-3 text-[9px] tracking-widest transition-colors",
                   active
                     ? "border-[#22c55e]/40 bg-[#22c55e]/[0.08] text-[#22c55e]"
-                    : "border-transparent text-zinc-500 hover:border-[#22c55e]/30 hover:bg-[#22c55e]/[0.06] hover:text-[#22c55e]"
+                    : "border-white/10 text-zinc-500 hover:border-[#22c55e]/30 hover:bg-[#22c55e]/[0.06] hover:text-[#22c55e]"
                 )}
               >
                 <item.icon className="h-4 w-4 opacity-40 transition-[color,opacity] group-hover:text-[#22c55e] group-hover:opacity-100" />
@@ -117,7 +120,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
               {userName || "COMMANDER"}
             </div>
           </div>
-          <SignOutButton className="retro flex w-full items-center justify-center gap-3 border-2 border-white/20 bg-transparent px-4 py-3 text-[8px] uppercase tracking-[0.3em] text-zinc-500 transition-colors hover:border-[#ef4444] hover:bg-[#ef4444] hover:text-black">
+          <SignOutButton className="w-full text-[8px] uppercase tracking-[0.3em] hover:!bg-[#ef4444] hover:!text-black">
             <LogOut className="h-3 w-3" /> TERMINATE
           </SignOutButton>
         </div>

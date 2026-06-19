@@ -1,13 +1,19 @@
 "use client";
 
-import { useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/8bit-card";
+import { Command, CommandInput } from "@/components/ui/8bit-command";
+import { Button } from "@/components/ui/8bit-button";
 import { SectionHeading } from "./SectionHeading";
 import { PixelReveal } from "./PixelReveal";
 import { useFlipDetail } from "./useFlipDetail";
 import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
 import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
+import { cn } from "@/lib/utils";
+
+// How many event cards render per page in the grid below.
+const PAGE_SIZE = 6;
 
 // Plain, serializable shape — mapped from the DB Event in the server page so no
 // Date objects cross the client boundary.
@@ -126,8 +132,7 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
           "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)",
       }}
     >
-      {/* pr-28 keeps a long title clear of the absolute CLOSE button. */}
-      <div className="flex flex-wrap items-center gap-3 pr-28">
+      <div className="flex flex-wrap items-center gap-3">
         <AudienceBadge audience={data.audience} />
         <h3 className="retro min-w-0 break-words text-2xl text-white">{data.title}</h3>
       </div>
@@ -145,62 +150,238 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
           REGISTRATION CLOSED
         </span>
       ) : (
-        <Link
-          href={`/events/${data.id}/register`}
-          className="retro inline-flex w-fit cursor-pointer items-center gap-2 border-2 border-[#22c55e] px-4 py-3 text-[9px] text-[#22c55e] transition-colors duration-200 hover:bg-[#22c55e] hover:text-[#0a0a0a]"
+        <Button
+          asChild
+          className="w-fit text-[9px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
         >
-          REGISTER ▸
-        </Link>
+          <Link href={`/events/${data.id}/register`}>REGISTER ▸</Link>
+        </Button>
       )}
     </div>
+  );
+}
+
+// Shown when a search query matches nothing — distinct from EmptyState (which
+// means there are no published events at all) so the user knows it's the filter.
+function NoMatch({ query }: { query: string }) {
+  return (
+    <div className="mx-auto max-w-md">
+      <Card className="items-center gap-4 border-white/10 py-12 text-center">
+        <span className="retro text-3xl text-[#22c55e]/30">▞▚</span>
+        <h3 className="retro text-sm text-white">NO EVENTS FOUND</h3>
+        <p className="retro break-words text-[9px] text-muted-foreground">
+          NO MATCH FOR &quot;{query.toUpperCase()}&quot;
+        </p>
+      </Card>
+    </div>
+  );
+}
+
+// Case-insensitive match across the fields a visitor would reasonably search by.
+function matchesQuery(e: EventCardData, q: string): boolean {
+  return [e.title, e.type, e.location ?? "", e.description ?? ""]
+    .join(" ")
+    .toLowerCase()
+    .includes(q);
+}
+
+// Page-number sequence with ellipsis gaps: always shows the first, last, and the
+// current page's neighbours, e.g. [1, "…", 4, 5, 6, "…", 12]. Up to 7 pages are
+// shown in full (no gaps needed).
+function pageItems(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const shown = [1, total, current, current - 1, current + 1]
+    .filter((p) => p >= 1 && p <= total)
+    .sort((a, b) => a - b);
+  const result: (number | "…")[] = [];
+  let prev = 0;
+  for (const p of shown) {
+    if (p - prev > 1) result.push("…");
+    if (p !== prev) result.push(p);
+    prev = p;
+  }
+  return result;
+}
+
+// Pagination control built on the shared 8-bit Button (chunky pixel border +
+// shadow). The active page is filled green to match the site's accent buttons
+// (e.g. ADMIN in the profile modal); the rest stay the default pixel button.
+function PageButton({
+  children,
+  onClick,
+  disabled,
+  active,
+  ariaLabel,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  active?: boolean;
+  ariaLabel: string;
+}) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "min-w-[2.5rem] text-[9px]",
+        active && "!bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+      )}
+    >
+      {children}
+    </Button>
   );
 }
 
 export function EventsSection({ events }: { events: EventCardData[] }) {
   const { selected, detailOpen, flipRef, open, close } = useFlipDetail();
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const sectionRef = useRef<HTMLElement>(null);
   const active = events.find((e) => e.id === selected) ?? null;
 
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+
+  const normalized = query.trim().toLowerCase();
+  const filtered = useMemo(
+    () => (normalized ? events.filter((e) => matchesQuery(e, normalized)) : events),
+    [events, normalized]
+  );
+
+  // `page` can drift past the available range when the filter shrinks results, so
+  // clamp at render rather than tracking it in state. Searching also resets to 1.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageEvents = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  function handleSearch(value: string) {
+    setQuery(value);
+    setPage(1);
+  }
+
+  function goToPage(p: number) {
+    setPage(Math.min(Math.max(1, p), totalPages));
+    // Bring the grid back into view so the next page isn't below the fold.
+    sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
-    <section id="events" className="relative w-full scroll-mt-24 px-6 py-24">
+    <section
+      ref={sectionRef}
+      id="events"
+      className="relative w-full scroll-mt-24 px-6 py-24"
+    >
       <SectionHeading text="EVENTS" />
 
       {events.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {events.map((event, i) => (
-            <PixelReveal key={event.id} delayMs={i * 70}>
-              <div
-                ref={(el) => { cardRefs.current[event.id] = el; }}
-                role="button"
-                tabIndex={0}
-                onClick={() => open(event.id, cardRefs.current[event.id]!)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    open(event.id, cardRefs.current[event.id]!);
-                  }
-                }}
-                className="cursor-pointer"
-              >
-                <EventCard data={event} />
+        <>
+          {/* 8-bit command search bar — filters the grid across title, type,
+              location and description. shouldFilter is off because we render our
+              own grid rather than cmdk items. */}
+          <div className="mx-auto mb-12 flex max-w-md justify-center px-1.5">
+            <Command shouldFilter={false} className="w-full border-white/10">
+              <CommandInput
+                value={query}
+                onValueChange={handleSearch}
+                placeholder="SEARCH EVENTS..."
+                aria-label="Search events"
+                className="text-[10px] uppercase tracking-wider"
+              />
+            </Command>
+          </div>
+
+          {filtered.length === 0 ? (
+            <NoMatch query={query.trim()} />
+          ) : (
+            <>
+              <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                {pageEvents.map((event, i) => (
+                  <PixelReveal key={event.id} delayMs={i * 70}>
+                    <div
+                      ref={(el) => { cardRefs.current[event.id] = el; }}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => open(event.id, cardRefs.current[event.id]!)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          open(event.id, cardRefs.current[event.id]!);
+                        }
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <EventCard data={event} />
+                    </div>
+                  </PixelReveal>
+                ))}
               </div>
-            </PixelReveal>
-          ))}
-        </div>
+
+              {totalPages > 1 && (
+                <nav
+                  aria-label="Events pagination"
+                  className="mt-14 flex flex-wrap items-center justify-center gap-x-4 gap-y-5"
+                >
+                  <PageButton
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    ariaLabel="Previous page"
+                  >
+                    ‹ PREV
+                  </PageButton>
+
+                  {pageItems(currentPage, totalPages).map((item, i) =>
+                    item === "…" ? (
+                      <span
+                        key={`gap-${i}`}
+                        aria-hidden="true"
+                        className="retro px-1 text-[9px] text-muted-foreground"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <PageButton
+                        key={item}
+                        active={item === currentPage}
+                        onClick={() => goToPage(item)}
+                        ariaLabel={`Go to page ${item}`}
+                      >
+                        {item}
+                      </PageButton>
+                    )
+                  )}
+
+                  <PageButton
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    ariaLabel="Next page"
+                  >
+                    NEXT ›
+                  </PageButton>
+                </nav>
+              )}
+            </>
+          )}
+        </>
       )}
 
       {active && (
-        <div className="fixed inset-0 z-40 overflow-y-auto bg-[#0a0a0a]">
-          {/* Centred content container — the close anchors to ITS top-right
-              (within reach of the content) rather than the far viewport edge,
-              and sits below the header band. */}
+        <div className="fixed inset-0 z-[60] overflow-y-auto bg-[#0a0a0a]">
+          {/* Full-screen modal (above the sticky header) so the close button can
+              live at the true viewport corner and stay reachable. */}
           <div className="relative mx-auto flex min-h-full w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 py-24 lg:flex-row lg:gap-16">
             <OverlayCloseButton
               onClick={close}
               label="Close event details"
-              className="absolute right-2 top-24"
+              className="fixed right-4 top-4 z-[70]"
             />
             <div ref={flipRef} className="w-full max-w-sm shrink-0">
               <EventCard data={active} />

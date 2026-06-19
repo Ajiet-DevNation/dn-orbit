@@ -1,6 +1,7 @@
 "use client";
 
 import { type VariantProps, cva } from "class-variance-authority";
+import { Slot, Slottable } from "@radix-ui/react-slot";
 
 import { cn } from "@/lib/utils";
 
@@ -39,6 +40,12 @@ export interface BitButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   ref?: React.Ref<HTMLButtonElement>;
+  /**
+   * Render the passed child as the root (e.g. a `<Link>`/`<a>`) instead of a
+   * `<button>`, so navigational links can wear the pixel chrome. The pixel
+   * border/shadow decorations are slotted in as siblings via `Slottable`.
+   */
+  asChild?: boolean;
 }
 
 function Button({
@@ -47,10 +54,12 @@ function Button({
   variant = "default",
   size = "default",
   font,
+  asChild = false,
   ...props
 }: BitButtonProps) {
+  const Comp = asChild ? Slot : "button";
   return (
-    <button
+    <Comp
       data-slot="button"
       className={cn(
         buttonVariants({ variant, size, font }),
@@ -59,7 +68,7 @@ function Button({
       )}
       {...props}
     >
-      {children}
+      <Slottable>{children}</Slottable>
 
       {variant !== "ghost" && variant !== "link" && size !== "icon" && (
         <>
@@ -87,7 +96,7 @@ function Button({
           )}
         </>
       )}
-    </button>
+    </Comp>
   );
 }
 

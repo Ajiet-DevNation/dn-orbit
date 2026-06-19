@@ -2,6 +2,7 @@
 
 import { signOut } from "next-auth/react";
 import React from "react";
+import { Button } from "@/components/ui/8bit-button";
 
 interface SignOutButtonProps {
   children: React.ReactNode;
@@ -14,11 +15,8 @@ export function SignOutButton({ children, className }: SignOutButtonProps) {
   };
 
   return (
-    <button
-      onClick={handleSignOut}
-      className={className}
-    >
+    <Button type="button" onClick={handleSignOut} className={className}>
       {children}
-    </button>
+    </Button>
   );
 }

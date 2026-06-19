@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "@/components/ui/8bit-toast";
 import { Card } from "@/components/ui/8bit-card";
+import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import {
   AUDIENCE_BADGE_LABELS,
@@ -183,13 +184,13 @@ export function RegistrationForm({
           <p className="retro text-[8px] tracking-widest text-muted-foreground">
             <span className="text-[#ef4444]">*</span> REQUIRED
           </p>
-          <button
+          <Button
             type="submit"
             disabled={submitting}
-            className="retro w-full cursor-pointer border-2 border-[#22c55e] bg-[#22c55e] px-6 py-4 text-[11px] tracking-widest text-black transition-colors hover:bg-[#16a34a] hover:border-[#16a34a] disabled:cursor-not-allowed disabled:opacity-50 sm:w-fit sm:px-10"
+            className="w-full text-[11px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black sm:w-fit sm:px-10"
           >
             {submitting ? "SUBMITTING…" : "SUBMIT REGISTRATION"}
-          </button>
+          </Button>
         </div>
       </form>
     </Shell>
