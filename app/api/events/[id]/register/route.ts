@@ -60,7 +60,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       ? {
           name: session.user.name ?? body.name,
           email: session.user.email ?? body.email,
-          usn: body.usn,
+          // Members' USN comes from their account, not the (lockable) form field.
+          usn: session.user.usn ?? body.usn,
           responses: body.responses,
         }
       : body;

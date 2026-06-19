@@ -39,12 +39,12 @@ export function RegistrationForm({
   location: string | null;
   description: string | null;
   capacityLabel: string | null;
-  prefill: { name: string; email: string } | null;
+  prefill: { name: string; email: string; usn?: string } | null;
 }) {
   const meta: EventMeta = { audience, dateLabel, location, description, capacityLabel };
   const [name, setName] = useState(prefill?.name ?? "");
   const [email, setEmail] = useState(prefill?.email ?? "");
-  const [usn, setUsn] = useState("");
+  const [usn, setUsn] = useState(prefill?.usn ?? "");
   const [responses, setResponses] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -113,6 +113,9 @@ export function RegistrationForm({
 
   const emailLocked = isMember && !!prefill;
   const showUsn = usnRequiredFor(audience, isMember);
+  // Members already gave their USN at onboarding — fill it from the account and
+  // lock it, so they don't have to re-type it (same as email).
+  const usnLocked = isMember && !!prefill?.usn;
 
   return (
     <Shell title={title} meta={meta}>
@@ -147,10 +150,16 @@ export function RegistrationForm({
         </FieldCard>
 
         {showUsn && (
-          <FieldCard label="USN / COLLEGE ID" required error={errors.usn}>
+          <FieldCard
+            label="USN / COLLEGE ID"
+            required
+            error={errors.usn}
+            description={usnLocked ? "Linked to your account." : undefined}
+          >
             <Input
               font="normal"
               value={usn}
+              disabled={usnLocked}
               placeholder="e.g. 4JK24CS069"
               aria-invalid={!!errors.usn}
               onChange={(e) => setUsn(e.target.value)}
