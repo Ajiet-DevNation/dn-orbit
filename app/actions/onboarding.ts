@@ -16,6 +16,8 @@ const onboardingSchema = z.object({
     .string()
     .min(1, "LeetCode username is required")
     .regex(/^[a-zA-Z0-9_.-]+$/, "Invalid LeetCode username format"),
+  // Bio is the only optional onboarding field.
+  bio: z.string().max(160, "Bio must be 160 characters or fewer").optional(),
 });
 
 export async function submitOnboarding(formData: FormData) {
@@ -31,6 +33,7 @@ export async function submitOnboarding(formData: FormData) {
     branch: formData.get("branch"),
     year: formData.get("year"),
     lc_username: formData.get("lc_username"),
+    bio: formData.get("bio") ?? undefined,
   };
 
   const parsed = onboardingSchema.safeParse(rawData);
@@ -65,6 +68,7 @@ export async function submitOnboarding(formData: FormData) {
         branch: parsed.data.branch,
         year: parsed.data.year,
         lcUsername: parsed.data.lc_username,
+        bio: parsed.data.bio?.trim() || null,
       },
     });
 

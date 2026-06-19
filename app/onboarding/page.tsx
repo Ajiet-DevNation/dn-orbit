@@ -93,6 +93,7 @@ export default function OnboardingPage() {
   const [branch, setBranch] = useState("");
   const [year, setYear] = useState("");
   const [lcUsername, setLcUsername] = useState("");
+  const [bio, setBio] = useState("");
 
   const githubUsername = session?.user?.name ?? "";
 
@@ -158,6 +159,7 @@ export default function OnboardingPage() {
               <input type="hidden" name="branch" value={branch} />
               <input type="hidden" name="year" value={year} />
               <input type="hidden" name="lc_username" value={lcUsername} />
+              <input type="hidden" name="bio" value={bio} />
 
               <div className="space-y-5">
                 <div className="grid gap-3">
@@ -245,6 +247,22 @@ export default function OnboardingPage() {
                   {fieldErrors.lcUsername && (
                     <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.lcUsername}</p>
                   )}
+                </div>
+
+                <div className="grid gap-3">
+                  <Label htmlFor="bio" className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    BIO <span className="text-zinc-600">(OPTIONAL)</span>
+                  </Label>
+                  <Input
+                    id="bio"
+                    placeholder="160 CHARS MAX"
+                    value={bio}
+                    maxLength={160}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setBio(e.target.value)
+                    }
+                    className="text-xs"
+                  />
                 </div>
 
                 <div className="grid gap-3">
