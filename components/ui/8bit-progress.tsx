@@ -57,7 +57,7 @@ function Progress({
         <div
           data-slot="progress-indicator"
           className={cn(
-            "h-full transition-all",
+            "h-full transition-transform",
             variant === "retro" ? "flex w-full" : "w-full flex-1",
             variant !== "retro" && (progressBg || "bg-primary")
           )}

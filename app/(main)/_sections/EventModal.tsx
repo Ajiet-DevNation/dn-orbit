@@ -17,7 +17,7 @@ import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
 import { FormBuilder } from "@/app/admin/events/_form/FormBuilder";
-import type { FormFieldDef } from "@/lib/forms";
+import { AUDIENCE_OPTIONS, type EventAudience, type FormFieldDef } from "@/lib/forms";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
@@ -34,11 +34,6 @@ const EVENT_TYPES = [
   "OTHER",
 ];
 
-const AUDIENCES: { value: string; label: string }[] = [
-  { value: "public", label: "ANYONE (PUBLIC)" },
-  { value: "college", label: "COLLEGE ONLY (USN)" },
-  { value: "members", label: "MEMBERS ONLY" },
-];
 
 interface EventModalProps {
   open: boolean;
@@ -273,7 +268,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
                   <SelectValue placeholder="SELECT" />
                 </SelectTrigger>
                 <SelectContent className="z-[200] dark">
-                  {AUDIENCES.map((a) => (
+                  {AUDIENCE_OPTIONS.map((a) => (
                     <SelectItem key={a.value} value={a.value}>
                       {a.label}
                     </SelectItem>
@@ -324,7 +319,11 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
             Name &amp; email are always collected. Add your own questions below —
             registrants see them in order.
           </p>
-          <FormBuilder value={schema} onChange={setSchema} />
+          <FormBuilder
+            value={schema}
+            onChange={setSchema}
+            audience={audience as EventAudience}
+          />
 
           {/* ── 05 · DEPLOYMENT ── */}
           {isAdmin && (

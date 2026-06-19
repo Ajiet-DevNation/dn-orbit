@@ -99,9 +99,9 @@ export function ApprovalsQueue({
       key: "title",
       header: "PROJECT",
       render: (p) => (
-        <div className="flex flex-col">
-          <span className="font-black text-white">{p.title}</span>
-          <span className="line-clamp-1 text-[9px] uppercase tracking-tighter text-zinc-600">
+        <div className="flex max-w-[18rem] flex-col sm:max-w-[26rem]">
+          <span className="truncate font-black text-white">{p.title}</span>
+          <span className="line-clamp-1 break-all text-[9px] uppercase tracking-tighter text-zinc-600">
             {p.description || "NO_DESCRIPTION_PROVIDED"}
           </span>
         </div>
@@ -125,9 +125,9 @@ export function ApprovalsQueue({
       key: "title",
       header: "EVENT",
       render: (e) => (
-        <div className="flex flex-col">
-          <span className="font-black text-white">{e.title}</span>
-          <span className="line-clamp-1 text-[9px] uppercase tracking-tighter text-zinc-600">
+        <div className="flex max-w-[18rem] flex-col sm:max-w-[26rem]">
+          <span className="truncate font-black text-white">{e.title}</span>
+          <span className="line-clamp-1 break-all text-[9px] uppercase tracking-tighter text-zinc-600">
             {e.description || "NO_DESCRIPTION_PROVIDED"}
           </span>
         </div>

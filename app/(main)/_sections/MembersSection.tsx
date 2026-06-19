@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
@@ -29,7 +29,11 @@ function initials(name: string): string {
 }
 
 // ─── Card faces ───────────────────────────────────────────────────────────────
-function MemberFront({ member }: { member: MemberData }) {
+const MemberFront = memo(function MemberFront({
+  member,
+}: {
+  member: MemberData;
+}) {
   return (
     <Card className="h-full justify-between gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.05)]">
       <div className="border-b-[6px] border-white/10 px-3 py-3 text-center">
@@ -67,9 +71,13 @@ function MemberFront({ member }: { member: MemberData }) {
       </div>
     </Card>
   );
-}
+});
 
-function MemberBack({ member }: { member: MemberData }) {
+const MemberBack = memo(function MemberBack({
+  member,
+}: {
+  member: MemberData;
+}) {
   const stop = (e: React.MouseEvent) => e.stopPropagation();
   return (
     <Card className="h-full justify-start gap-4 border-[#22c55e]/30 py-6 shadow-[0_0_24px_rgba(34,197,94,0.14)]">
@@ -126,28 +134,32 @@ function MemberBack({ member }: { member: MemberData }) {
       </div>
     </Card>
   );
-}
+});
 
 // ─── Flip card (front/back, 3D) ───────────────────────────────────────────────
-function MemberCard({
+// Takes the index + a stable `onActivate` (not a fresh inline closure) so memo
+// actually holds: flipping one card re-renders only that card, not all siblings.
+const MemberCard = memo(function MemberCard({
   member,
+  index,
   flipped,
-  onClick,
+  onActivate,
 }: {
   member: MemberData;
+  index: number;
   flipped: boolean;
-  onClick: () => void;
+  onActivate: (index: number) => void;
 }) {
   return (
     <div
-      onClick={onClick}
+      onClick={() => onActivate(index)}
       role="button"
       tabIndex={0}
       aria-pressed={flipped}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onClick();
+          onActivate(index);
         }
       }}
       className="relative h-full w-full cursor-pointer"
@@ -178,7 +190,7 @@ function MemberCard({
       </div>
     </div>
   );
-}
+});
 
 export function MembersSection() {
   const [flipped, setFlipped] = useState<Set<number>>(() => new Set());
@@ -238,8 +250,9 @@ export function MembersSection() {
             >
               <MemberCard
                 member={member}
+                index={i}
                 flipped={flipped.has(i)}
-                onClick={() => onCardClick(i)}
+                onActivate={onCardClick}
               />
             </div>
           ))}

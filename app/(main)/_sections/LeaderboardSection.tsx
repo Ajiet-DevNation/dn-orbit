@@ -186,7 +186,10 @@ function PodiumColumn({
           style={{
             transform: `rotate(${avRotate}deg)`,
             willChange: "transform",
-            filter: `drop-shadow(0 0 ${6 + avE * 10}px rgba(${style.glow},${0.25 + avE * 0.4}))`,
+            // Static glow — the composited rotate/scale/opacity carry the entrance
+            // "pop". Animating drop-shadow blur per frame is paint-bound and was
+            // the podium's main scroll-jank source.
+            filter: `drop-shadow(0 0 16px rgba(${style.glow},0.65))`,
           }}
         >
           <Avatar className={avatarSize}>

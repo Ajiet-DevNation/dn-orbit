@@ -6,6 +6,9 @@ import { toast } from "@/components/ui/8bit-toast";
 import { Card } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
 import {
+  AUDIENCE_BADGE_LABELS,
+  isFieldVisible,
+  usnRequiredFor,
   validateSubmission,
   type EventAudience,
   type FormFieldDef,
@@ -17,6 +20,7 @@ export function RegistrationForm({
   eventId,
   title,
   audience,
+  isMember,
   closed,
   schema,
   dateLabel,
@@ -28,22 +32,26 @@ export function RegistrationForm({
   eventId: string;
   title: string;
   audience: EventAudience;
+  isMember: boolean;
   closed: boolean;
   schema: FormFieldDef[];
   dateLabel: string;
   location: string | null;
   description: string | null;
   capacityLabel: string | null;
-  prefill: { name: string; email: string } | null;
+  prefill: { name: string; email: string; usn?: string } | null;
 }) {
   const meta: EventMeta = { audience, dateLabel, location, description, capacityLabel };
   const [name, setName] = useState(prefill?.name ?? "");
   const [email, setEmail] = useState(prefill?.email ?? "");
-  const [usn, setUsn] = useState("");
+  const [usn, setUsn] = useState(prefill?.usn ?? "");
   const [responses, setResponses] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // Hidden (unmet-condition) fields are dropped by validateSubmission on both
+  // client and server, so a stale answer is never submitted or stored — no
+  // pruning needed here, and toggling back keeps a previously typed answer.
 
   if (closed) {
     return (
@@ -71,7 +79,7 @@ export function RegistrationForm({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const local = validateSubmission({ audience, schema, input: { name, email, usn, responses } });
+    const local = validateSubmission({ audience, isMember, schema, input: { name, email, usn, responses } });
     if (!local.ok) {
       setErrors(local.errors);
       toast.error("Please fix the highlighted fields");
@@ -103,7 +111,11 @@ export function RegistrationForm({
     }
   };
 
-  const emailLocked = audience === "members" && !!prefill;
+  const emailLocked = isMember && !!prefill;
+  const showUsn = usnRequiredFor(audience, isMember);
+  // Members already gave their USN at onboarding — fill it from the account and
+  // lock it, so they don't have to re-type it (same as email).
+  const usnLocked = isMember && !!prefill?.usn;
 
   return (
     <Shell title={title} meta={meta}>
@@ -137,11 +149,17 @@ export function RegistrationForm({
           />
         </FieldCard>
 
-        {audience === "college" && (
-          <FieldCard label="USN / COLLEGE ID" required error={errors.usn}>
+        {showUsn && (
+          <FieldCard
+            label="USN / COLLEGE ID"
+            required
+            error={errors.usn}
+            description={usnLocked ? "Linked to your account." : undefined}
+          >
             <Input
               font="normal"
               value={usn}
+              disabled={usnLocked}
               placeholder="e.g. 4JK24CS069"
               aria-invalid={!!errors.usn}
               onChange={(e) => setUsn(e.target.value)}
@@ -149,15 +167,17 @@ export function RegistrationForm({
           </FieldCard>
         )}
 
-        {schema.map((f) => (
-          <PixelFormField
-            key={f.id}
-            field={f}
-            value={responses[f.id]}
-            error={errors[f.id]}
-            onChange={(v) => setResponses((p) => ({ ...p, [f.id]: v }))}
-          />
-        ))}
+        {schema.map((f) =>
+          isFieldVisible(f, responses) ? (
+            <PixelFormField
+              key={f.id}
+              field={f}
+              value={responses[f.id]}
+              error={errors[f.id]}
+              onChange={(v) => setResponses((p) => ({ ...p, [f.id]: v }))}
+            />
+          ) : null,
+        )}
 
         <div className="mt-1 flex flex-col gap-3">
           <p className="retro text-[8px] tracking-widest text-muted-foreground">
@@ -219,7 +239,7 @@ function Shell({
 }
 
 function AudienceBadge({ audience }: { audience: EventAudience }) {
-  const label = audience === "members" ? "MEMBERS" : audience === "college" ? "COLLEGE" : "OPEN";
+  const label = AUDIENCE_BADGE_LABELS[audience];
   return (
     <span className="retro border-2 border-[#22c55e] px-2 py-1 text-[8px] text-[#22c55e]">
       {label}

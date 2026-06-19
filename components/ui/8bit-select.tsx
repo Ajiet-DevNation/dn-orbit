@@ -74,14 +74,20 @@ function SelectTrigger({ children, ...props }: BitSelectTriggerProps) {
   return (
     <div
       className={cn(
-        "relative border-y-6 border-foreground dark:border-ring",
+        // w-full + min-w-0 so the trigger fills its column and can shrink,
+        // letting a long value truncate (line-clamp) instead of overflowing.
+        "relative w-full min-w-0 border-y-6 border-foreground dark:border-ring",
         className,
         font !== "normal" && "retro"
       )}
     >
       <ShadcnSelectTrigger
         {...props}
-        className={cn("rounded-none ring-0 w-full border-0", className)}
+        className={cn(
+          // min-w-0 on the value child lets line-clamp-1 truncate it.
+          "rounded-none ring-0 w-full min-w-0 border-0 *:data-[slot=select-value]:min-w-0",
+          className,
+        )}
       >
         {children}
       </ShadcnSelectTrigger>

@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   type FormFieldDef,
   type EventAudience,
+  isFieldVisible,
+  usnRequiredFor,
   validateSubmission,
 } from "./forms";
 
@@ -42,6 +44,16 @@ describe("validateSubmission", () => {
     });
     expect(r.ok).toBe(true);
     expect(Object.keys(r.errors)).toHaveLength(0);
+  });
+
+  test("members audience requires usn (default field)", () => {
+    const r = validateSubmission({
+      audience: "members",
+      schema: [],
+      input: { name: "A", email: "a@b.com" },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.errors.usn).toBeTruthy();
   });
 
   test("college audience requires usn", () => {
@@ -115,5 +127,80 @@ describe("validateSubmission", () => {
     });
     expect(r.ok).toBe(true);
     expect(r.value.responses.x).toBe(42);
+  });
+
+  test("hidden required field is skipped when its condition is unmet", () => {
+    const r = validateSubmission({
+      ...base,
+      schema: [
+        field({ id: "mode", type: "single_choice", required: true, options: ["Individual", "Team"] }),
+        field({ id: "team", type: "short_text", required: true, visibleWhen: { fieldId: "mode", equals: "Team" } }),
+      ],
+      // Chose "Individual", so the required "team" field shouldn't block.
+      input: { name: "N", email: "a@b.com", responses: { mode: "Individual" } },
+    });
+    expect(r.ok).toBe(true);
+    expect(r.value.responses.team).toBeUndefined();
+  });
+
+  test("shown required field is still enforced when its condition is met", () => {
+    const r = validateSubmission({
+      ...base,
+      schema: [
+        field({ id: "mode", type: "single_choice", required: true, options: ["Individual", "Team"] }),
+        field({ id: "team", type: "short_text", required: true, visibleWhen: { fieldId: "mode", equals: "Team" } }),
+      ],
+      input: { name: "N", email: "a@b.com", responses: { mode: "Team" } },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.errors.team).toBeTruthy();
+  });
+});
+
+describe("members + AJIET (members_college) audience", () => {
+  test("non-member must provide a USN", () => {
+    const r = validateSubmission({
+      audience: "members_college",
+      schema: [],
+      isMember: false,
+      input: { name: "A", email: "a@b.com" },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.errors.usn).toBeTruthy();
+  });
+
+  test("signed-in member is exempt from USN", () => {
+    const r = validateSubmission({
+      audience: "members_college",
+      schema: [],
+      isMember: true,
+      input: { name: "A", email: "a@b.com" },
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  test("usnRequiredFor matrix", () => {
+    expect(usnRequiredFor("public", false)).toBe(false);
+    expect(usnRequiredFor("college", false)).toBe(true);
+    expect(usnRequiredFor("members", true)).toBe(true);
+    expect(usnRequiredFor("members_college", false)).toBe(true);
+    expect(usnRequiredFor("members_college", true)).toBe(false);
+  });
+});
+
+describe("isFieldVisible", () => {
+  const cond = field({ id: "x", visibleWhen: { fieldId: "c", equals: "Yes" } });
+
+  test("no condition is always visible", () => {
+    expect(isFieldVisible(field({ id: "x" }), {})).toBe(true);
+  });
+  test("single value match toggles visibility", () => {
+    expect(isFieldVisible(cond, { c: "Yes" })).toBe(true);
+    expect(isFieldVisible(cond, { c: "No" })).toBe(false);
+    expect(isFieldVisible(cond, {})).toBe(false);
+  });
+  test("checkbox (array) controller matches on includes", () => {
+    expect(isFieldVisible(cond, { c: ["No", "Yes"] })).toBe(true);
+    expect(isFieldVisible(cond, { c: ["No"] })).toBe(false);
   });
 });

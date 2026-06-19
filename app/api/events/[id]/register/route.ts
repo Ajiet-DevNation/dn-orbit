@@ -21,15 +21,24 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Event not available" }, { status: 403 });
 
   const audience = event.audience as EventAudience;
-
-  // Members-only events require an approved, signed-in member.
   const session = await auth();
+
+  // Members-only events require an approved, signed-in member. The combined
+  // members+AJIET tier doesn't gate on an account (AJIET students register by
+  // USN), but a signed-in approved member still registers via their identity.
+  const needsMemberCheck =
+    audience === "members" || audience === "members_college";
+  const approvedMember =
+    needsMemberCheck && !!session && (await isApproved(session.user.id));
+
   if (audience === "members") {
     if (!session)
       return NextResponse.json({ error: "Sign in required" }, { status: 401 });
-    if (!(await isApproved(session.user.id)))
+    if (!approvedMember)
       return NextResponse.json({ error: "Pending approval" }, { status: 403 });
   }
+
+  const isMember = approvedMember; // member path → locked identity, USN exempt
 
   // Deadline + capacity gates.
   const deadline = event.registrationDeadline ?? event.eventDate;
@@ -50,17 +59,19 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   // Members submit under their account identity (email locked server-side).
   const input =
-    audience === "members" && session
+    isMember && session
       ? {
           name: session.user.name ?? body.name,
           email: session.user.email ?? body.email,
-          usn: body.usn,
+          // Members' USN comes from their account, not the (lockable) form field.
+          usn: session.user.usn ?? body.usn,
           responses: body.responses,
         }
       : body;
 
   const result = validateSubmission({
     audience,
+    isMember,
     schema: parseFormSchema(event.formSchema),
     input,
   });

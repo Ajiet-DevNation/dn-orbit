@@ -7,6 +7,7 @@ import { SectionHeading } from "./SectionHeading";
 import { PixelReveal } from "./PixelReveal";
 import { useFlipDetail } from "./useFlipDetail";
 import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
+import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
 
 // Plain, serializable shape — mapped from the DB Event in the server page so no
 // Date objects cross the client boundary.
@@ -18,7 +19,7 @@ export interface EventCardData {
   dateLabel: string; // pre-formatted, e.g. "JUL 15, 2026"
   location: string | null;
   bannerUrl: string | null;
-  audience: "members" | "college" | "public";
+  audience: EventAudience;
   capacityLabel: string | null;
   registrationClosed: boolean;
 }
@@ -36,8 +37,15 @@ function EventCard({ data }: { data: EventCardData }) {
           because the 8-bit Card spreads className onto both its frame and inner
           content; a transform there would double-apply and shift the pixel
           border off the content. `group` here so banner/title/chip can react. */}
-      <div className="group h-full transition-transform duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02]">
-        <Card className="h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.04)] transition-[box-shadow,border-color] duration-300 group-hover:border-[#22c55e]/50 group-hover:shadow-[0_0_30px_rgba(34,197,94,0.18)]">
+      <div className="group relative h-full transition-transform duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02]">
+        {/* Hover glow as a pre-rendered shadow faded via opacity (compositor),
+            instead of animating box-shadow (paint-bound). pointer-events-none +
+            outset-only shadow → never covers or blocks the card. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_30px_rgba(34,197,94,0.18)] transition-opacity duration-300 group-hover:opacity-100"
+        />
+        <Card className="h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.04)] transition-colors duration-300 group-hover:border-[#22c55e]/50">
           {/* Banner — plain <img> (pixelated) so arbitrary admin URLs render
               without next/image remote-pattern config. Falls back to a pixel
               placeholder when no banner is set. */}
@@ -99,7 +107,7 @@ function EmptyState() {
 }
 
 function AudienceBadge({ audience }: { audience: EventCardData["audience"] }) {
-  const label = audience === "members" ? "MEMBERS" : audience === "college" ? "COLLEGE" : "OPEN";
+  const label = AUDIENCE_BADGE_LABELS[audience];
   return (
     <span className="retro border-2 border-[#22c55e] px-2 py-1 text-[8px] text-[#22c55e]">
       {label}
@@ -118,9 +126,10 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
           "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)",
       }}
     >
-      <div className="flex flex-wrap items-center gap-3">
+      {/* pr-28 keeps a long title clear of the absolute CLOSE button. */}
+      <div className="flex flex-wrap items-center gap-3 pr-28">
         <AudienceBadge audience={data.audience} />
-        <h3 className="retro text-2xl text-white">{data.title}</h3>
+        <h3 className="retro min-w-0 break-words text-2xl text-white">{data.title}</h3>
       </div>
       <p className="retro text-[10px] text-[#22c55e]">
         {[data.dateLabel, data.location].filter(Boolean).join(" · ")}
