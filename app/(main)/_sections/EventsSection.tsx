@@ -126,9 +126,10 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
           "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)",
       }}
     >
-      <div className="flex flex-wrap items-center gap-3">
+      {/* pr-28 keeps a long title clear of the absolute CLOSE button. */}
+      <div className="flex flex-wrap items-center gap-3 pr-28">
         <AudienceBadge audience={data.audience} />
-        <h3 className="retro text-2xl text-white">{data.title}</h3>
+        <h3 className="retro min-w-0 break-words text-2xl text-white">{data.title}</h3>
       </div>
       <p className="retro text-[10px] text-[#22c55e]">
         {[data.dateLabel, data.location].filter(Boolean).join(" · ")}

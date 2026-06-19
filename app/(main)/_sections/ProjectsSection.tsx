@@ -143,14 +143,19 @@ function ProjectDetail({
           "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)",
       }}
     >
-      <div className="flex items-center gap-3">
+      {/* pr-28 reserves room for the absolutely-positioned CLOSE button at the
+          overlay's top-right; min-w-0 + break-words lets a long title wrap
+          instead of sliding under it. */}
+      <div className="flex items-center gap-3 pr-28">
         <span
-          className="retro border-2 px-2 py-1 text-[8px]"
+          className="retro shrink-0 border-2 px-2 py-1 text-[8px]"
           style={{ color, borderColor: color }}
         >
           {project.status}
         </span>
-        <h3 className="retro text-2xl text-white">{project.title}</h3>
+        <h3 className="retro min-w-0 break-words text-2xl text-white">
+          {project.title}
+        </h3>
       </div>
 
       <p className="text-sm leading-relaxed text-muted-foreground">
