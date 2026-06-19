@@ -22,6 +22,24 @@ import { cn } from "@/lib/utils";
 
 const ALL_TYPES = Object.keys(FIELD_TYPE_LABELS) as FieldType[];
 
+// Sentinel for the "Always shown" option (Radix Select items can't be empty).
+const NONE = "__none__";
+
+// Drop any conditional-display rule that no longer points at a valid controller:
+// the controller must still exist, be a choice question, and come *before* the
+// dependent. Run after every edit so reordering / deleting / retyping a question
+// can't leave a dangling condition.
+function sanitizeConditions(list: FormFieldDef[]): FormFieldDef[] {
+  return list.map((f, i) => {
+    const c = f.visibleWhen;
+    if (!c) return f;
+    const ctrlIdx = list.findIndex((q) => q.id === c.fieldId);
+    const ctrl = ctrlIdx >= 0 ? list[ctrlIdx] : undefined;
+    const ok = !!ctrl && ctrlIdx < i && CHOICE_TYPES.includes(ctrl.type);
+    return ok ? f : { ...f, visibleWhen: undefined };
+  });
+}
+
 // Small square pixel control used for reorder / delete on each question.
 function IconBtn({
   children,
@@ -51,18 +69,20 @@ export function FormBuilder({
   value: FormFieldDef[];
   onChange: (next: FormFieldDef[]) => void;
 }) {
+  // All mutations flow through emit() so conditional-display rules stay valid.
+  const emit = (next: FormFieldDef[]) => onChange(sanitizeConditions(next));
   const update = (id: string, patch: Partial<FormFieldDef>) =>
-    onChange(value.map((f) => (f.id === id ? { ...f, ...patch } : f)));
-  const remove = (id: string) => onChange(value.filter((f) => f.id !== id));
+    emit(value.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  const remove = (id: string) => emit(value.filter((f) => f.id !== id));
   const move = (idx: number, dir: -1 | 1) => {
     const j = idx + dir;
     if (j < 0 || j >= value.length) return;
     const next = [...value];
     [next[idx], next[j]] = [next[j], next[idx]];
-    onChange(next);
+    emit(next);
   };
   const add = () =>
-    onChange([
+    emit([
       ...value,
       {
         id: crypto.randomUUID(),
@@ -84,6 +104,13 @@ export function FormBuilder({
 
       {value.map((f, idx) => {
         const isChoice = CHOICE_TYPES.includes(f.type);
+        // Only earlier choice questions can drive this one's visibility.
+        const condCandidates = value
+          .slice(0, idx)
+          .filter((q) => CHOICE_TYPES.includes(q.type));
+        const controlling = f.visibleWhen
+          ? value.find((q) => q.id === f.visibleWhen!.fieldId)
+          : undefined;
         return (
           <div
             key={f.id}
@@ -224,6 +251,73 @@ export function FormBuilder({
                 >
                   + ADD OPTION
                 </button>
+              </div>
+            )}
+
+            {/* Conditional display — show this question only for a chosen answer
+                to an earlier choice question (branching forms). */}
+            {condCandidates.length > 0 && (
+              <div className="grid gap-2 border-t-2 border-white/10 pt-4">
+                <Label className="text-[9px]">SHOW ONLY IF</Label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Select
+                    value={f.visibleWhen?.fieldId ?? NONE}
+                    onValueChange={(fieldId) =>
+                      update(f.id, {
+                        visibleWhen:
+                          fieldId === NONE
+                            ? undefined
+                            : {
+                                fieldId,
+                                equals:
+                                  value.find((q) => q.id === fieldId)
+                                    ?.options?.[0] ?? "",
+                              },
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Always shown" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[200] dark">
+                      <SelectItem value={NONE}>Always shown</SelectItem>
+                      {condCandidates.map((q) => (
+                        <SelectItem key={q.id} value={q.id}>
+                          {q.label.trim() || `Question ${value.indexOf(q) + 1}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {f.visibleWhen && (
+                    <Select
+                      value={f.visibleWhen.equals}
+                      onValueChange={(equals) =>
+                        update(f.id, {
+                          visibleWhen: { fieldId: f.visibleWhen!.fieldId, equals },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an answer" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[200] dark">
+                        {(controlling?.options ?? []).map((o) => (
+                          <SelectItem key={o} value={o}>
+                            {o}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                {f.visibleWhen && (
+                  <p className="retro text-[8px] leading-relaxed text-muted-foreground">
+                    SHOWN ONLY WHEN “
+                    {controlling?.label.trim() || "QUESTION ABOVE"}” IS “
+                    {f.visibleWhen.equals || "…"}”.
+                  </p>
+                )}
               </div>
             )}
 

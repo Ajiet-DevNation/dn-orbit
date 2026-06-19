@@ -13,6 +13,16 @@ export type FieldType =
   | "multi_choice"
   | "dropdown";
 
+// Conditional display: show a field only when an earlier choice question's
+// answer matches. For checkboxes (multi_choice) the answer is an array, so the
+// field shows when the array *includes* `equals`.
+export interface FieldCondition {
+  /** id of an earlier single/multi/dropdown question that controls visibility. */
+  fieldId: string;
+  /** show this field only when the controlling answer equals (or includes) this. */
+  equals: string;
+}
+
 export interface FormFieldDef {
   id: string;
   type: FieldType;
@@ -22,6 +32,21 @@ export interface FormFieldDef {
   placeholder?: string;
   options?: string[];
   pattern?: string;
+  visibleWhen?: FieldCondition;
+}
+
+// Whether a field should be shown/validated given the current answers. A field
+// with no condition is always visible. Defensive against malformed conditions
+// coming from stored JSON (treat as "always visible").
+export function isFieldVisible(
+  field: FormFieldDef,
+  responses: Record<string, unknown>,
+): boolean {
+  const c = field.visibleWhen;
+  if (!c || typeof c !== "object" || typeof c.fieldId !== "string") return true;
+  const v = responses[c.fieldId];
+  if (Array.isArray(v)) return v.map(String).includes(c.equals);
+  return v != null && String(v) === c.equals;
 }
 
 export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
@@ -104,6 +129,10 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
 
   const src = input.responses ?? {};
   for (const f of schema) {
+    // A field hidden by an unmet condition isn't required and its (stale)
+    // answer is dropped — keeps branching forms from blocking on questions the
+    // user never saw.
+    if (!isFieldVisible(f, src)) continue;
     const raw = src[f.id];
     if (isBlank(raw)) {
       if (f.required) errors[f.id] = `${f.label} is required`;

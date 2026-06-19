@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   type FormFieldDef,
   type EventAudience,
+  isFieldVisible,
   validateSubmission,
 } from "./forms";
 
@@ -115,5 +116,49 @@ describe("validateSubmission", () => {
     });
     expect(r.ok).toBe(true);
     expect(r.value.responses.x).toBe(42);
+  });
+
+  test("hidden required field is skipped when its condition is unmet", () => {
+    const r = validateSubmission({
+      ...base,
+      schema: [
+        field({ id: "mode", type: "single_choice", required: true, options: ["Individual", "Team"] }),
+        field({ id: "team", type: "short_text", required: true, visibleWhen: { fieldId: "mode", equals: "Team" } }),
+      ],
+      // Chose "Individual", so the required "team" field shouldn't block.
+      input: { name: "N", email: "a@b.com", responses: { mode: "Individual" } },
+    });
+    expect(r.ok).toBe(true);
+    expect(r.value.responses.team).toBeUndefined();
+  });
+
+  test("shown required field is still enforced when its condition is met", () => {
+    const r = validateSubmission({
+      ...base,
+      schema: [
+        field({ id: "mode", type: "single_choice", required: true, options: ["Individual", "Team"] }),
+        field({ id: "team", type: "short_text", required: true, visibleWhen: { fieldId: "mode", equals: "Team" } }),
+      ],
+      input: { name: "N", email: "a@b.com", responses: { mode: "Team" } },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.errors.team).toBeTruthy();
+  });
+});
+
+describe("isFieldVisible", () => {
+  const cond = field({ id: "x", visibleWhen: { fieldId: "c", equals: "Yes" } });
+
+  test("no condition is always visible", () => {
+    expect(isFieldVisible(field({ id: "x" }), {})).toBe(true);
+  });
+  test("single value match toggles visibility", () => {
+    expect(isFieldVisible(cond, { c: "Yes" })).toBe(true);
+    expect(isFieldVisible(cond, { c: "No" })).toBe(false);
+    expect(isFieldVisible(cond, {})).toBe(false);
+  });
+  test("checkbox (array) controller matches on includes", () => {
+    expect(isFieldVisible(cond, { c: ["No", "Yes"] })).toBe(true);
+    expect(isFieldVisible(cond, { c: ["No"] })).toBe(false);
   });
 });

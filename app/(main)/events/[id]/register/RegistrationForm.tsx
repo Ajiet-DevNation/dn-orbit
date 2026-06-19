@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/8bit-toast";
 import { Card } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
 import {
+  isFieldVisible,
   validateSubmission,
   type EventAudience,
   type FormFieldDef,
@@ -44,6 +45,9 @@ export function RegistrationForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // Hidden (unmet-condition) fields are dropped by validateSubmission on both
+  // client and server, so a stale answer is never submitted or stored — no
+  // pruning needed here, and toggling back keeps a previously typed answer.
 
   if (closed) {
     return (
@@ -149,15 +153,17 @@ export function RegistrationForm({
           </FieldCard>
         )}
 
-        {schema.map((f) => (
-          <PixelFormField
-            key={f.id}
-            field={f}
-            value={responses[f.id]}
-            error={errors[f.id]}
-            onChange={(v) => setResponses((p) => ({ ...p, [f.id]: v }))}
-          />
-        ))}
+        {schema.map((f) =>
+          isFieldVisible(f, responses) ? (
+            <PixelFormField
+              key={f.id}
+              field={f}
+              value={responses[f.id]}
+              error={errors[f.id]}
+              onChange={(v) => setResponses((p) => ({ ...p, [f.id]: v }))}
+            />
+          ) : null,
+        )}
 
         <div className="mt-1 flex flex-col gap-3">
           <p className="retro text-[8px] tracking-widest text-muted-foreground">
