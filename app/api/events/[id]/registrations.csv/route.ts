@@ -7,7 +7,11 @@ import { parseFormSchema } from "@/lib/forms";
 type Params = { params: Promise<{ id: string }> };
 
 function csvCell(v: unknown): string {
-  const s = Array.isArray(v) ? v.join("; ") : v == null ? "" : String(v);
+  let s = Array.isArray(v) ? v.join("; ") : v == null ? "" : String(v);
+  // CSV formula-injection guard: a cell that a spreadsheet would treat as a
+  // formula (leading = + - @ or tab/CR) is neutralised with a leading apostrophe
+  // so registrant-supplied text can't execute when an admin opens the export.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

@@ -3,6 +3,7 @@
 import React, { useTransition, useOptimistic } from "react";
 import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
+import { useConfirm } from "@/components/ui/PixelConfirm";
 import { deleteProject } from "./actions";
 import { useRouter } from "next/navigation";
 
@@ -28,6 +29,7 @@ interface ProjectTableProps {
 export function ProjectTable({ initialProjects }: ProjectTableProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { confirm, dialog } = useConfirm();
 
   const [optimisticProjects, addOptimisticAction] = useOptimistic(
     initialProjects,
@@ -72,7 +74,12 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("CONFIRM_PROJECT_DELETION? THIS ACTION IS IRREVERSIBLE.")) return;
+    const ok = await confirm({
+      title: "DELETE PROJECT",
+      message: "CONFIRM_PROJECT_DELETION? THIS ACTION IS IRREVERSIBLE.",
+      confirmLabel: "DELETE",
+    });
+    if (!ok) return;
     startTransition(async () => {
       addOptimisticAction({ type: "delete", id });
       try {
@@ -188,6 +195,9 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
   ];
 
   return (
-    <PixelDataTable data={optimisticProjects} columns={columns} empty="NO PROJECTS" />
+    <>
+      <PixelDataTable data={optimisticProjects} columns={columns} empty="NO PROJECTS" />
+      {dialog}
+    </>
   );
 }

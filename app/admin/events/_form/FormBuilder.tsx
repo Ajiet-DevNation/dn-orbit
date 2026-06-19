@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { PixelFormField } from "@/app/(main)/events/[id]/register/PixelFormField";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
@@ -259,18 +261,29 @@ export function FormBuilder({
           <summary className="retro cursor-pointer text-[9px] tracking-widest text-[#22c55e]">
             LIVE PREVIEW
           </summary>
-          <div className="mt-4 flex flex-col gap-5">
-            {value.map((f) => (
-              <PixelFormField
-                key={f.id}
-                field={f}
-                value={undefined}
-                onChange={() => {}}
-              />
-            ))}
-          </div>
+          <LivePreview fields={value} />
         </details>
       )}
+    </div>
+  );
+}
+
+// Interactive preview of the registration form. Holds its own throwaway answer
+// state so admins can actually type, pick dates, and select options exactly as
+// a registrant would — mirroring the real renderer in RegistrationForm.
+function LivePreview({ fields }: { fields: FormFieldDef[] }) {
+  const [responses, setResponses] = useState<Record<string, unknown>>({});
+
+  return (
+    <div className="mt-4 flex flex-col gap-5">
+      {fields.map((f) => (
+        <PixelFormField
+          key={f.id}
+          field={f}
+          value={responses[f.id]}
+          onChange={(v) => setResponses((prev) => ({ ...prev, [f.id]: v }))}
+        />
+      ))}
     </div>
   );
 }
