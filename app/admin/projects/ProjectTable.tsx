@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
-import { deleteProject, updateProjectStatus } from "./actions";
+import { deleteProject, updateProjectStatus, updateProjectProgress } from "./actions";
 import { useRouter } from "next/navigation";
 
 type ReviewStatus = "pending" | "approved" | "rejected";
@@ -42,6 +42,48 @@ interface ProjectTableProps {
   initialProjects: Project[];
 }
 
+// Editable 0–100 progress cell. Uncontrolled (typing stays local); `key={value}`
+// remounts it to the latest committed value, so it resets after a save without a
+// state-syncing effect. Commits on blur / Enter, only when the value changed.
+function ProgressInput({
+  value,
+  disabled,
+  onCommit,
+}: {
+  value: number;
+  disabled?: boolean;
+  onCommit: (n: number) => void;
+}) {
+  const commit = (el: HTMLInputElement) => {
+    const n = Math.max(0, Math.min(100, Math.round(Number(el.value) || 0)));
+    el.value = String(n);
+    if (n !== value) onCommit(n);
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        key={value}
+        type="number"
+        min={0}
+        max={100}
+        defaultValue={value}
+        disabled={disabled}
+        aria-label="Progress percent"
+        onBlur={(e) => commit(e.currentTarget)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.currentTarget.blur();
+          }
+        }}
+        className="retro w-12 border-2 border-white/15 bg-black/40 px-1.5 py-1 text-[9px] tabular-nums text-zinc-200 outline-none focus:border-[#22c55e]/50 disabled:opacity-50"
+      />
+      <span className="retro text-[9px] text-zinc-500">%</span>
+    </div>
+  );
+}
+
 export function ProjectTable({ initialProjects }: ProjectTableProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -52,7 +94,8 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       state,
       action:
         | { type: "approve" | "reject" | "delete"; id: string }
-        | { type: "status"; id: string; status: ProjectStatus },
+        | { type: "status"; id: string; status: ProjectStatus }
+        | { type: "progress"; id: string; progressPct: number },
     ) => {
       if (action.type === "approve") {
         return state.map((p) =>
@@ -67,6 +110,11 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       if (action.type === "status") {
         return state.map((p) =>
           p.id === action.id ? { ...p, status: action.status } : p,
+        );
+      }
+      if (action.type === "progress") {
+        return state.map((p) =>
+          p.id === action.id ? { ...p, progressPct: action.progressPct } : p,
         );
       }
       if (action.type === "delete") {
@@ -85,6 +133,20 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       } catch (err) {
         toast.error(
           "STATUS_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"),
+        );
+      }
+    });
+  };
+
+  const handleProgress = (id: string, progressPct: number) => {
+    startTransition(async () => {
+      addOptimisticAction({ type: "progress", id, progressPct });
+      try {
+        await updateProjectProgress(id, progressPct);
+        toast.success("PROGRESS_UPDATED");
+      } catch (err) {
+        toast.error(
+          "PROGRESS_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"),
         );
       }
     });
@@ -175,7 +237,11 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
               ))}
             </SelectContent>
           </Select>
-          <span className="retro text-[9px] tabular-nums text-zinc-400">{p.progressPct}%</span>
+          <ProgressInput
+            value={p.progressPct}
+            disabled={isPending}
+            onCommit={(n) => handleProgress(p.id, n)}
+          />
         </div>
       ),
     },

@@ -27,3 +27,18 @@ export async function updateProjectStatus(projectId: string, status: "planning" 
 
   revalidatePath("/admin/projects");
 }
+
+export async function updateProjectProgress(projectId: string, progressPct: number) {
+  const session = await auth();
+  if (!canAccessAdmin(session?.user?.role)) throw new Error("UNAUTHORIZED_ACCESS: ADMIN_CLEARANCE_REQUIRED");
+
+  // Clamp to a whole 0–100 so a bad client value can't persist out of range.
+  const pct = Math.max(0, Math.min(100, Math.round(progressPct)));
+
+  await db.project.update({
+    where: { id: projectId },
+    data: { progressPct: pct }
+  });
+
+  revalidatePath("/admin/projects");
+}
