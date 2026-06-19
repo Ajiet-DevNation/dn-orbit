@@ -80,7 +80,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
           <Link
             href="/"
             onClick={() => setOpen(false)}
-            className="retro mb-4 flex items-center gap-3 border-2 border-[#22c55e]/50 bg-[#22c55e]/[0.08] px-4 py-3 text-[9px] tracking-widest text-[#22c55e] transition-all hover:bg-[#22c55e] hover:text-black"
+            className="retro mb-4 flex items-center gap-3 border-2 border-[#22c55e]/50 bg-[#22c55e]/[0.08] px-4 py-3 text-[9px] tracking-widest text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black"
           >
             <Home className="h-4 w-4" /> ← EXIT TO ORBIT
           </Link>
@@ -92,13 +92,13 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "retro group flex items-center gap-4 border-2 px-4 py-3 text-[9px] tracking-widest transition-all",
+                  "retro group flex items-center gap-4 border-2 px-4 py-3 text-[9px] tracking-widest transition-colors",
                   active
                     ? "border-[#22c55e]/40 bg-[#22c55e]/[0.08] text-[#22c55e]"
                     : "border-transparent text-zinc-500 hover:border-[#22c55e]/30 hover:bg-[#22c55e]/[0.06] hover:text-[#22c55e]"
                 )}
               >
-                <item.icon className="h-4 w-4 opacity-40 transition-all group-hover:text-[#22c55e] group-hover:opacity-100" />
+                <item.icon className="h-4 w-4 opacity-40 transition-[color,opacity] group-hover:text-[#22c55e] group-hover:opacity-100" />
                 {item.label}
               </Link>
             );
@@ -117,7 +117,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
               {userName || "COMMANDER"}
             </div>
           </div>
-          <SignOutButton className="retro flex w-full items-center justify-center gap-3 border-2 border-white/20 bg-transparent px-4 py-3 text-[8px] uppercase tracking-[0.3em] text-zinc-500 transition-all hover:border-[#ef4444] hover:bg-[#ef4444] hover:text-black">
+          <SignOutButton className="retro flex w-full items-center justify-center gap-3 border-2 border-white/20 bg-transparent px-4 py-3 text-[8px] uppercase tracking-[0.3em] text-zinc-500 transition-colors hover:border-[#ef4444] hover:bg-[#ef4444] hover:text-black">
             <LogOut className="h-3 w-3" /> TERMINATE
           </SignOutButton>
         </div>

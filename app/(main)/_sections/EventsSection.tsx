@@ -36,8 +36,15 @@ function EventCard({ data }: { data: EventCardData }) {
           because the 8-bit Card spreads className onto both its frame and inner
           content; a transform there would double-apply and shift the pixel
           border off the content. `group` here so banner/title/chip can react. */}
-      <div className="group h-full transition-transform duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02]">
-        <Card className="h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.04)] transition-[box-shadow,border-color] duration-300 group-hover:border-[#22c55e]/50 group-hover:shadow-[0_0_30px_rgba(34,197,94,0.18)]">
+      <div className="group relative h-full transition-transform duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02]">
+        {/* Hover glow as a pre-rendered shadow faded via opacity (compositor),
+            instead of animating box-shadow (paint-bound). pointer-events-none +
+            outset-only shadow → never covers or blocks the card. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_30px_rgba(34,197,94,0.18)] transition-opacity duration-300 group-hover:opacity-100"
+        />
+        <Card className="h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.04)] transition-colors duration-300 group-hover:border-[#22c55e]/50">
           {/* Banner — plain <img> (pixelated) so arbitrary admin URLs render
               without next/image remote-pattern config. Falls back to a pixel
               placeholder when no banner is set. */}

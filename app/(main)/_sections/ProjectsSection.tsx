@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FaGithub, FaExternalLinkAlt } from "react-icons/fa";
 import { Card } from "@/components/ui/8bit-card";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,7 @@ import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
 // Read-only tech chip: dark background + green pixel border + green tech icon,
 // matching the chips in the "new project" form (TechStackSelect) where the icons
 // pop against the dark fill.
-function TechChip({ name }: { name: string }) {
+const TechChip = memo(function TechChip({ name }: { name: string }) {
   const Icon = TECH_BY_NAME[name]?.Icon;
   return (
     <span className="retro inline-flex items-center gap-2 border-2 border-[#22c55e] bg-[#0a0a0a] px-2.5 py-1.5 text-[9px] text-white">
@@ -21,7 +21,7 @@ function TechChip({ name }: { name: string }) {
       {name}
     </span>
   );
-}
+});
 import { useScrollParallax } from "./useScrollParallax";
 import { useViewportWidth } from "./useViewportWidth";
 
@@ -44,7 +44,7 @@ function statusColor(status: string): string {
 }
 
 // ─── Presentational project card (carousel + detail view) ─────────────────────
-function ProjectCard({
+const ProjectCard = memo(function ProjectCard({
   project,
   className,
   style,
@@ -122,7 +122,7 @@ function ProjectCard({
       </div>
     </Card>
   );
-}
+});
 
 // ─── Detail panel (slides in beside the expanded card) ────────────────────────
 function ProjectDetail({
@@ -334,9 +334,15 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
                 marginTop: -CARD_H / 2,
               }}
             >
+              {/* Hover glow as a pre-rendered shadow faded via opacity
+                  (compositor) instead of animating box-shadow (paint-bound). */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_34px_rgba(34,197,94,0.2)] transition-opacity duration-300 group-hover:opacity-100"
+              />
               <ProjectCard
                 project={project}
-                className="transition-[box-shadow,border-color] duration-300 group-hover:border-[#22c55e]/50 group-hover:shadow-[0_0_34px_rgba(34,197,94,0.2)]"
+                className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
               />
             </div>
           ))}
