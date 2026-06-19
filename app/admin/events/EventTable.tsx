@@ -58,9 +58,9 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
       key: "title",
       header: "EVENT",
       render: (e) => (
-        <div className="flex flex-col">
-          <span className="text-white">{e.title}</span>
-          <span className="retro text-[8px] text-zinc-500">{e.eventType ?? "GENERAL_ASSEMBLY"}</span>
+        <div className="flex max-w-[18rem] flex-col sm:max-w-[26rem]">
+          <span className="truncate text-white">{e.title}</span>
+          <span className="retro truncate text-[8px] text-zinc-500">{e.eventType ?? "GENERAL_ASSEMBLY"}</span>
         </div>
       ),
     },

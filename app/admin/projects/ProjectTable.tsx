@@ -196,9 +196,9 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       key: "title",
       header: "PROJECT",
       render: (p) => (
-        <div className="flex flex-col">
-          <span className="text-white font-black">{p.title}</span>
-          <span className="text-[9px] text-zinc-600 tracking-tighter uppercase line-clamp-1">
+        <div className="flex max-w-[18rem] flex-col sm:max-w-[26rem]">
+          <span className="truncate text-white font-black">{p.title}</span>
+          <span className="text-[9px] text-zinc-600 tracking-tighter uppercase line-clamp-1 break-all">
             {p.description || "NO_DESCRIPTION_PROVIDED"}
           </span>
         </div>
