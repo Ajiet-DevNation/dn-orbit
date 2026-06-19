@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { Press_Start_2P } from "next/font/google";
 import { auth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/roles";
@@ -36,6 +37,19 @@ export default async function V2Layout({
         },
       })
     : null;
+
+  // Onboarding gate (authoritative, DB-backed). The Edge proxy also does this
+  // via the JWT, but its getToken() read can disagree with the app session (e.g.
+  // cookie/secret edge cases), letting signed-in-but-not-onboarded users slip
+  // onto the site. Checking the live DB row here guarantees new members land on
+  // /onboarding. `/onboarding` lives outside this layout, so there's no loop.
+  if (
+    session?.user &&
+    dbUser &&
+    !(dbUser.usn && dbUser.branch && dbUser.lcUsername)
+  ) {
+    redirect("/onboarding");
+  }
 
   const profile: ProfileData = {
     name: dbUser?.name ?? session?.user?.name ?? "",
