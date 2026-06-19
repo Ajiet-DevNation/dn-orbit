@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { FormBuilder } from "../_form/FormBuilder";
-import type { FormFieldDef } from "@/lib/forms";
+import type { EventAudience, FormFieldDef } from "@/lib/forms";
 
 const EVENT_TYPES = [
   "GENERAL_ASSEMBLY",
@@ -242,7 +242,11 @@ export default function EventCreationForm({
       </PixelPanel>
 
       <PixelPanel title="04 · REGISTRATION FORM">
-        <FormBuilder value={schema} onChange={setSchema} />
+        <FormBuilder
+          value={schema}
+          onChange={setSchema}
+          audience={f.audience as EventAudience}
+        />
       </PixelPanel>
 
       <PixelPanel title="05 · DEPLOYMENT">

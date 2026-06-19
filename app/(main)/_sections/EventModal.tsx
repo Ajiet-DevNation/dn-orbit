@@ -17,7 +17,7 @@ import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
 import { FormBuilder } from "@/app/admin/events/_form/FormBuilder";
-import type { FormFieldDef } from "@/lib/forms";
+import type { EventAudience, FormFieldDef } from "@/lib/forms";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
@@ -324,7 +324,11 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
             Name &amp; email are always collected. Add your own questions below —
             registrants see them in order.
           </p>
-          <FormBuilder value={schema} onChange={setSchema} />
+          <FormBuilder
+            value={schema}
+            onChange={setSchema}
+            audience={audience as EventAudience}
+          />
 
           {/* ── 05 · DEPLOYMENT ── */}
           {isAdmin && (

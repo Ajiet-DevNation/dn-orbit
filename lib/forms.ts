@@ -62,6 +62,13 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
 
 export const CHOICE_TYPES: FieldType[] = ["single_choice", "multi_choice", "dropdown"];
 
+// Name + email are always collected. USN / College ID is collected by default
+// for college (AJIET student) and members-only events, so admins never need to
+// re-add those as custom questions.
+export function audienceCollectsUsn(audience: EventAudience): boolean {
+  return audience === "college" || audience === "members";
+}
+
 // A loose, pragmatic email check. The server is authoritative; this is shared.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -112,7 +119,7 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
   else if (!EMAIL_RE.test(email)) errors.email = "Enter a valid email";
 
   let usn: string | undefined;
-  if (audience === "college") {
+  if (audienceCollectsUsn(audience)) {
     usn = (input.usn ?? "").trim();
     if (!usn) {
       errors.usn = "USN / College ID is required";

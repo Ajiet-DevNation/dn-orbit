@@ -45,6 +45,16 @@ describe("validateSubmission", () => {
     expect(Object.keys(r.errors)).toHaveLength(0);
   });
 
+  test("members audience requires usn (default field)", () => {
+    const r = validateSubmission({
+      audience: "members",
+      schema: [],
+      input: { name: "A", email: "a@b.com" },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.errors.usn).toBeTruthy();
+  });
+
   test("college audience requires usn", () => {
     const r = validateSubmission({
       audience: "college",

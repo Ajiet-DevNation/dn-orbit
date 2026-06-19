@@ -15,6 +15,8 @@ import {
 import {
   CHOICE_TYPES,
   FIELD_TYPE_LABELS,
+  audienceCollectsUsn,
+  type EventAudience,
   type FieldType,
   type FormFieldDef,
 } from "@/lib/forms";
@@ -65,10 +67,21 @@ function IconBtn({
 export function FormBuilder({
   value,
   onChange,
+  audience = "public",
 }: {
   value: FormFieldDef[];
   onChange: (next: FormFieldDef[]) => void;
+  /** Drives which default fields are auto-collected (USN for college/members). */
+  audience?: EventAudience;
 }) {
+  // Fields the registration form always collects — shown here (locked) so admins
+  // don't re-create Name / Email / USN as custom questions (which caused
+  // duplicate Name/Email fields on the live form).
+  const defaultFields = [
+    "NAME",
+    "EMAIL",
+    ...(audienceCollectsUsn(audience) ? ["USN / COLLEGE ID"] : []),
+  ];
   // All mutations flow through emit() so conditional-display rules stay valid.
   const emit = (next: FormFieldDef[]) => onChange(sanitizeConditions(next));
   const update = (id: string, patch: Partial<FormFieldDef>) =>
@@ -94,6 +107,29 @@ export function FormBuilder({
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Always-collected default fields — locked, so they aren't duplicated. */}
+      <div className="flex flex-col gap-2.5 border-2 border-[#22c55e]/25 bg-[#22c55e]/[0.04] p-4">
+        <span className="retro text-[9px] tracking-widest text-[#22c55e]">
+          ALWAYS COLLECTED
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {defaultFields.map((d) => (
+            <span
+              key={d}
+              className="retro inline-flex items-center gap-2 border-2 border-white/15 bg-black/40 px-3 py-2 text-[9px] text-white/60"
+            >
+              <span aria-hidden className="text-[#22c55e]/70">
+                ▣
+              </span>
+              {d}
+            </span>
+          ))}
+        </div>
+        <p className="retro text-[8px] leading-relaxed text-muted-foreground">
+          ADDED AUTOMATICALLY — DON&apos;T RE-ADD THESE AS QUESTIONS BELOW.
+        </p>
+      </div>
+
       {value.length === 0 && (
         <div className="border-2 border-dashed border-white/15 bg-black/30 p-6 text-center">
           <p className="retro text-[9px] leading-relaxed text-muted-foreground">

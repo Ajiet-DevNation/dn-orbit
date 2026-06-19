@@ -6,6 +6,7 @@ import { toast } from "@/components/ui/8bit-toast";
 import { Card } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
 import {
+  audienceCollectsUsn,
   isFieldVisible,
   validateSubmission,
   type EventAudience,
@@ -141,7 +142,7 @@ export function RegistrationForm({
           />
         </FieldCard>
 
-        {audience === "college" && (
+        {audienceCollectsUsn(audience) && (
           <FieldCard label="USN / COLLEGE ID" required error={errors.usn}>
             <Input
               font="normal"
