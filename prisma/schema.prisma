@@ -61,7 +61,7 @@ model User {
   /// Auth.js profile image (`avatar_url` in DB)
   image           String?   @map("avatar_url")
   emailVerified   DateTime? @map("email_verified")
-  role            Role      @default(member)
+  role            Role      @default(ajiet_student)
   status          ApprovalStatus @default(pending)
 
   // Onboarding fields
