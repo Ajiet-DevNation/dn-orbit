@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/8bit-toast";
 import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
+import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
 
 interface EventRow {
   id: string;
@@ -57,14 +58,14 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
       key: "title",
       header: "EVENT",
       render: (e) => (
-        <div className="flex flex-col">
-          <span className="text-white">{e.title}</span>
-          <span className="retro text-[8px] text-zinc-500">{e.eventType ?? "GENERAL_ASSEMBLY"}</span>
+        <div className="flex max-w-[18rem] flex-col sm:max-w-[26rem]">
+          <span className="truncate text-white">{e.title}</span>
+          <span className="retro truncate text-[8px] text-zinc-500">{e.eventType ?? "GENERAL_ASSEMBLY"}</span>
         </div>
       ),
     },
     { key: "date", header: "DATE", render: (e) => <span className="text-white/70">{new Date(e.eventDate).toLocaleDateString()}</span> },
-    { key: "audience", header: "AUDIENCE", render: (e) => <span className="retro text-[8px] text-[#22c55e]">{e.audience.toUpperCase()}</span> },
+    { key: "audience", header: "AUDIENCE", render: (e) => <span className="retro text-[8px] text-[#22c55e]">{AUDIENCE_BADGE_LABELS[e.audience as EventAudience] ?? e.audience.toUpperCase()}</span> },
     { key: "location", header: "LOCATION", render: (e) => <span className="text-white/70">{e.location || "VIRTUAL"}</span> },
     {
       key: "review",

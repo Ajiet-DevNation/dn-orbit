@@ -26,9 +26,18 @@ export default async function RegisterPage({
   const audience = event.audience as EventAudience;
   const session = await auth();
 
+  // Pure members-only events require a login; the combined tier doesn't (AJIET
+  // students register by USN without an account).
   if (audience === "members" && !session) {
     redirect(`/login?callbackUrl=/events/${id}/register`);
   }
+
+  // A signed-in approved member takes the account path (locked identity, no USN)
+  // on members / members+AJIET events.
+  const isMember =
+    !!session &&
+    session.user.status === "approved" &&
+    (audience === "members" || audience === "members_college");
 
   const deadline = event.registrationDeadline ?? event.eventDate;
   const closed =
@@ -40,6 +49,7 @@ export default async function RegisterPage({
       eventId={event.id}
       title={event.title}
       audience={audience}
+      isMember={isMember}
       closed={closed}
       schema={parseFormSchema(event.formSchema)}
       dateLabel={formatEventDateLong(event.eventDate)}
@@ -51,7 +61,7 @@ export default async function RegisterPage({
           : null
       }
       prefill={
-        audience === "members" && session
+        isMember && session
           ? { name: session.user.name ?? "", email: session.user.email ?? "" }
           : null
       }

@@ -39,6 +39,9 @@ enum ProjectStatus {
 enum EventAudience {
   members
   college
+  // Open to DevNation members (via account) OR AJIET students (via USN), but
+  // not the general public.
+  members_college
   public
 }
 

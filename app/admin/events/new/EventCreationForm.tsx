@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { FormBuilder } from "../_form/FormBuilder";
-import type { FormFieldDef } from "@/lib/forms";
+import { AUDIENCE_OPTIONS, type EventAudience, type FormFieldDef } from "@/lib/forms";
 
 const EVENT_TYPES = [
   "GENERAL_ASSEMBLY",
@@ -200,9 +200,11 @@ export default function EventCreationForm({
                 <SelectValue placeholder="SELECT" />
               </SelectTrigger>
               <SelectContent className="z-[200] dark">
-                <SelectItem value="public">ANYONE (PUBLIC)</SelectItem>
-                <SelectItem value="college">COLLEGE ONLY (USN)</SelectItem>
-                <SelectItem value="members">MEMBERS ONLY</SelectItem>
+                {AUDIENCE_OPTIONS.map((a) => (
+                  <SelectItem key={a.value} value={a.value}>
+                    {a.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -242,7 +244,11 @@ export default function EventCreationForm({
       </PixelPanel>
 
       <PixelPanel title="04 · REGISTRATION FORM">
-        <FormBuilder value={schema} onChange={setSchema} />
+        <FormBuilder
+          value={schema}
+          onChange={setSchema}
+          audience={f.audience as EventAudience}
+        />
       </PixelPanel>
 
       <PixelPanel title="05 · DEPLOYMENT">

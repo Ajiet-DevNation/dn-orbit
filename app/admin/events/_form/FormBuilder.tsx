@@ -15,12 +15,32 @@ import {
 import {
   CHOICE_TYPES,
   FIELD_TYPE_LABELS,
+  audienceCollectsUsn,
+  type EventAudience,
   type FieldType,
   type FormFieldDef,
 } from "@/lib/forms";
 import { cn } from "@/lib/utils";
 
 const ALL_TYPES = Object.keys(FIELD_TYPE_LABELS) as FieldType[];
+
+// Sentinel for the "Always shown" option (Radix Select items can't be empty).
+const NONE = "__none__";
+
+// Drop any conditional-display rule that no longer points at a valid controller:
+// the controller must still exist, be a choice question, and come *before* the
+// dependent. Run after every edit so reordering / deleting / retyping a question
+// can't leave a dangling condition.
+function sanitizeConditions(list: FormFieldDef[]): FormFieldDef[] {
+  return list.map((f, i) => {
+    const c = f.visibleWhen;
+    if (!c) return f;
+    const ctrlIdx = list.findIndex((q) => q.id === c.fieldId);
+    const ctrl = ctrlIdx >= 0 ? list[ctrlIdx] : undefined;
+    const ok = !!ctrl && ctrlIdx < i && CHOICE_TYPES.includes(ctrl.type);
+    return ok ? f : { ...f, visibleWhen: undefined };
+  });
+}
 
 // Small square pixel control used for reorder / delete on each question.
 function IconBtn({
@@ -47,22 +67,35 @@ function IconBtn({
 export function FormBuilder({
   value,
   onChange,
+  audience = "public",
 }: {
   value: FormFieldDef[];
   onChange: (next: FormFieldDef[]) => void;
+  /** Drives which default fields are auto-collected (USN for college/members). */
+  audience?: EventAudience;
 }) {
+  // Fields the registration form always collects — shown here (locked) so admins
+  // don't re-create Name / Email / USN as custom questions (which caused
+  // duplicate Name/Email fields on the live form).
+  const defaultFields = [
+    "NAME",
+    "EMAIL",
+    ...(audienceCollectsUsn(audience) ? ["USN / COLLEGE ID"] : []),
+  ];
+  // All mutations flow through emit() so conditional-display rules stay valid.
+  const emit = (next: FormFieldDef[]) => onChange(sanitizeConditions(next));
   const update = (id: string, patch: Partial<FormFieldDef>) =>
-    onChange(value.map((f) => (f.id === id ? { ...f, ...patch } : f)));
-  const remove = (id: string) => onChange(value.filter((f) => f.id !== id));
+    emit(value.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  const remove = (id: string) => emit(value.filter((f) => f.id !== id));
   const move = (idx: number, dir: -1 | 1) => {
     const j = idx + dir;
     if (j < 0 || j >= value.length) return;
     const next = [...value];
     [next[idx], next[j]] = [next[j], next[idx]];
-    onChange(next);
+    emit(next);
   };
   const add = () =>
-    onChange([
+    emit([
       ...value,
       {
         id: crypto.randomUUID(),
@@ -74,6 +107,29 @@ export function FormBuilder({
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Always-collected default fields — locked, so they aren't duplicated. */}
+      <div className="flex flex-col gap-2.5 border-2 border-[#22c55e]/25 bg-[#22c55e]/[0.04] p-4">
+        <span className="retro text-[9px] tracking-widest text-[#22c55e]">
+          ALWAYS COLLECTED
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {defaultFields.map((d) => (
+            <span
+              key={d}
+              className="retro inline-flex items-center gap-2 border-2 border-white/15 bg-black/40 px-3 py-2 text-[9px] text-white/60"
+            >
+              <span aria-hidden className="text-[#22c55e]/70">
+                ▣
+              </span>
+              {d}
+            </span>
+          ))}
+        </div>
+        <p className="retro text-[8px] leading-relaxed text-muted-foreground">
+          ADDED AUTOMATICALLY — DON&apos;T RE-ADD THESE AS QUESTIONS BELOW.
+        </p>
+      </div>
+
       {value.length === 0 && (
         <div className="border-2 border-dashed border-white/15 bg-black/30 p-6 text-center">
           <p className="retro text-[9px] leading-relaxed text-muted-foreground">
@@ -84,6 +140,13 @@ export function FormBuilder({
 
       {value.map((f, idx) => {
         const isChoice = CHOICE_TYPES.includes(f.type);
+        // Only earlier choice questions can drive this one's visibility.
+        const condCandidates = value
+          .slice(0, idx)
+          .filter((q) => CHOICE_TYPES.includes(q.type));
+        const controlling = f.visibleWhen
+          ? value.find((q) => q.id === f.visibleWhen!.fieldId)
+          : undefined;
         return (
           <div
             key={f.id}
@@ -224,6 +287,73 @@ export function FormBuilder({
                 >
                   + ADD OPTION
                 </button>
+              </div>
+            )}
+
+            {/* Conditional display — show this question only for a chosen answer
+                to an earlier choice question (branching forms). */}
+            {condCandidates.length > 0 && (
+              <div className="grid gap-2 border-t-2 border-white/10 pt-4">
+                <Label className="text-[9px]">SHOW ONLY IF</Label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Select
+                    value={f.visibleWhen?.fieldId ?? NONE}
+                    onValueChange={(fieldId) =>
+                      update(f.id, {
+                        visibleWhen:
+                          fieldId === NONE
+                            ? undefined
+                            : {
+                                fieldId,
+                                equals:
+                                  value.find((q) => q.id === fieldId)
+                                    ?.options?.[0] ?? "",
+                              },
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Always shown" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[200] dark">
+                      <SelectItem value={NONE}>Always shown</SelectItem>
+                      {condCandidates.map((q) => (
+                        <SelectItem key={q.id} value={q.id}>
+                          {q.label.trim() || `Question ${value.indexOf(q) + 1}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {f.visibleWhen && (
+                    <Select
+                      value={f.visibleWhen.equals}
+                      onValueChange={(equals) =>
+                        update(f.id, {
+                          visibleWhen: { fieldId: f.visibleWhen!.fieldId, equals },
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an answer" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[200] dark">
+                        {(controlling?.options ?? []).map((o) => (
+                          <SelectItem key={o} value={o}>
+                            {o}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                {f.visibleWhen && (
+                  <p className="retro text-[8px] leading-relaxed text-muted-foreground">
+                    SHOWN ONLY WHEN “
+                    {controlling?.label.trim() || "QUESTION ABOVE"}” IS “
+                    {f.visibleWhen.equals || "…"}”.
+                  </p>
+                )}
               </div>
             )}
 

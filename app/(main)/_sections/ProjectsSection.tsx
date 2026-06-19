@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FaGithub, FaExternalLinkAlt } from "react-icons/fa";
 import { Card } from "@/components/ui/8bit-card";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,7 @@ import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
 // Read-only tech chip: dark background + green pixel border + green tech icon,
 // matching the chips in the "new project" form (TechStackSelect) where the icons
 // pop against the dark fill.
-function TechChip({ name }: { name: string }) {
+const TechChip = memo(function TechChip({ name }: { name: string }) {
   const Icon = TECH_BY_NAME[name]?.Icon;
   return (
     <span className="retro inline-flex items-center gap-2 border-2 border-[#22c55e] bg-[#0a0a0a] px-2.5 py-1.5 text-[9px] text-white">
@@ -21,7 +21,7 @@ function TechChip({ name }: { name: string }) {
       {name}
     </span>
   );
-}
+});
 import { useScrollParallax } from "./useScrollParallax";
 import { useViewportWidth } from "./useViewportWidth";
 
@@ -44,7 +44,7 @@ function statusColor(status: string): string {
 }
 
 // ─── Presentational project card (carousel + detail view) ─────────────────────
-function ProjectCard({
+const ProjectCard = memo(function ProjectCard({
   project,
   className,
   style,
@@ -122,7 +122,7 @@ function ProjectCard({
       </div>
     </Card>
   );
-}
+});
 
 // ─── Detail panel (slides in beside the expanded card) ────────────────────────
 function ProjectDetail({
@@ -143,14 +143,19 @@ function ProjectDetail({
           "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)",
       }}
     >
-      <div className="flex items-center gap-3">
+      {/* pr-28 reserves room for the absolutely-positioned CLOSE button at the
+          overlay's top-right; min-w-0 + break-words lets a long title wrap
+          instead of sliding under it. */}
+      <div className="flex items-center gap-3 pr-28">
         <span
-          className="retro border-2 px-2 py-1 text-[8px]"
+          className="retro shrink-0 border-2 px-2 py-1 text-[8px]"
           style={{ color, borderColor: color }}
         >
           {project.status}
         </span>
-        <h3 className="retro text-2xl text-white">{project.title}</h3>
+        <h3 className="retro min-w-0 break-words text-2xl text-white">
+          {project.title}
+        </h3>
       </div>
 
       <p className="text-sm leading-relaxed text-muted-foreground">
@@ -334,9 +339,15 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
                 marginTop: -CARD_H / 2,
               }}
             >
+              {/* Hover glow as a pre-rendered shadow faded via opacity
+                  (compositor) instead of animating box-shadow (paint-bound). */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_34px_rgba(34,197,94,0.2)] transition-opacity duration-300 group-hover:opacity-100"
+              />
               <ProjectCard
                 project={project}
-                className="transition-[box-shadow,border-color] duration-300 group-hover:border-[#22c55e]/50 group-hover:shadow-[0_0_34px_rgba(34,197,94,0.2)]"
+                className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
               />
             </div>
           ))}

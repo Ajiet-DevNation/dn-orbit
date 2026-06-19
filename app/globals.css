@@ -246,13 +246,31 @@ body {
 /* ── About Section — card hover glow ── */
 
 .about-card {
-  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+  position: relative;
+  /* Only the cheap border-color animates here; the rest glow is static. The
+     brighter hover glow lives on ::after and cross-fades via opacity
+     (compositor) instead of animating box-shadow blur (paint-bound). */
+  transition: border-color 0.4s ease;
   /* Faint green terminal glow at rest, tying the card to the orbit accent. */
   box-shadow: 0 0 24px rgba(34, 197, 94, 0.05), inset 0 0 30px rgba(34, 197, 94, 0.02);
 }
+/* Sits behind the card content (z-index: -1) so its outset glow reads around the
+   edges without veiling the text. */
+.about-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  box-shadow: 0 0 28px rgba(34, 197, 94, 0.12);
+}
 .about-card:hover {
   border-color: rgba(34, 197, 94, 0.35);
-  box-shadow: 0 0 28px rgba(34, 197, 94, 0.12), inset 0 0 24px rgba(34, 197, 94, 0.04);
+}
+.about-card:hover::after {
+  opacity: 1;
 }
 
 /* CRT-style scanlines + soft phosphor glow over the terminal transcript. The

@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import type { FormFieldDef } from "@/lib/forms";
+import { cn } from "@/lib/utils";
 import { FieldCard } from "./FieldCard";
 
 interface Props {
@@ -18,10 +19,27 @@ interface Props {
   onChange: (value: unknown) => void;
 }
 
-// Choice rows: pixel-bordered tiles that fill green when selected. Native
-// radio/checkbox kept inside for behaviour, accent-coloured to match.
+// Choice rows: pixel-bordered tiles that fill green when selected. The real
+// radio/checkbox is kept (sr-only) for keyboard + a11y; the visible control is
+// an 8-bit square mark (matching PixelCheckbox) instead of the round native one.
 const choiceLabel =
   "flex cursor-pointer items-center gap-3 border-2 border-white/15 bg-[#0d0d0d] px-4 py-3 text-sm text-white transition-colors hover:border-[#22c55e]/40 has-[:checked]:border-[#22c55e]/70 has-[:checked]:bg-[#22c55e]/[0.06]";
+
+// Square pixel indicator for choice rows. `peer-focus-visible` lights it up when
+// the (sr-only) input next to it is keyboard-focused.
+function ChoiceMark({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "flex size-5 shrink-0 items-center justify-center border-2 bg-black transition-colors peer-focus-visible:border-[#22c55e]",
+        checked ? "border-[#22c55e]" : "border-white/30",
+      )}
+    >
+      {checked && <span className="block size-2.5 bg-[#22c55e]" />}
+    </span>
+  );
+}
 
 export function PixelFormField({ field, value, error, onChange }: Props) {
   return (
@@ -71,8 +89,9 @@ export function PixelFormField({ field, value, error, onChange }: Props) {
                 name={field.id}
                 checked={value === o}
                 onChange={() => onChange(o)}
-                className="size-4 accent-[#22c55e]"
+                className="peer sr-only"
               />
+              <ChoiceMark checked={value === o} />
               {o}
             </label>
           ))}
@@ -93,8 +112,9 @@ export function PixelFormField({ field, value, error, onChange }: Props) {
                         : arr.filter((v) => v !== o),
                     )
                   }
-                  className="size-4 accent-[#22c55e]"
+                  className="peer sr-only"
                 />
+                <ChoiceMark checked={arr.includes(o)} />
                 {o}
               </label>
             );
