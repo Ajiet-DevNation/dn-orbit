@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/8bit-toast";
+import { useConfirm } from "@/components/ui/PixelConfirm";
 import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
 import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
 
@@ -20,6 +21,7 @@ interface EventRow {
 export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { confirm, dialog } = useConfirm();
 
   const togglePublish = (id: string, current: boolean) => {
     startTransition(async () => {
@@ -37,8 +39,13 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
     });
   };
 
-  const remove = (id: string) => {
-    if (!confirm("Delete this event? This is irreversible.")) return;
+  const remove = async (id: string) => {
+    const ok = await confirm({
+      title: "DELETE EVENT",
+      message: "Delete this event? This is irreversible.",
+      confirmLabel: "DELETE",
+    });
+    if (!ok) return;
     startTransition(async () => {
       try {
         const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
@@ -108,5 +115,10 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
     },
   ];
 
-  return <PixelDataTable data={initialEvents} columns={columns} empty="NO EVENTS" />;
+  return (
+    <>
+      <PixelDataTable data={initialEvents} columns={columns} empty="NO EVENTS" />
+      {dialog}
+    </>
+  );
 }

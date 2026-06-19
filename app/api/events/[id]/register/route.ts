@@ -45,6 +45,9 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (deadline && new Date() > deadline)
     return NextResponse.json({ error: "Registration closed" }, { status: 409 });
 
+  // Fast, non-authoritative pre-check: reject an obviously-full event before
+  // doing validation work. The real, race-free guard runs under a row lock at
+  // insert time (see the transaction below).
   if (event.capacity != null) {
     const count = await db.registration.count({ where: { eventId } });
     if (count >= event.capacity)
@@ -78,23 +81,46 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   try {
-    const registration = await db.registration.create({
-      data: {
-        eventId,
-        userId: session?.user.id ?? null,
-        name: result.value.name,
-        email: result.value.email,
-        usn: result.value.usn ?? null,
-        responses: result.value.responses as Prisma.InputJsonValue,
-      },
+    // Authoritative capacity guard. For a capped event we lock the event row
+    // (`FOR UPDATE`) so concurrent registrations serialize here, then re-count
+    // under that lock before inserting — closing the check-then-act race where
+    // two requests both pass the pre-check above and overshoot capacity.
+    // Uncapped events skip the lock entirely (no contention on the common path).
+    const outcome = await db.$transaction(async (tx) => {
+      if (event.capacity != null) {
+        const locked = await tx.$queryRaw<{ capacity: number | null }[]>`
+          SELECT capacity FROM events WHERE id = ${eventId} FOR UPDATE
+        `;
+        const cap = locked[0]?.capacity ?? null;
+        if (cap != null) {
+          const count = await tx.registration.count({ where: { eventId } });
+          if (count >= cap) return { full: true as const };
+        }
+      }
+      const created = await tx.registration.create({
+        data: {
+          eventId,
+          userId: session?.user.id ?? null,
+          name: result.value.name,
+          email: result.value.email,
+          usn: result.value.usn ?? null,
+          responses: result.value.responses as Prisma.InputJsonValue,
+        },
+      });
+      return { full: false as const, id: created.id };
     });
+
+    if (outcome.full) {
+      return NextResponse.json({ error: "Event is full" }, { status: 409 });
+    }
+
     void logAudit({
       action: "registration.create",
       actorId: session?.user.id ?? null,
       actorName: result.value.name,
       summary: `${result.value.name} registered for "${event.title}"`,
     });
-    return NextResponse.json({ id: registration.id }, { status: 201 });
+    return NextResponse.json({ id: outcome.id }, { status: 201 });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
       return NextResponse.json(
