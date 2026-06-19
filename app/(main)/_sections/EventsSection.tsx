@@ -7,6 +7,7 @@ import { SectionHeading } from "./SectionHeading";
 import { PixelReveal } from "./PixelReveal";
 import { useFlipDetail } from "./useFlipDetail";
 import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
+import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
 
 // Plain, serializable shape — mapped from the DB Event in the server page so no
 // Date objects cross the client boundary.
@@ -18,7 +19,7 @@ export interface EventCardData {
   dateLabel: string; // pre-formatted, e.g. "JUL 15, 2026"
   location: string | null;
   bannerUrl: string | null;
-  audience: "members" | "college" | "public";
+  audience: EventAudience;
   capacityLabel: string | null;
   registrationClosed: boolean;
 }
@@ -106,7 +107,7 @@ function EmptyState() {
 }
 
 function AudienceBadge({ audience }: { audience: EventCardData["audience"] }) {
-  const label = audience === "members" ? "MEMBERS" : audience === "college" ? "COLLEGE" : "OPEN";
+  const label = AUDIENCE_BADGE_LABELS[audience];
   return (
     <span className="retro border-2 border-[#22c55e] px-2 py-1 text-[8px] text-[#22c55e]">
       {label}

@@ -3,6 +3,7 @@ import {
   type FormFieldDef,
   type EventAudience,
   isFieldVisible,
+  usnRequiredFor,
   validateSubmission,
 } from "./forms";
 
@@ -153,6 +154,37 @@ describe("validateSubmission", () => {
     });
     expect(r.ok).toBe(false);
     expect(r.errors.team).toBeTruthy();
+  });
+});
+
+describe("members + AJIET (members_college) audience", () => {
+  test("non-member must provide a USN", () => {
+    const r = validateSubmission({
+      audience: "members_college",
+      schema: [],
+      isMember: false,
+      input: { name: "A", email: "a@b.com" },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.errors.usn).toBeTruthy();
+  });
+
+  test("signed-in member is exempt from USN", () => {
+    const r = validateSubmission({
+      audience: "members_college",
+      schema: [],
+      isMember: true,
+      input: { name: "A", email: "a@b.com" },
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  test("usnRequiredFor matrix", () => {
+    expect(usnRequiredFor("public", false)).toBe(false);
+    expect(usnRequiredFor("college", false)).toBe(true);
+    expect(usnRequiredFor("members", true)).toBe(true);
+    expect(usnRequiredFor("members_college", false)).toBe(true);
+    expect(usnRequiredFor("members_college", true)).toBe(false);
   });
 });
 

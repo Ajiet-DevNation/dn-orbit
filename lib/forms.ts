@@ -1,7 +1,23 @@
 // Single source of truth for registration form field definitions and the
 // submission validator shared by the client renderer and the server route.
 
-export type EventAudience = "members" | "college" | "public";
+export type EventAudience = "members" | "college" | "members_college" | "public";
+
+// Admin "who can register" options (single source of truth for the label copy).
+export const AUDIENCE_OPTIONS: { value: EventAudience; label: string }[] = [
+  { value: "public", label: "ANYONE (PUBLIC)" },
+  { value: "college", label: "AJIET STUDENT (USN)" },
+  { value: "members", label: "MEMBERS ONLY" },
+  { value: "members_college", label: "MEMBERS + AJIET STUDENTS" },
+];
+
+// Short labels for the audience badge on event cards / the registration header.
+export const AUDIENCE_BADGE_LABELS: Record<EventAudience, string> = {
+  members: "MEMBERS",
+  college: "AJIET STUDENT",
+  members_college: "MEMBERS + AJIET",
+  public: "OPEN",
+};
 
 export type FieldType =
   | "short_text"
@@ -62,10 +78,27 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
 
 export const CHOICE_TYPES: FieldType[] = ["single_choice", "multi_choice", "dropdown"];
 
-// Name + email are always collected. USN / College ID is collected by default
-// for college (AJIET student) and members-only events, so admins never need to
-// re-add those as custom questions.
+// Whether an audience ever collects USN / College ID (used to show the field /
+// the "always collected" hint). For the combined members+AJIET tier the field
+// is shown because AJIET students need it — see usnRequiredFor for who must fill
+// it.
 export function audienceCollectsUsn(audience: EventAudience): boolean {
+  return (
+    audience === "college" ||
+    audience === "members" ||
+    audience === "members_college"
+  );
+}
+
+// Whether USN is *required* for this submission. On the combined "Members +
+// AJIET students" tier, signed-in members register via their account (no USN);
+// AJIET students (no account) must provide one. College and members-only always
+// require it.
+export function usnRequiredFor(
+  audience: EventAudience,
+  isMember: boolean,
+): boolean {
+  if (audience === "members_college") return !isMember;
   return audience === "college" || audience === "members";
 }
 
@@ -86,6 +119,8 @@ export interface ValidateArgs {
   audience: EventAudience;
   schema: FormFieldDef[];
   usnPattern?: string;
+  /** Signed-in approved member — exempts them from USN on the combined tier. */
+  isMember?: boolean;
   input: SubmissionInput;
 }
 
@@ -119,7 +154,7 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
   else if (!EMAIL_RE.test(email)) errors.email = "Enter a valid email";
 
   let usn: string | undefined;
-  if (audienceCollectsUsn(audience)) {
+  if (usnRequiredFor(audience, !!args.isMember)) {
     usn = (input.usn ?? "").trim();
     if (!usn) {
       errors.usn = "USN / College ID is required";

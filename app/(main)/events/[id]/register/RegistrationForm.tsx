@@ -6,8 +6,9 @@ import { toast } from "@/components/ui/8bit-toast";
 import { Card } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
 import {
-  audienceCollectsUsn,
+  AUDIENCE_BADGE_LABELS,
   isFieldVisible,
+  usnRequiredFor,
   validateSubmission,
   type EventAudience,
   type FormFieldDef,
@@ -19,6 +20,7 @@ export function RegistrationForm({
   eventId,
   title,
   audience,
+  isMember,
   closed,
   schema,
   dateLabel,
@@ -30,6 +32,7 @@ export function RegistrationForm({
   eventId: string;
   title: string;
   audience: EventAudience;
+  isMember: boolean;
   closed: boolean;
   schema: FormFieldDef[];
   dateLabel: string;
@@ -76,7 +79,7 @@ export function RegistrationForm({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const local = validateSubmission({ audience, schema, input: { name, email, usn, responses } });
+    const local = validateSubmission({ audience, isMember, schema, input: { name, email, usn, responses } });
     if (!local.ok) {
       setErrors(local.errors);
       toast.error("Please fix the highlighted fields");
@@ -108,7 +111,8 @@ export function RegistrationForm({
     }
   };
 
-  const emailLocked = audience === "members" && !!prefill;
+  const emailLocked = isMember && !!prefill;
+  const showUsn = usnRequiredFor(audience, isMember);
 
   return (
     <Shell title={title} meta={meta}>
@@ -142,7 +146,7 @@ export function RegistrationForm({
           />
         </FieldCard>
 
-        {audienceCollectsUsn(audience) && (
+        {showUsn && (
           <FieldCard label="USN / COLLEGE ID" required error={errors.usn}>
             <Input
               font="normal"
@@ -226,7 +230,7 @@ function Shell({
 }
 
 function AudienceBadge({ audience }: { audience: EventAudience }) {
-  const label = audience === "members" ? "MEMBERS" : audience === "college" ? "COLLEGE" : "OPEN";
+  const label = AUDIENCE_BADGE_LABELS[audience];
   return (
     <span className="retro border-2 border-[#22c55e] px-2 py-1 text-[8px] text-[#22c55e]">
       {label}
