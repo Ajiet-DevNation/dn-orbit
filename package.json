@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "bunx prisma generate && bunx prisma migrate deploy && next build",
+    "build": "bunx prisma generate && next build",
+    "db:migrate": "bunx prisma migrate deploy",
     "start": "next start",
     "lint": "eslint",
     "scrape:announcements": "bun run scripts/scrapeAnnouncements.ts",
