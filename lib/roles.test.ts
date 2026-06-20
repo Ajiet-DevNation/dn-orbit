@@ -1,11 +1,12 @@
 import { test, expect } from "bun:test";
 import { canAccessAdmin, canManageRoles, isRole, ROLES } from "./roles";
 
-test("admin tiers can access admin, member / ajiet_student cannot", () => {
+test("admin tiers can access admin, member / alumni / ajiet_student cannot", () => {
   expect(canAccessAdmin("president")).toBe(true);
   expect(canAccessAdmin("vice_president")).toBe(true);
   expect(canAccessAdmin("core_member")).toBe(true);
   expect(canAccessAdmin("member")).toBe(false);
+  expect(canAccessAdmin("alumni")).toBe(false);
   expect(canAccessAdmin("ajiet_student")).toBe(false);
 });
 
@@ -31,12 +32,13 @@ test("isRole narrows valid values only", () => {
   expect(isRole(42)).toBe(false);
 });
 
-test("ROLES lists all five tiers", () => {
+test("ROLES lists all six tiers in priority order", () => {
   expect(ROLES).toEqual([
     "president",
     "vice_president",
     "core_member",
     "member",
+    "alumni",
     "ajiet_student",
   ]);
 });

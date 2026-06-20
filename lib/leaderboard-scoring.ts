@@ -6,6 +6,12 @@ export interface ScoringWeights {
   lcWeight: number;
   githubWeight: number;
   eventWeight: number;
+  /**
+   * Points awarded per qualifying open-source PR, folded into the raw GitHub
+   * score. Tunable in the admin Leaderboard panel; defaults to 0 so callers that
+   * don't supply it (e.g. older tests) keep the original GitHub formula.
+   */
+  githubOpenSourcePerPrPoints?: number;
 }
 
 export interface ScoringUserInput {
@@ -13,7 +19,13 @@ export interface ScoringUserInput {
   /** Latest LeetCode stats, or null if the user has none yet. */
   lc: { easySolved: number; mediumSolved: number; hardSolved: number } | null;
   /** Latest GitHub stats, or null if the user has none yet. */
-  gh: { totalCommits: number; totalPrs: number; totalStars: number } | null;
+  gh: {
+    totalCommits: number;
+    totalPrs: number;
+    totalStars: number;
+    /** Merged PRs to qualifying external repos. Optional; treated as 0. */
+    openSourcePrs?: number;
+  } | null;
   /** Count of events the user attended, measured against `totalEvents`. */
   attendedCount: number;
 }
@@ -40,9 +52,13 @@ export function rawLcScore(
   return lc.easySolved * 1 + lc.mediumSolved * 3 + lc.hardSolved * 5;
 }
 
-export function rawGithubScore(gh: ScoringUserInput["gh"]): number {
+export function rawGithubScore(
+  gh: ScoringUserInput["gh"],
+  openSourcePerPrPoints = 0
+): number {
   if (!gh) return 0;
-  return gh.totalCommits + gh.totalPrs * 2 + gh.totalStars;
+  const openSource = (gh.openSourcePrs ?? 0) * openSourcePerPrPoints;
+  return gh.totalCommits + gh.totalPrs * 2 + gh.totalStars + openSource;
 }
 
 /**
@@ -64,17 +80,26 @@ export function computeLeaderboard(
   const raw = users.map((u) => ({
     userId: u.userId,
     rawLc: rawLcScore(u.lc),
-    rawGh: rawGithubScore(u.gh),
+    rawGh: rawGithubScore(u.gh, weights.githubOpenSourcePerPrPoints ?? 0),
     eventScore:
       totalEvents > 0 ? clamp((u.attendedCount / totalEvents) * 100, 0, 100) : 0,
   }));
 
-  const maxLc = Math.max(1, ...raw.map((u) => u.rawLc));
-  const maxGh = Math.max(1, ...raw.map((u) => u.rawGh));
+  // LeetCode and GitHub raw values are unbounded activity counts with
+  // heavy-tailed distributions: a single prolific member (thousands of commits
+  // and merged PRs) would linearly crush everyone else's relative score into
+  // single digits — e.g. 600 raw next to 7500 raw normalises to 8/100. Square-
+  // root compression keeps the cohort leader at 100 while giving the rest a fair
+  // spread (a member with a quarter of the leader's raw activity scores ~50, not
+  // ~25), so the board reflects real standing instead of one outlier's dominance.
+  const compress = (n: number) => Math.sqrt(Math.max(0, n));
+
+  const maxLc = Math.max(1, ...raw.map((u) => compress(u.rawLc)));
+  const maxGh = Math.max(1, ...raw.map((u) => compress(u.rawGh)));
 
   const scored = raw.map((u) => {
-    const lcScore = (u.rawLc / maxLc) * 100;
-    const githubScore = (u.rawGh / maxGh) * 100;
+    const lcScore = (compress(u.rawLc) / maxLc) * 100;
+    const githubScore = (compress(u.rawGh) / maxGh) * 100;
     const totalScore =
       lcScore * weights.lcWeight +
       githubScore * weights.githubWeight +

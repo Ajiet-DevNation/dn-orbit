@@ -13,6 +13,7 @@ import {
   LeaderboardSection,
   type LeaderboardEntry,
 } from "./_sections/LeaderboardSection";
+import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { ProjectsSection } from "./_sections/ProjectsSection";
 import { MembersSection } from "./_sections/MembersSection";
 import { Footer } from "./_sections/Footer";
@@ -22,7 +23,7 @@ import { PixelLoadingScreen } from "@/components/ui/PixelLoadingScreen";
 
 export const metadata = {
   // Absolute title so the home page reads cleanly (no "%s — ORBIT" template).
-  title: { absolute: "ORBIT — DevNation · Leaderboard, Events, Projects & Members" },
+  title: { absolute: "ORBIT · DevNation · Leaderboard, Events, Projects & Members" },
 };
 
 function formatDate(date: Date): string {
@@ -46,7 +47,6 @@ function formatEventDateLong(date: Date): string {
 export default async function V2Page() {
   const session = await auth();
   const userId = session?.user?.id;
-  const hasGithubToken = !!session?.user?.accessToken;
   const hasLcUsername = !!session?.user?.lcUsername;
   const isAdmin = canAccessAdmin(session?.user?.role);
 
@@ -76,11 +76,15 @@ export default async function V2Page() {
         }),
         db.leaderboardScore.findUnique({ where: { userId } }),
         db.account.findFirst({
-          where: { userId, provider: "github" },
+          where: { userId, provider: "github", access_token: { not: null } },
           select: { scope: true },
         }),
       ])
     : [null, null, null, null];
+
+  // A GitHub account row with a token means we can pull the member's stats. The
+  // token itself never leaves the server — only this boolean reaches the client.
+  const hasGithubToken = !!ghAccount;
 
   // Members who signed in before private-repo support hold a token without the
   // `repo` scope. Detect that so the Player Stats refresh button can offer a
@@ -118,21 +122,23 @@ export default async function V2Page() {
 
   // Public leaderboard: top 20 *visible* users by computed total score. Display
   // rank is positional (1..N) so the board reads cleanly even if a hidden user
-  // sits between visible ones in the global ranking. Empty until the nightly
-  // recompute (or an admin trigger) has populated leaderboard_scores.
-  // Up to 100 ranked members — the board paginates these client-side in pages of
-  // 10 (Top 1–10, 11–20, …). 100 is a generous cap that keeps the payload small
-  // while covering realistic club sizes.
+  // sits between visible ones in the global ranking. Membership is governed by
+  // LEADERBOARD_VISIBLE_USER_FILTER (onboarded-or-approved), so a newly-joined
+  // member appears within one cron cycle (≤15 min) of finishing onboarding —
+  // no manual approval needed. Up to 100 ranked members — the board paginates
+  // these client-side in pages of 10 (Top 1–10, 11–20, …). 100 is a generous
+  // cap that keeps the payload small while covering realistic club sizes.
   const topScores = await db.leaderboardScore.findMany({
-    where: { user: { isVisible: true, status: "approved" } },
+    where: { user: LEADERBOARD_VISIBLE_USER_FILTER },
     orderBy: [{ totalScore: "desc" }],
     take: 100,
-    include: { user: { select: { name: true, image: true } } },
+    include: { user: { select: { name: true, image: true, githubUsername: true } } },
   });
 
   const leaderboard: LeaderboardEntry[] = topScores.map((s, i) => ({
     rank: i + 1,
     name: toTitleCase(s.user.name),
+    username: s.user.githubUsername,
     image: s.user.image,
     score: Math.round(s.totalScore),
     githubScore: Math.round(s.githubScore),
@@ -141,17 +147,17 @@ export default async function V2Page() {
   }));
 
   // The player's "GLOBAL STANDING" must agree with the public board, so we
-  // derive it from the *same* population the board ranks over (visible, approved
-  // members) instead of trusting leaderboardScore.rank — that stored rank is
-  // computed across *every* user (hidden/pending/rejected included), so a hidden
-  // member who outscores you would inflate it by one. Counting members who
-  // strictly outscore the player (+1) is also immune to stale nightly recomputes
-  // and manual DB deletions.
+  // derive it from the *same* population the board ranks over (the shared
+  // LEADERBOARD_VISIBLE_USER_FILTER) instead of trusting leaderboardScore.rank —
+  // that stored rank is computed across *every* user (hidden/rejected included),
+  // so a hidden member who outscores you would inflate it by one. Counting
+  // members who strictly outscore the player (+1) is also immune to stale
+  // recomputes and manual DB deletions.
   const playerRank =
     userId && leaderboardScore
       ? (await db.leaderboardScore.count({
           where: {
-            user: { isVisible: true, status: "approved" },
+            user: LEADERBOARD_VISIBLE_USER_FILTER,
             totalScore: { gt: leaderboardScore.totalScore },
           },
         })) + 1
@@ -200,6 +206,7 @@ export default async function V2Page() {
                 totalCommits: githubStats.totalCommits,
                 totalPrs: githubStats.totalPrs,
                 totalStars: githubStats.totalStars,
+                openSourcePrs: githubStats.openSourcePrs,
                 topLanguages: languagesFromRecord(
                   githubStats.topLanguages as Record<string, number>
                 ),

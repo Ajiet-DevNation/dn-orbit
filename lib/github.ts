@@ -11,6 +11,8 @@ export interface GitHubStats {
   totalCommits: number;
   totalPrs: number;
   totalStars: number;
+  /** Merged PRs to public repos the user doesn't own, upstream stars ≥ minStars. */
+  openSourcePrs: number;
   topLanguages: Record<string, number>; // { "TypeScript": 12400, "Python": 3200 }
 }
 
@@ -151,24 +153,117 @@ async function fetchTotalCommits(username: string, token: string): Promise<numbe
   return total as number;
 }
 
+// ─── GraphQL: count open-source contributions ────────────────────────────────
+// "Open source" here means merged PRs the user authored into PUBLIC repos they
+// do NOT own, where the upstream repo has at least `minStars` stars — i.e. real
+// contributions to other people's projects, not their own. Uses the search API
+// (merged PRs are public regardless of whose token queries them) and reads each
+// PR's repository stars in the same query, so no per-PR follow-up requests.
+// Paginated with a hard page cap so one prolific contributor can't run the
+// request unbounded.
+
+const OPEN_SOURCE_MAX_PAGES = 4; // up to 400 most-recent merged PRs
+
+interface OpenSourceSearchNode {
+  repository?: {
+    stargazerCount: number;
+    isPrivate: boolean;
+    owner: { login: string };
+  };
+}
+
+interface OpenSourceSearchResponse {
+  data?: {
+    search?: {
+      pageInfo: { hasNextPage: boolean; endCursor: string | null };
+      nodes: OpenSourceSearchNode[];
+    };
+  };
+  errors?: unknown;
+}
+
+async function fetchOpenSourcePrs(
+  username: string,
+  token: string,
+  minStars: number
+): Promise<number> {
+  const query = `
+    query($q: String!, $after: String) {
+      search(query: $q, type: ISSUE, first: 100, after: $after) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          ... on PullRequest {
+            repository {
+              stargazerCount
+              isPrivate
+              owner { login }
+            }
+          }
+        }
+      }
+    }
+  `;
+  const q = `author:${username} type:pr is:merged`;
+  const owner = username.toLowerCase();
+
+  let after: string | null = null;
+  let qualifying = 0;
+
+  for (let page = 0; page < OPEN_SOURCE_MAX_PAGES; page++) {
+    const res = await fetch(GITHUB_GRAPHQL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, variables: { q, after } }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`GitHub GraphQL error: ${res.status} ${res.statusText}`);
+    }
+
+    const json = (await res.json()) as OpenSourceSearchResponse;
+    if (json.errors) {
+      throw new Error(`GitHub GraphQL query failed: ${JSON.stringify(json.errors)}`);
+    }
+
+    const search = json.data?.search;
+    const nodes = search?.nodes ?? [];
+
+    for (const node of nodes) {
+      const repo = node.repository;
+      if (!repo || repo.isPrivate) continue;
+      if (repo.owner.login.toLowerCase() === owner) continue; // own repo
+      if (repo.stargazerCount >= minStars) qualifying++;
+    }
+
+    if (!search?.pageInfo?.hasNextPage) break;
+    after = search.pageInfo.endCursor;
+  }
+
+  return qualifying;
+}
+
 // ─── Main export: fetch everything ───────────────────────────────────────────
 
 export async function fetchGitHubStats(
   username: string,
   token: string,
-  options: { includePrivate?: boolean } = {}
+  options: { includePrivate?: boolean; openSourceMinStars?: number } = {}
 ): Promise<GitHubStats> {
   // includePrivate must only be set when `token` is `username`'s own token.
   // It is what unlocks private-repo stats (repos, stars, languages); private
   // commits/PRs are already counted server-side by GitHub for the owning token
   // (restrictedContributionsCount + the merged-PR search), so they need no flag.
-  const { includePrivate = false } = options;
+  const { includePrivate = false, openSourceMinStars = 10 } = options;
 
   // Run all fetches in parallel for speed
-  const [repoData, totalCommits, totalPrs] = await Promise.all([
+  const [repoData, totalCommits, totalPrs, openSourcePrs] = await Promise.all([
     fetchUserRepos(username, token, includePrivate),
     fetchTotalCommits(username, token),
     fetchMergedPRs(username, token),
+    fetchOpenSourcePrs(username, token, openSourceMinStars),
   ]);
 
   return {
@@ -176,6 +271,7 @@ export async function fetchGitHubStats(
     totalCommits,
     totalPrs,
     totalStars: repoData.totalStars,
+    openSourcePrs,
     topLanguages: repoData.topLanguages,
   };
 }

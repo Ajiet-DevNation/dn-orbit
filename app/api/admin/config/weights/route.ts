@@ -18,6 +18,8 @@ export async function GET() {
         githubWeight: 0.33,
         lcWeight: 0.33,
         eventWeight: 0.34,
+        ghOpenSourceMinStars: 10,
+        ghOpenSourcePerPrPoints: 10,
       });
     }
 
@@ -36,7 +38,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { githubWeight, lcWeight, eventWeight } = body;
+    const { githubWeight, lcWeight, eventWeight, ghOpenSourceMinStars, ghOpenSourcePerPrPoints } = body;
 
     if (
       typeof githubWeight !== "number" ||
@@ -49,7 +51,36 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Ensure weights sum approximately to 1 or 100% depending on the formula, 
+    // Open-source knobs are optional in the payload; when present they must be
+    // sane (non-negative; min-stars a whole number). They live alongside the
+    // weights because they tune the GitHub component, not a separate axis.
+    if (
+      ghOpenSourceMinStars !== undefined &&
+      (typeof ghOpenSourceMinStars !== "number" ||
+        !Number.isInteger(ghOpenSourceMinStars) ||
+        ghOpenSourceMinStars < 0)
+    ) {
+      return NextResponse.json(
+        { error: "ghOpenSourceMinStars must be a non-negative integer" },
+        { status: 400 }
+      );
+    }
+    if (
+      ghOpenSourcePerPrPoints !== undefined &&
+      (typeof ghOpenSourcePerPrPoints !== "number" || ghOpenSourcePerPrPoints < 0)
+    ) {
+      return NextResponse.json(
+        { error: "ghOpenSourcePerPrPoints must be a non-negative number" },
+        { status: 400 }
+      );
+    }
+
+    const openSourceData = {
+      ...(ghOpenSourceMinStars !== undefined ? { ghOpenSourceMinStars } : {}),
+      ...(ghOpenSourcePerPrPoints !== undefined ? { ghOpenSourcePerPrPoints } : {}),
+    };
+
+    // Ensure weights sum approximately to 1 or 100% depending on the formula,
     // but we will just blindly save them as numbers as per CMS spec.
     const existingWeights = await db.scoreWeight.findFirst();
 
@@ -57,7 +88,7 @@ export async function PATCH(req: NextRequest) {
       action: "weights.update",
       actorId: session.user.id,
       actorName: session.user.name,
-      summary: `Updated leaderboard weights — GH ${Math.round(githubWeight * 100)}% · LC ${Math.round(lcWeight * 100)}% · EVT ${Math.round(eventWeight * 100)}%`,
+      summary: `Updated leaderboard weights · GH ${Math.round(githubWeight * 100)}% · LC ${Math.round(lcWeight * 100)}% · EVT ${Math.round(eventWeight * 100)}%`,
     });
 
     if (existingWeights) {
@@ -67,6 +98,7 @@ export async function PATCH(req: NextRequest) {
           githubWeight,
           lcWeight,
           eventWeight,
+          ...openSourceData,
           updatedBy: session.user.id,
         },
       });
@@ -77,6 +109,7 @@ export async function PATCH(req: NextRequest) {
           githubWeight,
           lcWeight,
           eventWeight,
+          ...openSourceData,
           updatedBy: session.user.id,
         },
       });

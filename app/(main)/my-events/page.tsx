@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { MyEventsList, type MyEvent } from "./MyEventsList";
 
 export const metadata = {
-  title: "Your Events — ORBIT",
+  title: "Your Events · ORBIT",
 };
 
 // Fuller date for the event cards, e.g. "JUL 15, 2026".

@@ -16,6 +16,8 @@ import { useScrubProgress } from "./useScrubProgress";
 export interface LeaderboardEntry {
   rank: number; // positional display rank, 1..N
   name: string;
+  /** Immutable GitHub handle — shown so a joke display name still has a real ID. */
+  username: string;
   image: string | null;
   score: number; // overall / total score
   githubScore: number;
@@ -208,16 +210,23 @@ function PodiumColumn({
         {rank === 1 && <PixelCrown progress={crownRaw} />}
       </div>
 
-      {/* Name */}
-      <p
-        className={`retro mb-2 max-w-full truncate text-center text-white ${
-          wide ? "text-[17px]" : "text-[13px]"
-        }`}
+      {/* Name + immutable GitHub handle */}
+      <div
+        className="mb-2 flex max-w-full flex-col items-center"
         style={{ opacity: avRaw }}
-        title={entry.name}
+        title={`${entry.name} · @${entry.username}`}
       >
-        {entry.name}
-      </p>
+        <p
+          className={`retro max-w-full truncate text-center text-white ${
+            wide ? "text-[17px]" : "text-[13px]"
+          }`}
+        >
+          {entry.name}
+        </p>
+        <p className="retro max-w-full truncate text-center text-[9px] tracking-wider text-muted-foreground/70">
+          @{entry.username}
+        </p>
+      </div>
 
       {/* Rising pillar — translateY inside an overflow-hidden box so it grows up
           from the floor without distorting the rank/score text. */}
@@ -340,12 +349,15 @@ function LeaderboardList({
                     </AvatarFallback>
                   )}
                 </Avatar>
-                <span
-                  className="min-w-0 flex-1 truncate text-sm text-white/90"
-                  title={e.name}
+                <div
+                  className="flex min-w-0 flex-1 flex-col leading-tight"
+                  title={`${e.name} · @${e.username}`}
                 >
-                  {e.name}
-                </span>
+                  <span className="truncate text-sm text-white/90">{e.name}</span>
+                  <span className="retro truncate text-[8px] tracking-wider text-muted-foreground/70">
+                    @{e.username}
+                  </span>
+                </div>
                 <ScoreCell value={e.githubScore} />
                 <ScoreCell value={e.lcScore} />
                 <ScoreCell value={e.eventScore} />
@@ -435,7 +447,7 @@ function EmptyState() {
           <span className="retro text-3xl text-[#22c55e]/30">▟▙</span>
           <h3 className="retro text-sm text-white">LEADERBOARD COMPUTING</h3>
           <p className="retro text-[9px] text-muted-foreground">
-            SCORES UPDATE NIGHTLY — CHECK BACK SOON
+            SCORES UPDATE EVERY 15 MINUTES · CHECK BACK SOON
           </p>
         </Card>
       </div>

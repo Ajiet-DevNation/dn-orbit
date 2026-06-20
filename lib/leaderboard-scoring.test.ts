@@ -33,6 +33,21 @@ describe("raw component scores", () => {
     ).toBe(10 + 8 + 5);
   });
 
+  test("open-source PRs add perPrPoints each to the GitHub raw score", () => {
+    expect(
+      rawGithubScore(
+        { totalCommits: 10, totalPrs: 4, totalStars: 5, openSourcePrs: 3 },
+        10
+      )
+    ).toBe(10 + 8 + 5 + 30);
+  });
+
+  test("open-source PRs contribute nothing when perPrPoints defaults to 0", () => {
+    expect(
+      rawGithubScore({ totalCommits: 0, totalPrs: 0, totalStars: 0, openSourcePrs: 5 })
+    ).toBe(0);
+  });
+
   test("null stats score 0", () => {
     expect(rawLcScore(null)).toBe(0);
     expect(rawGithubScore(null)).toBe(0);
@@ -44,7 +59,7 @@ describe("computeLeaderboard", () => {
     expect(computeLeaderboard([], EQUAL_WEIGHTS, 0)).toEqual([]);
   });
 
-  test("normalises the strongest user in each axis to 100", () => {
+  test("normalises the strongest user in each axis to 100 (sqrt-compressed)", () => {
     const result = computeLeaderboard(
       [
         user("a", { lc: { easySolved: 10, mediumSolved: 0, hardSolved: 0 } }),
@@ -56,7 +71,22 @@ describe("computeLeaderboard", () => {
     const a = result.find((r) => r.userId === "a")!;
     const b = result.find((r) => r.userId === "b")!;
     expect(a.lcScore).toBe(100);
-    expect(b.lcScore).toBe(50);
+    // Compression lifts the runner-up: sqrt(5)/sqrt(10) ≈ 0.707, not 0.5.
+    expect(b.lcScore).toBeCloseTo(70.71, 2);
+  });
+
+  test("square-root compression stops one outlier from crushing the field", () => {
+    const result = computeLeaderboard(
+      [
+        user("whale", { gh: { totalCommits: 10000, totalPrs: 0, totalStars: 0 } }),
+        user("mid", { gh: { totalCommits: 100, totalPrs: 0, totalStars: 0 } }),
+      ],
+      { lcWeight: 0, githubWeight: 1, eventWeight: 0 },
+      0
+    );
+    expect(result.find((r) => r.userId === "whale")!.githubScore).toBe(100);
+    // Linear normalisation would give the mid user 1; sqrt gives a fair 10.
+    expect(result.find((r) => r.userId === "mid")!.githubScore).toBeCloseTo(10, 5);
   });
 
   test("ranks by total score descending and numbers from 1", () => {
@@ -105,6 +135,26 @@ describe("computeLeaderboard", () => {
     const second = computeLeaderboard([...cohort].reverse(), EQUAL_WEIGHTS, 0);
     expect(first.map((r) => r.userId)).toEqual(["alpha", "zeta"]);
     expect(second.map((r) => r.userId)).toEqual(["alpha", "zeta"]);
+  });
+
+  test("open-source PRs lift a user's GitHub-driven total", () => {
+    const result = computeLeaderboard(
+      [
+        // Same commits; only `withOss` has qualifying open-source PRs. With a
+        // GitHub-only weighting, withOss must normalise to 100 and outrank.
+        user("withOss", {
+          gh: { totalCommits: 10, totalPrs: 0, totalStars: 0, openSourcePrs: 5 },
+        }),
+        user("noOss", {
+          gh: { totalCommits: 10, totalPrs: 0, totalStars: 0, openSourcePrs: 0 },
+        }),
+      ],
+      { lcWeight: 0, githubWeight: 1, eventWeight: 0, githubOpenSourcePerPrPoints: 10 },
+      0
+    );
+    expect(result[0].userId).toBe("withOss");
+    expect(result[0].githubScore).toBe(100);
+    expect(result.find((r) => r.userId === "noOss")!.githubScore).toBeLessThan(100);
   });
 
   test("respects weights — a 100%-weighted axis drives the total", () => {

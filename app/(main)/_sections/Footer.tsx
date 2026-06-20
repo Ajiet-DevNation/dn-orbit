@@ -95,7 +95,7 @@ export function Footer() {
           <BrandLink imageClassName="h-12 w-12" wordmarkClassName="text-2xl" />
 
           <p className="retro mt-8 max-w-md border-l-2 border-[#22c55e] pl-4 text-[10px] leading-[2] text-zinc-300">
-            DevNation — the student developer community at AJIET. Part of Nexus,
+            DevNation, the student developer community at AJIET. Part of Nexus,
             AJIET&apos;s student-led tech umbrella.
           </p>
 

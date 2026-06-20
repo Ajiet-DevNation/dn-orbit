@@ -30,7 +30,7 @@ export function BrandLink({
   return (
     <Link
       href="/"
-      aria-label="ORBIT — home"
+      aria-label="ORBIT · home"
       onClick={onClick}
       className={cn(
         "inline-flex w-fit items-center gap-0 transition-opacity duration-200 hover:opacity-80",

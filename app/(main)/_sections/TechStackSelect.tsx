@@ -32,7 +32,7 @@ export function TechStackSelect({ value, onChange }: TechStackSelectProps) {
       {value.length > 0 && (
         <div className="space-y-3">
           <p className="retro text-[8px] tracking-widest text-muted-foreground">
-            SELECTED ({value.length}) — CLICK TO REMOVE
+            SELECTED ({value.length}) · CLICK TO REMOVE
           </p>
           <div className="flex flex-wrap gap-2.5">
             {value.map((name) => {

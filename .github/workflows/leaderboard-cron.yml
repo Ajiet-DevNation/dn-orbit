@@ -1,13 +1,25 @@
 name: Leaderboard Cron
 
+# Refreshes every member's GitHub/LeetCode stats and recomputes the leaderboard.
+# Scheduled runs fire ONLY from the default branch (a GitHub Actions rule), and
+# GitHub may delay a scheduled run under load — so this is a best-effort 15-min
+# cadence, not a hard guarantee. `workflow_dispatch` allows a manual run.
 on:
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
 
+# Never let a slow sync overlap the next scheduled tick: queue at most one run
+# and don't cancel an in-flight sync (cancelling mid-recompute could leave the
+# board half-updated).
+concurrency:
+  group: leaderboard-cron
+  cancel-in-progress: false
+
 jobs:
   run-leaderboard-cron:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Trigger stats sync and leaderboard recompute
@@ -16,10 +28,15 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           if [ -z "$CRON_URL" ] || [ -z "$CRON_SECRET" ]; then
-            echo "CRON_URL and CRON_SECRET are required"
+            echo "::error::CRON_URL and CRON_SECRET repository secrets are required"
             exit 1
           fi
 
-          curl --fail --silent --show-error \
+          # Retry transient network/5xx failures and allow a generous window for
+          # the sync (it fetches GitHub + LeetCode for every member). --fail makes
+          # an HTTP error a non-zero exit so a failed run shows red in Actions.
+          curl --fail --show-error --silent \
+            --retry 3 --retry-delay 15 --retry-all-errors \
+            --max-time 300 \
             -H "Authorization: Bearer ${CRON_SECRET}" \
             "${CRON_URL%/}/api/cron/stats-sync"

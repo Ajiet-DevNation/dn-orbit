@@ -59,7 +59,7 @@ const BASELINE_ANNOUNCEMENTS: Announcement[] = [
     id: "baseline-leaderboard",
     tag: "LEADERBOARD",
     title: "SEASON 1 IS LIVE",
-    body: "Climb the ranks — scores update nightly.",
+    body: "Climb the ranks · scores update every 15 minutes.",
     meta: "RESETS MONTHLY",
   },
   {

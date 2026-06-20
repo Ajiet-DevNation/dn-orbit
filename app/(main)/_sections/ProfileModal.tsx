@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { signOut } from "next-auth/react";
 
 import { updateProfile } from "@/app/actions/profile";
+import { LeetCodeConnect } from "./LeetCodeConnect";
 import { ROLE_LABELS, isRole } from "@/lib/roles";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/8bit-avatar";
 import { Button } from "@/components/ui/8bit-button";
@@ -223,27 +224,27 @@ export function ProfileModal({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="grid gap-2">
-                  <Label htmlFor="pm-usn" className="text-[10px]">
-                    USN
-                  </Label>
-                  <Input
-                    id="pm-usn"
-                    value={usn}
-                    onChange={(e) => setUsn(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="pm-lc" className="text-[10px]">
-                    LEETCODE
-                  </Label>
-                  <Input
-                    id="pm-lc"
-                    value={lcUsername}
-                    onChange={(e) => setLcUsername(e.target.value)}
-                  />
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="pm-usn" className="text-[10px]">
+                  USN
+                </Label>
+                <Input
+                  id="pm-usn"
+                  value={usn}
+                  onChange={(e) => setUsn(e.target.value)}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="pm-lc" className="text-[10px]">
+                  LEETCODE
+                </Label>
+                <LeetCodeConnect
+                  id="pm-lc"
+                  value={lcUsername}
+                  onChange={setLcUsername}
+                  placeholder="your_lc_handle"
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

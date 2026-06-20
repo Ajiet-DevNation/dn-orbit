@@ -17,7 +17,6 @@ declare module "next-auth" {
       usn: string | null;
       branch: string | null;
       lcUsername: string | null;
-      accessToken?: string;
     } & DefaultSession["user"];
   }
   interface User {
@@ -258,7 +257,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.usn = token.usn as string | null;
       session.user.branch = token.branch as string | null;
       session.user.lcUsername = token.lcUsername as string | null;
-      session.user.accessToken = token.accessToken as string;
+      // NOTE: the GitHub access token deliberately stays OUT of the session.
+      // `/api/auth/session` is readable by client JS, so exposing it there would
+      // leak the token to the browser. It lives only in the encrypted httpOnly
+      // JWT (token.accessToken, server-side) and the DB Account row, which the
+      // stats routes read directly. Never add accessToken to `session.user`.
       return session;
     },
   },

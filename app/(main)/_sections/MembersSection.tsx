@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useRef, useState } from "react";
+import { memo, useState } from "react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
@@ -8,13 +8,13 @@ import { MEMBERS, type MemberData } from "@/constants/members";
 import { toTitleCase } from "@/lib/names";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
-import { useScrollParallax } from "./useScrollParallax";
+import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
 import { useViewportWidth } from "./useViewportWidth";
 
 // ─── tuning (desktop reference; scaled to the viewport in the component) ───────
-const MAX_CARD_W = 392; // solitaire-card width (px) on desktop
+const MAX_CARD_W = 420; // portrait member card width (px) on desktop
 const CARD_RATIO = 536 / 392; // height / width (~5:7)
-const SPREAD_RATIO = 224 / 392; // centre-to-centre gap / width
+const SPREAD_RATIO = 260 / 420; // centre-to-centre gap / width
 // Flip easing: smooth ease-in-out, no overshoot, so it reads as a real card turn.
 const FLIP_EASE = "transform 560ms cubic-bezier(0.4, 0.0, 0.2, 1)";
 
@@ -44,6 +44,11 @@ const MemberFront = memo(function MemberFront({
 
       {/* Picture — ~70% of the card. Plain <img> (pixelated) or pixel placeholder. */}
       <div className="relative flex-1 overflow-hidden bg-[#0d0d0d]">
+        {member.isAlumni && (
+          <span className="retro absolute right-2 top-2 z-10 border-2 border-amber-400 bg-[#0a0a0a]/80 px-2 py-1 text-[7px] tracking-widest text-amber-400">
+            ALUMNI
+          </span>
+        )}
         {member.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -87,6 +92,7 @@ const MemberBack = memo(function MemberBack({
         </p>
         <p className="retro mt-2 text-[9px] tracking-wider text-[#22c55e]">
           {member.role}
+          {member.isAlumni && <span className="text-amber-400"> · ALUMNI</span>}
         </p>
       </div>
 
@@ -200,23 +206,32 @@ export function MembersSection() {
   const CARD_W = Math.min(MAX_CARD_W, Math.round(vw * 0.82));
   const CARD_H = Math.round(CARD_W * CARD_RATIO);
   const SPREAD = Math.round(CARD_W * SPREAD_RATIO);
-  const DRIFT = vw < 768 ? Math.round(vw * 0.15) : 260;
 
-  const { sectionRef, registerCard, onCardClick, stageHandlers } = useCoverflow({
+  const {
+    sectionRef,
+    registerCard,
+    onCardClick,
+    next,
+    prev,
+    activeIndex,
+    count,
+    stageHandlers,
+  } = useCoverflow({
     count: MEMBERS.length,
     spread: SPREAD,
+    tilt: 32,
+    depth: 130,
+    autoAdvanceMs: 4200,
+    // Don't let the idle auto-advance yank a card away while its bio is open.
+    paused: flipped.size > 0,
     onActivateCenter: (i) =>
       setFlipped((prev) => {
-        const next = new Set(prev);
-        if (next.has(i)) next.delete(i);
-        else next.add(i);
-        return next;
+        const nextSet = new Set(prev);
+        if (nextSet.has(i)) nextSet.delete(i);
+        else nextSet.add(i);
+        return nextSet;
       }),
   });
-
-  const stageRef = useRef<HTMLDivElement>(null);
-  // Members drift RIGHT as you scroll down — mirror of the Projects section.
-  useScrollParallax(sectionRef, stageRef, { maxPx: DRIFT, direction: 1, tau: 90 });
 
   return (
     <section
@@ -229,34 +244,45 @@ export function MembersSection() {
         <SectionHeading text="MEMBERS" />
       </div>
 
-      {/* Coverflow stage fills the rest; cards centre within it. */}
+      {/* Coverflow stage fills the rest; cards centre within it. `perspective`
+          here is what makes the per-card rotateY/translateZ foreshorten into a
+          true 3D cover-flow that spans the full width. */}
       <div
-        ref={stageRef}
         className="relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing"
+        style={{ perspective: 1700 }}
         {...stageHandlers}
       >
-          {MEMBERS.map((member, i) => (
-            <div
-              key={member.id}
-              ref={registerCard(i)}
-              className="absolute left-1/2 top-1/2"
-              style={{
-                width: CARD_W,
-                height: CARD_H,
-                marginLeft: -CARD_W / 2,
-                marginTop: -CARD_H / 2,
-                perspective: 1200,
-              }}
-            >
-              <MemberCard
-                member={member}
-                index={i}
-                flipped={flipped.has(i)}
-                onActivate={onCardClick}
-              />
-            </div>
-          ))}
-        </div>
+        <CoverflowFloor />
+        {MEMBERS.map((member, i) => (
+          <div
+            key={member.id}
+            ref={registerCard(i)}
+            className="absolute left-1/2 top-1/2"
+            style={{
+              width: CARD_W,
+              height: CARD_H,
+              marginLeft: -CARD_W / 2,
+              marginTop: -CARD_H / 2,
+              // Inner perspective for the front/back flip, independent of the
+              // stage's cover-flow perspective above.
+              perspective: 1200,
+            }}
+          >
+            <MemberCard
+              member={member}
+              index={i}
+              flipped={flipped.has(i)}
+              onActivate={onCardClick}
+            />
+          </div>
+        ))}
+        <CoverflowControls
+          onPrev={prev}
+          onNext={next}
+          index={activeIndex}
+          count={count}
+        />
+      </div>
     </section>
   );
 }

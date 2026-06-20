@@ -172,7 +172,7 @@ export function MemberTable({ initialMembers, currentUserId, currentUserRole }: 
             <CommandInput
               value={query}
               onValueChange={setQuery}
-              placeholder="SEARCH — NAME, USN, ROLE, BRANCH, YEAR…"
+              placeholder="SEARCH · NAME, USN, ROLE, BRANCH, YEAR…"
               aria-label="Search members"
               className="text-[10px] uppercase tracking-wider"
             />

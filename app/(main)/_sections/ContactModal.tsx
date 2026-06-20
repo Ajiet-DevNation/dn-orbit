@@ -79,7 +79,7 @@ export function ContactModal({ open, onOpenChange }: ContactModalProps) {
         </div>
 
         <p className="mb-7 text-xs leading-relaxed text-zinc-400 sm:text-sm">
-          Reach out to the maintainers — copy an email, or tap to compose.
+          Reach out to the maintainers: copy an email, or tap to compose.
         </p>
 
         {/* Contact list */}

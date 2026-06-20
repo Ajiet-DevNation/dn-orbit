@@ -44,9 +44,13 @@ export default async function AdminLeaderboardPage() {
         <div className="lg:col-span-1">
           <PixelPanel title="SCORING WEIGHTS">
             <WeightForm
-              initialWeights={
-                weights || { githubWeight: 0.33, lcWeight: 0.33, eventWeight: 0.34 }
-              }
+              initialWeights={{
+                githubWeight: weights?.githubWeight ?? 0.33,
+                lcWeight: weights?.lcWeight ?? 0.33,
+                eventWeight: weights?.eventWeight ?? 0.34,
+                ghOpenSourceMinStars: weights?.ghOpenSourceMinStars ?? 10,
+                ghOpenSourcePerPrPoints: weights?.ghOpenSourcePerPrPoints ?? 10,
+              }}
             />
           </PixelPanel>
         </div>

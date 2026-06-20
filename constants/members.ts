@@ -13,6 +13,12 @@ export interface MemberData {
   linkedin: string | null;
   github: string | null;
   leetcode: string | null;
+  /**
+   * Marks a graduated DevNation member. Surfaces an "ALUMNI" badge on the card
+   * so former members can be showcased in the directory distinctly. Mirrors the
+   * `alumni` RBAC role (lib/roles.ts) on the account side.
+   */
+  isAlumni?: boolean;
 }
 
 export const MEMBERS: MemberData[] = [

@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { syncAllStats } from "@/lib/statsSync";
 import { recomputeLeaderboardScores } from "@/lib/leaderboard";
 
+// Syncing every member's GitHub + LeetCode stats hits external APIs serially and
+// can run past the short default serverless budget, 504-ing mid-sync and skipping
+// the recompute. Request the longest duration that's safe on every Vercel plan:
+// 60s is the Hobby ceiling (asking for more fails the build there) and is allowed
+// on Pro/Ent too. The GitHub Action retries, and each tick re-syncs everyone, so
+// a very large cohort still converges across runs. Always dynamic (never cached)
+// and on Node so each cron tick does real work.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   // Reject when the secret is unset so an unset env var can't degrade the gate
   // to the bypassable `Bearer undefined` comparison.
