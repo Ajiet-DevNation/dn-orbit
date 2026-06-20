@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { Card } from "@/components/ui/8bit-card";
 import { Button } from "@/components/ui/8bit-button";
 import { Progress } from "@/components/ui/8bit-progress";
@@ -52,6 +53,9 @@ export interface StatsSectionProps {
   userId: string;
   isAdmin: boolean;
   hasGithubToken: boolean;
+  /** Whether the member's stored GitHub token carries the `repo` scope. When
+   *  false, the refresh button first re-authorizes to unlock private-repo stats. */
+  hasRepoScope: boolean;
   hasLcUsername: boolean;
   github: GithubStatsData | null;
   leetcode: LeetcodeStatsData | null;
@@ -88,6 +92,7 @@ export function StatsSection({
   userId,
   isAdmin,
   hasGithubToken,
+  hasRepoScope,
   hasLcUsername,
   github: githubProp,
   leetcode: leetcodeProp,
@@ -106,6 +111,22 @@ export function StatsSection({
 
   async function handleRefresh() {
     if (refreshing) return;
+
+    // A member who authorized before private-repo support granted only the
+    // narrow `read:user user:email` scope, so their stats are public-only.
+    // Rather than a separate "reconnect" button, the refresh itself upgrades
+    // them: send them through GitHub's consent screen to grant `repo` (used
+    // strictly read-only). GitHub re-prompts because we now request more than
+    // they previously approved. We tag the return URL so we can auto-pull
+    // their now-private stats on the way back (see the effect below). This is
+    // a full-page redirect, so nothing after it runs.
+    if (hasGithubToken && !hasRepoScope) {
+      notify("warn", "Connecting private repos — approve on GitHub…");
+      const returnTo = `${window.location.pathname}?reauth=github`;
+      await signIn("github", { redirectTo: returnTo });
+      return;
+    }
+
     setRefreshing(true);
     const failures: string[] = [];
     let anyOk = false;
@@ -175,6 +196,28 @@ export function StatsSection({
     setRefreshing(false);
   }
 
+  // After the GitHub re-authorize round-trip we land back with ?reauth=github.
+  // Strip the marker (so a manual reload won't re-fire) and pull stats once —
+  // the session now carries the upgraded `repo`-scoped token, so this refresh
+  // brings in private-repo data. Runs at most once per mount.
+  const reauthHandled = useRef(false);
+  useEffect(() => {
+    if (reauthHandled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reauth") !== "github") return;
+    reauthHandled.current = true;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("reauth");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+    // Defer out of the effect body so the refresh's setState doesn't run
+    // synchronously during the mount commit (cascading-render lint rule).
+    const id = setTimeout(() => void handleRefresh(), 0);
+    return () => clearTimeout(id);
+    // handleRefresh is stable enough for a one-shot mount effect; re-running on
+    // its identity would defeat the once-only guard.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <section className="w-full px-6 py-16 relative">
       <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.02]" style={{ backgroundImage: "radial-gradient(circle, #ffffff 1.5px, transparent 1.5px)", backgroundSize: "24px 24px" }} />
@@ -243,6 +286,15 @@ export function StatsSection({
             <p className="mt-6 text-[9px] text-muted-foreground">
               Updated {formatStamp(github?.fetchedAt ?? null)}
             </p>
+
+            {/* Members on the old narrow scope only get public-repo stats. The
+                ↻ REFRESH button (above) re-authorizes them to include private
+                repos — this note ties that action to the missing data. */}
+            {hasGithubToken && !hasRepoScope && (
+              <p className="mt-2 text-[9px] leading-relaxed text-yellow-500">
+                Private repos not counted — hit ↻ REFRESH to connect them.
+              </p>
+            )}
           </div>
         </Card>
 
@@ -266,7 +318,14 @@ export function StatsSection({
               />
             </div>
 
-            <StatRow label="STREAK" value={`${leetcode?.streak ?? 0} DAYS`} />
+            {/* LeetCode locked its calendar/streak endpoint behind an
+                authenticated session, so we can't fetch streak anonymously and
+                it would otherwise read a misleading "0 DAYS". Only surface the
+                row when we actually have a real value (e.g. if an authenticated
+                source is added later). See lib/lc-fetcher.ts. */}
+            {leetcode?.streak ? (
+              <StatRow label="STREAK" value={`${leetcode.streak} DAYS`} />
+            ) : null}
             <StatRow
               label="RANKING"
               value={
