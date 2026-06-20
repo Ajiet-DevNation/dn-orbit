@@ -44,7 +44,11 @@ async function syncGitHubStatsForUser(userId: string) {
   }
 
   try {
-    const stats = await fetchGitHubStats(user.githubUsername, account.access_token);
+    // The account token belongs to this same user, so we can safely read their
+    // private repositories for the leaderboard.
+    const stats = await fetchGitHubStats(user.githubUsername, account.access_token, {
+      includePrivate: true,
+    });
     const existing = await db.githubStats.findFirst({ where: { userId } });
     const statsData = {
       reposCount: stats.reposCount,

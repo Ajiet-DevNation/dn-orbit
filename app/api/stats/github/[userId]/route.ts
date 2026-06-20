@@ -81,7 +81,12 @@ export async function GET(
 
   let stats;
   try {
-    stats = await fetchGitHubStats(user.githubUsername, accessToken);
+    // Private-repo stats are only valid when the caller is reading their OWN
+    // GitHub data with their OWN token. An admin viewing someone else's stats
+    // uses the admin's token, which can only see that person's public repos.
+    stats = await fetchGitHubStats(user.githubUsername, accessToken, {
+      includePrivate: isSelf,
+    });
   } catch (err) {
     console.error("[github-stats] Failed:", err);
     return NextResponse.json(

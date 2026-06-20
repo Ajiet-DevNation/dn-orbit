@@ -138,13 +138,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
       authorization: {
         params: {
-          // Minimal, read-only scopes. We only ever *read* public GitHub data
-          // (public repos, merged PRs, contribution counts — see lib/github.ts),
-          // so we deliberately omit `repo`/`public_repo`: public repository data
-          // is readable without any repo scope, and dropping it means we never
-          // request write access or private-repo permissions on the consent
-          // screen. `read:user` + `user:email` cover profile and email only.
-          scope: "read:user user:email",
+          // `repo` is required so the leaderboard can count a member's PRIVATE
+          // repository activity (commits, merged PRs, stars, languages) — not
+          // just their public footprint. Classic GitHub OAuth Apps have no
+          // read-only private scope; `repo` is the only scope that unlocks
+          // private repository data, and GitHub defines it as read+write. We
+          // use it strictly read-only: lib/github.ts issues GET requests only
+          // and there is no write path anywhere in the codebase. A member's
+          // private repos are only ever read with that member's own token
+          // (see lib/github.ts → includePrivate), never via another user's.
+          // `read:user` + `user:email` cover profile and email.
+          scope: "read:user user:email repo",
         },
       },
       profile(profile) {
@@ -227,6 +231,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       if (account) {
         token.accessToken = account.access_token;
+        // Persist the freshest GitHub token + granted scope back to the DB.
+        // The background leaderboard cron (lib/statsSync.ts) reads the token
+        // from the Account row, not this JWT — so when a member re-authorizes
+        // to grant `repo`, without this their next cron sync would still run on
+        // the old, public-only token and overwrite the private stats they just
+        // pulled. updateMany is a safe no-op on first sign-in (the adapter
+        // writes the same token to the row moments later) and only ever touches
+        // this user's GitHub account row.
+        if (account.provider === "github" && token.id) {
+          await db.account.updateMany({
+            where: { userId: token.id as string, provider: "github" },
+            data: {
+              access_token: account.access_token ?? null,
+              scope: account.scope ?? null,
+            },
+          });
+        }
       }
       return token;
     },
