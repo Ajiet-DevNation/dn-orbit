@@ -18,22 +18,34 @@ export interface GitHubStats {
 
 async function fetchUserRepos(
   username: string,
-  token: string
+  token: string,
+  includePrivate: boolean
 ): Promise<{ reposCount: number; totalStars: number; topLanguages: Record<string, number> }> {
+  // Two endpoints, chosen by whether `token` belongs to `username`:
+  //   • includePrivate → GET /user/repos returns the *authenticated* user's own
+  //     repos, including PRIVATE ones (requires the `repo` scope). This is only
+  //     valid when the token is that same user's token, which the caller asserts
+  //     via includePrivate — GitHub never exposes one user's private repos to
+  //     another user's token.
+  //   • otherwise → GET /users/{username}/repos returns only PUBLIC repos for an
+  //     arbitrary username (e.g. an admin viewing someone else's stats).
+  // `affiliation=owner` / `type=owner` both restrict to repos the user owns.
+  const buildUrl = (page: number) =>
+    includePrivate
+      ? `${GITHUB_API}/user/repos?per_page=100&page=${page}&affiliation=owner&visibility=all`
+      : `${GITHUB_API}/users/${username}/repos?per_page=100&page=${page}&type=owner`;
+
   // Fetch all repos (paginate up to 100 per page)
   let page = 1;
   let allRepos: Array<{ stargazers_count: number; language: string | null }> = [];
 
   while (true) {
-    const res = await fetch(
-      `${GITHUB_API}/users/${username}/repos?per_page=100&page=${page}&type=owner`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-        },
-      }
-    );
+    const res = await fetch(buildUrl(page), {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+      },
+    });
 
     if (!res.ok) {
       throw new Error(`GitHub API error fetching repos: ${res.status} ${res.statusText}`);
@@ -143,11 +155,18 @@ async function fetchTotalCommits(username: string, token: string): Promise<numbe
 
 export async function fetchGitHubStats(
   username: string,
-  token: string
+  token: string,
+  options: { includePrivate?: boolean } = {}
 ): Promise<GitHubStats> {
+  // includePrivate must only be set when `token` is `username`'s own token.
+  // It is what unlocks private-repo stats (repos, stars, languages); private
+  // commits/PRs are already counted server-side by GitHub for the owning token
+  // (restrictedContributionsCount + the merged-PR search), so they need no flag.
+  const { includePrivate = false } = options;
+
   // Run all fetches in parallel for speed
   const [repoData, totalCommits, totalPrs] = await Promise.all([
-    fetchUserRepos(username, token),
+    fetchUserRepos(username, token, includePrivate),
     fetchTotalCommits(username, token),
     fetchMergedPRs(username, token),
   ]);

@@ -64,7 +64,7 @@ export default async function V2Page() {
 
   // Latest cached stats + leaderboard standing for the signed-in user.
   // leaderboardScore.userId is @unique → findUnique.
-  const [githubStats, lcStats, leaderboardScore] = userId
+  const [githubStats, lcStats, leaderboardScore, ghAccount] = userId
     ? await Promise.all([
         db.githubStats.findFirst({
           where: { userId },
@@ -75,8 +75,20 @@ export default async function V2Page() {
           orderBy: { fetchedAt: "desc" },
         }),
         db.leaderboardScore.findUnique({ where: { userId } }),
+        db.account.findFirst({
+          where: { userId, provider: "github" },
+          select: { scope: true },
+        }),
       ])
-    : [null, null, null];
+    : [null, null, null, null];
+
+  // Members who signed in before private-repo support hold a token without the
+  // `repo` scope. Detect that so the Player Stats refresh button can offer a
+  // one-click re-authorize. GitHub returns granted scopes comma- or
+  // space-delimited, so we split on either.
+  const hasRepoScope = !!ghAccount?.scope
+    ?.split(/[\s,]+/)
+    .includes("repo");
 
   const announcements: Announcement[] = events.slice(0, 6).map((e) => ({
     id: e.id,
@@ -179,6 +191,7 @@ export default async function V2Page() {
         userId={userId}
         isAdmin={isAdmin}
         hasGithubToken={hasGithubToken}
+        hasRepoScope={hasRepoScope}
         hasLcUsername={hasLcUsername}
         github={
           githubStats
