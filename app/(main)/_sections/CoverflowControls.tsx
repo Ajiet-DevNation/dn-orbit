@@ -40,14 +40,17 @@ export const CoverflowControls = memo(function CoverflowControls({
   index,
   count,
   // Vertical placement of the "NN / NN" counter. Defaults snug under the row;
-  // the Projects flow overrides it lower so it clears the taller card.
+  // sections pass `counterStyle` to anchor it just below the centre card's
+  // bottom edge (card-height aware) so it never overlaps the card.
   counterClassName = "bottom-2",
+  counterStyle,
 }: {
   onPrev: () => void;
   onNext: () => void;
   index: number;
   count: number;
   counterClassName?: string;
+  counterStyle?: React.CSSProperties;
 }) {
   if (count <= 1) return null;
   return (
@@ -59,6 +62,7 @@ export const CoverflowControls = memo(function CoverflowControls({
           "pointer-events-none absolute inset-x-0 z-[1100] flex items-center justify-center",
           counterClassName
         )}
+        style={counterStyle}
       >
         <span className="retro text-[10px] tracking-[0.2em] text-muted-foreground">
           <span className="text-[#22c55e]">

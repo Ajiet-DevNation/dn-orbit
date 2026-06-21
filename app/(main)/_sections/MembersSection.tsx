@@ -314,6 +314,13 @@ export function MembersSection() {
           onNext={next}
           index={activeIndex}
           count={count}
+          // Sit the counter just below the card's bottom edge (cards centre at
+          // the stage midpoint), so it never overlaps the name plate.
+          counterClassName=""
+          counterStyle={{
+            top: `calc(50% + ${Math.round(CARD_H / 2) + 24}px)`,
+            bottom: "auto",
+          }}
         />
       </div>
     </section>
