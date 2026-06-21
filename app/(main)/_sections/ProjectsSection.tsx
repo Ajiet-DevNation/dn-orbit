@@ -10,7 +10,8 @@ import { TECH_BY_NAME } from "./techStack";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
 import { useScrollGlide } from "./useScrollGlide";
-import { CoverflowCardFx } from "./CoverflowCardFx";
+import { useCardPowerOn } from "./useCardPowerOn";
+import { HudCardFrame } from "./HudCardFrame";
 import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
 
 // Read-only tech chip: dark background + green pixel border + green tech icon,
@@ -241,6 +242,9 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
     distancePx: Math.round(vw * 0.16),
   });
 
+  // GSAP power-on (bracket pop + scanline sweep) on the newly-centred card.
+  useCardPowerOn(glideRef, activeIndex);
+
   // FLIP: place the detail card over the clicked card, then play it to its slot.
   useLayoutEffect(() => {
     const el = flipRef.current;
@@ -335,6 +339,7 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
               <div
                 key={project.id}
                 ref={registerCard(i)}
+                data-cf-index={i}
                 role="button"
                 tabIndex={0}
                 onClick={() => onCardClick(i)}
@@ -362,7 +367,7 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
                   project={project}
                   className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
                 />
-                <CoverflowCardFx variant="full" />
+                <HudCardFrame variant="full" />
               </div>
             ))}
           </div>

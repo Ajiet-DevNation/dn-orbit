@@ -113,21 +113,24 @@ body {
   background-size: 24px 24px;
 }
 
-/* ── Coverflow card FX (opacity driven by --cf-center / --cf-depth) ── */
+/* ── HUD cartridge card frame ──────────────────────────────────────────────
+   A clean retro-HUD chrome layered over the 8-bit coverflow cards. Static
+   textures whose OPACITY is driven by the engine's per-frame --cf-center /
+   --cf-depth vars (compositor-cheap); the corner-bracket "pop" and the
+   power-on scanline sweep are animated imperatively by GSAP (see
+   useCardPowerOn) so they survive the global reduced-motion CSS reset. */
 
-.cf-sheen {
-  background: linear-gradient(
-    115deg,
-    transparent 32%,
-    rgba(255, 255, 255, 0.1) 47%,
-    rgba(255, 255, 255, 0.22) 50%,
-    rgba(255, 255, 255, 0.1) 53%,
-    transparent 68%
-  );
-  mix-blend-mode: screen;
+/* Centre-card edge bloom: a green ring + inner glow that fades up as a card
+   reaches the centre of the flow. */
+.hud-bloom {
+  box-shadow:
+    0 0 30px rgba(34, 197, 94, 0.3),
+    inset 0 0 18px rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.4);
 }
 
-.cf-scanlines {
+/* Faint CRT scanlines, strongest on the centre card. */
+.hud-scanlines {
   background: repeating-linear-gradient(
     0deg,
     transparent 0px,
@@ -138,11 +141,53 @@ body {
   mix-blend-mode: multiply;
 }
 
-.cf-bloom {
-  box-shadow:
-    0 0 30px rgba(34, 197, 94, 0.32),
-    inset 0 0 18px rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.35);
+/* Four L-shaped corner brackets that frame the card like a targeting reticle.
+   GSAP pops their scale when a card becomes centred. */
+.hud-bracket {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-color: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+.hud-bracket--tl {
+  top: 7px;
+  left: 7px;
+  border-top: 3px solid;
+  border-left: 3px solid;
+}
+.hud-bracket--tr {
+  top: 7px;
+  right: 7px;
+  border-top: 3px solid;
+  border-right: 3px solid;
+}
+.hud-bracket--bl {
+  bottom: 7px;
+  left: 7px;
+  border-bottom: 3px solid;
+  border-left: 3px solid;
+}
+.hud-bracket--br {
+  bottom: 7px;
+  right: 7px;
+  border-bottom: 3px solid;
+  border-right: 3px solid;
+}
+
+/* Power-on scanline: a bright bar GSAP sweeps top→bottom once when a card
+   centres, so the card reads as "booting up". */
+.hud-sweep {
+  height: 16px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(34, 197, 94, 0.85),
+    rgba(255, 255, 255, 0.95),
+    rgba(34, 197, 94, 0.85),
+    transparent
+  );
+  mix-blend-mode: screen;
 }
 
 /* ── Stamp Variants ── */

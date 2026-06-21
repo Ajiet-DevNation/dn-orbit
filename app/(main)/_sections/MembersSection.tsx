@@ -9,7 +9,8 @@ import { toTitleCase } from "@/lib/names";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
 import { useScrollGlide } from "./useScrollGlide";
-import { CoverflowCardFx } from "./CoverflowCardFx";
+import { useCardPowerOn } from "./useCardPowerOn";
+import { HudCardFrame } from "./HudCardFrame";
 import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
 import { useViewportWidth } from "./useViewportWidth";
 
@@ -245,6 +246,9 @@ export function MembersSection() {
     distancePx: Math.round(vw * 0.16),
   });
 
+  // GSAP power-on (bracket pop) on the newly-centred member card.
+  useCardPowerOn(glideRef, activeIndex);
+
   return (
     <section
       ref={sectionRef}
@@ -276,6 +280,7 @@ export function MembersSection() {
             <div
               key={member.id}
               ref={registerCard(i)}
+              data-cf-index={i}
               className="absolute left-1/2 top-1/2"
               style={{
                 width: CARD_W,
@@ -293,9 +298,9 @@ export function MembersSection() {
                 flipped={flipped.has(i)}
                 onActivate={onCardClick}
               />
-              {/* Depth-only FX: darken side cards + centre bloom, no sheen/
-                  scanlines so the flipped bio stays readable. */}
-              <CoverflowCardFx variant="depth" />
+              {/* Depth variant: HUD frame (brackets + bloom + depth) without the
+                  scanline sweep, so the flipped bio stays readable. */}
+              <HudCardFrame variant="depth" />
             </div>
           ))}
         </div>
