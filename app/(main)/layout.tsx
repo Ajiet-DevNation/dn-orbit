@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/roles";
 import { db } from "@/lib/db";
 import { AsciiBackground } from "@/components/v2/AsciiBackground";
+import { BootSplash } from "@/components/ui/BootSplash";
 import { V2Header } from "./_sections/V2Header";
 import { PendingBanner } from "./_sections/PendingBanner";
 import type { ProfileData } from "./_sections/ProfileModal";
@@ -65,6 +66,9 @@ export default async function V2Layout({
       data-v2
       className={`${pixelFont.variable} dark relative bg-[#0a0a0a] min-h-screen`}
     >
+      {/* Boot-splash overlay: paints with the initial shell and guarantees the
+          pixel DN-logo draw plays before fading (see BootSplash). */}
+      <BootSplash />
       <AsciiBackground />
       <div className="relative" style={{ zIndex: 2 }}>
         {session?.user?.status === "pending" && <PendingBanner />}
