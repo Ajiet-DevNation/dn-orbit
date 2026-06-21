@@ -77,6 +77,10 @@ const MemberFront = memo(function MemberFront({
           {toTitleCase(member.name)}
         </span>
       </div>
+
+      {/* HUD frame lives INSIDE the face so it rotates with the card during the
+          flip (a sibling on the wrapper stays flat and looks detached). */}
+      <HudCardFrame variant="depth" />
     </Card>
   );
 });
@@ -141,6 +145,10 @@ const MemberBack = memo(function MemberBack({
           </a>
         )}
       </div>
+
+      {/* HUD frame on the back face too, so the brackets stay attached through
+          the whole flip. */}
+      <HudCardFrame variant="depth" />
     </Card>
   );
 });
@@ -298,9 +306,6 @@ export function MembersSection() {
                 flipped={flipped.has(i)}
                 onActivate={onCardClick}
               />
-              {/* Depth variant: HUD frame (brackets + bloom + depth) without the
-                  scanline sweep, so the flipped bio stays readable. */}
-              <HudCardFrame variant="depth" />
             </div>
           ))}
         </div>
