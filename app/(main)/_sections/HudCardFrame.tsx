@@ -3,10 +3,11 @@ import { memo } from "react";
 // HUD cartridge chrome layered over a coverflow card. Steady-state emphasis
 // (depth darken, edge bloom, bracket brightness, scanlines) is driven by the
 // engine's per-frame --cf-center / --cf-depth vars via opacity (compositor
-// cheap). The bracket "pop" and the power-on scanline sweep are animated
-// imperatively by GSAP (useCardPowerOn), which targets [data-hud-sweep] and
-// .hud-bracket inside the card. "full" (Projects) adds scanlines + the sweep;
-// "depth" (Members) keeps the frame readable over the flipped bio.
+// cheap). The bracket "pop" is animated imperatively by GSAP (useCardPowerOn),
+// which targets .hud-bracket inside the card; the power-on pixel-scan lives in a
+// separate PixelScanOverlay the consumer mounts only on the active card. "full"
+// (Projects) adds the steady scanlines texture; "depth" (Members) keeps the
+// frame readable over the flipped bio.
 export const HudCardFrame = memo(function HudCardFrame({
   variant = "full",
 }: {
@@ -29,16 +30,10 @@ export const HudCardFrame = memo(function HudCardFrame({
       />
 
       {variant === "full" && (
-        <>
-          <div
-            className="hud-scanlines absolute inset-0"
-            style={{ opacity: "calc(var(--cf-center, 0) * 0.35)" }}
-          />
-          <div
-            data-hud-sweep
-            className="hud-sweep absolute inset-x-0 top-0 opacity-0"
-          />
-        </>
+        <div
+          className="hud-scanlines absolute inset-0"
+          style={{ opacity: "calc(var(--cf-center, 0) * 0.35)" }}
+        />
       )}
 
       <div className="hud-bracket hud-bracket--tl" style={{ opacity: bracketOpacity }} />

@@ -12,6 +12,7 @@ import { useCoverflow } from "./useCoverflow";
 import { useScrollGlide } from "./useScrollGlide";
 import { useCardPowerOn } from "./useCardPowerOn";
 import { HudCardFrame } from "./HudCardFrame";
+import { PixelScanOverlay } from "./PixelScanOverlay";
 import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
 
 // Read-only tech chip: dark background + green pixel border + green tech icon,
@@ -367,6 +368,10 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
                   project={project}
                   className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
                 />
+                {/* Radial pixel power-on: mounted only on the centred card and
+                    keyed by activeIndex so it remounts (and replays) each time a
+                    new card settles in the middle. */}
+                {i === activeIndex && <PixelScanOverlay key={activeIndex} />}
                 <HudCardFrame variant="full" />
               </div>
             ))}
@@ -376,7 +381,13 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
             onNext={next}
             index={activeIndex}
             count={count}
-            counterClassName="-bottom-4"
+            // Sit the counter just below the card's bottom edge (cards centre at
+            // the stage midpoint), so it never overlaps the card chrome.
+            counterClassName=""
+            counterStyle={{
+              top: `calc(50% + ${Math.round(CARD_H / 2) + 24}px)`,
+              bottom: "auto",
+            }}
           />
         </div>
 

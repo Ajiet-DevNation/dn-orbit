@@ -3,12 +3,13 @@
 import { useEffect } from "react";
 import { gsap } from "@/lib/gsap";
 
-// Plays a GSAP "power-on" on whichever card just became centred: the corner
-// brackets pop in, and (for cards that have one) a bright scanline sweeps top→
-// bottom so the card reads as booting up. Targets the card by data-cf-index
-// inside `containerRef`, animating only the HUD chrome (overlay children) — never
-// the card's own transform, which the coverflow engine owns — so the two can't
-// fight. Skipped under reduced motion; GSAP context reverts on change/unmount.
+// Pops the corner brackets on whichever card just became centred (a quick
+// scale-in "power-on"). Targets the card by data-cf-index inside `containerRef`
+// and animates only the bracket chrome — never the card's own transform, which
+// the coverflow engine owns — so the two can't fight. The radial pixel-scan that
+// plays alongside lives in its own canvas (PixelScanOverlay), mounted on the
+// active card by the consumer. Skipped under reduced motion; GSAP context
+// reverts on change/unmount.
 export function useCardPowerOn(
   containerRef: React.RefObject<HTMLElement | null>,
   activeIndex: number
@@ -23,9 +24,7 @@ export function useCardPowerOn(
     );
     if (!card) return;
 
-    const sweep = card.querySelector<HTMLElement>("[data-hud-sweep]");
     const brackets = card.querySelectorAll<HTMLElement>(".hud-bracket");
-    const h = card.clientHeight || 600;
 
     const ctx = gsap.context(() => {
       if (brackets.length) {
@@ -39,19 +38,6 @@ export function useCardPowerOn(
             transformOrigin: "center",
           }
         );
-      }
-      if (sweep) {
-        // Scanner beam: a quick flash-in at the top, an accelerating sweep down
-        // the card, then a soft fade as it runs off the bottom edge — reads as a
-        // real scan pass rather than a bar sliding by.
-        const tl = gsap.timeline();
-        tl.fromTo(
-          sweep,
-          { y: -46, opacity: 0, scaleY: 0.7 },
-          { opacity: 1, scaleY: 1, duration: 0.12, ease: "power2.out" }
-        )
-          .to(sweep, { y: h, duration: 0.52, ease: "power1.in" }, "<")
-          .to(sweep, { opacity: 0, duration: 0.18, ease: "power1.in" }, "-=0.18");
       }
     }, root);
 
