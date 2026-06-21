@@ -753,7 +753,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
   const wrapperClass =
     mode === "loading"
-      ? "fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-bg/95 backdrop-blur-sm"
+      ? // Fully opaque: a translucent + backdrop-blurred bg let the landing
+        // hero logo behind the overlay bleed through as a soft white halo.
+        "fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-bg"
       : "relative flex min-h-[100vh] w-full items-center justify-center overflow-hidden";
 
   // Loading overlay has no header, so push its logo down by the header height to
@@ -848,12 +850,13 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
           <div
             className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
             style={{
-              // Loading rests at HERO_START_SCALE; hero grows from that exact size
-              // (in place, scaling about the shared centre) up to full size — so
-              // the two modes line up seamlessly across the route hand-off.
+              // Hero grows from HERO_START_SCALE up to full size as it comes
+              // alive. Loading rests at full size (1.0) — identical to the
+              // landing hero's settled size — so the boot-splash → landing
+              // hand-off has no size jump and reads as one continuous logo.
               transform: isHero
                 ? `scale(${HERO_START_SCALE + (1 - HERO_START_SCALE) * heroProgress})`
-                : `scale(${HERO_START_SCALE})`,
+                : `scale(1)`,
               // Fade + de-blur slightly ahead of the grow so it reads as the logo
               // "coming back to life" rather than a plain zoom.
               opacity: isHero ? Math.min(1, heroProgress * 1.3) : 1,

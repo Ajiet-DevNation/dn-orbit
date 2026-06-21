@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { cn } from "@/lib/utils";
 
 // Shared nav chrome for the Projects / Members cover-flows: chunky pixel side
 // arrows, a "03 / 14" position counter, and a soft floor glow under the centre
@@ -38,18 +39,27 @@ export const CoverflowControls = memo(function CoverflowControls({
   onNext,
   index,
   count,
+  // Vertical placement of the "NN / NN" counter. Defaults snug under the row;
+  // the Projects flow overrides it lower so it clears the taller card.
+  counterClassName = "bottom-2",
 }: {
   onPrev: () => void;
   onNext: () => void;
   index: number;
   count: number;
+  counterClassName?: string;
 }) {
   if (count <= 1) return null;
   return (
     <>
       <ArrowButton dir="prev" onClick={onPrev} />
       <ArrowButton dir="next" onClick={onNext} />
-      <div className="pointer-events-none absolute inset-x-0 bottom-2 z-[1100] flex items-center justify-center">
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-x-0 z-[1100] flex items-center justify-center",
+          counterClassName
+        )}
+      >
         <span className="retro text-[10px] tracking-[0.2em] text-muted-foreground">
           <span className="text-[#22c55e]">
             {String(Math.min(index + 1, count)).padStart(2, "0")}

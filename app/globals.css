@@ -113,6 +113,98 @@ body {
   background-size: 24px 24px;
 }
 
+/* ── HUD cartridge card frame ──────────────────────────────────────────────
+   A clean retro-HUD chrome layered over the 8-bit coverflow cards. Static
+   textures whose OPACITY is driven by the engine's per-frame --cf-center /
+   --cf-depth vars (compositor-cheap); the corner-bracket "pop" and the
+   power-on scanline sweep are animated imperatively by GSAP (see
+   useCardPowerOn) so they survive the global reduced-motion CSS reset. */
+
+/* Centre-card edge bloom: a green ring + inner glow that fades up as a card
+   reaches the centre of the flow. */
+.hud-bloom {
+  box-shadow:
+    0 0 30px rgba(34, 197, 94, 0.3),
+    inset 0 0 18px rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+/* Faint CRT scanlines, strongest on the centre card. Plain dark overlay (no
+   blend mode) so it doesn't force an extra compositing pass per card. */
+.hud-scanlines {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.22) 3px,
+    transparent 4px
+  );
+}
+
+/* Four L-shaped corner brackets that frame the card like a targeting reticle.
+   GSAP pops their scale when a card becomes centred. */
+.hud-bracket {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-color: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+.hud-bracket--tl {
+  top: 7px;
+  left: 7px;
+  border-top: 3px solid;
+  border-left: 3px solid;
+}
+.hud-bracket--tr {
+  top: 7px;
+  right: 7px;
+  border-top: 3px solid;
+  border-right: 3px solid;
+}
+.hud-bracket--bl {
+  bottom: 7px;
+  left: 7px;
+  border-bottom: 3px solid;
+  border-left: 3px solid;
+}
+.hud-bracket--br {
+  bottom: 7px;
+  right: 7px;
+  border-bottom: 3px solid;
+  border-right: 3px solid;
+}
+
+/* Power-on scanner beam: a sharp white core line riding a soft green halo, with
+   an outer bloom — GSAP sweeps it top→bottom once when a card centres so the
+   card reads as "booting up". The layered gradients + drop-shadow give it depth
+   instead of a single flat band. */
+.hud-sweep {
+  height: 46px;
+  background:
+    /* crisp 2px core line */
+    linear-gradient(
+      to bottom,
+      transparent calc(50% - 1px),
+      rgba(255, 255, 255, 0.95) calc(50% - 1px),
+      rgba(255, 255, 255, 0.95) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    ),
+    /* soft green halo body */
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(34, 197, 94, 0) 28%,
+      rgba(34, 197, 94, 0.45) 44%,
+      rgba(190, 255, 214, 0.8) 50%,
+      rgba(34, 197, 94, 0.45) 56%,
+      rgba(34, 197, 94, 0) 72%,
+      transparent 100%
+    );
+  filter: drop-shadow(0 0 9px rgba(34, 197, 94, 0.85));
+  mix-blend-mode: screen;
+}
+
 /* ── Stamp Variants ── */
 
 .stamp-verified {
