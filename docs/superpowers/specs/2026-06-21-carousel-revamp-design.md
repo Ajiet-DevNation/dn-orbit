@@ -87,12 +87,21 @@ member role/ALUMNI headers, and the green palette.
 4. **Floor reflection** under the centered card, augmenting the current floor glow,
    to ground the row.
 
-### C. Entrance (GSAP timeline)
+### C. Entrance
 
-Replace the hand-rolled intro ease in `useCoverflow` with a **GSAP timeline**:
-cards fan in with stagger + 3D rotation + blur→sharp + rise, fired once on
-`ScrollTrigger` `onEnter`. Under reduced motion the row is simply present (no
-entrance).
+The coverflow engine already owns a per-card fan-in intro driven imperatively in
+its rAF loop, and it is reduced-motion-safe. **Keep it** — having GSAP also write
+`transform` to the same card elements would create a transform-ownership fight.
+GSAP's glide stays on a *separate wrapper element* (different from the cards), so
+the two never conflict. Any additional GSAP entrance is limited to
+non-`transform` properties (opacity/filter) or non-card elements.
+
+### Decision update (post-brainstorm)
+
+- **Standardize on GSAP for scroll motion.** The previously-unused
+  `useScrollParallax` hook and its now-orphaned pure helper are **removed**:
+  `app/(main)/_sections/useScrollParallax.ts`, `lib/parallax.ts`,
+  `lib/parallax.test.ts`. The glide is implemented fresh on GSAP `ScrollTrigger`.
 
 ### D. Three.js ambient backdrop (lazy)
 
