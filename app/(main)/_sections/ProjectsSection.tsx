@@ -1,7 +1,6 @@
 "use client";
 
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import { FaGithub, FaExternalLinkAlt } from "react-icons/fa";
 import { Card } from "@/components/ui/8bit-card";
 import { Button } from "@/components/ui/8bit-button";
@@ -28,10 +27,6 @@ const TechChip = memo(function TechChip({ name }: { name: string }) {
 });
 import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
 import { useViewportWidth } from "./useViewportWidth";
-
-const SectionBackdrop = dynamic(() => import("./SectionBackdrop"), {
-  ssr: false,
-});
 
 // ─── tuning (desktop reference; scaled to the viewport in the component) ───────
 const MAX_CARD_W = 680; // centre-card width (px) on desktop
@@ -313,13 +308,8 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
       id="projects"
       className="relative flex min-h-screen w-full flex-col overflow-hidden py-20 scroll-mt-24"
     >
-      {/* Lazy WebGL ambient backdrop (decorative, reduced-motion-safe). */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
-        <SectionBackdrop tint="#22c55e" />
-      </div>
-
       {/* Title gets its own row so the cards never cover it. */}
-      <div className="relative z-[1] shrink-0 pt-28">
+      <div className="shrink-0 pt-28">
         <SectionHeading text="PROJECTS" />
       </div>
 
@@ -327,7 +317,7 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
           foreshorten into a true 3D cover-flow that spans the full width. */}
       <div
         className={cn(
-          "relative z-[1] w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
+          "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
           selected !== null && "pointer-events-none opacity-0"
         )}
         style={{ transition: "opacity 300ms var(--ease-out-quart)", perspective: 1700 }}
