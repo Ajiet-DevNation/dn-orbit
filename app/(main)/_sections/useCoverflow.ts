@@ -154,6 +154,11 @@ export function useCoverflow({
         `rotateY(${rotY}deg) scale(${scale * (0.92 + 0.08 * intro)})`;
       el.style.opacity = String(Math.max(0, 1 - ad * opacityStep) * intro);
 
+      // Depth/emphasis vars consumed by the card FX overlays (opacity only, so
+      // they stay compositor-cheap). Side cards darken; the centre card glows.
+      el.style.setProperty("--cf-depth", String(Math.min(ad * 0.3, 0.6)));
+      el.style.setProperty("--cf-center", String(Math.max(0, 1 - ad)));
+
       // Recalc-triggering — only write when changed.
       const z = 1000 - Math.round(Math.abs(d) * 10);
       if (lastZ[i] !== z) {
