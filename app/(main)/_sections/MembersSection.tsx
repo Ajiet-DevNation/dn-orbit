@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
@@ -8,6 +8,8 @@ import { MEMBERS, type MemberData } from "@/constants/members";
 import { toTitleCase } from "@/lib/names";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
+import { useScrollGlide } from "./useScrollGlide";
+import { CoverflowCardFx } from "./CoverflowCardFx";
 import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
 import { useViewportWidth } from "./useViewportWidth";
 
@@ -200,6 +202,8 @@ const MemberCard = memo(function MemberCard({
 
 export function MembersSection() {
   const [flipped, setFlipped] = useState<Set<number>>(() => new Set());
+  // Wrapper the scroll-glide drifts horizontally (right for members).
+  const glideRef = useRef<HTMLDivElement>(null);
 
   // Responsive sizing so the card fits a phone screen.
   const vw = useViewportWidth();
@@ -233,6 +237,14 @@ export function MembersSection() {
       }),
   });
 
+  // Scroll-linked horizontal glide: the members row drifts RIGHT as the section
+  // travels the viewport. Additive transform on a wrapper, composing with the
+  // per-card coverflow transforms.
+  useScrollGlide(sectionRef, glideRef, {
+    direction: 1,
+    distancePx: Math.round(vw * 0.16),
+  });
+
   return (
     <section
       ref={sectionRef}
@@ -253,29 +265,40 @@ export function MembersSection() {
         {...stageHandlers}
       >
         <CoverflowFloor />
-        {MEMBERS.map((member, i) => (
-          <div
-            key={member.id}
-            ref={registerCard(i)}
-            className="absolute left-1/2 top-1/2"
-            style={{
-              width: CARD_W,
-              height: CARD_H,
-              marginLeft: -CARD_W / 2,
-              marginTop: -CARD_H / 2,
-              // Inner perspective for the front/back flip, independent of the
-              // stage's cover-flow perspective above.
-              perspective: 1200,
-            }}
-          >
-            <MemberCard
-              member={member}
-              index={i}
-              flipped={flipped.has(i)}
-              onActivate={onCardClick}
-            />
-          </div>
-        ))}
+        {/* Glide wrapper: full-size + preserve-3d so the stage's perspective
+            still reaches the cards, while GSAP drifts this element on scroll. */}
+        <div
+          ref={glideRef}
+          className="absolute inset-0"
+          style={{ transformStyle: "preserve-3d" }}
+        >
+          {MEMBERS.map((member, i) => (
+            <div
+              key={member.id}
+              ref={registerCard(i)}
+              className="absolute left-1/2 top-1/2"
+              style={{
+                width: CARD_W,
+                height: CARD_H,
+                marginLeft: -CARD_W / 2,
+                marginTop: -CARD_H / 2,
+                // Inner perspective for the front/back flip, independent of the
+                // stage's cover-flow perspective above.
+                perspective: 1200,
+              }}
+            >
+              <MemberCard
+                member={member}
+                index={i}
+                flipped={flipped.has(i)}
+                onActivate={onCardClick}
+              />
+              {/* Depth-only FX: darken side cards + centre bloom, no sheen/
+                  scanlines so the flipped bio stays readable. */}
+              <CoverflowCardFx variant="depth" />
+            </div>
+          ))}
+        </div>
         <CoverflowControls
           onPrev={prev}
           onNext={next}
