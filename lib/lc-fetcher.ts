@@ -32,6 +32,84 @@ const query = `
 // endpoint and returns an error anonymously, so it is intentionally omitted.
 // streak therefore defaults to 0 below.
 
+// ─── Profile preview (for the "Connect LeetCode" verify flow) ────────────────
+// LeetCode has no OAuth, so we can't receive a verified login. Instead, the
+// Connect button fetches the live public profile and shows it back to the user
+// (avatar, display name, ranking, solved) so they confirm it's the right account
+// before it's saved — catching typos and impersonation of a non-existent handle.
+
+export interface LcProfilePreview {
+  username: string;
+  realName: string | null;
+  avatar: string | null;
+  ranking: number | null;
+  totalSolved: number;
+}
+
+const profileQuery = `
+  query getUserProfilePreview($username: String!) {
+    matchedUser(username: $username) {
+      username
+      profile {
+        realName
+        userAvatar
+        ranking
+      }
+      submitStats {
+        acSubmissionNum {
+          difficulty
+          count
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * Fetch a public LeetCode profile for confirmation. Throws if the handle does
+ * not resolve to a real user (so the caller can reject invalid input).
+ */
+export async function fetchLeetCodeProfile(
+  username: string
+): Promise<LcProfilePreview> {
+  const response = await fetch(LEETCODE_GRAPHQL_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Referer: "https://leetcode.com",
+    },
+    body: JSON.stringify({ query: profileQuery, variables: { username } }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`LeetCode API responded with status: ${response.status}`);
+  }
+
+  const result = await response.json();
+  if (result.errors) {
+    throw new Error(result.errors[0]?.message || "GraphQL Error from LeetCode API");
+  }
+
+  const matchedUser = result.data?.matchedUser;
+  if (!matchedUser) {
+    throw new Error(`User not found: ${username}`);
+  }
+
+  const submissions = matchedUser.submitStats?.acSubmissionNum ?? [];
+  const all = submissions.find(
+    (s: { difficulty: string; count: number }) => s.difficulty === "All"
+  );
+
+  return {
+    username: matchedUser.username ?? username,
+    realName: matchedUser.profile?.realName?.trim() || null,
+    avatar: matchedUser.profile?.userAvatar || null,
+    ranking: matchedUser.profile?.ranking || null,
+    totalSolved: all ? all.count : 0,
+  };
+}
+
 export async function fetchLeetCodeStats(username: string): Promise<LcStatsResult> {
   const response = await fetch(LEETCODE_GRAPHQL_ENDPOINT, {
     method: "POST",

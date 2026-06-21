@@ -35,6 +35,7 @@ export interface GithubStatsData {
   totalCommits: number;
   totalPrs: number;
   totalStars: number;
+  openSourcePrs: number;
   topLanguages: LanguageStat[];
   fetchedAt: string | null; // ISO string
 }
@@ -121,7 +122,7 @@ export function StatsSection({
     // their now-private stats on the way back (see the effect below). This is
     // a full-page redirect, so nothing after it runs.
     if (hasGithubToken && !hasRepoScope) {
-      notify("warn", "Connecting private repos — approve on GitHub…");
+      notify("warn", "Connecting private repos · approve on GitHub…");
       const returnTo = `${window.location.pathname}?reauth=github`;
       await signIn("github", { redirectTo: returnTo });
       return;
@@ -146,6 +147,7 @@ export function StatsSection({
           totalCommits: gh.totalCommits,
           totalPrs: gh.totalPrs,
           totalStars: gh.totalStars,
+          openSourcePrs: gh.openSourcePrs,
           topLanguages: languagesFromRecord(gh.topLanguages),
           fetchedAt: gh.fetchedAt,
         });
@@ -187,9 +189,9 @@ export function StatsSection({
     if (anyOk && failures.length === 0) {
       notify("success", "✓ Stats refreshed");
     } else if (anyOk) {
-      notify("warn", `Partial refresh — ${failures.join(" · ")}`);
+      notify("warn", `Partial refresh · ${failures.join(" · ")}`);
     } else {
-      notify("error", `✗ Refresh failed — ${failures.join(" · ")}`);
+      notify("error", `✗ Refresh failed · ${failures.join(" · ")}`);
     }
 
     if (anyOk) startTransition(() => router.refresh());
@@ -256,6 +258,7 @@ export function StatsSection({
 
             <StatRow label="REPOS" value={`${github?.reposCount ?? 0}`} />
             <StatRow label="MERGED PRS" value={`${github?.totalPrs ?? 0}`} />
+            <StatRow label="OPEN SOURCE PRS" value={`${github?.openSourcePrs ?? 0}`} />
             <StatRow label="STARS" value={`${github?.totalStars ?? 0}`} />
 
             <p className="mt-6 mb-3 text-[10px] tracking-wider text-muted-foreground">
@@ -292,7 +295,7 @@ export function StatsSection({
                 repos — this note ties that action to the missing data. */}
             {hasGithubToken && !hasRepoScope && (
               <p className="mt-2 text-[9px] leading-relaxed text-yellow-500">
-                Private repos not counted — hit ↻ REFRESH to connect them.
+                Private repos not counted · hit ↻ REFRESH to connect them.
               </p>
             )}
           </div>

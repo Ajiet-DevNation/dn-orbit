@@ -129,7 +129,7 @@ export function FormBuilder({
           ))}
         </div>
         <p className="retro text-[8px] leading-relaxed text-muted-foreground">
-          ADDED AUTOMATICALLY — DON&apos;T RE-ADD THESE AS QUESTIONS BELOW.
+          ADDED AUTOMATICALLY · DON&apos;T RE-ADD THESE AS QUESTIONS BELOW.
         </p>
       </div>
 
@@ -150,7 +150,7 @@ export function FormBuilder({
       {value.length === 0 && (
         <div className="border-2 border-dashed border-white/15 bg-black/30 p-6 text-center">
           <p className="retro text-[9px] leading-relaxed text-muted-foreground">
-            NO CUSTOM QUESTIONS YET — ADD ONE BELOW.
+            NO CUSTOM QUESTIONS YET · ADD ONE BELOW.
           </p>
         </div>
       )}
@@ -313,7 +313,7 @@ export function FormBuilder({
               <div className="grid gap-2 border-t-2 border-white/10 pt-4">
                 <Label className="inline-flex items-center gap-2 text-[9px]">
                   <span aria-hidden className="text-[#22c55e]">⑂</span>
-                  SHOW ONLY IF <span className="text-muted-foreground">(BRANCHING — OPTIONAL)</span>
+                  SHOW ONLY IF <span className="text-muted-foreground">(BRANCHING · OPTIONAL)</span>
                 </Label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Select

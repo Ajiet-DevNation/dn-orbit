@@ -106,7 +106,7 @@ export function RegistrationForm({
         toast.error(data.error ?? "Registration failed");
       }
     } catch {
-      toast.error("Network error — try again");
+      toast.error("Network error · try again");
     } finally {
       setSubmitting(false);
     }

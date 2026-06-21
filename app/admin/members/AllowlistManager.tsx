@@ -148,7 +148,7 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
 
             {initialEntries.length === 0 ? (
               <div className="px-4 py-6 text-center retro text-[10px] text-zinc-700 uppercase tracking-widest">
-                No entries yet — only env-bootstrap admins can sign in
+                No entries yet · only env-bootstrap admins can sign in
               </div>
             ) : (
               initialEntries.map((entry) => (

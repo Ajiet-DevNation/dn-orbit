@@ -72,7 +72,7 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
           <CommandInput
             value={query}
             onValueChange={setQuery}
-            placeholder="SEARCH — DATE, USER, ACTION…"
+            placeholder="SEARCH · DATE, USER, ACTION…"
             aria-label="Search logs"
             className="text-[10px] uppercase tracking-wider"
           />
@@ -81,7 +81,7 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
 
       {logs.length === 0 ? (
         <p className="retro text-[9px] uppercase tracking-widest text-zinc-600">
-          NO ACTIVITY YET — ACTIONS WILL APPEAR HERE.
+          NO ACTIVITY YET · ACTIONS WILL APPEAR HERE.
         </p>
       ) : filtered.length === 0 ? (
         <p className="retro text-[9px] uppercase tracking-widest text-zinc-600">

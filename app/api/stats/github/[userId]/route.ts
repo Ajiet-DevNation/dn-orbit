@@ -70,14 +70,31 @@ export async function GET(
   }
 
   // ── 4. Fetch from GitHub API ───────────────────────────────
-  const accessToken = session.user.accessToken;
+  // Read the OAuth token from the DB Account row, NOT the session — the token is
+  // deliberately not serialized into the session (it would leak to the browser
+  // via /api/auth/session). When the caller is viewing their OWN stats we use
+  // their own token (unlocks private repos); when an admin views someone else's
+  // stats we fall back to the ADMIN's own token, which can only see that
+  // person's public repos.
+  const tokenOwnerId = isSelf ? userId : session.user.id;
+  const ghAccount = await db.account.findFirst({
+    where: { userId: tokenOwnerId, provider: "github", access_token: { not: null } },
+    select: { access_token: true },
+  });
+  const accessToken = ghAccount?.access_token;
 
   if (!accessToken) {
     return NextResponse.json(
-      { error: "No GitHub access token found in session" },
-      { status: 500 }
+      { error: "No GitHub access token available" },
+      { status: 422 }
     );
   }
+
+  // Open-source PR bar is admin-tunable; default to 10 stars if unset.
+  const weightConfig = await db.scoreWeight.findFirst({
+    select: { ghOpenSourceMinStars: true },
+  });
+  const openSourceMinStars = weightConfig?.ghOpenSourceMinStars ?? 10;
 
   let stats;
   try {
@@ -86,6 +103,7 @@ export async function GET(
     // uses the admin's token, which can only see that person's public repos.
     stats = await fetchGitHubStats(user.githubUsername, accessToken, {
       includePrivate: isSelf,
+      openSourceMinStars,
     });
   } catch (err) {
     console.error("[github-stats] Failed:", err);
@@ -101,6 +119,7 @@ export async function GET(
     totalCommits: stats.totalCommits,
     totalPrs: stats.totalPrs,
     totalStars: stats.totalStars,
+    openSourcePrs: stats.openSourcePrs,
     topLanguages: stats.topLanguages,
     fetchedAt: new Date(),
   };

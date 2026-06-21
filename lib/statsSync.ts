@@ -9,7 +9,7 @@ type SyncResult = {
   detail: string;
 };
 
-async function syncGitHubStatsForUser(userId: string) {
+async function syncGitHubStatsForUser(userId: string, openSourceMinStars: number) {
   const account = await db.account.findFirst({
     where: {
       userId,
@@ -48,6 +48,7 @@ async function syncGitHubStatsForUser(userId: string) {
     // private repositories for the leaderboard.
     const stats = await fetchGitHubStats(user.githubUsername, account.access_token, {
       includePrivate: true,
+      openSourceMinStars,
     });
     const existing = await db.githubStats.findFirst({ where: { userId } });
     const statsData = {
@@ -55,6 +56,7 @@ async function syncGitHubStatsForUser(userId: string) {
       totalCommits: stats.totalCommits,
       totalPrs: stats.totalPrs,
       totalStars: stats.totalStars,
+      openSourcePrs: stats.openSourcePrs,
       topLanguages: stats.topLanguages,
       fetchedAt: new Date(),
     };
@@ -144,6 +146,12 @@ async function syncLeetCodeStatsForUser(userId: string) {
 }
 
 export async function syncAllStats() {
+  // Open-source PR bar is admin-tunable; read once and reuse for every user.
+  const weightConfig = await db.scoreWeight.findFirst({
+    select: { ghOpenSourceMinStars: true },
+  });
+  const openSourceMinStars = weightConfig?.ghOpenSourceMinStars ?? 10;
+
   const users = await db.user.findMany({
     select: {
       id: true,
@@ -166,7 +174,7 @@ export async function syncAllStats() {
 
   for (const user of users) {
     if (user.accounts.length > 0) {
-      results.push(await syncGitHubStatsForUser(user.id));
+      results.push(await syncGitHubStatsForUser(user.id, openSourceMinStars));
     }
 
     if (user.lcUsername) {

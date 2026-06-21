@@ -158,7 +158,7 @@ export function MyEventsList({ events }: { events: MyEvent[] }) {
           <span className="retro text-3xl text-[#22c55e]/30">▞▚</span>
           <h2 className="retro mt-4 text-sm text-white">NO EVENTS YET</h2>
           <p className="retro mt-3 text-[9px] leading-relaxed text-muted-foreground">
-            CREATE ONE WITH THE NEW EVENT BUTTON ON THE HOME PAGE — IT&apos;LL SHOW
+            CREATE ONE WITH THE NEW EVENT BUTTON ON THE HOME PAGE · IT&apos;LL SHOW
             UP HERE WITH ITS REGISTRATIONS.
           </p>
           <Button asChild size="sm" className="mt-6 text-[9px]">

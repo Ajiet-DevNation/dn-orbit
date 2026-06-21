@@ -23,7 +23,7 @@ const TechChip = memo(function TechChip({ name }: { name: string }) {
     </span>
   );
 });
-import { useScrollParallax } from "./useScrollParallax";
+import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
 import { useViewportWidth } from "./useViewportWidth";
 
 // ─── tuning (desktop reference; scaled to the viewport in the component) ───────
@@ -133,7 +133,6 @@ function ProjectDetail({
   project: ProjectData;
   open: boolean;
 }) {
-  const color = statusColor(project.status);
   return (
     <div
       className="flex w-full max-w-xl flex-col gap-6"
@@ -144,18 +143,12 @@ function ProjectDetail({
           "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)",
       }}
     >
-      {/* min-w-0 + break-words lets a long title wrap cleanly. */}
-      <div className="flex items-center gap-3">
-        <span
-          className="retro shrink-0 border-2 px-2 py-1 text-[8px]"
-          style={{ color, borderColor: color }}
-        >
-          {project.status}
-        </span>
-        <h3 className="retro min-w-0 break-words text-2xl text-white">
-          {project.title}
-        </h3>
-      </div>
+      {/* Status badge intentionally omitted here — the card that flies in beside
+          this panel already shows it, so repeating it next to the title is
+          redundant. min-w-0 + break-words lets a long title wrap cleanly. */}
+      <h3 className="retro min-w-0 break-words text-2xl text-white">
+        {project.title}
+      </h3>
 
       <p className="text-sm leading-relaxed text-muted-foreground">
         {project.description}
@@ -206,7 +199,6 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
   const CARD_W = Math.min(MAX_CARD_W, Math.round(vw * 0.86));
   const CARD_H = Math.round(CARD_W * CARD_RATIO);
   const SPREAD = Math.round(CARD_W * SPREAD_RATIO);
-  const DRIFT = vw < 768 ? Math.round(vw * 0.15) : 260;
 
   // Rect of the centre card at the moment it was opened, so the *same* card can
   // fly from there into the detail view (a FLIP shared-element transition).
@@ -218,16 +210,24 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
     setSelected(index);
   };
 
-  const { sectionRef, registerCard, onCardClick, stageHandlers } = useCoverflow({
+  const {
+    sectionRef,
+    registerCard,
+    onCardClick,
+    next,
+    prev,
+    activeIndex,
+    count,
+    stageHandlers,
+  } = useCoverflow({
     count: projects.length,
     spread: SPREAD,
+    tilt: 30,
+    depth: 150,
+    autoAdvanceMs: 5200,
     disabled: selected !== null,
     onActivateCenter: open,
   });
-
-  const stageRef = useRef<HTMLDivElement>(null);
-  // Projects drift LEFT as you scroll down (Members mirror it, drifting right).
-  useScrollParallax(sectionRef, stageRef, { maxPx: DRIFT, direction: -1, tau: 90 });
 
   // FLIP: place the detail card over the clicked card, then play it to its slot.
   useLayoutEffect(() => {
@@ -301,16 +301,17 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
         <SectionHeading text="PROJECTS" />
       </div>
 
-      {/* Coverflow stage */}
+      {/* Coverflow stage. `perspective` makes the per-card rotateY/translateZ
+          foreshorten into a true 3D cover-flow that spans the full width. */}
       <div
-        ref={stageRef}
         className={cn(
           "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
           selected !== null && "pointer-events-none opacity-0"
         )}
-        style={{ transition: "opacity 300ms var(--ease-out-quart)" }}
+        style={{ transition: "opacity 300ms var(--ease-out-quart)", perspective: 1700 }}
         {...stageHandlers}
       >
+          <CoverflowFloor />
           {projects.map((project, i) => (
             <div
               key={project.id}
@@ -344,13 +345,24 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
               />
             </div>
           ))}
+          <CoverflowControls
+            onPrev={prev}
+            onNext={next}
+            index={activeIndex}
+            count={count}
+          />
         </div>
 
         {/* Detail overlay — the card flies here (FLIP) from the centre. Solid
             backdrop so it cleanly covers the title + carousel; padded down so it
             sits clear of the sticky nav and reads as centred. */}
         {activeProject && (
-          <div className="fixed inset-0 z-[60] overflow-y-auto bg-[#0a0a0a]">
+          // Clicking the backdrop (anywhere outside the card/detail) closes; the
+          // card and detail stop propagation so interacting with them doesn't.
+          <div
+            className="fixed inset-0 z-[60] overflow-y-auto bg-[#0a0a0a]"
+            onClick={close}
+          >
             {/* Full-screen modal (above the sticky header), matching the events
                 overlay — one consistent, always-reachable close button. */}
             <div className="relative mx-auto flex min-h-full w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 py-24 lg:flex-row lg:gap-16">
@@ -364,11 +376,14 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
                 ref={flipRef}
                 className="shrink-0"
                 style={{ width: CARD_W, height: CARD_H }}
+                onClick={(e) => e.stopPropagation()}
               >
                 <ProjectCard project={activeProject} className="h-full w-full" />
               </div>
 
-              <ProjectDetail project={activeProject} open={detailOpen} />
+              <div onClick={(e) => e.stopPropagation()}>
+                <ProjectDetail project={activeProject} open={detailOpen} />
+              </div>
             </div>
           </div>
         )}

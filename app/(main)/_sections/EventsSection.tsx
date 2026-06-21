@@ -77,20 +77,22 @@ function EventCard({ data }: { data: EventCardData }) {
             </span>
           </div>
 
+          {/* Fixed line reservations (2-line title, 3-line description) keep every
+              card the same height regardless of how much text it carries, so the
+              grid reads evenly across rows. The banner above is already a fixed
+              aspect-video, so reserving the text block is all that's needed. */}
           <div className="flex flex-1 flex-col gap-3 p-6">
-            <h3 className="retro text-sm leading-relaxed text-white transition-colors duration-300 group-hover:text-[#22c55e]">
+            <h3 className="retro line-clamp-2 min-h-[2lh] text-sm leading-relaxed text-white transition-colors duration-300 group-hover:text-[#22c55e]">
               {data.title}
             </h3>
 
-            <p className="retro text-[9px] text-muted-foreground">
+            <p className="retro truncate text-[9px] text-muted-foreground">
               {[data.dateLabel, data.location].filter(Boolean).join(" · ")}
             </p>
 
-            {data.description && (
-              <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
-                {data.description}
-              </p>
-            )}
+            <p className="line-clamp-3 min-h-[3lh] text-sm leading-relaxed text-muted-foreground">
+              {data.description}
+            </p>
           </div>
         </Card>
       </div>
@@ -374,7 +376,12 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
       )}
 
       {active && (
-        <div className="fixed inset-0 z-[60] overflow-y-auto bg-[#0a0a0a]">
+        // Clicking the backdrop (anywhere outside the card/detail) closes; the
+        // card and detail stop propagation so interacting with them doesn't.
+        <div
+          className="fixed inset-0 z-[60] overflow-y-auto bg-[#0a0a0a]"
+          onClick={close}
+        >
           {/* Full-screen modal (above the sticky header) so the close button can
               live at the true viewport corner and stay reachable. */}
           <div className="relative mx-auto flex min-h-full w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 py-24 lg:flex-row lg:gap-16">
@@ -383,10 +390,16 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
               label="Close event details"
               className="fixed right-4 top-4 z-[70]"
             />
-            <div ref={flipRef} className="w-full max-w-sm shrink-0">
+            <div
+              ref={flipRef}
+              className="w-full max-w-sm shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
               <EventCard data={active} />
             </div>
-            <EventDetail data={active} open={detailOpen} />
+            <div onClick={(e) => e.stopPropagation()}>
+              <EventDetail data={active} open={detailOpen} />
+            </div>
           </div>
         </div>
       )}

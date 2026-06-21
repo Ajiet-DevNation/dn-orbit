@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recomputeLeaderboardScores } from "@/lib/leaderboard";
 
+// A pure recompute (no external API calls) is quick, but keep it on Node, always
+// dynamic (never cached), and give it headroom so a large cohort can't 504.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   // Verify Cron Secret. Guard against a missing env var: without the `!secret`
   // check, an unset CRON_SECRET would make the comparison `Bearer undefined`,

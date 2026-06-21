@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { fetchLeetCodeStats } from "@/lib/lc-fetcher";
+import { isAjietUsn } from "@/lib/usn";
 
 const onboardingSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -60,6 +61,13 @@ export async function submitOnboarding(formData: FormData) {
       return { error: "Incorrect LeetCode username. Profile not found." };
     }
 
+    // Auto-approve membership for verified AJIET students. Sign-in is already
+    // gated by the admin allowlist, and a well-formed AJIET USN (4JK…) plus a
+    // confirmed LeetCode profile is enough signal to skip the manual queue.
+    // Non-AJIET USNs stay `pending` for a one-click admin review. We never
+    // *demote* here — an already-approved user keeps their status.
+    const autoApprove = isAjietUsn(parsed.data.usn);
+
     const updatedUser = await db.user.update({
       where: { id: session.user.id },
       data: {
@@ -69,6 +77,7 @@ export async function submitOnboarding(formData: FormData) {
         year: parsed.data.year,
         lcUsername: parsed.data.lc_username,
         bio: parsed.data.bio?.trim() || null,
+        ...(autoApprove ? { status: "approved" as const } : {}),
       },
     });
 

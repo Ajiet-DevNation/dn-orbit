@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
+import { LeetCodeConnect } from "@/app/(main)/_sections/LeetCodeConnect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/8bit-select";
 import { PixelStarsBackground } from "@/components/ui/PixelStarsBackground";
 import { toast } from "@/components/ui/8bit-toast";
@@ -65,7 +66,7 @@ function SuccessOverlay() {
         <p className="text-xs text-emerald-500 tracking-widest uppercase opacity-80"
            style={{ animation: "pixel-pulse 1.5s step-end infinite" }}
         >
-          &gt; UPLINK_SUCCESS — REDIRECTING
+          &gt; UPLINK_SUCCESS · REDIRECTING
         </p>
       </div>
       <style>{`
@@ -235,14 +236,15 @@ export default function OnboardingPage() {
                   <Label htmlFor="lc_username" className="text-[10px] text-muted-foreground uppercase tracking-widest">
                     LEETCODE_USERNAME
                   </Label>
-                  <Input
+                  {/* CONNECT verifies the handle against the live profile so a
+                      typo or wrong name can't be committed. */}
+                  <LeetCodeConnect
                     id="lc_username"
-                    placeholder="YOUR_LC_HANDLE"
                     value={lcUsername}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setLcUsername(e.target.value)
-                    }
-                    className={`text-xs ${fieldErrors.lcUsername ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    onChange={setLcUsername}
+                    placeholder="YOUR_LC_HANDLE"
+                    inputClassName="text-xs"
+                    invalid={!!fieldErrors.lcUsername}
                   />
                   {fieldErrors.lcUsername && (
                     <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.lcUsername}</p>

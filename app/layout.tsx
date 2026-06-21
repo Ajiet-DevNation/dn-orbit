@@ -11,6 +11,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/8bit-toast";
 import { cn } from "@/lib/utils";
+import { auth } from "@/lib/auth";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -47,13 +48,13 @@ const pressStart = Press_Start_2P({
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dn-orbit.vercel.app";
 const SITE_DESCRIPTION =
-  "ORBIT is the platform for DevNation — the student developer community at A J Institute of Engineering & Technology (AJIET), Mangaluru. Track the live leaderboard, explore club events and projects, and meet the members.";
+  "ORBIT is the platform for DevNation, the student developer community at A J Institute of Engineering & Technology (AJIET), Mangaluru. Track the live leaderboard, explore club events and projects, and meet the members.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "ORBIT — DevNation",
-    template: "%s — ORBIT",
+    default: "ORBIT · DevNation",
+    template: "%s · ORBIT",
   },
   description: SITE_DESCRIPTION,
   applicationName: "ORBIT",
@@ -75,8 +76,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
-    siteName: "ORBIT — DevNation",
-    title: "ORBIT — DevNation",
+    siteName: "ORBIT · DevNation",
+    title: "ORBIT · DevNation",
     description: SITE_DESCRIPTION,
     url: SITE_URL,
     images: [
@@ -90,7 +91,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "ORBIT — DevNation",
+    title: "ORBIT · DevNation",
     description: SITE_DESCRIPTION,
     images: ["/assets/DNLogoTransparent.png"],
   },
@@ -107,11 +108,14 @@ export const viewport: Viewport = {
   colorScheme: "dark",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Resolve the session once on the server and hand it to the client provider so
+  // it doesn't fire its own /api/auth/session fetch on mount (see Providers).
+  const session = await auth();
   return (
     <html
       lang="en"
@@ -128,7 +132,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-bg text-text">
         <DotGridBackground />
-        <Providers>{children}</Providers>
+        <Providers session={session}>{children}</Providers>
         {/* Single global Toaster. `className="dark"` is forwarded to the portaled
             <ol>, so the 8-bit Toast2 (bg-background / bg-destructive) resolves to the
             dark theme instead of rendering white on the dark site. */}

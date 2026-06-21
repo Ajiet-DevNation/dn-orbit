@@ -6,7 +6,7 @@ import { AboutTerminal, type TerminalLine } from "./AboutTerminal";
 const ABOUT_LINES: TerminalLine[] = [
   { type: "comment", text: "# devnation :: ajiet :: orbit" },
   { type: "input", text: "whoami" },
-  { type: "output", text: "DevNation — the student developer community at AJIET." },
+  { type: "output", text: "DevNation, the student developer community at AJIET." },
   { type: "output", text: "A J Institute of Engineering & Technology, Mangaluru." },
   { type: "comment", text: "" },
   { type: "input", text: "cat mission.txt" },
@@ -19,7 +19,7 @@ const ABOUT_LINES: TerminalLine[] = [
   { type: "output", text: "tech-talks   open-source-drives   showcases" },
   { type: "comment", text: "" },
   { type: "input", text: "cat nexus.txt" },
-  { type: "output", text: "part of Nexus — AJIET's student-led tech umbrella," },
+  { type: "output", text: "part of Nexus, AJIET's student-led tech umbrella," },
   { type: "output", text: "collaborating across clubs and powering Srinathon." },
   { type: "comment", text: "" },
   { type: "input", text: "./orbit --status" },

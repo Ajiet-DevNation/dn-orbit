@@ -21,6 +21,9 @@ enum Role {
   vice_president
   core_member
   member
+  // Former DevNation members who have graduated. No admin access; recognised so
+  // they can be showcased and addressed distinctly. See lib/roles.ts.
+  alumni
   // Non-DevNation AJIET students: no club membership and no admin access, but
   // recognised so AJIET-only events can identify them. See lib/roles.ts.
   ajiet_student
@@ -167,6 +170,10 @@ model GithubStats {
   totalCommits Int      @default(0) @map("total_commits")
   totalPrs     Int      @default(0) @map("total_prs")
   totalStars   Int      @default(0) @map("total_stars")
+  // Merged PRs to public repos the user does NOT own, where the upstream repo
+  // has at least ScoreWeight.ghOpenSourceMinStars stars — i.e. real open-source
+  // contributions. Feeds the GitHub component of the leaderboard score.
+  openSourcePrs Int     @default(0) @map("open_source_prs")
   topLanguages Json     @default("[]") @map("top_languages") // string[]
   fetchedAt    DateTime @default(now()) @map("fetched_at")
 
@@ -295,6 +302,11 @@ model ScoreWeight {
   githubWeight  Float    @default(0.33) @map("github_weight")
   lcWeight      Float    @default(0.33) @map("lc_weight")
   eventWeight   Float    @default(0.34) @map("event_weight")
+  // Open-source contribution tuning (part of the GitHub component, not a
+  // top-level weight). minStars is applied at fetch time when counting a
+  // member's qualifying merged PRs; perPrPoints is applied at score time.
+  ghOpenSourceMinStars    Int   @default(10) @map("gh_open_source_min_stars")
+  ghOpenSourcePerPrPoints Float @default(10) @map("gh_open_source_per_pr_points")
   updatedBy     String?  @map("updated_by") // user id of last admin to change it
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
 

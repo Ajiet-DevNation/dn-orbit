@@ -7,6 +7,10 @@ export const ROLES = [
   "vice_president",
   "core_member",
   "member",
+  // Former DevNation members who have graduated. No admin access; recognised so
+  // they can be addressed and showcased distinctly. Sorts below the active
+  // membership tiers but above the non-member classification.
+  "alumni",
   // Non-DevNation AJIET students: no club membership, no admin access — a
   // classification tier so AJIET-only events can recognise them. Kept last so
   // it sorts below the membership tiers in role pickers.
@@ -28,6 +32,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   vice_president: "Vice President",
   core_member: "Core Member",
   member: "Member",
+  alumni: "AJIET Alumni",
   ajiet_student: "AJIET Student",
 };
 
