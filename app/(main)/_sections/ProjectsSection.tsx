@@ -9,6 +9,8 @@ import { type ProjectData } from "@/constants/projects";
 import { TECH_BY_NAME } from "./techStack";
 import { SectionHeading } from "./SectionHeading";
 import { useCoverflow } from "./useCoverflow";
+import { useScrollGlide } from "./useScrollGlide";
+import { CoverflowCardFx } from "./CoverflowCardFx";
 import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
 
 // Read-only tech chip: dark background + green pixel border + green tech icon,
@@ -204,6 +206,8 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
   // fly from there into the detail view (a FLIP shared-element transition).
   const clickedRectRef = useRef<DOMRect | null>(null);
   const flipRef = useRef<HTMLDivElement>(null);
+  // Wrapper the scroll-glide drifts horizontally (left for projects).
+  const glideRef = useRef<HTMLDivElement>(null);
 
   const open = (index: number, el: HTMLElement) => {
     clickedRectRef.current = el.getBoundingClientRect();
@@ -227,6 +231,14 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
     autoAdvanceMs: 5200,
     disabled: selected !== null,
     onActivateCenter: open,
+  });
+
+  // Scroll-linked horizontal glide: the projects row drifts LEFT as the section
+  // travels the viewport. Additive transform on a wrapper, so it composes with
+  // (never overwrites) the per-card coverflow transforms.
+  useScrollGlide(sectionRef, glideRef, {
+    direction: -1,
+    distancePx: Math.round(vw * 0.16),
   });
 
   // FLIP: place the detail card over the clicked card, then play it to its slot.
@@ -312,39 +324,48 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
         {...stageHandlers}
       >
           <CoverflowFloor />
-          {projects.map((project, i) => (
-            <div
-              key={project.id}
-              ref={registerCard(i)}
-              role="button"
-              tabIndex={0}
-              onClick={() => onCardClick(i)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onCardClick(i);
-                }
-              }}
-              className="group absolute left-1/2 top-1/2 cursor-pointer"
-              style={{
-                width: CARD_W,
-                height: CARD_H,
-                marginLeft: -CARD_W / 2,
-                marginTop: -CARD_H / 2,
-              }}
-            >
-              {/* Hover glow as a pre-rendered shadow faded via opacity
-                  (compositor) instead of animating box-shadow (paint-bound). */}
+          {/* Glide wrapper: full-size + preserve-3d so the stage's perspective
+              still reaches the cards, while GSAP drifts this element on scroll. */}
+          <div
+            ref={glideRef}
+            className="absolute inset-0"
+            style={{ transformStyle: "preserve-3d" }}
+          >
+            {projects.map((project, i) => (
               <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_34px_rgba(34,197,94,0.2)] transition-opacity duration-300 group-hover:opacity-100"
-              />
-              <ProjectCard
-                project={project}
-                className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
-              />
-            </div>
-          ))}
+                key={project.id}
+                ref={registerCard(i)}
+                role="button"
+                tabIndex={0}
+                onClick={() => onCardClick(i)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onCardClick(i);
+                  }
+                }}
+                className="group absolute left-1/2 top-1/2 cursor-pointer"
+                style={{
+                  width: CARD_W,
+                  height: CARD_H,
+                  marginLeft: -CARD_W / 2,
+                  marginTop: -CARD_H / 2,
+                }}
+              >
+                {/* Hover glow as a pre-rendered shadow faded via opacity
+                    (compositor) instead of animating box-shadow (paint-bound). */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_34px_rgba(34,197,94,0.2)] transition-opacity duration-300 group-hover:opacity-100"
+                />
+                <ProjectCard
+                  project={project}
+                  className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
+                />
+                <CoverflowCardFx variant="full" />
+              </div>
+            ))}
+          </div>
           <CoverflowControls
             onPrev={prev}
             onNext={next}
