@@ -41,16 +41,17 @@ export function useCardPowerOn(
         );
       }
       if (sweep) {
-        gsap.fromTo(
+        // Scanner beam: a quick flash-in at the top, an accelerating sweep down
+        // the card, then a soft fade as it runs off the bottom edge — reads as a
+        // real scan pass rather than a bar sliding by.
+        const tl = gsap.timeline();
+        tl.fromTo(
           sweep,
-          { y: -16, opacity: 1 },
-          {
-            y: h,
-            duration: 0.5,
-            ease: "power2.in",
-            onComplete: () => gsap.to(sweep, { opacity: 0, duration: 0.15 }),
-          }
-        );
+          { y: -46, opacity: 0, scaleY: 0.7 },
+          { opacity: 1, scaleY: 1, duration: 0.12, ease: "power2.out" }
+        )
+          .to(sweep, { y: h, duration: 0.52, ease: "power1.in" }, "<")
+          .to(sweep, { opacity: 0, duration: 0.18, ease: "power1.in" }, "-=0.18");
       }
     }, root);
 

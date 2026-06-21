@@ -83,6 +83,11 @@ export function useCoverflow({
   // actually change — this is what keeps the drag buttery instead of steppy.
   const lastZRef = useRef<number[]>([]);
   const lastPeRef = useRef<("auto" | "none")[]>([]);
+  // Last-written HUD vars per card. Setting a custom property invalidates the
+  // card's style, so — like z-index — we only write when the rounded value
+  // actually changes, sparing the cards whose distance barely moved this frame.
+  const lastDepthRef = useRef<number[]>([]);
+  const lastCenterRef = useRef<number[]>([]);
 
   const focusRef = useRef(0);
   const targetRef = useRef(0);
@@ -133,6 +138,8 @@ export function useCoverflow({
     const refs = cardRefs.current;
     const lastZ = lastZRef.current;
     const lastPe = lastPeRef.current;
+    const lastDepth = lastDepthRef.current;
+    const lastCenter = lastCenterRef.current;
     for (let i = 0; i < refs.length; i++) {
       const el = refs[i];
       if (!el) continue;
@@ -154,10 +161,19 @@ export function useCoverflow({
         `rotateY(${rotY}deg) scale(${scale * (0.92 + 0.08 * intro)})`;
       el.style.opacity = String(Math.max(0, 1 - ad * opacityStep) * intro);
 
-      // Depth/emphasis vars consumed by the card FX overlays (opacity only, so
+      // Depth/emphasis vars consumed by the HUD frame overlays (opacity only, so
       // they stay compositor-cheap). Side cards darken; the centre card glows.
-      el.style.setProperty("--cf-depth", String(Math.min(ad * 0.3, 0.6)));
-      el.style.setProperty("--cf-center", String(Math.max(0, 1 - ad)));
+      // Rounded to 1/100 and written only on change to avoid needless recalcs.
+      const depthVar = Math.round(Math.min(ad * 0.3, 0.6) * 100) / 100;
+      const centreVar = Math.round(Math.max(0, 1 - ad) * 100) / 100;
+      if (lastDepth[i] !== depthVar) {
+        el.style.setProperty("--cf-depth", String(depthVar));
+        lastDepth[i] = depthVar;
+      }
+      if (lastCenter[i] !== centreVar) {
+        el.style.setProperty("--cf-center", String(centreVar));
+        lastCenter[i] = centreVar;
+      }
 
       // Recalc-triggering — only write when changed.
       const z = 1000 - Math.round(Math.abs(d) * 10);

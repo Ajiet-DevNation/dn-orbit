@@ -18,7 +18,13 @@ import { PixelLoadingScreen } from "./PixelLoadingScreen";
 // does NOT replay on in-app (soft) navigations.
 
 const MIN_VISIBLE_MS = 2200; // long enough for the pixel draw to finish
-const FADE_MS = 650;
+const EXIT_MS = 720;
+
+// Smooth, eased ramp (no overshoot) for the exit so it reads as a deliberate
+// "settle into the app" rather than a flat linear dim.
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
 
 export function BootSplash() {
   const [removed, setRemoved] = useState(false);
@@ -44,10 +50,19 @@ export function BootSplash() {
           return;
         }
         const el = overlayRef.current;
+        if (el) el.style.willChange = "opacity, filter, transform";
         const t0 = performance.now();
         const tick = (now: number) => {
-          const p = Math.min(1, (now - t0) / FADE_MS);
-          if (el) el.style.opacity = String(1 - p);
+          const p = Math.min(1, (now - t0) / EXIT_MS);
+          const e = easeInOutCubic(p);
+          if (el) {
+            // Defocus + a gentle push-through reveal: the splash softens and
+            // recedes as the (identically-sized) landing logo resolves beneath
+            // it — a continuous hand-off instead of a hard cross-fade.
+            el.style.opacity = String(1 - e);
+            el.style.filter = `blur(${e * 10}px)`;
+            el.style.transform = `scale(${1 + e * 0.04})`;
+          }
           if (p < 1) raf = requestAnimationFrame(tick);
           else setRemoved(true);
         };

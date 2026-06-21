@@ -376,6 +376,7 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
             onNext={next}
             index={activeIndex}
             count={count}
+            counterClassName="-bottom-4"
           />
         </div>
 
