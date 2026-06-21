@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
@@ -12,6 +13,10 @@ import { useScrollGlide } from "./useScrollGlide";
 import { CoverflowCardFx } from "./CoverflowCardFx";
 import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
 import { useViewportWidth } from "./useViewportWidth";
+
+const SectionBackdrop = dynamic(() => import("./SectionBackdrop"), {
+  ssr: false,
+});
 
 // ─── tuning (desktop reference; scaled to the viewport in the component) ───────
 const MAX_CARD_W = 420; // portrait member card width (px) on desktop
@@ -251,8 +256,13 @@ export function MembersSection() {
       id="members"
       className="relative flex min-h-screen w-full flex-col overflow-hidden py-20 scroll-mt-24"
     >
+      {/* Lazy WebGL ambient backdrop (decorative, reduced-motion-safe). */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
+        <SectionBackdrop tint="#22c55e" />
+      </div>
+
       {/* Title gets its own row at the top so the cards never cover it. */}
-      <div className="shrink-0 pt-28">
+      <div className="relative z-[1] shrink-0 pt-28">
         <SectionHeading text="MEMBERS" />
       </div>
 
@@ -260,7 +270,7 @@ export function MembersSection() {
           here is what makes the per-card rotateY/translateZ foreshorten into a
           true 3D cover-flow that spans the full width. */}
       <div
-        className="relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing"
+        className="relative z-[1] w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing"
         style={{ perspective: 1700 }}
         {...stageHandlers}
       >
