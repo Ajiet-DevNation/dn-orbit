@@ -1,3 +1,20 @@
+import { AboutSection } from "@/components/home/AboutSection";
+import {
+  type Announcement,
+  AnnouncementCarousel,
+} from "@/components/home/AnnouncementCarousel";
+import {
+  type EventCardData,
+  EventsSection,
+} from "@/components/home/EventsSection";
+import {
+  type LeaderboardEntry,
+  LeaderboardSection,
+} from "@/components/home/LeaderboardSection";
+import { MembersSection } from "@/components/home/MembersSection";
+import { ProjectsSection } from "@/components/home/ProjectsSection";
+import { StatsSection } from "@/components/home/StatsSection";
+import { Footer } from "@/components/layout/Footer";
 import { PixelLoadingScreen } from "@/components/ui/PixelLoadingScreen";
 import {
   type ProjectData,
@@ -8,21 +25,7 @@ import { db } from "@/lib/db";
 import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
 import { canAccessAdmin } from "@/lib/roles";
-import { AboutSection } from "./_sections/AboutSection";
-import {
-  type Announcement,
-  AnnouncementCarousel,
-} from "./_sections/AnnouncementCarousel";
-import { type EventCardData, EventsSection } from "./_sections/EventsSection";
-import { Footer } from "./_sections/Footer";
-import {
-  type LeaderboardEntry,
-  LeaderboardSection,
-} from "./_sections/LeaderboardSection";
-import { MembersSection } from "./_sections/MembersSection";
-import { ProjectsSection } from "./_sections/ProjectsSection";
-import { StatsSection } from "./_sections/StatsSection";
-import { languagesFromRecord } from "./_sections/stats-utils";
+import { languagesFromRecord } from "@/lib/stats-utils";
 
 export const metadata = {
   // Absolute title so the home page reads cleanly (no "%s — ORBIT" template).

@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
 import type { ProjectData } from "@/constants/projects";
+import { useCardPowerOn } from "@/hooks/useCardPowerOn";
+import { useCoverflow } from "@/hooks/useCoverflow";
+import { useScrollGlide } from "@/hooks/useScrollGlide";
 import { cn } from "@/lib/utils";
 import { HudCardFrame } from "./HudCardFrame";
 import { PixelScanOverlay } from "./PixelScanOverlay";
 import { SectionHeading } from "./SectionHeading";
 import { TECH_BY_NAME } from "./techStack";
-import { useCardPowerOn } from "./useCardPowerOn";
-import { useCoverflow } from "./useCoverflow";
-import { useScrollGlide } from "./useScrollGlide";
 
 // Read-only tech chip: dark background + green pixel border + green tech icon,
 // matching the chips in the "new project" form (TechStackSelect) where the icons
@@ -28,8 +28,8 @@ const TechChip = memo(function TechChip({ name }: { name: string }) {
   );
 });
 
+import { useViewportWidth } from "@/hooks/useViewportWidth";
 import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
-import { useViewportWidth } from "./useViewportWidth";
 
 // ─── tuning (desktop reference; scaled to the viewport in the component) ───────
 const MAX_CARD_W = 680; // centre-card width (px) on desktop

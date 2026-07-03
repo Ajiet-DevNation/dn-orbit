@@ -4,8 +4,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
-import { LeetCodeConnect } from "@/app/(main)/_sections/LeetCodeConnect";
 import { submitOnboarding } from "@/app/actions/onboarding";
+import { LeetCodeConnect } from "@/components/home/LeetCodeConnect";
 import { Button } from "@/components/ui/8bit-button";
 import {
   Card,

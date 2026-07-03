@@ -5,14 +5,14 @@ import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
 import { MEMBERS, type MemberData } from "@/constants/members";
+import { useCardPowerOn } from "@/hooks/useCardPowerOn";
+import { useCoverflow } from "@/hooks/useCoverflow";
+import { useScrollGlide } from "@/hooks/useScrollGlide";
+import { useViewportWidth } from "@/hooks/useViewportWidth";
 import { toTitleCase } from "@/lib/names";
 import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
 import { HudCardFrame } from "./HudCardFrame";
 import { SectionHeading } from "./SectionHeading";
-import { useCardPowerOn } from "./useCardPowerOn";
-import { useCoverflow } from "./useCoverflow";
-import { useScrollGlide } from "./useScrollGlide";
-import { useViewportWidth } from "./useViewportWidth";
 
 // ─── tuning (desktop reference; scaled to the viewport in the component) ───────
 const MAX_CARD_W = 420; // portrait member card width (px) on desktop

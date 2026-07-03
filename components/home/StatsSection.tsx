@@ -9,10 +9,10 @@ import { Card } from "@/components/ui/8bit-card";
 import { Progress } from "@/components/ui/8bit-progress";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { Reveal } from "@/components/ui/Reveal";
+import { type LanguageStat, languagesFromRecord } from "@/lib/stats-utils";
 import { ContactModal } from "./ContactModal";
 import { EventModal } from "./EventModal";
 import { ProjectModal } from "./ProjectModal";
-import { type LanguageStat, languagesFromRecord } from "./stats-utils";
 
 // The 8bit-toast bundle exports a single-arg `toast(title)` helper (no
 // .success/.error variants exported). It renders the title node as-is, so we

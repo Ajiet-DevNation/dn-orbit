@@ -8,9 +8,9 @@ import {
 } from "@/components/ui/8bit-avatar";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
+import { useScrubProgress } from "@/hooks/useScrubProgress";
 import { cn } from "@/lib/utils";
 import { SectionHeading } from "./SectionHeading";
-import { useScrubProgress } from "./useScrubProgress";
 
 // Plain, serializable row — mapped server-side from leaderboard_scores.
 export interface LeaderboardEntry {

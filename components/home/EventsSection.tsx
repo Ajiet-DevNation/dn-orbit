@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Command, CommandInput } from "@/components/ui/8bit-command";
 import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
+import { useFlipDetail } from "@/hooks/useFlipDetail";
 import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
 import { cn } from "@/lib/utils";
 import { PixelReveal } from "./PixelReveal";
 import { SectionHeading } from "./SectionHeading";
-import { useFlipDetail } from "./useFlipDetail";
 
 // How many event cards render per page in the grid below.
 const PAGE_SIZE = 6;

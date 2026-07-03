@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PixelTabFill } from "@/components/home/PixelTabFill";
+import { type ProfileData, ProfileModal } from "@/components/home/ProfileModal";
 import {
   Avatar,
   AvatarFallback,
@@ -11,8 +13,6 @@ import {
 import { Button } from "@/components/ui/8bit-button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
 import { BrandLink } from "./BrandLink";
-import { PixelTabFill } from "./PixelTabFill";
-import { type ProfileData, ProfileModal } from "./ProfileModal";
 
 interface V2HeaderProps {
   userName: string | null;

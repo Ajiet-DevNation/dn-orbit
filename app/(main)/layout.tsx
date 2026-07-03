@@ -1,13 +1,13 @@
 import { Press_Start_2P } from "next/font/google";
 import { redirect } from "next/navigation";
+import { AsciiBackground } from "@/components/home/AsciiBackground";
+import { PendingBanner } from "@/components/home/PendingBanner";
+import type { ProfileData } from "@/components/home/ProfileModal";
+import { V2Header } from "@/components/layout/V2Header";
 import { BootSplash } from "@/components/ui/BootSplash";
-import { AsciiBackground } from "@/components/v2/AsciiBackground";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
-import { PendingBanner } from "./_sections/PendingBanner";
-import type { ProfileData } from "./_sections/ProfileModal";
-import { V2Header } from "./_sections/V2Header";
 
 const pixelFont = Press_Start_2P({
   weight: "400",
