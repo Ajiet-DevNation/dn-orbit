@@ -28,6 +28,29 @@ describe("validateSubmission", () => {
     expect(r.errors.email).toBeTruthy();
   });
 
+  test("oversized free text is rejected", () => {
+    const r = validateSubmission({
+      audience: "public",
+      schema: [{ id: "f1", label: "About", type: "text", required: false }],
+      input: {
+        name: "A",
+        email: "a@b.co",
+        responses: { f1: "x".repeat(2001) },
+      },
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.f1).toContain("too long");
+  });
+
+  test("oversized name is rejected", () => {
+    const r = validateSubmission({
+      audience: "public",
+      schema: [],
+      input: { name: "n".repeat(121), email: "a@b.co", responses: {} },
+    });
+    expect(r.ok).toBe(false);
+  });
+
   test("rejects malformed email", () => {
     const r = validateSubmission({
       ...base,

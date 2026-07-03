@@ -113,6 +113,14 @@ export function usnRequiredFor(
 // A loose, pragmatic email check. The server is authoritative; this is shared.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Upper bounds on registrant-supplied text. Public events accept anonymous
+// submissions, so without caps a single registrant could stuff megabytes into
+// the responses Json column (and every CSV export of it).
+const MAX_NAME_LEN = 120;
+const MAX_EMAIL_LEN = 254; // RFC 5321 practical limit
+const MAX_USN_LEN = 32;
+const MAX_TEXT_LEN = 2000;
+
 // Default USN pattern (RIT-style) used as a hint; admins may override per event.
 export const DEFAULT_USN_PATTERN = "^1MS\\d{2}[A-Z]{2}\\d{3}$";
 
@@ -158,14 +166,18 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
   const name = (input.name ?? "").trim();
   const email = (input.email ?? "").trim();
   if (!name) errors.name = "Name is required";
+  else if (name.length > MAX_NAME_LEN) errors.name = "Name is too long";
   if (!email) errors.email = "Email is required";
-  else if (!EMAIL_RE.test(email)) errors.email = "Enter a valid email";
+  else if (email.length > MAX_EMAIL_LEN || !EMAIL_RE.test(email))
+    errors.email = "Enter a valid email";
 
   let usn: string | undefined;
   if (usnRequiredFor(audience, !!args.isMember)) {
     usn = (input.usn ?? "").trim();
     if (!usn) {
       errors.usn = "USN / College ID is required";
+    } else if (usn.length > MAX_USN_LEN) {
+      errors.usn = "USN is too long";
     } else if (args.usnPattern) {
       try {
         if (!new RegExp(args.usnPattern).test(usn)) {
@@ -225,6 +237,10 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
       }
       default: {
         const s = String(raw);
+        if (s.length > MAX_TEXT_LEN) {
+          errors[f.id] = `${f.label} is too long`;
+          break;
+        }
         if (f.pattern) {
           try {
             if (!new RegExp(f.pattern).test(s))

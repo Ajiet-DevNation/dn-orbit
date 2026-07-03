@@ -21,6 +21,27 @@ const MIME_EXT: Record<string, string> = {
 };
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
+// The declared content-type is client-controlled; before publishing bytes to
+// the public bucket under an image/* content-type, check they actually start
+// like the claimed format (PNG / JPEG / RIFF-WEBP magic numbers).
+function matchesMagicBytes(buffer: Buffer, mime: string): boolean {
+  switch (mime) {
+    case "image/png":
+      return buffer
+        .subarray(0, 4)
+        .equals(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    case "image/jpeg":
+      return buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]));
+    case "image/webp":
+      return (
+        buffer.subarray(0, 4).toString("latin1") === "RIFF" &&
+        buffer.subarray(8, 12).toString("latin1") === "WEBP"
+      );
+    default:
+      return false;
+  }
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) {
@@ -61,6 +82,13 @@ export async function POST(req: NextRequest) {
   // Random name → no path traversal and no collisions.
   const path = `${folder}/${randomUUID()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (!matchesMagicBytes(buffer, file.type)) {
+    return NextResponse.json(
+      { error: "File content does not match its declared image type" },
+      { status: 400 },
+    );
+  }
 
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.storage
