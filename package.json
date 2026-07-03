@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "bunx prisma generate && bunx prisma migrate deploy && next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
     "scrape:announcements": "bun run scripts/scrapeAnnouncements.ts",
     "scrape:projects": "bun run scripts/scrapeProjects.ts",
     "setup:supabase": "bun run scripts/setupSupabaseBucket.ts",
@@ -54,14 +56,13 @@
     "ws": "^8.20.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.1",
     "tailwindcss": "^4.3.1",
     "typescript": "^5"
   },
