@@ -2,6 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Progress } from "@/components/ui/8bit-progress";
+import {
+  shouldEmit,
+  snapToGrid,
+  TRAIL_MAX_AGE_MS,
+  TRAIL_MAX_PARTICLES,
+  type TrailParticle,
+  trailAlpha,
+  trailSize,
+} from "@/lib/orbit-trail";
 import { cn } from "@/lib/utils";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
@@ -41,6 +50,22 @@ const ORBIT_RX = 410;
 const ORBIT_RY = 135;
 const PLANET_ICON_SIZE = 55;
 const ORBIT_TILT = -Math.PI / 6;
+
+// ── 8-bit ghost trail ────────────────────────────────────────────────────────
+// Chunky grid-snapped squares left behind whenever a planet moves meaningfully
+// faster than its calm orbit — drag-flings, the shatter scatter, and the reform
+// pull-in (see lib/orbit-trail.ts for the emission/decay math). Colors match
+// each planet's brand glow.
+
+const PLANET_KEYS = ["github", "leetcode", "linkedin"] as const;
+type PlanetKey = (typeof PLANET_KEYS)[number];
+
+const TRAIL_CELL = 8;
+const TRAIL_COLORS: Record<PlanetKey, string> = {
+  github: "163, 113, 247",
+  leetcode: "255, 161, 22",
+  linkedin: "56, 189, 248",
+};
 
 // ─── SVG Icon Paths ──────────────────────────────────────────────────────────
 
@@ -206,6 +231,23 @@ export function PixelLoadingScreen({
 
   const [shattered, setShattered] = useState(false);
   const [flashActive, setFlashActive] = useState(false);
+
+  // Trail state lives in refs — the physics rAF writes it, the ring-canvas rAF
+  // reads it, and React never needs to re-render for a particle.
+  const trailsRef = useRef<Record<PlanetKey, TrailParticle[]>>({
+    github: [],
+    leetcode: [],
+    linkedin: [],
+  });
+  const lastTrailPosRef = useRef<
+    Record<PlanetKey, { x: number; y: number } | null>
+  >({ github: null, leetcode: null, linkedin: null });
+  // Decorative motion: honor prefers-reduced-motion by simply never emitting.
+  const reducedMotionRef = useRef(false);
+  useEffect(() => {
+    reducedMotionRef.current =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  }, []);
 
   // ── Synthetic Audio Generator (Web Audio API) ─────────────────────────────
 
@@ -434,6 +476,9 @@ export function PixelLoadingScreen({
     // the shatter/reform beat (when opacity & scale animate).
     let lastOpacity = Number.NaN;
     let lastScale = Number.NaN;
+    // Trails invalidate the cache too: redraw every frame while any particle is
+    // alive, plus one final frame after the last one expires to clear it.
+    let lastTrailsAlive = false;
 
     const drawOrbitRing = () => {
       const w = backCanvas.width;
@@ -458,23 +503,36 @@ export function PixelLoadingScreen({
         }
       }
 
+      // Drop expired trail particles once per frame (buffers are append-only,
+      // so the oldest particle sits at index 0).
+      for (const k of PLANET_KEYS) {
+        const buf = trailsRef.current[k];
+        if (buf.length && now - buf[0].bornAt >= TRAIL_MAX_AGE_MS) {
+          trailsRef.current[k] = buf.filter(
+            (p) => now - p.bornAt < TRAIL_MAX_AGE_MS,
+          );
+        }
+      }
+      const trailsAlive = PLANET_KEYS.some(
+        (k) => trailsRef.current[k].length > 0,
+      );
+
       // Nothing visibly changed since the last stroke → don't touch the canvas.
-      if (ringOpacity === lastOpacity && ringScale === lastScale) {
+      if (
+        ringOpacity === lastOpacity &&
+        ringScale === lastScale &&
+        !trailsAlive &&
+        !lastTrailsAlive
+      ) {
         frame = requestAnimationFrame(drawOrbitRing);
         return;
       }
       lastOpacity = ringOpacity;
       lastScale = ringScale;
+      lastTrailsAlive = trailsAlive;
 
       const bctx = backCanvas.getContext("2d");
       const fctx = frontCanvas.getContext("2d");
-
-      if (ringOpacity <= 0) {
-        if (bctx) bctx.clearRect(0, 0, w, h);
-        if (fctx) fctx.clearRect(0, 0, w, h);
-        frame = requestAnimationFrame(drawOrbitRing);
-        return;
-      }
 
       const drawSaturnRing = (
         ctx: CanvasRenderingContext2D,
@@ -524,14 +582,42 @@ export function PixelLoadingScreen({
         ctx.restore();
       };
 
+      // Ghost squares, split across the two canvases so a trail laid on the far
+      // side of the ring stays behind the logo, like the planets themselves.
+      // Deliberately NOT scaled by ringOpacity: during the shatter beat the
+      // ring fades out but the flung planets (and their trails) stay visible.
+      const drawTrails = (ctx: CanvasRenderingContext2D, isBack: boolean) => {
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        for (const k of PLANET_KEYS) {
+          for (const p of trailsRef.current[k]) {
+            if (p.back !== isBack) continue;
+            const age = now - p.bornAt;
+            const alpha = trailAlpha(age);
+            if (alpha <= 0) continue;
+            const size = trailSize(age, TRAIL_CELL);
+            ctx.fillStyle = `rgba(${TRAIL_COLORS[k]}, ${alpha})`;
+            ctx.fillRect(
+              snapToGrid(cx + p.x, TRAIL_CELL) - size / 2,
+              snapToGrid(cy + p.y, TRAIL_CELL) - size / 2,
+              size,
+              size,
+            );
+          }
+        }
+        ctx.restore();
+      };
+
       if (bctx) {
         bctx.clearRect(0, 0, w, h);
-        drawSaturnRing(bctx, true);
+        if (ringOpacity > 0) drawSaturnRing(bctx, true);
+        drawTrails(bctx, true);
       }
 
       if (fctx) {
         fctx.clearRect(0, 0, w, h);
-        drawSaturnRing(fctx, false);
+        if (ringOpacity > 0) drawSaturnRing(fctx, false);
+        drawTrails(fctx, false);
       }
 
       frame = requestAnimationFrame(drawOrbitRing);
@@ -680,6 +766,26 @@ export function PixelLoadingScreen({
         }
       } else {
         setPlanetPositions(targetPositions);
+      }
+
+      // Trail emission — a planet leaves ghost blocks only while moving
+      // meaningfully faster than the calm orbit, which naturally covers the
+      // drag-fling, the shatter scatter, and the reform pull-in.
+      const current = phys.isShattered ? phys.particles : targetPositions;
+      if (!reducedMotionRef.current) {
+        for (const k of PLANET_KEYS) {
+          const pos = current[k];
+          const last = lastTrailPosRef.current[k];
+          if (
+            last &&
+            shouldEmit(Math.hypot(pos.x - last.x, pos.y - last.y), delta)
+          ) {
+            const buf = trailsRef.current[k];
+            buf.push({ x: pos.x, y: pos.y, bornAt: now, back: pos.z <= 0 });
+            if (buf.length > TRAIL_MAX_PARTICLES) buf.shift();
+          }
+          lastTrailPosRef.current[k] = { x: pos.x, y: pos.y };
+        }
       }
 
       frame = requestAnimationFrame(updatePositions);
