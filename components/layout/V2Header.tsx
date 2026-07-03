@@ -1,10 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PixelTabFill } from "@/components/home/PixelTabFill";
-import { type ProfileData, ProfileModal } from "@/components/home/ProfileModal";
+import type { ProfileData } from "@/components/home/ProfileModal";
 import {
   Avatar,
   AvatarFallback,
@@ -13,6 +14,14 @@ import {
 import { Button } from "@/components/ui/8bit-button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
 import { BrandLink } from "./BrandLink";
+
+// Split out of the header chunk: the modal (and the vaul drawer it pulls in)
+// loads only for signed-in members, on demand — anonymous visitors never
+// download it.
+const ProfileModal = dynamic(
+  () => import("@/components/home/ProfileModal").then((m) => m.ProfileModal),
+  { ssr: false },
+);
 
 interface V2HeaderProps {
   userName: string | null;

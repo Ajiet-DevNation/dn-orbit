@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/8bit-select";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
+import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { TechStackSelect } from "./TechStackSelect";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
@@ -40,6 +41,8 @@ interface ProjectModalProps {
 }
 
 export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
+  useModalBehavior(open, onOpenChange);
+
   const router = useRouter();
 
   const [title, setTitle] = useState("");

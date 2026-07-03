@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import type { ReactNode } from "react";
@@ -11,8 +12,18 @@ import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { Reveal } from "@/components/ui/Reveal";
 import { type LanguageStat, languagesFromRecord } from "@/lib/stats-utils";
 import { ContactModal } from "./ContactModal";
-import { EventModal } from "./EventModal";
-import { ProjectModal } from "./ProjectModal";
+
+// The submission modals each pull in the image-crop stack (react-easy-crop);
+// they open on an explicit click, so their chunks load on demand instead of
+// riding along with every member's first paint.
+const EventModal = dynamic(
+  () => import("./EventModal").then((m) => m.EventModal),
+  { ssr: false },
+);
+const ProjectModal = dynamic(
+  () => import("./ProjectModal").then((m) => m.ProjectModal),
+  { ssr: false },
+);
 
 // The 8bit-toast bundle exports a single-arg `toast(title)` helper (no
 // .success/.error variants exported). It renders the title node as-is, so we

@@ -17,6 +17,7 @@ import {
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
+import { useModalBehavior } from "@/hooks/useModalBehavior";
 import {
   AUDIENCE_OPTIONS,
   type EventAudience,
@@ -55,6 +56,8 @@ function SectionHeading({ children }: { children: ReactNode }) {
 }
 
 export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
+  useModalBehavior(open, onOpenChange);
+
   const router = useRouter();
 
   const [title, setTitle] = useState("");

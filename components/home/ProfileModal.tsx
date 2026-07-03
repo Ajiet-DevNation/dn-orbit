@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-
 import { updateProfile } from "@/app/actions/profile";
 import {
   Avatar,
@@ -30,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { isRole, ROLE_LABELS } from "@/lib/roles";
 import { LeetCodeConnect } from "./LeetCodeConnect";
 
@@ -79,6 +79,7 @@ export function ProfileModal({
   role = null,
   isAdmin = false,
 }: ProfileModalProps) {
+  useModalBehavior(open, onOpenChange);
   const router = useRouter();
 
   const roleLabel = isRole(role) ? ROLE_LABELS[role] : null;

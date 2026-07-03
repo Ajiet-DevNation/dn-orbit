@@ -1,9 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { useModalBehavior } from "@/hooks/useModalBehavior";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 
@@ -20,21 +21,7 @@ interface ContactModalProps {
 export function ContactModal({ open, onOpenChange }: ContactModalProps) {
   const [copied, setCopied] = useState<string | null>(null);
 
-  // Escape-to-close + lock body scroll while open (keyboard/a11y parity with a
-  // real dialog; the site's global motion reset means no entrance animation).
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onOpenChange(false);
-    };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [open, onOpenChange]);
+  useModalBehavior(open, onOpenChange);
 
   async function copy(email: string) {
     try {
