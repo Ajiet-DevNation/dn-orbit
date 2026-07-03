@@ -86,7 +86,13 @@ async function syncGitHubStatsForUser(
       detail: "REFRESHED",
     };
   } catch (error) {
-    console.error("[stats-sync] GitHub refresh failed:", { userId, error });
+    // One line per failure — a member with a revoked token 401s on every sync,
+    // and a full stack dump per member per run makes the dev log unreadable.
+    console.error(
+      `[stats-sync] GitHub refresh failed for ${userId}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
     return {
       provider: "github" as const,
       userId,
@@ -142,7 +148,11 @@ async function syncLeetCodeStatsForUser(userId: string) {
       detail: "REFRESHED",
     };
   } catch (error) {
-    console.error("[stats-sync] LeetCode refresh failed:", { userId, error });
+    console.error(
+      `[stats-sync] LeetCode refresh failed for ${userId}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
     return {
       provider: "lc" as const,
       userId,
@@ -179,14 +189,29 @@ export async function syncAllStats() {
 
   const results: SyncResult[] = [];
 
-  for (const user of users) {
-    if (user.accounts.length > 0) {
-      results.push(await syncGitHubStatsForUser(user.id, openSourceMinStars));
-    }
-
-    if (user.lcUsername) {
-      results.push(await syncLeetCodeStatsForUser(user.id));
-    }
+  // Small bounded fan-out: each member syncs with their OWN tokens, so
+  // parallelism across members doesn't stack against any one rate limit, while
+  // the bound protects the external APIs and our DB pool. The old serial loop
+  // took 40s+ for a modest cohort — well on its way to the 60s serverless
+  // ceiling.
+  const CONCURRENCY = 4;
+  for (let i = 0; i < users.length; i += CONCURRENCY) {
+    const batch = users.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.all(
+      batch.map(async (user) => {
+        const userResults: SyncResult[] = [];
+        if (user.accounts.length > 0) {
+          userResults.push(
+            await syncGitHubStatsForUser(user.id, openSourceMinStars),
+          );
+        }
+        if (user.lcUsername) {
+          userResults.push(await syncLeetCodeStatsForUser(user.id));
+        }
+        return userResults;
+      }),
+    );
+    results.push(...batchResults.flat());
   }
 
   return {

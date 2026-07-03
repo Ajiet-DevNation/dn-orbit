@@ -171,7 +171,7 @@ function makeUnauthTests() {
       name: "on-visit sync trigger",
       method: "POST",
       path: "/api/sync",
-      expected: [200],
+      expected: [202],
     },
   ];
 }
