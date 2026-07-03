@@ -84,9 +84,8 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
       <PixelPanel title="ALLOWLIST">
         <div className="space-y-6">
           <p className="retro text-[9px] text-zinc-500 uppercase tracking-[0.2em] leading-relaxed max-w-2xl">
-            Only GitHub accounts whose username or email appears below (or in
-            the ADMIN_GITHUB_USERNAMES env) may sign in. The public can browse
-            without an account.
+            Only GitHub accounts whose username or email appears below may sign
+            in. The public can browse without an account.
           </p>
 
           {/* Add form — grid so the 8-bit inputs each get an equal track and

@@ -97,15 +97,20 @@ model User {
 // ─────────────────────────────────────────────
 // ALLOWLIST — admin-controlled club membership gate
 // ─────────────────────────────────────────────
-// Only GitHub users whose login or email appears here (or in the
-// ADMIN_GITHUB_USERNAMES env bootstrap list) may complete sign-in. The public
-// can browse the site without an account; sign-in is reserved for club members.
+// Only GitHub users whose login or email appears here may complete sign-in.
+// The public can browse the site without an account; sign-in is reserved for
+// club members.
 
 model Allowlist {
   id             String   @id @default(uuid())
   githubUsername String?  @unique @map("github_username")
   email          String?  @unique
   note           String?
+  /// Role granted (with approved status) when this person first signs in.
+  /// Replaces the old ADMIN_GITHUB_USERNAMES env bootstrap: `prisma db seed`
+  /// writes president-grant rows so the first admin of a fresh deploy can get
+  /// in before any admin UI exists. Null = ordinary member (default tier).
+  grantRole      Role?    @map("grant_role")
   addedBy        String?  @map("added_by") // user id of the admin who added it
   createdAt      DateTime @default(now()) @map("created_at")
 

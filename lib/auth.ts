@@ -36,44 +36,32 @@ const baseAdapter = PrismaAdapter(db) as Adapter;
 // ── Membership gate ──────────────────────────────────────────────────────────
 // The public can browse the site freely; sign-in is reserved for club members.
 // A user may sign in only if their GitHub login/email is on the admin-managed
-// Allowlist, or in the ADMIN_GITHUB_USERNAMES bootstrap list (which also grants
-// the admin role — this is how the first admin gets in before the allowlist or
-// any admin UI exists).
-
-function bootstrapAdminUsernames(): string[] {
-  return (process.env.ADMIN_GITHUB_USERNAMES ?? "")
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isBootstrapAdmin(githubUsername?: string | null): boolean {
-  const u = githubUsername?.toLowerCase();
-  return !!u && bootstrapAdminUsernames().includes(u);
-}
+// Allowlist. An allowlist row may carry `grantRole`, applied on FIRST sign-in
+// only — this is how the first admin of a fresh deploy gets in before any
+// admin UI exists (`prisma db seed` writes president-grant rows; see
+// prisma/seed.ts). After that first sign-in, the User.role column is the sole
+// source of truth, managed from the admin panel.
 
 // How long a JWT may keep a cached role/status before the next session access
 // re-reads it from the DB. Bounds "stale role" to this window after an admin
 // changes someone's tier, without a DB hit on every request.
 const ROLE_SYNC_MS = 30_000;
 
-async function isAllowedToSignIn(
+// The allowlist row for a login/email, or null when the person isn't invited.
+// Allowlist stores normalized (lowercased) values, so exact match is enough.
+async function allowlistEntry(
   githubUsername?: string | null,
   email?: string | null,
-): Promise<boolean> {
+) {
   const u = githubUsername?.toLowerCase() || null;
   const e = email?.toLowerCase() || null;
+  if (!u && !e) return null;
 
-  if (u && isBootstrapAdmin(u)) return true;
-  if (!u && !e) return false;
-
-  // Allowlist stores normalized (lowercased) values, so exact match is enough.
   const or: { githubUsername?: string; email?: string }[] = [];
   if (u) or.push({ githubUsername: u });
   if (e) or.push({ email: e });
 
-  const entry = await db.allowlist.findFirst({ where: { OR: or } });
-  return !!entry;
+  return db.allowlist.findFirst({ where: { OR: or } });
 }
 
 // Second gate (on top of the allowlist): a user an admin has rejected can no
@@ -102,6 +90,10 @@ const customAdapter: Adapter = {
       githubId: string;
       githubUsername: string;
     };
+    // A grantRole on the person's allowlist row seeds their initial tier
+    // (bootstrap admins). Everyone else starts as a pending AJIET student —
+    // the President promotes them into membership/admin tiers from the panel.
+    const grant = (await allowlistEntry(u.githubUsername, u.email))?.grantRole;
     // Merge GitHub-specific columns with Auth.js user fields the adapter expects
     return db.user.create({
       data: {
@@ -111,12 +103,8 @@ const customAdapter: Adapter = {
         name: u.name ?? u.githubUsername ?? "Unknown",
         image: u.image,
         emailVerified: u.emailVerified,
-        // New sign-ins are AJIET students by default — the President promotes
-        // them into membership/admin tiers. Bootstrap admins are the exception.
-        role: isBootstrapAdmin(u.githubUsername)
-          ? "president"
-          : "ajiet_student",
-        status: isBootstrapAdmin(u.githubUsername) ? "approved" : "pending",
+        role: grant ?? "ajiet_student",
+        status: grant ? "approved" : "pending",
       },
     }) as unknown as AdapterUser;
   },
@@ -172,15 +160,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    // Gate sign-in to allowlisted club members (or bootstrap admins). Returning
-    // false aborts before any user record is created and redirects the visitor
-    // to /login?error=AccessDenied (mapped to ACCESS_DENIED on the login page).
+    // Gate sign-in to allowlisted club members. Returning false aborts before
+    // any user record is created and redirects the visitor to
+    // /login?error=AccessDenied (mapped to ACCESS_DENIED on the login page).
     async signIn({ user, profile }) {
       const githubUsername =
         (profile?.login as string | undefined) ??
         (user as { githubUsername?: string } | undefined)?.githubUsername;
       const email = (profile?.email as string | undefined) ?? user?.email;
-      if (!(await isAllowedToSignIn(githubUsername, email))) return false;
+      if (!(await allowlistEntry(githubUsername, email))) return false;
       if (await isRejected(githubUsername, email)) return false;
       return true;
     },
@@ -204,12 +192,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.githubUsername = (
           user as { githubUsername?: string }
         ).githubUsername;
-        // Keep bootstrap admins elevated even if their DB row predates the env
-        // var (createUser only runs once, on first sign-in).
-        if (isBootstrapAdmin(token.githubUsername as string | undefined)) {
-          token.role = "president";
-          token.status = "approved";
-        }
         token.roleSyncedAt = Date.now();
       } else if (token.id) {
         // Live RBAC: re-read role/status from the DB so admin changes take
@@ -221,15 +203,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (force || Date.now() - lastSynced > ROLE_SYNC_MS) {
           const fresh = await db.user.findUnique({
             where: { id: token.id as string },
-            select: { role: true, status: true, githubUsername: true },
+            select: { role: true, status: true },
           });
           if (fresh) {
             token.role = fresh.role;
             token.status = fresh.status;
-            if (isBootstrapAdmin(fresh.githubUsername)) {
-              token.role = "president";
-              token.status = "approved";
-            }
           }
           token.roleSyncedAt = Date.now();
         }

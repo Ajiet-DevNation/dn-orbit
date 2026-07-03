@@ -7,6 +7,8 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    // `bunx prisma db seed` → bootstraps the first admin(s); see prisma/seed.ts.
+    seed: "bun prisma/seed.ts",
   },
   datasource: {
     // CLI commands (migrate/generate/studio) use the DIRECT (non-pooled)
