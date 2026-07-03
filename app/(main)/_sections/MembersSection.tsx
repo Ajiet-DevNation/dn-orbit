@@ -6,12 +6,12 @@ import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
 import { MEMBERS, type MemberData } from "@/constants/members";
 import { toTitleCase } from "@/lib/names";
+import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
+import { HudCardFrame } from "./HudCardFrame";
 import { SectionHeading } from "./SectionHeading";
+import { useCardPowerOn } from "./useCardPowerOn";
 import { useCoverflow } from "./useCoverflow";
 import { useScrollGlide } from "./useScrollGlide";
-import { useCardPowerOn } from "./useCardPowerOn";
-import { HudCardFrame } from "./HudCardFrame";
-import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
 import { useViewportWidth } from "./useViewportWidth";
 
 // ─── tuning (desktop reference; scaled to the viewport in the component) ───────
@@ -53,7 +53,7 @@ const MemberFront = memo(function MemberFront({
           </span>
         )}
         {member.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+          // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
           <img
             src={member.imageUrl}
             alt={member.name}

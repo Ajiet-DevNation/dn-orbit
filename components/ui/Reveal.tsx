@@ -17,7 +17,12 @@ interface RevealProps {
  * prefers-reduced-motion (renders static). Keeps the 8-bit theme — this only
  * eases entrances, it doesn't add any decorative motion.
  */
-export function Reveal({ children, className, y = 24, delay = 0 }: RevealProps) {
+export function Reveal({
+  children,
+  className,
+  y = 24,
+  delay = 0,
+}: RevealProps) {
   const reducedMotion = useReducedMotion();
 
   if (reducedMotion) {

@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Card } from "@/components/ui/8bit-card";
-import { Button } from "@/components/ui/8bit-button";
-import { Progress } from "@/components/ui/8bit-progress";
 import type { ReactNode } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { Button } from "@/components/ui/8bit-button";
+import { Card } from "@/components/ui/8bit-card";
+import { Progress } from "@/components/ui/8bit-progress";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { Reveal } from "@/components/ui/Reveal";
-import { type LanguageStat, languagesFromRecord } from "./stats-utils";
 import { ContactModal } from "./ContactModal";
 import { EventModal } from "./EventModal";
 import { ProjectModal } from "./ProjectModal";
+import { type LanguageStat, languagesFromRecord } from "./stats-utils";
 
 // The 8bit-toast bundle exports a single-arg `toast(title)` helper (no
 // .success/.error variants exported). It renders the title node as-is, so we
@@ -74,7 +74,7 @@ function formatStamp(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
-    d.getDate()
+    d.getDate(),
   ).padStart(2, "0")}`;
 }
 
@@ -178,9 +178,7 @@ export function StatsSection({
         });
         anyOk = true;
       } catch (err) {
-        failures.push(
-          `LEETCODE ${err instanceof Error ? err.message : "ERR"}`
-        );
+        failures.push(`LEETCODE ${err instanceof Error ? err.message : "ERR"}`);
       }
     } else {
       failures.push("LEETCODE NO USERNAME");
@@ -203,6 +201,7 @@ export function StatsSection({
   // the session now carries the upgraded `repo`-scoped token, so this refresh
   // brings in private-repo data. Runs at most once per mount.
   const reauthHandled = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: handleRefresh is stable enough for a one-shot mount effect; re-running on its identity would defeat the once-only guard
   useEffect(() => {
     if (reauthHandled.current) return;
     const params = new URLSearchParams(window.location.search);
@@ -215,17 +214,23 @@ export function StatsSection({
     // synchronously during the mount commit (cascading-render lint rule).
     const id = setTimeout(() => void handleRefresh(), 0);
     return () => clearTimeout(id);
-    // handleRefresh is stable enough for a one-shot mount effect; re-running on
-    // its identity would defeat the once-only guard.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <section className="w-full px-6 py-16 relative">
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.02]" style={{ backgroundImage: "radial-gradient(circle, #ffffff 1.5px, transparent 1.5px)", backgroundSize: "24px 24px" }} />
+      <div
+        className="absolute inset-0 z-0 pointer-events-none opacity-[0.02]"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle, #ffffff 1.5px, transparent 1.5px)",
+          backgroundSize: "24px 24px",
+        }}
+      />
 
       <div className="mx-auto mb-10 flex max-w-6xl items-center justify-between">
-        <h2 className="retro text-xl tracking-wider text-white">PLAYER STATS</h2>
+        <h2 className="retro text-xl tracking-wider text-white">
+          PLAYER STATS
+        </h2>
         <Button
           onClick={handleRefresh}
           disabled={refreshing}
@@ -258,7 +263,10 @@ export function StatsSection({
 
             <StatRow label="REPOS" value={`${github?.reposCount ?? 0}`} />
             <StatRow label="MERGED PRS" value={`${github?.totalPrs ?? 0}`} />
-            <StatRow label="OPEN SOURCE PRS" value={`${github?.openSourcePrs ?? 0}`} />
+            <StatRow
+              label="OPEN SOURCE PRS"
+              value={`${github?.openSourcePrs ?? 0}`}
+            />
             <StatRow label="STARS" value={`${github?.totalStars ?? 0}`} />
 
             <p className="mt-6 mb-3 text-[10px] tracking-wider text-muted-foreground">

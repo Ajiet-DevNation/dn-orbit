@@ -37,7 +37,9 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export function isRole(value: unknown): value is Role {
-  return typeof value === "string" && (ROLES as readonly string[]).includes(value);
+  return (
+    typeof value === "string" && (ROLES as readonly string[]).includes(value)
+  );
 }
 
 /** May this role open the admin panel / call admin APIs? */

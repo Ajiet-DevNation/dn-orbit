@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useTransition, useOptimistic } from "react";
-import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
-import { toast } from "@/components/ui/8bit-toast";
-import { useConfirm } from "@/components/ui/PixelConfirm";
+import { useRouter } from "next/navigation";
+import React, { useOptimistic, useTransition } from "react";
+import {
+  type PixelColumn,
+  PixelDataTable,
+} from "@/components/admin/PixelDataTable";
 import {
   Select,
   SelectContent,
@@ -11,8 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
-import { deleteProject, updateProjectStatus, updateProjectProgress } from "./actions";
-import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/8bit-toast";
+import { useConfirm } from "@/components/ui/PixelConfirm";
+import {
+  deleteProject,
+  updateProjectProgress,
+  updateProjectStatus,
+} from "./actions";
 
 type ReviewStatus = "pending" | "approved" | "rejected";
 
@@ -123,7 +130,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         return state.filter((p) => p.id !== action.id);
       }
       return state;
-    }
+    },
   );
 
   const handleStatus = (id: string, status: ProjectStatus) => {
@@ -148,7 +155,8 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         toast.success("PROGRESS_UPDATED");
       } catch (err) {
         toast.error(
-          "PROGRESS_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"),
+          "PROGRESS_FAILURE: " +
+            (err instanceof Error ? err.message : "UNKNOWN"),
         );
       }
     });
@@ -165,12 +173,14 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         });
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
-        toast.success(action === "approve" ? "PROJECT_APPROVED" : "PROJECT_REJECTED");
+        toast.success(
+          action === "approve" ? "PROJECT_APPROVED" : "PROJECT_REJECTED",
+        );
       } catch (err) {
         toast.error(
           action.toUpperCase() +
             "_FAILURE: " +
-            (err instanceof Error ? err.message : "UNKNOWN")
+            (err instanceof Error ? err.message : "UNKNOWN"),
         );
       }
     });
@@ -190,13 +200,15 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         toast.success("PROJECT_RECORD_ERASED");
       } catch (err) {
         toast.error(
-          "DELETION_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN")
+          "DELETION_FAILURE: " +
+            (err instanceof Error ? err.message : "UNKNOWN"),
         );
       }
     });
   };
 
-  const btn = "retro border-2 px-3 py-1 text-[8px] transition-colors disabled:opacity-50";
+  const btn =
+    "retro border-2 px-3 py-1 text-[8px] transition-colors disabled:opacity-50";
 
   const columns: PixelColumn<Project>[] = [
     {
@@ -216,7 +228,9 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       header: "COMMAND_LEAD",
       render: (p) => (
         <div className="flex flex-col">
-          <span className="text-white font-black">{p.leadName.toUpperCase()}</span>
+          <span className="text-white font-black">
+            {p.leadName.toUpperCase()}
+          </span>
           <span className="text-[9px] text-zinc-700 tracking-widest">
             {p.leadGithub ? `@${p.leadGithub}` : "NO_GITHUB"}
           </span>
@@ -238,7 +252,11 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
             </SelectTrigger>
             <SelectContent className="z-[200] dark">
               {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s.value} value={s.value} className="text-[8px]">
+                <SelectItem
+                  key={s.value}
+                  value={s.value}
+                  className="text-[8px]"
+                >
                   {s.label}
                 </SelectItem>
               ))}
@@ -310,7 +328,11 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
 
   return (
     <>
-      <PixelDataTable data={optimisticProjects} columns={columns} empty="NO PROJECTS" />
+      <PixelDataTable
+        data={optimisticProjects}
+        columns={columns}
+        empty="NO PROJECTS"
+      />
       {dialog}
     </>
   );

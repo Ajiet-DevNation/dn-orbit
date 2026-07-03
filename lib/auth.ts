@@ -1,10 +1,11 @@
 //updated
-import NextAuth from "next-auth";
-import GitHub from "next-auth/providers/github";
+
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { db } from "@/lib/db";
-import type { Adapter, AdapterUser } from "next-auth/adapters";
 import type { DefaultSession } from "next-auth";
+import NextAuth from "next-auth";
+import type { Adapter, AdapterUser } from "next-auth/adapters";
+import GitHub from "next-auth/providers/github";
+import { db } from "@/lib/db";
 import type { Role } from "@/lib/roles";
 import type { ApprovalStatus } from "@/lib/status";
 
@@ -58,7 +59,7 @@ const ROLE_SYNC_MS = 30_000;
 
 async function isAllowedToSignIn(
   githubUsername?: string | null,
-  email?: string | null
+  email?: string | null,
 ): Promise<boolean> {
   const u = githubUsername?.toLowerCase() || null;
   const e = email?.toLowerCase() || null;
@@ -79,7 +80,7 @@ async function isAllowedToSignIn(
 // longer sign in. New users (no row yet) and pending/approved users pass.
 async function isRejected(
   githubUsername?: string | null,
-  email?: string | null
+  email?: string | null,
 ): Promise<boolean> {
   const u = githubUsername?.toLowerCase() || null;
   const e = email?.toLowerCase() || null;
@@ -112,7 +113,9 @@ const customAdapter: Adapter = {
         emailVerified: u.emailVerified,
         // New sign-ins are AJIET students by default — the President promotes
         // them into membership/admin tiers. Bootstrap admins are the exception.
-        role: isBootstrapAdmin(u.githubUsername) ? "president" : "ajiet_student",
+        role: isBootstrapAdmin(u.githubUsername)
+          ? "president"
+          : "ajiet_student",
         status: isBootstrapAdmin(u.githubUsername) ? "approved" : "pending",
       },
     }) as unknown as AdapterUser;
@@ -186,7 +189,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (trigger === "update" && session) {
         if (session.usn !== undefined) token.usn = session.usn;
         if (session.branch !== undefined) token.branch = session.branch;
-        if (session.lcUsername !== undefined) token.lcUsername = session.lcUsername;
+        if (session.lcUsername !== undefined)
+          token.lcUsername = session.lcUsername;
         if (session.name !== undefined) token.name = session.name;
       }
 
@@ -197,7 +201,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.usn = user.usn;
         token.branch = user.branch;
         token.lcUsername = user.lcUsername;
-        token.githubUsername = (user as { githubUsername?: string }).githubUsername;
+        token.githubUsername = (
+          user as { githubUsername?: string }
+        ).githubUsername;
         // Keep bootstrap admins elevated even if their DB row predates the env
         // var (createUser only runs once, on first sign-in).
         if (isBootstrapAdmin(token.githubUsername as string | undefined)) {

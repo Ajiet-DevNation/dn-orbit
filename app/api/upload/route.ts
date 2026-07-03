@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { auth } from "@/lib/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { isApproved } from "@/lib/access";
+import { auth } from "@/lib/auth";
 import { getSupabaseAdmin, MEDIA_BUCKET } from "@/lib/supabase";
 
 // Uploads a cropped cover image (already at the target ratio/size from the
@@ -48,13 +48,13 @@ export async function POST(req: NextRequest) {
   if (!ext) {
     return NextResponse.json(
       { error: "Unsupported image type (use JPEG, PNG, or WebP)" },
-      { status: 400 }
+      { status: 400 },
     );
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
       { error: "Image too large (max 5 MB)" },
-      { status: 413 }
+      { status: 413 },
     );
   }
 

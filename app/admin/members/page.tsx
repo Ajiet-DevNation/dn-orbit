@@ -1,11 +1,11 @@
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { PixelStatTile } from "@/components/admin/PixelStatTile";
-import { MemberTable } from "./MemberTable";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { canAccessAdmin } from "@/lib/roles";
 import { AllowlistManager } from "./AllowlistManager";
+import { MemberTable } from "./MemberTable";
 
 export default async function AdminMembersPage() {
   const session = await auth();
@@ -43,9 +43,18 @@ export default async function AdminMembersPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <PixelStatTile label="ADMINS" value={adminCount.toString().padStart(2, "0")} />
-        <PixelStatTile label="MEMBERS" value={memberCount.toString().padStart(2, "0")} />
-        <PixelStatTile label="AJIET STUDENTS" value={ajietCount.toString().padStart(2, "0")} />
+        <PixelStatTile
+          label="ADMINS"
+          value={adminCount.toString().padStart(2, "0")}
+        />
+        <PixelStatTile
+          label="MEMBERS"
+          value={memberCount.toString().padStart(2, "0")}
+        />
+        <PixelStatTile
+          label="AJIET STUDENTS"
+          value={ajietCount.toString().padStart(2, "0")}
+        />
       </div>
 
       <div className="space-y-4">

@@ -1,16 +1,16 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Command, CommandInput } from "@/components/ui/8bit-command";
-import { Button } from "@/components/ui/8bit-button";
-import { SectionHeading } from "./SectionHeading";
-import { PixelReveal } from "./PixelReveal";
-import { useFlipDetail } from "./useFlipDetail";
 import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
 import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
 import { cn } from "@/lib/utils";
+import { PixelReveal } from "./PixelReveal";
+import { SectionHeading } from "./SectionHeading";
+import { useFlipDetail } from "./useFlipDetail";
 
 // How many event cards render per page in the grid below.
 const PAGE_SIZE = 6;
@@ -57,7 +57,7 @@ function EventCard({ data }: { data: EventCardData }) {
               placeholder when no banner is set. */}
           <div className="relative aspect-video w-full overflow-hidden border-b-[6px] border-white/10 bg-[#0d0d0d] transition-colors duration-300 group-hover:border-[#22c55e]/50">
             {data.bannerUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
+              // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
               <img
                 src={data.bannerUrl}
                 alt={data.title}
@@ -136,16 +136,22 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
     >
       <div className="flex flex-wrap items-center gap-3">
         <AudienceBadge audience={data.audience} />
-        <h3 className="retro min-w-0 break-words text-2xl text-white">{data.title}</h3>
+        <h3 className="retro min-w-0 break-words text-2xl text-white">
+          {data.title}
+        </h3>
       </div>
       <p className="retro text-[10px] text-[#22c55e]">
         {[data.dateLabel, data.location].filter(Boolean).join(" · ")}
       </p>
       {data.description && (
-        <p className="text-sm leading-relaxed text-muted-foreground">{data.description}</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {data.description}
+        </p>
       )}
       {data.capacityLabel && (
-        <p className="retro text-[9px] text-muted-foreground">{data.capacityLabel}</p>
+        <p className="retro text-[9px] text-muted-foreground">
+          {data.capacityLabel}
+        </p>
       )}
       {data.registrationClosed ? (
         <span className="retro w-fit border-2 border-white/20 px-4 py-3 text-[9px] text-white/50">
@@ -231,7 +237,7 @@ function PageButton({
       aria-current={active ? "page" : undefined}
       className={cn(
         "min-w-[2.5rem] text-[9px]",
-        active && "!bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+        active && "!bg-[#22c55e] hover:!bg-[#16a34a] !text-black",
       )}
     >
       {children}
@@ -250,8 +256,9 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
 
   const normalized = query.trim().toLowerCase();
   const filtered = useMemo(
-    () => (normalized ? events.filter((e) => matchesQuery(e, normalized)) : events),
-    [events, normalized]
+    () =>
+      normalized ? events.filter((e) => matchesQuery(e, normalized)) : events,
+    [events, normalized],
   );
 
   // `page` can drift past the available range when the filter shrinks results, so
@@ -260,7 +267,7 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
   const currentPage = Math.min(page, totalPages);
   const pageEvents = filtered.slice(
     (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
+    currentPage * PAGE_SIZE,
   );
 
   function handleSearch(value: string) {
@@ -309,10 +316,14 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
                 {pageEvents.map((event, i) => (
                   <PixelReveal key={event.id} delayMs={i * 70}>
                     <div
-                      ref={(el) => { cardRefs.current[event.id] = el; }}
+                      ref={(el) => {
+                        cardRefs.current[event.id] = el;
+                      }}
                       role="button"
                       tabIndex={0}
-                      onClick={() => open(event.id, cardRefs.current[event.id]!)}
+                      onClick={() =>
+                        open(event.id, cardRefs.current[event.id]!)
+                      }
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
@@ -358,7 +369,7 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
                       >
                         {item}
                       </PageButton>
-                    )
+                    ),
                   )}
 
                   <PageButton

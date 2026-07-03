@@ -68,7 +68,7 @@ export function PixelScanOverlay() {
 
       // Fill front races out; clear front trails it — the gap between them is the
       // lit scan band. Both eased so the ring decelerates as it reaches the edge.
-      const ease = (x: number) => 1 - Math.pow(1 - x, 2);
+      const ease = (x: number) => 1 - (1 - x) ** 2;
       const fillFront = ease(Math.min(p / 0.6, 1)); // 0..1 over first 60%
       const clearFront = p <= 0.34 ? 0 : ease((p - 0.34) / 0.66);
 
@@ -103,7 +103,7 @@ export function PixelScanOverlay() {
           inner,
           w / 2,
           h / 2,
-          outer
+          outer,
         );
         g.addColorStop(0, "rgba(34,197,94,0)");
         g.addColorStop(0.5, "rgba(110,231,160,0.35)");

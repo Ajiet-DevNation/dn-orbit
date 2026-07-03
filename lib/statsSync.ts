@@ -9,7 +9,10 @@ type SyncResult = {
   detail: string;
 };
 
-async function syncGitHubStatsForUser(userId: string, openSourceMinStars: number) {
+async function syncGitHubStatsForUser(
+  userId: string,
+  openSourceMinStars: number,
+) {
   const account = await db.account.findFirst({
     where: {
       userId,
@@ -46,10 +49,14 @@ async function syncGitHubStatsForUser(userId: string, openSourceMinStars: number
   try {
     // The account token belongs to this same user, so we can safely read their
     // private repositories for the leaderboard.
-    const stats = await fetchGitHubStats(user.githubUsername, account.access_token, {
-      includePrivate: true,
-      openSourceMinStars,
-    });
+    const stats = await fetchGitHubStats(
+      user.githubUsername,
+      account.access_token,
+      {
+        includePrivate: true,
+        openSourceMinStars,
+      },
+    );
     const existing = await db.githubStats.findFirst({ where: { userId } });
     const statsData = {
       reposCount: stats.reposCount,

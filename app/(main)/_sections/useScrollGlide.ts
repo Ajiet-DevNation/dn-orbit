@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { gsap } from "@/lib/gsap";
 import { glideEndpoints } from "@/lib/glide";
+import { gsap } from "@/lib/gsap";
 
 // Scroll-linked horizontal glide for a carousel stage wrapper (GSAP ScrollTrigger).
 // As the section travels the viewport the wrapper drifts horizontally: direction
@@ -19,7 +19,7 @@ interface GlideOptions {
 export function useScrollGlide(
   sectionRef: React.RefObject<HTMLElement | null>,
   stageRef: React.RefObject<HTMLElement | null>,
-  { direction, distancePx = 160, scrub = 0.6 }: GlideOptions
+  { direction, distancePx = 160, scrub = 0.6 }: GlideOptions,
 ): void {
   useEffect(() => {
     const section = sectionRef.current;
@@ -42,7 +42,7 @@ export function useScrollGlide(
             scrub,
             invalidateOnRefresh: true,
           },
-        }
+        },
       );
     });
 

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { recomputeLeaderboardScores } from "@/lib/leaderboard";
 
 // A pure recompute (no external API calls) is quick, but keep it on Node, always
@@ -20,9 +20,15 @@ export async function GET(req: NextRequest) {
   try {
     const result = await recomputeLeaderboardScores();
 
-    return NextResponse.json({ success: true, updatedUsersCount: result.updatedUsersCount });
+    return NextResponse.json({
+      success: true,
+      updatedUsersCount: result.updatedUsersCount,
+    });
   } catch (error) {
     console.error("Leaderboard Cron Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

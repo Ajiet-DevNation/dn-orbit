@@ -1,21 +1,21 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { toast } from "@/components/ui/8bit-toast";
-import { Card } from "@/components/ui/8bit-card";
+import { useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
+import { Card } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
+import { toast } from "@/components/ui/8bit-toast";
 import {
   AUDIENCE_BADGE_LABELS,
+  type EventAudience,
+  type FormFieldDef,
   isFieldVisible,
   usnRequiredFor,
   validateSubmission,
-  type EventAudience,
-  type FormFieldDef,
 } from "@/lib/forms";
-import { PixelFormField } from "./PixelFormField";
 import { FieldCard } from "./FieldCard";
+import { PixelFormField } from "./PixelFormField";
 
 export function RegistrationForm({
   eventId,
@@ -42,7 +42,13 @@ export function RegistrationForm({
   capacityLabel: string | null;
   prefill: { name: string; email: string; usn?: string } | null;
 }) {
-  const meta: EventMeta = { audience, dateLabel, location, description, capacityLabel };
+  const meta: EventMeta = {
+    audience,
+    dateLabel,
+    location,
+    description,
+    capacityLabel,
+  };
   const [name, setName] = useState(prefill?.name ?? "");
   const [email, setEmail] = useState(prefill?.email ?? "");
   const [usn, setUsn] = useState(prefill?.usn ?? "");
@@ -80,7 +86,12 @@ export function RegistrationForm({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const local = validateSubmission({ audience, isMember, schema, input: { name, email, usn, responses } });
+    const local = validateSubmission({
+      audience,
+      isMember,
+      schema,
+      input: { name, email, usn, responses },
+    });
     if (!local.ok) {
       setErrors(local.errors);
       toast.error("Please fix the highlighted fields");
@@ -221,17 +232,25 @@ function Shell({
       {/* Google-Forms-style header card: a green top accent bar + the event
           identity, sitting above the question cards. */}
       <div className="flex flex-col gap-3 border-2 border-white/10 border-t-[6px] border-t-[#22c55e] bg-[#0a0a0a] p-6 sm:p-8">
-        <span className="retro text-[9px] tracking-widest text-[#22c55e]">EVENT REGISTRATION</span>
-        <h1 className="retro text-lg leading-relaxed text-white sm:text-xl">{title}</h1>
+        <span className="retro text-[9px] tracking-widest text-[#22c55e]">
+          EVENT REGISTRATION
+        </span>
+        <h1 className="retro text-lg leading-relaxed text-white sm:text-xl">
+          {title}
+        </h1>
         <div className="flex flex-wrap items-center gap-3">
           <AudienceBadge audience={meta.audience} />
           {when && <p className="retro text-[10px] text-[#22c55e]">{when}</p>}
         </div>
         {meta.capacityLabel && (
-          <p className="retro text-[9px] text-muted-foreground">{meta.capacityLabel}</p>
+          <p className="retro text-[9px] text-muted-foreground">
+            {meta.capacityLabel}
+          </p>
         )}
         {meta.description && (
-          <p className="text-sm leading-relaxed text-muted-foreground">{meta.description}</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {meta.description}
+          </p>
         )}
       </div>
       {children}

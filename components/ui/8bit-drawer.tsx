@@ -1,8 +1,5 @@
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import { Drawer as DrawerPrimitive } from "vaul";
-
-import { cn } from "@/lib/utils";
-
 import {
   Drawer as ShadcnDrawer,
   DrawerClose as ShadcnDrawerClose,
@@ -14,7 +11,7 @@ import {
   DrawerTitle as ShadcnDrawerTitle,
   DrawerTrigger as ShadcnDrawerTrigger,
 } from "@/components/ui/drawer";
-
+import { cn } from "@/lib/utils";
 
 const Drawer = ShadcnDrawer;
 
@@ -61,7 +58,7 @@ function DrawerTrigger({
         !asChild &&
           "border-foreground dark:border-ring hover:bg-transparent active:bg-transparent focus:bg-transparent rounded-none border-4 focus:border-foreground hover:border-foreground dark:focus:border-ring bg-transparent data-[state=open]:bg-transparent data-[state=open]:border-foreground dark:data-[state=open]:border-ring",
         className,
-        "retro"
+        "retro",
       )}
       {...props}
     >
@@ -108,7 +105,7 @@ function DrawerContent({
           side === "bottom" &&
             "border-t-4 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto",
           className,
-          "retro"
+          "retro",
         )}
         {...props}
       >
@@ -145,17 +142,16 @@ function DrawerFooter({
 
 export {
   Drawer,
-  DrawerHeader,
-  DrawerFooter,
   DrawerClose,
-  DrawerTrigger,
   DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
   DrawerOverlay,
   DrawerPortal,
   DrawerTitle,
-  DrawerDescription,
+  DrawerTrigger,
 };
-
 
 export default Drawer;
 

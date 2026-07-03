@@ -23,7 +23,7 @@ const EXIT_MS = 720;
 // Smooth, eased ramp (no overshoot) for the exit so it reads as a deliberate
 // "settle into the app" rather than a flat linear dim.
 function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
 export function BootSplash() {
@@ -33,7 +33,7 @@ export function BootSplash() {
 
   useEffect(() => {
     const reduce = window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)"
+      "(prefers-reduced-motion: reduce)",
     ).matches;
     const start = performance.now();
     let raf = 0;

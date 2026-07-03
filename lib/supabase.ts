@@ -20,7 +20,7 @@ export function getSupabaseAdmin(): SupabaseClient {
   const secret = process.env.SUPABASE_PRIVATE_KEY;
   if (!url || !secret) {
     throw new Error(
-      "Supabase is not configured: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_PRIVATE_KEY."
+      "Supabase is not configured: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_PRIVATE_KEY.",
     );
   }
 

@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "@/components/ui/8bit-toast";
+import { useState, useTransition } from "react";
 import { PixelPanel } from "@/components/admin/PixelPanel";
-import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
@@ -15,8 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
+import { toast } from "@/components/ui/8bit-toast";
+import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
+import {
+  AUDIENCE_OPTIONS,
+  type EventAudience,
+  type FormFieldDef,
+} from "@/lib/forms";
 import { FormBuilder } from "../_form/FormBuilder";
-import { AUDIENCE_OPTIONS, type EventAudience, type FormFieldDef } from "@/lib/forms";
 
 const EVENT_TYPES = [
   "GENERAL_ASSEMBLY",
@@ -61,7 +65,9 @@ export default function EventCreationForm({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [f, setF] = useState<EventFormState>({ ...DEFAULTS, ...initial });
-  const [schema, setSchema] = useState<FormFieldDef[]>(initial?.formSchema ?? []);
+  const [schema, setSchema] = useState<FormFieldDef[]>(
+    initial?.formSchema ?? [],
+  );
   const isEdit = !!eventId;
 
   const set = (k: keyof EventFormState, v: string) =>

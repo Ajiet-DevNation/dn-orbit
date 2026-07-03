@@ -1,9 +1,6 @@
 "use client";
 
 import { Command as CommandPrimitive } from "cmdk";
-
-import { cn } from "@/lib/utils";
-
 import {
   Command as ShadcnCommand,
   CommandDialog as ShadcnCommandDialog,
@@ -21,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
+import { cn } from "@/lib/utils";
 
 function Command({
   className,
@@ -34,7 +31,7 @@ function Command({
         className={cn(
           "bg-popover text-popover-foreground flex h-full !w-full flex-col overflow-hidden rounded-md",
           "retro",
-          className
+          className,
         )}
         {...props}
       />
@@ -122,7 +119,7 @@ function CommandInput({
         data-slot="command-input"
         className={cn(
           "placeholder:text-muted-foreground flex h-8 w-full rounded-md bg-transparent py-1.5 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
-          className
+          className,
         )}
         {...props}
       />
@@ -140,7 +137,7 @@ function CommandList({
       className={cn(
         "max-h-[320px] scroll-py-1 overflow-x-hidden overflow-y-auto",
         "retro",
-        className
+        className,
       )}
       {...props}
     />
@@ -169,7 +166,7 @@ function CommandGroup({
       className={cn(
         "text-foreground [&_[cmdk-group-heading]]:text-muted-foreground overflow-hidden p-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium",
         "retro",
-        className
+        className,
       )}
       {...props}
     />
@@ -186,7 +183,7 @@ function CommandSeparator({
       className={cn(
         "data-[orientation=horizontal]:bg-[length:16px_8px] data-[orientation=horizontal]:bg-[linear-gradient(90deg,var(--foreground)_75%,transparent_75%)] dark:data-[orientation=horizontal]:bg-[linear-gradient(90deg,var(--ring)_75%,transparent_75%)] shrink-0 data-[orientation=horizontal]:h-0.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-0.5 data-[orientation=vertical]:bg-[length:2px_16px] data-[orientation=vertical]:bg-[linear-gradient(0deg,var(--foreground)_75%,transparent_75%)] dark:data-[orientation=vertical]:bg-[linear-gradient(0deg,var(--ring)_75%,transparent_75%)]",
         "retro",
-        className
+        className,
       )}
       {...props}
     />
@@ -202,7 +199,7 @@ function CommandItem({
       data-slot="command-item"
       className={cn(
         "rounded-none border-dashed border-y-3 border-ring/0 hover:border-foreground dark:hover:border-ring",
-        className
+        className,
       )}
       {...props}
     />
@@ -221,14 +218,13 @@ function CommandShortcut({
 export {
   Command,
   CommandDialog,
-  CommandInput,
-  CommandList,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
-  CommandShortcut,
+  CommandList,
   CommandSeparator,
+  CommandShortcut,
 };
-
 
 export default Command;

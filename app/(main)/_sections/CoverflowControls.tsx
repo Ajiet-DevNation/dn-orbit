@@ -60,7 +60,7 @@ export const CoverflowControls = memo(function CoverflowControls({
       <div
         className={cn(
           "pointer-events-none absolute inset-x-0 z-[1100] flex items-center justify-center",
-          counterClassName
+          counterClassName,
         )}
         style={counterStyle}
       >

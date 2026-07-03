@@ -51,7 +51,7 @@ const MAX_DT_MS = 50; // clamp dt so returning from an idle tab can't leap
 
 export function useScrubProgress(
   ref: React.RefObject<HTMLElement | null>,
-  { start = 0, end = 1, tau = 90, lead = 0 }: ScrubOptions = {}
+  { start = 0, end = 1, tau = 90, lead = 0 }: ScrubOptions = {},
 ): number {
   const [progress, setProgress] = useState(0);
 

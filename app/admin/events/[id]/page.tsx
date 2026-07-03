@@ -1,9 +1,9 @@
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
-import { redirect, notFound } from "next/navigation";
-import { parseFormSchema } from "@/lib/forms";
+import { notFound, redirect } from "next/navigation";
 import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { parseFormSchema } from "@/lib/forms";
+import { canAccessAdmin } from "@/lib/roles";
 import EventRosterClient from "./EventRosterClient";
 
 export const metadata = { title: "EVENT ROSTER // ORBIT ADMIN" };
@@ -40,7 +40,10 @@ export default async function AdminEventRosterPage({
 
   return (
     <div className="space-y-8 p-8">
-      <PixelPageHeader title="EVENT ROSTER" subtitle={event.title.toUpperCase()} />
+      <PixelPageHeader
+        title="EVENT ROSTER"
+        subtitle={event.title.toUpperCase()}
+      />
       <EventRosterClient
         eventId={event.id}
         registrations={registrations}

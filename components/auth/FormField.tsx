@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, SelectHTMLAttributes } from "react";
+import type { InputHTMLAttributes, SelectHTMLAttributes } from "react";
 import { Input } from "@/components/ui/8bit-input";
 
 interface BaseFieldProps {

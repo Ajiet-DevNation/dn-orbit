@@ -12,7 +12,7 @@ import { gsap } from "@/lib/gsap";
 // reverts on change/unmount.
 export function useCardPowerOn(
   containerRef: React.RefObject<HTMLElement | null>,
-  activeIndex: number
+  activeIndex: number,
 ): void {
   useEffect(() => {
     const root = containerRef.current;
@@ -20,7 +20,7 @@ export function useCardPowerOn(
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     const card = root.querySelector<HTMLElement>(
-      `[data-cf-index="${activeIndex}"]`
+      `[data-cf-index="${activeIndex}"]`,
     );
     if (!card) return;
 
@@ -36,7 +36,7 @@ export function useCardPowerOn(
             duration: 0.45,
             ease: "back.out(2.2)",
             transformOrigin: "center",
-          }
+          },
         );
       }
     }, root);

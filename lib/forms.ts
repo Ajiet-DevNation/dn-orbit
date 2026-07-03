@@ -1,7 +1,11 @@
 // Single source of truth for registration form field definitions and the
 // submission validator shared by the client renderer and the server route.
 
-export type EventAudience = "members" | "college" | "members_college" | "public";
+export type EventAudience =
+  | "members"
+  | "college"
+  | "members_college"
+  | "public";
 
 // Admin "who can register" options (single source of truth for the label copy).
 export const AUDIENCE_OPTIONS: { value: EventAudience; label: string }[] = [
@@ -76,7 +80,11 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   dropdown: "Dropdown",
 };
 
-export const CHOICE_TYPES: FieldType[] = ["single_choice", "multi_choice", "dropdown"];
+export const CHOICE_TYPES: FieldType[] = [
+  "single_choice",
+  "multi_choice",
+  "dropdown",
+];
 
 // Whether an audience ever collects USN / College ID (used to show the field /
 // the "always collected" hint). For the combined members+AJIET tier the field
@@ -202,14 +210,16 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
       case "single_choice":
       case "dropdown": {
         const s = String(raw);
-        if (!(f.options ?? []).includes(s)) errors[f.id] = "Choose a valid option";
+        if (!(f.options ?? []).includes(s))
+          errors[f.id] = "Choose a valid option";
         else responses[f.id] = s;
         break;
       }
       case "multi_choice": {
         const arr = Array.isArray(raw) ? raw.map(String) : [String(raw)];
         const opts = f.options ?? [];
-        if (!arr.every((v) => opts.includes(v))) errors[f.id] = "Invalid selection";
+        if (!arr.every((v) => opts.includes(v)))
+          errors[f.id] = "Invalid selection";
         else responses[f.id] = arr;
         break;
       }
@@ -217,7 +227,8 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
         const s = String(raw);
         if (f.pattern) {
           try {
-            if (!new RegExp(f.pattern).test(s)) errors[f.id] = `${f.label} format is invalid`;
+            if (!new RegExp(f.pattern).test(s))
+              errors[f.id] = `${f.label} format is invalid`;
             else responses[f.id] = s;
           } catch {
             responses[f.id] = s;
@@ -243,7 +254,8 @@ export function parseFormSchema(value: unknown): FormFieldDef[] {
   const out: FormFieldDef[] = [];
   for (const r of value) {
     if (
-      r && typeof r === "object" &&
+      r &&
+      typeof r === "object" &&
       typeof (r as FormFieldDef).id === "string" &&
       typeof (r as FormFieldDef).label === "string" &&
       typeof (r as FormFieldDef).type === "string"

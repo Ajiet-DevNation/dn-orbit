@@ -1,4 +1,4 @@
-import { test, expect } from "bun:test";
+import { expect, test } from "bun:test";
 import { canAccessAdmin, canManageRoles, isRole, ROLES } from "./roles";
 
 test("admin tiers can access admin, member / alumni / ajiet_student cannot", () => {

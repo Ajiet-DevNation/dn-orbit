@@ -6,8 +6,16 @@ import { BrandLink } from "./BrandLink";
 // a new tab. Only verifiable DevNation links are included — socials without a
 // known URL are intentionally omitted rather than guessed.
 const CONNECT: FooterLinkDef[] = [
-  { label: "GitHub", href: "https://github.com/Ajiet-DevNation", external: true },
-  { label: "LinkedIn", href: "https://www.linkedin.com/company/devnationajiet/", external: true },
+  {
+    label: "GitHub",
+    href: "https://github.com/Ajiet-DevNation",
+    external: true,
+  },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/company/devnationajiet/",
+    external: true,
+  },
   { label: "Contact", href: "mailto:aboobakkartwaha@gmail.com" },
 ];
 
@@ -54,7 +62,12 @@ function FooterLink({ label, href, external }: FooterLinkDef) {
     </>
   );
   return external ? (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={className}
+    >
       {inner}
     </a>
   ) : (
@@ -64,7 +77,13 @@ function FooterLink({ label, href, external }: FooterLinkDef) {
   );
 }
 
-function FooterColumn({ title, links }: { title: string; links: FooterLinkDef[] }) {
+function FooterColumn({
+  title,
+  links,
+}: {
+  title: string;
+  links: FooterLinkDef[];
+}) {
   return (
     <div>
       <PixelLabel>{title}</PixelLabel>
@@ -110,7 +129,10 @@ export function Footer() {
               href="mailto:aboobakkartwaha@gmail.com"
               className="retro mt-5 inline-flex max-w-full items-center gap-2.5 text-[10px] break-all text-zinc-300 transition-colors hover:text-[#22c55e]"
             >
-              <span aria-hidden="true" className="inline-block size-2 shrink-0 bg-[#22c55e]" />
+              <span
+                aria-hidden="true"
+                className="inline-block size-2 shrink-0 bg-[#22c55e]"
+              />
               aboobakkartwaha@gmail.com
             </a>
           </div>

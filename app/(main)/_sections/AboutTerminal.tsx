@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/8bit-card";
+import { cn } from "@/lib/utils";
 
 export interface TerminalLine {
   text: string;
@@ -67,7 +67,11 @@ function linePrefix(type: TerminalLine["type"]): string {
   return type === "input" ? "> " : "";
 }
 
-export function AboutTerminal({ title = "Terminal", lines, className }: AboutTerminalProps) {
+export function AboutTerminal({
+  title = "Terminal",
+  lines,
+  className,
+}: AboutTerminalProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [typed, setTyped] = useState(0);
@@ -85,11 +89,11 @@ export function AboutTerminal({ title = "Terminal", lines, className }: AboutTer
   // Full string for each line (prefix + text); typing walks this combined text.
   const fullLines = useMemo(
     () => lines.map((l) => linePrefix(l.type) + l.text),
-    [lines]
+    [lines],
   );
   const totalChars = useMemo(
     () => fullLines.reduce((sum, s) => sum + s.length, 0),
-    [fullLines]
+    [fullLines],
   );
   // Cumulative start index of each line within the combined transcript, so the
   // global cursor position can be sliced per line without mutating during render.
@@ -184,6 +188,7 @@ export function AboutTerminal({ title = "Terminal", lines, className }: AboutTer
 
   // Keep the freshly-typed line in view: the transcript is taller than the fixed
   // screen, so follow the cursor by pinning the scroll to the bottom as it types.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `typed` is the intentional trigger — the effect re-pins the scroll each time a character lands
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -192,7 +197,10 @@ export function AboutTerminal({ title = "Terminal", lines, className }: AboutTer
   const allDone = typed >= totalChars;
   // How far into the scrub we are, surfaced as a tiny progress glyph in the
   // title bar so it's obvious the terminal is reacting to the scroll.
-  const scrubPct = totalChars > 0 ? Math.round((Math.min(typed, totalChars) / totalChars) * 100) : 0;
+  const scrubPct =
+    totalChars > 0
+      ? Math.round((Math.min(typed, totalChars) / totalChars) * 100)
+      : 0;
 
   // Walk the lines and slice each by how far the global cursor has advanced.
   const renderedLines = lines.map((line, idx) => {

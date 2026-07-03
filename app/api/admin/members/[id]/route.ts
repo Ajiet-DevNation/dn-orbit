@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
+import { type NextRequest, NextResponse } from "next/server";
+import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { toTitleCase } from "@/lib/names";
 import { canAccessAdmin, canManageRoles, isRole } from "@/lib/roles";
 import { isApprovalStatus } from "@/lib/status";
-import { logAudit } from "@/lib/audit";
-import { toTitleCase } from "@/lib/names";
-import { Prisma } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -40,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       if (!canManageRoles(session.user.role)) {
         return NextResponse.json(
           { error: "Only the President may change roles" },
-          { status: 403 }
+          { status: 403 },
         );
       }
       if (!isRole(role)) {
@@ -50,14 +50,17 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       if (id === session.user.id && role !== "president") {
         return NextResponse.json(
           { error: "You cannot demote yourself from President" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       updateData.role = role;
     }
 
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: "No fields provided to update" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No fields provided to update" },
+        { status: 400 },
+      );
     }
 
     const updatedUser = await db.user.update({
@@ -87,6 +90,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
     console.error("Update Member Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

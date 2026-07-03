@@ -32,12 +32,15 @@ export function PixelSlider({
       const el = trackRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      const ratio = Math.min(
+        1,
+        Math.max(0, (clientX - rect.left) / rect.width),
+      );
       const raw = min + ratio * (max - min);
       const snapped = Math.round(raw / step) * step;
       onChange(Math.min(max, Math.max(min, snapped)));
     },
-    [min, max, step, onChange]
+    [min, max, step, onChange],
   );
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -48,7 +51,8 @@ export function PixelSlider({
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (disabled) return;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) setFromClientX(e.clientX);
+    if (e.currentTarget.hasPointerCapture(e.pointerId))
+      setFromClientX(e.clientX);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -83,7 +87,7 @@ export function PixelSlider({
       onKeyDown={onKeyDown}
       className={cn(
         "relative h-3 w-full touch-none select-none border-2 border-white/20 bg-black outline-none focus-visible:border-[#22c55e]",
-        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
       )}
     >
       {/* Filled portion */}

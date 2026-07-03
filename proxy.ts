@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { canAccessAdmin } from "@/lib/roles";
 import { usesSecureCookies } from "@/lib/cookies";
+import { canAccessAdmin } from "@/lib/roles";
 
 // Routes that require an authenticated (club-member) session. Everything else —
 // including the landing page `/` — is public and browsable without signing in.
@@ -33,14 +33,18 @@ export async function proxy(req: NextRequest) {
     secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
     secureCookie: usesSecureCookies(
       req.nextUrl.protocol,
-      req.headers.get("x-forwarded-proto")
+      req.headers.get("x-forwarded-proto"),
     ),
   });
   const isLoggedIn = !!token;
   const path = req.nextUrl.pathname;
 
   // Let API auth routes, next internal routes, and public assets pass through
-  if (path.startsWith("/api/auth") || path.startsWith("/_next") || path.includes("favicon.ico")) {
+  if (
+    path.startsWith("/api/auth") ||
+    path.startsWith("/_next") ||
+    path.includes("favicon.ico")
+  ) {
     return NextResponse.next();
   }
 
@@ -61,11 +65,17 @@ export async function proxy(req: NextRequest) {
 
     // If on login page but logged in, redirect based on onboarding status
     if (path.startsWith("/login")) {
-      return NextResponse.redirect(new URL(isOnboarded ? "/" : "/onboarding", req.nextUrl));
+      return NextResponse.redirect(
+        new URL(isOnboarded ? "/" : "/onboarding", req.nextUrl),
+      );
     }
 
     // If not onboarded and trying to access protected route (except onboarding and public APIs)
-    if (!isOnboarded && !path.startsWith("/onboarding") && !path.startsWith("/api")) {
+    if (
+      !isOnboarded &&
+      !path.startsWith("/onboarding") &&
+      !path.startsWith("/api")
+    ) {
       return NextResponse.redirect(new URL("/onboarding", req.nextUrl));
     }
 

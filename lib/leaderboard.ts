@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   computeLeaderboard,
@@ -89,8 +89,8 @@ export async function recomputeLeaderboardScores() {
           totalScore: score.totalScore,
           rank: score.rank,
         },
-      })
-    )
+      }),
+    ),
   );
 
   return { updatedUsersCount: finalScores.length };

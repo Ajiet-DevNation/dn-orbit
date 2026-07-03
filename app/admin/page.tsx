@@ -1,12 +1,12 @@
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
-import { db } from "@/lib/db";
-import { redirect } from "next/navigation";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
-import { PixelStatTile } from "@/components/admin/PixelStatTile";
 import { PixelPanel } from "@/components/admin/PixelPanel";
-import { SystemLogs, type LogEntry } from "@/components/admin/SystemLogs";
+import { PixelStatTile } from "@/components/admin/PixelStatTile";
+import { type LogEntry, SystemLogs } from "@/components/admin/SystemLogs";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { canAccessAdmin } from "@/lib/roles";
 
 export default async function AdminDashboardPage() {
   const session = await auth();
@@ -34,7 +34,13 @@ export default async function AdminDashboardPage() {
     db.auditLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
-      select: { id: true, action: true, actorName: true, summary: true, createdAt: true },
+      select: {
+        id: true,
+        action: true,
+        actorName: true,
+        summary: true,
+        createdAt: true,
+      },
     }),
   ]);
   const pendingReviews = pendingProjects + pendingEvents;
@@ -42,9 +48,17 @@ export default async function AdminDashboardPage() {
   const stats = [
     { label: "MEMBERS", value: totalUsers, href: "/admin/members" },
     { label: "ACTIVE PROJECTS", value: totalProjects, href: "/admin/projects" },
-    { label: "PENDING REVIEWS", value: pendingReviews, href: "/admin/approvals" },
+    {
+      label: "PENDING REVIEWS",
+      value: pendingReviews,
+      href: "/admin/approvals",
+    },
     { label: "EVENTS", value: totalEvents, href: "/admin/events" },
-    { label: "REGISTRATIONS", value: totalRegistrations, href: "/admin/events" },
+    {
+      label: "REGISTRATIONS",
+      value: totalRegistrations,
+      href: "/admin/events",
+    },
   ];
 
   const initialLogs: LogEntry[] = recentLogs.map((l) => ({

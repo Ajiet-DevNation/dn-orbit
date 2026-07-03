@@ -1,7 +1,7 @@
 "use client";
 
-import { type VariantProps, cva } from "class-variance-authority";
 import { Slot, Slottable } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
@@ -13,7 +13,8 @@ const buttonVariants = cva(
         default: "bg-foreground text-background",
         destructive: "bg-foreground text-background",
         outline: "bg-foreground text-background",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        secondary:
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
@@ -33,7 +34,7 @@ const buttonVariants = cva(
       size: "default",
       font: "retro",
     },
-  }
+  },
 );
 
 export interface BitButtonProps
@@ -64,7 +65,7 @@ function Button({
       className={cn(
         buttonVariants({ variant, size, font }),
         font !== "normal" && "retro",
-        className
+        className,
       )}
       {...props}
     >

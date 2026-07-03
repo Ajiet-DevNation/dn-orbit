@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
+import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { canAccessAdmin } from "@/lib/roles";
 
 export async function GET() {
   try {
@@ -26,7 +26,10 @@ export async function GET() {
     return NextResponse.json(weights);
   } catch (error) {
     console.error("Get Weights Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -38,7 +41,13 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { githubWeight, lcWeight, eventWeight, ghOpenSourceMinStars, ghOpenSourcePerPrPoints } = body;
+    const {
+      githubWeight,
+      lcWeight,
+      eventWeight,
+      ghOpenSourceMinStars,
+      ghOpenSourcePerPrPoints,
+    } = body;
 
     if (
       typeof githubWeight !== "number" ||
@@ -47,7 +56,7 @@ export async function PATCH(req: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "githubWeight, lcWeight, and eventWeight must be numbers" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -62,22 +71,25 @@ export async function PATCH(req: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "ghOpenSourceMinStars must be a non-negative integer" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (
       ghOpenSourcePerPrPoints !== undefined &&
-      (typeof ghOpenSourcePerPrPoints !== "number" || ghOpenSourcePerPrPoints < 0)
+      (typeof ghOpenSourcePerPrPoints !== "number" ||
+        ghOpenSourcePerPrPoints < 0)
     ) {
       return NextResponse.json(
         { error: "ghOpenSourcePerPrPoints must be a non-negative number" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const openSourceData = {
       ...(ghOpenSourceMinStars !== undefined ? { ghOpenSourceMinStars } : {}),
-      ...(ghOpenSourcePerPrPoints !== undefined ? { ghOpenSourcePerPrPoints } : {}),
+      ...(ghOpenSourcePerPrPoints !== undefined
+        ? { ghOpenSourcePerPrPoints }
+        : {}),
     };
 
     // Ensure weights sum approximately to 1 or 100% depending on the formula,
@@ -117,6 +129,9 @@ export async function PATCH(req: NextRequest) {
     }
   } catch (error) {
     console.error("Update Weights Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

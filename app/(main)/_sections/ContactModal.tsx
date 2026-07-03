@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 
@@ -70,6 +70,7 @@ export function ContactModal({ open, onOpenChange }: ContactModalProps) {
             CONTACT
           </h2>
           <button
+            type="button"
             onClick={() => onOpenChange(false)}
             className="retro -mr-1 -mt-1 shrink-0 p-1 text-base text-zinc-500 hover:text-[#22c55e]"
             aria-label="Close contact dialog"
@@ -90,7 +91,9 @@ export function ContactModal({ open, onOpenChange }: ContactModalProps) {
               className="flex items-center gap-3 border-2 border-white/15 bg-white/[0.02] p-3 hover:border-[#22c55e]/50 sm:gap-4 sm:p-4"
             >
               <div className="min-w-0 flex-1">
-                <p className="retro text-sm text-[#22c55e] sm:text-base">{c.name}</p>
+                <p className="retro text-sm text-[#22c55e] sm:text-base">
+                  {c.name}
+                </p>
                 <a
                   href={`mailto:${c.email}`}
                   className="mt-1.5 block truncate text-[11px] text-white hover:text-[#22c55e] sm:text-sm"

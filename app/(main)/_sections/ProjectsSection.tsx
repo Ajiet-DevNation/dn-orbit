@@ -1,19 +1,19 @@
 "use client";
 
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { FaGithub, FaExternalLinkAlt } from "react-icons/fa";
-import { Card } from "@/components/ui/8bit-card";
+import { FaExternalLinkAlt, FaGithub } from "react-icons/fa";
 import { Button } from "@/components/ui/8bit-button";
+import { Card } from "@/components/ui/8bit-card";
+import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
+import type { ProjectData } from "@/constants/projects";
 import { cn } from "@/lib/utils";
-import { type ProjectData } from "@/constants/projects";
-import { TECH_BY_NAME } from "./techStack";
-import { SectionHeading } from "./SectionHeading";
-import { useCoverflow } from "./useCoverflow";
-import { useScrollGlide } from "./useScrollGlide";
-import { useCardPowerOn } from "./useCardPowerOn";
 import { HudCardFrame } from "./HudCardFrame";
 import { PixelScanOverlay } from "./PixelScanOverlay";
-import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
+import { SectionHeading } from "./SectionHeading";
+import { TECH_BY_NAME } from "./techStack";
+import { useCardPowerOn } from "./useCardPowerOn";
+import { useCoverflow } from "./useCoverflow";
+import { useScrollGlide } from "./useScrollGlide";
 
 // Read-only tech chip: dark background + green pixel border + green tech icon,
 // matching the chips in the "new project" form (TechStackSelect) where the icons
@@ -27,6 +27,7 @@ const TechChip = memo(function TechChip({ name }: { name: string }) {
     </span>
   );
 });
+
 import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
 import { useViewportWidth } from "./useViewportWidth";
 
@@ -61,12 +62,15 @@ const ProjectCard = memo(function ProjectCard({
   const color = statusColor(project.status);
   // Up to two alphanumerics for the cartridge monogram, e.g. "CERT GEN" → "CE".
   const monogram =
-    project.title.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase() || "?";
+    project.title
+      .replace(/[^A-Za-z0-9]/g, "")
+      .slice(0, 2)
+      .toUpperCase() || "?";
   return (
     <Card
       className={cn(
         "h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.04)]",
-        className
+        className,
       )}
       style={style}
     >
@@ -84,7 +88,7 @@ const ProjectCard = memo(function ProjectCard({
           no cover, a composed "cartridge" fallback so the card never reads empty. */}
       <div className="relative flex-1 overflow-hidden bg-[#0d0d0d]">
         {project.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+          // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
           <img
             src={project.imageUrl}
             alt={project.title}
@@ -173,7 +177,11 @@ function ProjectDetail({
         <div className="flex flex-wrap gap-4">
           {project.githubUrl && (
             <Button asChild size="sm" className="text-[9px]">
-              <a href={project.githubUrl} target="_blank" rel="noopener noreferrer">
+              <a
+                href={project.githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <FaGithub className="size-4" />
                 VIEW ON GITHUB
               </a>
@@ -181,7 +189,11 @@ function ProjectDetail({
           )}
           {project.demoUrl && (
             <Button asChild size="sm" className="text-[9px]">
-              <a href={project.demoUrl} target="_blank" rel="noopener noreferrer">
+              <a
+                href={project.demoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <FaExternalLinkAlt className="size-3.5" />
                 LIVE DEMO
               </a>
@@ -323,108 +335,111 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
       <div
         className={cn(
           "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
-          selected !== null && "pointer-events-none opacity-0"
+          selected !== null && "pointer-events-none opacity-0",
         )}
-        style={{ transition: "opacity 300ms var(--ease-out-quart)", perspective: 1700 }}
+        style={{
+          transition: "opacity 300ms var(--ease-out-quart)",
+          perspective: 1700,
+        }}
         {...stageHandlers}
       >
-          <CoverflowFloor />
-          {/* Glide wrapper: full-size + preserve-3d so the stage's perspective
+        <CoverflowFloor />
+        {/* Glide wrapper: full-size + preserve-3d so the stage's perspective
               still reaches the cards, while GSAP drifts this element on scroll. */}
-          <div
-            ref={glideRef}
-            className="absolute inset-0"
-            style={{ transformStyle: "preserve-3d" }}
-          >
-            {projects.map((project, i) => (
-              <div
-                key={project.id}
-                ref={registerCard(i)}
-                data-cf-index={i}
-                role="button"
-                tabIndex={0}
-                onClick={() => onCardClick(i)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onCardClick(i);
-                  }
-                }}
-                className="group absolute left-1/2 top-1/2 cursor-pointer"
-                style={{
-                  width: CARD_W,
-                  height: CARD_H,
-                  marginLeft: -CARD_W / 2,
-                  marginTop: -CARD_H / 2,
-                }}
-              >
-                {/* Hover glow as a pre-rendered shadow faded via opacity
+        <div
+          ref={glideRef}
+          className="absolute inset-0"
+          style={{ transformStyle: "preserve-3d" }}
+        >
+          {projects.map((project, i) => (
+            <div
+              key={project.id}
+              ref={registerCard(i)}
+              data-cf-index={i}
+              role="button"
+              tabIndex={0}
+              onClick={() => onCardClick(i)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onCardClick(i);
+                }
+              }}
+              className="group absolute left-1/2 top-1/2 cursor-pointer"
+              style={{
+                width: CARD_W,
+                height: CARD_H,
+                marginLeft: -CARD_W / 2,
+                marginTop: -CARD_H / 2,
+              }}
+            >
+              {/* Hover glow as a pre-rendered shadow faded via opacity
                     (compositor) instead of animating box-shadow (paint-bound). */}
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_34px_rgba(34,197,94,0.2)] transition-opacity duration-300 group-hover:opacity-100"
-                />
-                <ProjectCard
-                  project={project}
-                  className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
-                />
-                {/* Radial pixel power-on: mounted only on the centred card and
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_34px_rgba(34,197,94,0.2)] transition-opacity duration-300 group-hover:opacity-100"
+              />
+              <ProjectCard
+                project={project}
+                className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
+              />
+              {/* Radial pixel power-on: mounted only on the centred card and
                     keyed by activeIndex so it remounts (and replays) each time a
                     new card settles in the middle. */}
-                {i === activeIndex && <PixelScanOverlay key={activeIndex} />}
-                <HudCardFrame variant="full" />
-              </div>
-            ))}
-          </div>
-          <CoverflowControls
-            onPrev={prev}
-            onNext={next}
-            index={activeIndex}
-            count={count}
-            // Sit the counter just below the card's bottom edge (cards centre at
-            // the stage midpoint), so it never overlaps the card chrome.
-            counterClassName=""
-            counterStyle={{
-              top: `calc(50% + ${Math.round(CARD_H / 2) + 24}px)`,
-              bottom: "auto",
-            }}
-          />
+              {i === activeIndex && <PixelScanOverlay key={activeIndex} />}
+              <HudCardFrame variant="full" />
+            </div>
+          ))}
         </div>
+        <CoverflowControls
+          onPrev={prev}
+          onNext={next}
+          index={activeIndex}
+          count={count}
+          // Sit the counter just below the card's bottom edge (cards centre at
+          // the stage midpoint), so it never overlaps the card chrome.
+          counterClassName=""
+          counterStyle={{
+            top: `calc(50% + ${Math.round(CARD_H / 2) + 24}px)`,
+            bottom: "auto",
+          }}
+        />
+      </div>
 
-        {/* Detail overlay — the card flies here (FLIP) from the centre. Solid
+      {/* Detail overlay — the card flies here (FLIP) from the centre. Solid
             backdrop so it cleanly covers the title + carousel; padded down so it
             sits clear of the sticky nav and reads as centred. */}
-        {activeProject && (
-          // Clicking the backdrop (anywhere outside the card/detail) closes; the
-          // card and detail stop propagation so interacting with them doesn't.
-          <div
-            className="fixed inset-0 z-[60] overflow-y-auto bg-[#0a0a0a]"
-            onClick={close}
-          >
-            {/* Full-screen modal (above the sticky header), matching the events
+      {activeProject && (
+        // Clicking the backdrop (anywhere outside the card/detail) closes; the
+        // card and detail stop propagation so interacting with them doesn't.
+        <div
+          className="fixed inset-0 z-[60] overflow-y-auto bg-[#0a0a0a]"
+          onClick={close}
+        >
+          {/* Full-screen modal (above the sticky header), matching the events
                 overlay — one consistent, always-reachable close button. */}
-            <div className="relative mx-auto flex min-h-full w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 py-24 lg:flex-row lg:gap-16">
-              <OverlayCloseButton
-                onClick={close}
-                label="Close project details"
-                className="fixed right-4 top-4 z-[70]"
-              />
+          <div className="relative mx-auto flex min-h-full w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 py-24 lg:flex-row lg:gap-16">
+            <OverlayCloseButton
+              onClick={close}
+              label="Close project details"
+              className="fixed right-4 top-4 z-[70]"
+            />
 
-              <div
-                ref={flipRef}
-                className="shrink-0"
-                style={{ width: CARD_W, height: CARD_H }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <ProjectCard project={activeProject} className="h-full w-full" />
-              </div>
+            <div
+              ref={flipRef}
+              className="shrink-0"
+              style={{ width: CARD_W, height: CARD_H }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ProjectCard project={activeProject} className="h-full w-full" />
+            </div>
 
-              <div onClick={(e) => e.stopPropagation()}>
-                <ProjectDetail project={activeProject} open={detailOpen} />
-              </div>
+            <div onClick={(e) => e.stopPropagation()}>
+              <ProjectDetail project={activeProject} open={detailOpen} />
             </div>
           </div>
-        )}
+        </div>
+      )}
     </section>
   );
 }

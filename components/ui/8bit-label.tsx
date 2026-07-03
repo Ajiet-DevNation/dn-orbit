@@ -1,12 +1,12 @@
-import * as React from "react"
-import * as LabelPrimitive from "@radix-ui/react-label"
-import { cn } from "@/lib/utils"
-import { Label } from "@/components/ui/label"
+import type * as LabelPrimitive from "@radix-ui/react-label";
+import * as React from "react";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 export interface LabelProps
   extends React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> {
-    font?: "normal" | "retro"
-  }
+  font?: "normal" | "retro";
+}
 
 const Label8Bit = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
@@ -17,7 +17,7 @@ const Label8Bit = React.forwardRef<
     className={cn(className, font !== "normal" && "retro")}
     {...props}
   />
-))
-Label8Bit.displayName = "Label8Bit"
+));
+Label8Bit.displayName = "Label8Bit";
 
-export { Label8Bit as Label }
+export { Label8Bit as Label };

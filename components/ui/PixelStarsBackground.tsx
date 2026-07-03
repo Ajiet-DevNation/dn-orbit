@@ -17,12 +17,12 @@ export function PixelStarsBackground() {
 
     // Calculate "just the right amount" based on screen size
     const starCount = Math.floor((width * height) / 15000); // 1 star per 15,000 pixels
-    
+
     const stars = Array.from({ length: starCount }, () => ({
       x: Math.random(),
       y: Math.random(),
       // 8-bit style sizes: mostly 2px, some 3px, rare 4px
-      size: Math.random() > 0.95 ? 4 : Math.random() > 0.8 ? 3 : 2, 
+      size: Math.random() > 0.95 ? 4 : Math.random() > 0.8 ? 3 : 2,
       opacity: Math.random(),
       speed: Math.random() * 0.02 + 0.005,
     }));
@@ -94,9 +94,6 @@ export function PixelStarsBackground() {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-0"
-    />
+    <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0" />
   );
 }

@@ -15,7 +15,7 @@ const EQUAL_WEIGHTS: ScoringWeights = {
 
 function user(
   id: string,
-  over: Partial<ScoringUserInput> = {}
+  over: Partial<ScoringUserInput> = {},
 ): ScoringUserInput {
   return { userId: id, lc: null, gh: null, attendedCount: 0, ...over };
 }
@@ -23,13 +23,13 @@ function user(
 describe("raw component scores", () => {
   test("LeetCode weights easy/medium/hard as 1/3/5", () => {
     expect(rawLcScore({ easySolved: 2, mediumSolved: 3, hardSolved: 1 })).toBe(
-      2 + 9 + 5
+      2 + 9 + 5,
     );
   });
 
   test("GitHub weights commits/PRs/stars as 1/2/1", () => {
     expect(
-      rawGithubScore({ totalCommits: 10, totalPrs: 4, totalStars: 5 })
+      rawGithubScore({ totalCommits: 10, totalPrs: 4, totalStars: 5 }),
     ).toBe(10 + 8 + 5);
   });
 
@@ -37,14 +37,19 @@ describe("raw component scores", () => {
     expect(
       rawGithubScore(
         { totalCommits: 10, totalPrs: 4, totalStars: 5, openSourcePrs: 3 },
-        10
-      )
+        10,
+      ),
     ).toBe(10 + 8 + 5 + 30);
   });
 
   test("open-source PRs contribute nothing when perPrPoints defaults to 0", () => {
     expect(
-      rawGithubScore({ totalCommits: 0, totalPrs: 0, totalStars: 0, openSourcePrs: 5 })
+      rawGithubScore({
+        totalCommits: 0,
+        totalPrs: 0,
+        totalStars: 0,
+        openSourcePrs: 5,
+      }),
     ).toBe(0);
   });
 
@@ -66,7 +71,7 @@ describe("computeLeaderboard", () => {
         user("b", { lc: { easySolved: 5, mediumSolved: 0, hardSolved: 0 } }),
       ],
       EQUAL_WEIGHTS,
-      0
+      0,
     );
     const a = result.find((r) => r.userId === "a")!;
     const b = result.find((r) => r.userId === "b")!;
@@ -78,25 +83,32 @@ describe("computeLeaderboard", () => {
   test("square-root compression stops one outlier from crushing the field", () => {
     const result = computeLeaderboard(
       [
-        user("whale", { gh: { totalCommits: 10000, totalPrs: 0, totalStars: 0 } }),
+        user("whale", {
+          gh: { totalCommits: 10000, totalPrs: 0, totalStars: 0 },
+        }),
         user("mid", { gh: { totalCommits: 100, totalPrs: 0, totalStars: 0 } }),
       ],
       { lcWeight: 0, githubWeight: 1, eventWeight: 0 },
-      0
+      0,
     );
     expect(result.find((r) => r.userId === "whale")!.githubScore).toBe(100);
     // Linear normalisation would give the mid user 1; sqrt gives a fair 10.
-    expect(result.find((r) => r.userId === "mid")!.githubScore).toBeCloseTo(10, 5);
+    expect(result.find((r) => r.userId === "mid")!.githubScore).toBeCloseTo(
+      10,
+      5,
+    );
   });
 
   test("ranks by total score descending and numbers from 1", () => {
     const result = computeLeaderboard(
       [
         user("low", { lc: { easySolved: 1, mediumSolved: 0, hardSolved: 0 } }),
-        user("high", { lc: { easySolved: 10, mediumSolved: 0, hardSolved: 0 } }),
+        user("high", {
+          lc: { easySolved: 10, mediumSolved: 0, hardSolved: 0 },
+        }),
       ],
       EQUAL_WEIGHTS,
-      0
+      0,
     );
     expect(result[0]).toMatchObject({ userId: "high", rank: 1 });
     expect(result[1]).toMatchObject({ userId: "low", rank: 2 });
@@ -106,7 +118,7 @@ describe("computeLeaderboard", () => {
     const [r] = computeLeaderboard(
       [user("a", { attendedCount: 5 })],
       EQUAL_WEIGHTS,
-      2 // only 2 counted events, but 5 attended → ratio would be 250%
+      2, // only 2 counted events, but 5 attended → ratio would be 250%
     );
     expect(r.eventScore).toBe(100);
   });
@@ -115,7 +127,7 @@ describe("computeLeaderboard", () => {
     const [r] = computeLeaderboard(
       [user("a", { attendedCount: 3 })],
       EQUAL_WEIGHTS,
-      0
+      0,
     );
     expect(r.eventScore).toBe(0);
     expect(Number.isFinite(r.totalScore)).toBe(true);
@@ -143,18 +155,35 @@ describe("computeLeaderboard", () => {
         // Same commits; only `withOss` has qualifying open-source PRs. With a
         // GitHub-only weighting, withOss must normalise to 100 and outrank.
         user("withOss", {
-          gh: { totalCommits: 10, totalPrs: 0, totalStars: 0, openSourcePrs: 5 },
+          gh: {
+            totalCommits: 10,
+            totalPrs: 0,
+            totalStars: 0,
+            openSourcePrs: 5,
+          },
         }),
         user("noOss", {
-          gh: { totalCommits: 10, totalPrs: 0, totalStars: 0, openSourcePrs: 0 },
+          gh: {
+            totalCommits: 10,
+            totalPrs: 0,
+            totalStars: 0,
+            openSourcePrs: 0,
+          },
         }),
       ],
-      { lcWeight: 0, githubWeight: 1, eventWeight: 0, githubOpenSourcePerPrPoints: 10 },
-      0
+      {
+        lcWeight: 0,
+        githubWeight: 1,
+        eventWeight: 0,
+        githubOpenSourcePerPrPoints: 10,
+      },
+      0,
     );
     expect(result[0].userId).toBe("withOss");
     expect(result[0].githubScore).toBe(100);
-    expect(result.find((r) => r.userId === "noOss")!.githubScore).toBeLessThan(100);
+    expect(result.find((r) => r.userId === "noOss")!.githubScore).toBeLessThan(
+      100,
+    );
   });
 
   test("respects weights — a 100%-weighted axis drives the total", () => {
@@ -169,7 +198,7 @@ describe("computeLeaderboard", () => {
         }),
       ],
       { lcWeight: 0, githubWeight: 1, eventWeight: 0 },
-      0
+      0,
     );
     expect(result[0].userId).toBe("ghStar");
     expect(result[0].totalScore).toBe(100);

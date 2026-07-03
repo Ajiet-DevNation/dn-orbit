@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/8bit-button";
+import { cn } from "@/lib/utils";
 
 // The single, canonical close control for full-screen detail overlays (events,
 // projects, …). A chunky 8-bit pixel button. Callers pin it to the viewport's

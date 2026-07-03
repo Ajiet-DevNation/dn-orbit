@@ -15,7 +15,7 @@ export function SectionHeading({ text, className }: SectionHeadingProps) {
       <h2
         className={cn(
           "retro text-center text-xl tracking-wider text-white",
-          className
+          className,
         )}
       >
         {text}

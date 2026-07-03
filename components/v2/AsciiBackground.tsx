@@ -2,8 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const CHARS =
-  "⣧⣩⣪⣫⣬⣭⣮⣯⣱⣲⣳⣴⣵⣶⣷⣹⣺⣻⣼⣽⣾⣿⠁⠂⠄⠈⠐⠠⡀⢀⠃⠅⠘⠊⠋⠌⠍⠎⠏⠑⠒⠓⠔⠕⠖⠗⠙⠚⠛";
+const CHARS = "⣧⣩⣪⣫⣬⣭⣮⣯⣱⣲⣳⣴⣵⣶⣷⣹⣺⣻⣼⣽⣾⣿⠁⠂⠄⠈⠐⠠⡀⢀⠃⠅⠘⠊⠋⠌⠍⠎⠏⠑⠒⠓⠔⠕⠖⠗⠙⠚⠛";
 
 // Smaller grid = far fewer cells to draw each frame (32×32 = 1024 vs 55×55 = 3025).
 const GRID_SIZE = 32;
@@ -85,9 +84,7 @@ export function AsciiBackground() {
             const dist = Math.sqrt(dx * dx + dy * dy);
             const falloff = 1 / (1 + dist * 0.12);
             totalWave +=
-              Math.sin(
-                dist * wave.frequency - time * wave.speed + wave.phase
-              ) *
+              Math.sin(dist * wave.frequency - time * wave.speed + wave.phase) *
               wave.amplitude *
               falloff;
           }
@@ -96,17 +93,17 @@ export function AsciiBackground() {
             const normalizedWave = (totalWave + 2) / 4;
             const charIndex = Math.min(
               CHARS.length - 1,
-              Math.max(0, Math.floor(normalizedWave * (CHARS.length - 1)))
+              Math.max(0, Math.floor(normalizedWave * (CHARS.length - 1))),
             );
             const opacity = Math.min(
               0.25,
-              Math.max(0.05, normalizedWave * 0.25)
+              Math.max(0.05, normalizedWave * 0.25),
             );
             ctx.fillStyle = `rgba(160, 160, 160, ${opacity})`;
             ctx.fillText(
               CHARS[charIndex] ?? CHARS[0],
               x * cellWidth + cellWidth / 2,
-              y * cellHeight + cellHeight / 2
+              y * cellHeight + cellHeight / 2,
             );
           }
         }
@@ -146,7 +143,7 @@ export function AsciiBackground() {
         onScreen = entry.isIntersecting;
         syncRunning();
       },
-      { threshold: 0 }
+      { threshold: 0 },
     );
     observer.observe(canvas);
 

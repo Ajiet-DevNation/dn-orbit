@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { toTitleCase } from "@/lib/names";
 import { Command, CommandInput } from "@/components/ui/8bit-command";
+import { toTitleCase } from "@/lib/names";
 
 export interface LogEntry {
   id: string;
@@ -38,10 +38,13 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
       try {
         // Pull the largest window the API allows so search covers as much
         // history as possible, not just the newest 100.
-        const res = await fetch("/api/admin/logs?take=200", { cache: "no-store" });
+        const res = await fetch("/api/admin/logs?take=200", {
+          cache: "no-store",
+        });
         if (!res.ok) return;
         const data = await res.json();
-        if (active && Array.isArray(data.logs)) setLogs(data.logs as LogEntry[]);
+        if (active && Array.isArray(data.logs))
+          setLogs(data.logs as LogEntry[]);
       } catch {
         // transient network error — next tick retries
       }
@@ -60,7 +63,7 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
       [stamp(log.createdAt), log.action, log.actorName ?? "", log.summary]
         .join(" ")
         .toLowerCase()
-        .includes(normalized)
+        .includes(normalized),
     );
   }, [logs, normalized]);
 
@@ -105,7 +108,10 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
               <p className="retro mt-1.5 text-[10px] leading-relaxed text-zinc-300">
                 {log.summary}
                 {log.actorName ? (
-                  <span className="text-[#22c55e]/70"> — {toTitleCase(log.actorName)}</span>
+                  <span className="text-[#22c55e]/70">
+                    {" "}
+                    — {toTitleCase(log.actorName)}
+                  </span>
                 ) : null}
               </p>
             </div>

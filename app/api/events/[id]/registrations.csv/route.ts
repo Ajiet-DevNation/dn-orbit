@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
+import { db } from "@/lib/db";
 import { parseFormSchema } from "@/lib/forms";
+import { canAccessAdmin } from "@/lib/roles";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -29,16 +29,25 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const fields = parseFormSchema(event.formSchema);
   const header = [
-    "Registered At", "Name", "Email", "USN", "Attended",
+    "Registered At",
+    "Name",
+    "Email",
+    "USN",
+    "Attended",
     ...fields.map((f) => f.label),
   ];
   const rows = event.registrations.map((r) => {
     const responses = (r.responses ?? {}) as Record<string, unknown>;
     return [
       r.registeredAt.toISOString(),
-      r.name, r.email, r.usn ?? "", r.attended ? "yes" : "no",
+      r.name,
+      r.email,
+      r.usn ?? "",
+      r.attended ? "yes" : "no",
       ...fields.map((f) => responses[f.id]),
-    ].map(csvCell).join(",");
+    ]
+      .map(csvCell)
+      .join(",");
   });
   const csv = [header.map(csvCell).join(","), ...rows].join("\n");
 

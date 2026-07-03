@@ -12,7 +12,12 @@ interface AdminHeadingProps {
   className?: string;
 }
 
-export function AdminHeading({ title, sub, code, className }: AdminHeadingProps) {
+export function AdminHeading({
+  title,
+  sub,
+  code,
+  className,
+}: AdminHeadingProps) {
   return (
     <header className={cn("border-b-2 border-white/10 pb-8", className)}>
       <div className="flex flex-col gap-5">
@@ -29,7 +34,9 @@ export function AdminHeading({ title, sub, code, className }: AdminHeadingProps)
             )}
             <div className="h-px flex-1 bg-white/10" />
             {code && (
-              <span className="retro text-[8px] text-zinc-700 tracking-widest">{code}</span>
+              <span className="retro text-[8px] text-zinc-700 tracking-widest">
+                {code}
+              </span>
             )}
           </div>
         )}

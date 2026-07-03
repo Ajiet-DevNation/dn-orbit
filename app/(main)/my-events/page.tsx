@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { MyEventsList, type MyEvent } from "./MyEventsList";
+import { type MyEvent, MyEventsList } from "./MyEventsList";
 
 export const metadata = {
   title: "Your Events · ORBIT",
@@ -10,7 +10,11 @@ export const metadata = {
 // Fuller date for the event cards, e.g. "JUL 15, 2026".
 function formatEventDateLong(date: Date): string {
   return date
-    .toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+    .toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    })
     .toUpperCase();
 }
 

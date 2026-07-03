@@ -70,7 +70,7 @@ const profileQuery = `
  * not resolve to a real user (so the caller can reject invalid input).
  */
 export async function fetchLeetCodeProfile(
-  username: string
+  username: string,
 ): Promise<LcProfilePreview> {
   const response = await fetch(LEETCODE_GRAPHQL_ENDPOINT, {
     method: "POST",
@@ -88,7 +88,9 @@ export async function fetchLeetCodeProfile(
 
   const result = await response.json();
   if (result.errors) {
-    throw new Error(result.errors[0]?.message || "GraphQL Error from LeetCode API");
+    throw new Error(
+      result.errors[0]?.message || "GraphQL Error from LeetCode API",
+    );
   }
 
   const matchedUser = result.data?.matchedUser;
@@ -98,7 +100,7 @@ export async function fetchLeetCodeProfile(
 
   const submissions = matchedUser.submitStats?.acSubmissionNum ?? [];
   const all = submissions.find(
-    (s: { difficulty: string; count: number }) => s.difficulty === "All"
+    (s: { difficulty: string; count: number }) => s.difficulty === "All",
   );
 
   return {
@@ -110,16 +112,18 @@ export async function fetchLeetCodeProfile(
   };
 }
 
-export async function fetchLeetCodeStats(username: string): Promise<LcStatsResult> {
+export async function fetchLeetCodeStats(
+  username: string,
+): Promise<LcStatsResult> {
   const response = await fetch(LEETCODE_GRAPHQL_ENDPOINT, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Referer": "https://leetcode.com"
+      Referer: "https://leetcode.com",
     },
     body: JSON.stringify({
       query,
-      variables: { username }
+      variables: { username },
     }),
     cache: "no-store",
   });
@@ -131,7 +135,9 @@ export async function fetchLeetCodeStats(username: string): Promise<LcStatsResul
   const result = await response.json();
 
   if (result.errors) {
-    throw new Error(result.errors[0]?.message || "GraphQL Error from LeetCode API");
+    throw new Error(
+      result.errors[0]?.message || "GraphQL Error from LeetCode API",
+    );
   }
 
   const matchedUser = result.data?.matchedUser;
@@ -142,7 +148,9 @@ export async function fetchLeetCodeStats(username: string): Promise<LcStatsResul
   const submissions = matchedUser.submitStats?.acSubmissionNum || [];
 
   const getCount = (difficulty: string) => {
-    const item = submissions.find((s: { difficulty: string; count: number }) => s.difficulty === difficulty);
+    const item = submissions.find(
+      (s: { difficulty: string; count: number }) => s.difficulty === difficulty,
+    );
     return item ? item.count : 0;
   };
 

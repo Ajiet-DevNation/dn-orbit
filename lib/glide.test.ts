@@ -1,4 +1,4 @@
-import { test, expect } from "bun:test";
+import { expect, test } from "bun:test";
 import { glideEndpoints } from "./glide";
 
 test("projects (-1) drift net leftward: end x < start x", () => {

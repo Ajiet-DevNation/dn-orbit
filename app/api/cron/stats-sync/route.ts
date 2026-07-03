@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { syncAllStats } from "@/lib/statsSync";
+import { type NextRequest, NextResponse } from "next/server";
 import { recomputeLeaderboardScores } from "@/lib/leaderboard";
+import { syncAllStats } from "@/lib/statsSync";
 
 // Syncing every member's GitHub + LeetCode stats hits external APIs serially and
 // can run past the short default serverless budget, 504-ing mid-sync and skipping
@@ -34,6 +34,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error("Stats Sync Cron Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

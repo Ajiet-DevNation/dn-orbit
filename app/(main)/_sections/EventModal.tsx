@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { useState } from "react";
+import { FormBuilder } from "@/app/admin/events/_form/FormBuilder";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
@@ -16,8 +17,11 @@ import {
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
-import { FormBuilder } from "@/app/admin/events/_form/FormBuilder";
-import { AUDIENCE_OPTIONS, type EventAudience, type FormFieldDef } from "@/lib/forms";
+import {
+  AUDIENCE_OPTIONS,
+  type EventAudience,
+  type FormFieldDef,
+} from "@/lib/forms";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
@@ -33,7 +37,6 @@ const EVENT_TYPES = [
   "MEETUP",
   "OTHER",
 ];
-
 
 interface EventModalProps {
   open: boolean;
@@ -93,7 +96,10 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
       notify("error", "✗ Every custom question needs a label");
       return;
     }
-    if (capacity && (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)) {
+    if (
+      capacity &&
+      (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)
+    ) {
       notify("error", "✗ Capacity must be a whole number ≥ 1");
       return;
     }
@@ -132,7 +138,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
         "success",
         isAdmin && publishNow
           ? "✓ Event published"
-          : "✓ Event submitted for admin review"
+          : "✓ Event submitted for admin review",
       );
       // First-ever event: point the user to where they can track it and see who
       // registers, since that page isn't obvious. Shown once (server flag).
@@ -163,6 +169,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
         <div className="mb-8 flex items-center justify-between">
           <h2 className="retro text-lg tracking-wider text-white">NEW EVENT</h2>
           <button
+            type="button"
             onClick={() => onOpenChange(false)}
             className="retro text-lg text-muted-foreground hover:text-white"
             aria-label="Close"
@@ -321,8 +328,8 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
           {/* ── 04 · REGISTRATION FORM (Google-Forms-style builder) ── */}
           <SectionHeading>04 · REGISTRATION FORM</SectionHeading>
           <p className="retro -mt-1 text-[9px] leading-relaxed text-muted-foreground">
-            Name &amp; email are always collected. Add your own questions below —
-            registrants see them in order.
+            Name &amp; email are always collected. Add your own questions below
+            — registrants see them in order.
           </p>
           <FormBuilder
             value={schema}

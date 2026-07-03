@@ -4,7 +4,7 @@
 // user can confirm it's the right account before saving. A handle that doesn't
 // resolve is rejected — this is what stops typos and made-up names.
 
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { fetchLeetCodeProfile } from "@/lib/lc-fetcher";
 
@@ -18,12 +18,13 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({}));
-  const username = typeof body.username === "string" ? body.username.trim() : "";
+  const username =
+    typeof body.username === "string" ? body.username.trim() : "";
 
   if (!username || !LC_USERNAME_RE.test(username)) {
     return NextResponse.json(
       { error: "Enter a valid LeetCode username" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     // single friendly message rather than leaking upstream error shapes.
     return NextResponse.json(
       { error: "No LeetCode profile found for that username" },
-      { status: 404 }
+      { status: 404 },
     );
   }
 }

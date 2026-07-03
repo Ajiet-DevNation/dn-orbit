@@ -1,29 +1,34 @@
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
-import { toTitleCase } from "@/lib/names";
-import {
-  AnnouncementCarousel,
-  type Announcement,
-} from "./_sections/AnnouncementCarousel";
-import { StatsSection } from "./_sections/StatsSection";
-import { AboutSection } from "./_sections/AboutSection";
-import { EventsSection, type EventCardData } from "./_sections/EventsSection";
-import {
-  LeaderboardSection,
-  type LeaderboardEntry,
-} from "./_sections/LeaderboardSection";
-import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
-import { ProjectsSection } from "./_sections/ProjectsSection";
-import { MembersSection } from "./_sections/MembersSection";
-import { Footer } from "./_sections/Footer";
-import { PROJECTS as scrapedProjects, type ProjectData } from "@/constants/projects";
-import { languagesFromRecord } from "./_sections/stats-utils";
 import { PixelLoadingScreen } from "@/components/ui/PixelLoadingScreen";
+import {
+  type ProjectData,
+  PROJECTS as scrapedProjects,
+} from "@/constants/projects";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
+import { toTitleCase } from "@/lib/names";
+import { canAccessAdmin } from "@/lib/roles";
+import { AboutSection } from "./_sections/AboutSection";
+import {
+  type Announcement,
+  AnnouncementCarousel,
+} from "./_sections/AnnouncementCarousel";
+import { type EventCardData, EventsSection } from "./_sections/EventsSection";
+import { Footer } from "./_sections/Footer";
+import {
+  type LeaderboardEntry,
+  LeaderboardSection,
+} from "./_sections/LeaderboardSection";
+import { MembersSection } from "./_sections/MembersSection";
+import { ProjectsSection } from "./_sections/ProjectsSection";
+import { StatsSection } from "./_sections/StatsSection";
+import { languagesFromRecord } from "./_sections/stats-utils";
 
 export const metadata = {
   // Absolute title so the home page reads cleanly (no "%s — ORBIT" template).
-  title: { absolute: "ORBIT · DevNation · Leaderboard, Events, Projects & Members" },
+  title: {
+    absolute: "ORBIT · DevNation · Leaderboard, Events, Projects & Members",
+  },
 };
 
 function formatDate(date: Date): string {
@@ -90,9 +95,7 @@ export default async function V2Page() {
   // `repo` scope. Detect that so the Player Stats refresh button can offer a
   // one-click re-authorize. GitHub returns granted scopes comma- or
   // space-delimited, so we split on either.
-  const hasRepoScope = !!ghAccount?.scope
-    ?.split(/[\s,]+/)
-    .includes("repo");
+  const hasRepoScope = !!ghAccount?.scope?.split(/[\s,]+/).includes("repo");
 
   const announcements: Announcement[] = events.slice(0, 6).map((e) => ({
     id: e.id,
@@ -115,7 +118,9 @@ export default async function V2Page() {
       bannerUrl: e.bannerUrl,
       audience: e.audience as EventCardData["audience"],
       capacityLabel:
-        e.capacity != null ? `${e._count.registrations} / ${e.capacity} registered` : null,
+        e.capacity != null
+          ? `${e._count.registrations} / ${e.capacity} registered`
+          : null,
       registrationClosed: full || (deadline ? new Date() > deadline : false),
     };
   });
@@ -132,7 +137,9 @@ export default async function V2Page() {
     where: { user: LEADERBOARD_VISIBLE_USER_FILTER },
     orderBy: [{ totalScore: "desc" }],
     take: 100,
-    include: { user: { select: { name: true, image: true, githubUsername: true } } },
+    include: {
+      user: { select: { name: true, image: true, githubUsername: true } },
+    },
   });
 
   const leaderboard: LeaderboardEntry[] = topScores.map((s, i) => ({
@@ -193,49 +200,49 @@ export default async function V2Page() {
       <AnnouncementCarousel announcements={announcements} />
       {/* PLAYER STATS is personal — only rendered for signed-in members. */}
       {userId && (
-      <StatsSection
-        userId={userId}
-        isAdmin={isAdmin}
-        hasGithubToken={hasGithubToken}
-        hasRepoScope={hasRepoScope}
-        hasLcUsername={hasLcUsername}
-        github={
-          githubStats
-            ? {
-                reposCount: githubStats.reposCount,
-                totalCommits: githubStats.totalCommits,
-                totalPrs: githubStats.totalPrs,
-                totalStars: githubStats.totalStars,
-                openSourcePrs: githubStats.openSourcePrs,
-                topLanguages: languagesFromRecord(
-                  githubStats.topLanguages as Record<string, number>
-                ),
-                fetchedAt: githubStats.fetchedAt.toISOString(),
-              }
-            : null
-        }
-        leetcode={
-          lcStats
-            ? {
-                totalSolved: lcStats.totalSolved,
-                easySolved: lcStats.easySolved,
-                mediumSolved: lcStats.mediumSolved,
-                hardSolved: lcStats.hardSolved,
-                lcRanking: lcStats.lcRanking,
-                streak: lcStats.streak,
-                fetchedAt: lcStats.fetchedAt.toISOString(),
-              }
-            : null
-        }
-        rank={
-          leaderboardScore
-            ? {
-                rank: playerRank,
-                totalScore: leaderboardScore.totalScore,
-              }
-            : null
-        }
-      />
+        <StatsSection
+          userId={userId}
+          isAdmin={isAdmin}
+          hasGithubToken={hasGithubToken}
+          hasRepoScope={hasRepoScope}
+          hasLcUsername={hasLcUsername}
+          github={
+            githubStats
+              ? {
+                  reposCount: githubStats.reposCount,
+                  totalCommits: githubStats.totalCommits,
+                  totalPrs: githubStats.totalPrs,
+                  totalStars: githubStats.totalStars,
+                  openSourcePrs: githubStats.openSourcePrs,
+                  topLanguages: languagesFromRecord(
+                    githubStats.topLanguages as Record<string, number>,
+                  ),
+                  fetchedAt: githubStats.fetchedAt.toISOString(),
+                }
+              : null
+          }
+          leetcode={
+            lcStats
+              ? {
+                  totalSolved: lcStats.totalSolved,
+                  easySolved: lcStats.easySolved,
+                  mediumSolved: lcStats.mediumSolved,
+                  hardSolved: lcStats.hardSolved,
+                  lcRanking: lcStats.lcRanking,
+                  streak: lcStats.streak,
+                  fetchedAt: lcStats.fetchedAt.toISOString(),
+                }
+              : null
+          }
+          rank={
+            leaderboardScore
+              ? {
+                  rank: playerRank,
+                  totalScore: leaderboardScore.totalScore,
+                }
+              : null
+          }
+        />
       )}
       <AboutSection />
       <EventsSection events={eventCards} />

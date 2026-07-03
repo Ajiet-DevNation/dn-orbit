@@ -1,15 +1,25 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
 import { signOut } from "next-auth/react";
+import type { ReactNode } from "react";
+import { useState } from "react";
 
 import { updateProfile } from "@/app/actions/profile";
-import { LeetCodeConnect } from "./LeetCodeConnect";
-import { ROLE_LABELS, isRole } from "@/lib/roles";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/8bit-avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/8bit-avatar";
 import { Button } from "@/components/ui/8bit-button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/8bit-drawer";
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
 import {
@@ -19,15 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerFooter,
-  DrawerTitle,
-  DrawerDescription,
-} from "@/components/ui/8bit-drawer";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { isRole, ROLE_LABELS } from "@/lib/roles";
+import { LeetCodeConnect } from "./LeetCodeConnect";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
@@ -139,6 +143,7 @@ export function ProfileModal({
               EDIT PROFILE
             </h2>
             <button
+              type="button"
               onClick={() => onOpenChange(false)}
               className="retro text-lg text-muted-foreground hover:text-white"
               aria-label="Close"

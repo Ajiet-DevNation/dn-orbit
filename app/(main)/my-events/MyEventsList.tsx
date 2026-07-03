@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 
 export interface RosterEntry {
@@ -29,9 +29,15 @@ export interface MyEvent {
 // Status chip copy + colour derived from the two moderation flags. "Approved"
 // alone isn't public — it also has to be published — so the two are shown as one
 // combined state the organizer can act on.
-function statusChip(reviewStatus: MyEvent["reviewStatus"], isPublished: boolean) {
+function statusChip(
+  reviewStatus: MyEvent["reviewStatus"],
+  isPublished: boolean,
+) {
   if (reviewStatus === "pending")
-    return { label: "PENDING REVIEW", className: "border-amber-500/50 text-amber-400" };
+    return {
+      label: "PENDING REVIEW",
+      className: "border-amber-500/50 text-amber-400",
+    };
   if (reviewStatus === "rejected")
     return { label: "REJECTED", className: "border-red-500/50 text-red-400" };
   return isPublished
@@ -65,7 +71,9 @@ function Roster({ roster }: { roster: RosterEntry[] }) {
             <th className="px-3 py-2 font-normal">NAME</th>
             <th className="px-3 py-2 font-normal">USN</th>
             <th className="px-3 py-2 font-normal">EMAIL</th>
-            <th className="px-3 py-2 font-normal whitespace-nowrap">REGISTERED</th>
+            <th className="px-3 py-2 font-normal whitespace-nowrap">
+              REGISTERED
+            </th>
             <th className="px-3 py-2 text-center font-normal">ATTENDED</th>
           </tr>
         </thead>
@@ -108,9 +116,13 @@ function EventCard({ event }: { event: MyEvent }) {
     <div className="border-2 border-white/10 bg-[#0d0d0d] p-5 transition-colors hover:border-[#22c55e]/40 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="retro text-sm break-words text-white">{event.title}</h2>
+          <h2 className="retro text-sm break-words text-white">
+            {event.title}
+          </h2>
           <p className="retro mt-2 text-[9px] text-muted-foreground">
-            {[event.dateLabel, event.location, event.type].filter(Boolean).join(" · ")}
+            {[event.dateLabel, event.location, event.type]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         </div>
         <span
@@ -121,7 +133,8 @@ function EventCard({ event }: { event: MyEvent }) {
       </div>
 
       <p className="retro mt-4 text-[10px] text-zinc-300">
-        <span className="text-[#22c55e]">{event.registeredCount}</span> REGISTERED
+        <span className="text-[#22c55e]">{event.registeredCount}</span>{" "}
+        REGISTERED
         {" · "}
         <span className="text-[#22c55e]">{event.attendedCount}</span> ATTENDED
       </p>
@@ -145,8 +158,13 @@ export function MyEventsList({ events }: { events: MyEvent[] }) {
     <section className="relative mx-auto min-h-screen w-full max-w-5xl px-6 pt-16 pb-24">
       <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="retro text-xl tracking-wider text-white">YOUR EVENTS</h1>
-          <span aria-hidden="true" className="mt-3 block h-[3px] w-24 bg-[#22c55e]" />
+          <h1 className="retro text-xl tracking-wider text-white">
+            YOUR EVENTS
+          </h1>
+          <span
+            aria-hidden="true"
+            className="mt-3 block h-[3px] w-24 bg-[#22c55e]"
+          />
         </div>
         <p className="retro text-[9px] tracking-widest text-muted-foreground">
           {events.length} CREATED
@@ -158,8 +176,8 @@ export function MyEventsList({ events }: { events: MyEvent[] }) {
           <span className="retro text-3xl text-[#22c55e]/30">▞▚</span>
           <h2 className="retro mt-4 text-sm text-white">NO EVENTS YET</h2>
           <p className="retro mt-3 text-[9px] leading-relaxed text-muted-foreground">
-            CREATE ONE WITH THE NEW EVENT BUTTON ON THE HOME PAGE · IT&apos;LL SHOW
-            UP HERE WITH ITS REGISTRATIONS.
+            CREATE ONE WITH THE NEW EVENT BUTTON ON THE HOME PAGE · IT&apos;LL
+            SHOW UP HERE WITH ITS REGISTRATIONS.
           </p>
           <Button asChild size="sm" className="mt-6 text-[9px]">
             <Link href="/">← BACK HOME</Link>

@@ -6,8 +6,8 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/8bit-avatar";
-import { Card } from "@/components/ui/8bit-card";
 import { Button } from "@/components/ui/8bit-button";
+import { Card } from "@/components/ui/8bit-card";
 import { cn } from "@/lib/utils";
 import { SectionHeading } from "./SectionHeading";
 import { useScrubProgress } from "./useScrubProgress";
@@ -53,9 +53,21 @@ const RANK_STYLE: Record<
   number,
   { color: string; glow: string; pillarH: { base: number; wide: number } }
 > = {
-  1: { color: "#facc15", glow: "250,204,21", pillarH: { base: 210, wide: 300 } },
-  2: { color: "#d4d4d8", glow: "212,212,216", pillarH: { base: 175, wide: 240 } },
-  3: { color: "#cd7f32", glow: "205,127,50", pillarH: { base: 145, wide: 195 } },
+  1: {
+    color: "#facc15",
+    glow: "250,204,21",
+    pillarH: { base: 210, wide: 300 },
+  },
+  2: {
+    color: "#d4d4d8",
+    glow: "212,212,216",
+    pillarH: { base: 175, wide: 240 },
+  },
+  3: {
+    color: "#cd7f32",
+    glow: "205,127,50",
+    pillarH: { base: 145, wide: 195 },
+  },
 };
 
 function clamp01(n: number): number {
@@ -65,12 +77,12 @@ function seg(p: number, a: number, b: number): number {
   return clamp01((p - a) / (b - a));
 }
 function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3);
+  return 1 - (1 - t) ** 3;
 }
 function easeOutBack(t: number): number {
   const c1 = 1.70158;
   const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2;
 }
 
 function initials(name: string): string {
@@ -122,12 +134,26 @@ function PixelCrown({ progress }: { progress: number }) {
         filter: "drop-shadow(0 0 6px rgba(250,204,21,0.6))",
       }}
     >
-      <svg width="60" height="46" viewBox="0 0 9 7" shapeRendering="crispEdges">
+      <svg
+        width="60"
+        height="46"
+        viewBox="0 0 9 7"
+        shapeRendering="crispEdges"
+        aria-hidden="true"
+      >
         {/* 3-prong crown: peaks at columns 0, 4, 8 */}
         {[
-          [0, 0], [4, 0], [8, 0],
-          [0, 1], [4, 1], [8, 1],
-          [0, 2], [2, 2], [4, 2], [6, 2], [8, 2],
+          [0, 0],
+          [4, 0],
+          [8, 0],
+          [0, 1],
+          [4, 1],
+          [8, 1],
+          [0, 2],
+          [2, 2],
+          [4, 2],
+          [6, 2],
+          [8, 2],
           ...Array.from({ length: 9 }, (_, x) => [x, 3] as const),
           ...Array.from({ length: 9 }, (_, x) => [x, 4] as const),
         ].map(([x, y], i) => (
@@ -170,9 +196,7 @@ function PodiumColumn({
 
   const pillarH = wide ? style.pillarH.wide : style.pillarH.base;
   const avatarSize =
-    rank === 1
-      ? wide ? "size-40" : "size-24"
-      : wide ? "size-32" : "size-20";
+    rank === 1 ? (wide ? "size-40" : "size-24") : wide ? "size-32" : "size-20";
 
   return (
     <div className="flex w-1/3 max-w-[210px] flex-col items-center justify-end">
@@ -353,7 +377,9 @@ function LeaderboardList({
                   className="flex min-w-0 flex-1 flex-col leading-tight"
                   title={`${e.name} · @${e.username}`}
                 >
-                  <span className="truncate text-sm text-white/90">{e.name}</span>
+                  <span className="truncate text-sm text-white/90">
+                    {e.name}
+                  </span>
                   <span className="retro truncate text-[8px] tracking-wider text-muted-foreground/70">
                     @{e.username}
                   </span>
@@ -468,7 +494,9 @@ export function LeaderboardSection({ entries }: LeaderboardSectionProps) {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setContainerWidth(e.contentRect.width));
+    const ro = new ResizeObserver(([e]) =>
+      setContainerWidth(e.contentRect.width),
+    );
     ro.observe(el);
     return () => ro.disconnect();
   }, []);

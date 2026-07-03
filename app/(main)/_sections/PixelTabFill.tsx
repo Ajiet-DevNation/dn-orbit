@@ -29,7 +29,9 @@ export function PixelTabFill() {
         <span
           key={i}
           className="pixel-tab-cell"
-          style={{ transitionDelay: `${Math.round(pseudoRandom(i) * SPREAD_MS)}ms` }}
+          style={{
+            transitionDelay: `${Math.round(pseudoRandom(i) * SPREAD_MS)}ms`,
+          }}
         />
       ))}
     </span>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { SiLeetcode } from "react-icons/si";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
@@ -75,7 +75,10 @@ export function LeetCodeConnect({
       notify("success", `✓ Connected as ${data.username}`);
     } catch (err) {
       setPreview(null);
-      notify("error", `✗ ${err instanceof Error ? err.message : "Verification failed"}`);
+      notify(
+        "error",
+        `✗ ${err instanceof Error ? err.message : "Verification failed"}`,
+      );
     } finally {
       setLoading(false);
     }
@@ -108,7 +111,7 @@ export function LeetCodeConnect({
       {preview && (
         <div className="flex items-center gap-3 border-2 border-[#22c55e]/60 bg-[#22c55e]/[0.06] p-3">
           {preview.avatar ? (
-            // eslint-disable-next-line @next/next/no-img-element
+            // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
             <img
               src={preview.avatar}
               alt={preview.username}

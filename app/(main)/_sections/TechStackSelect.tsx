@@ -2,13 +2,13 @@
 
 import {
   Command,
-  CommandInput,
-  CommandList,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/8bit-command";
-import { TECH_STACK, TECH_BY_NAME } from "./techStack";
+import { TECH_BY_NAME, TECH_STACK } from "./techStack";
 
 interface TechStackSelectProps {
   value: string[];

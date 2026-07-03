@@ -9,7 +9,7 @@ export interface LanguageStat {
 // GitHub's topLanguages is { "TypeScript": 12400, ... } — turn it into the
 // top 5 sorted descending, with bar widths relative to the largest.
 export function languagesFromRecord(
-  rec: Record<string, number> | null | undefined
+  rec: Record<string, number> | null | undefined,
 ): LanguageStat[] {
   if (!rec || typeof rec !== "object") return [];
   const entries = Object.entries(rec).filter(([, v]) => typeof v === "number");

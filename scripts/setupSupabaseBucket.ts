@@ -18,7 +18,8 @@ const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
 async function main() {
   const supabase = getSupabaseAdmin();
 
-  const { data: buckets, error: listErr } = await supabase.storage.listBuckets();
+  const { data: buckets, error: listErr } =
+    await supabase.storage.listBuckets();
   if (listErr) throw listErr;
 
   const exists = buckets?.some((b) => b.name === MEDIA_BUCKET);

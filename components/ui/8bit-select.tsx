@@ -1,8 +1,5 @@
 import type * as SelectPrimitive from "@radix-ui/react-select";
-import { type VariantProps, cva } from "class-variance-authority";
-
-import { cn } from "@/lib/utils";
-
+import { cva, type VariantProps } from "class-variance-authority";
 import {
   Select as ShadcnSelect,
   SelectContent as ShadcnSelectContent,
@@ -15,7 +12,7 @@ import {
   SelectTrigger as ShadcnSelectTrigger,
   SelectValue as ShadcnSelectValue,
 } from "@/components/ui/select";
-
+import { cn } from "@/lib/utils";
 
 export const inputVariants = cva("", {
   variants: {
@@ -78,7 +75,7 @@ function SelectTrigger({ children, ...props }: BitSelectTriggerProps) {
         // letting a long value truncate (line-clamp) instead of overflowing.
         "relative w-full min-w-0 border-y-[4px] border-foreground dark:border-ring",
         className,
-        font !== "normal" && "retro"
+        font !== "normal" && "retro",
       )}
     >
       <ShadcnSelectTrigger
@@ -118,7 +115,7 @@ function SelectContent({
       className={cn(
         font !== "normal" && "retro",
         className,
-        "relative rounded-none border-4 border-foreground dark:border-ring -ml-1 mt-1"
+        "relative rounded-none border-4 border-foreground dark:border-ring -ml-1 mt-1",
       )}
       {...props}
     >
@@ -143,7 +140,7 @@ function SelectItem({
     <ShadcnSelectItem
       className={cn(
         className,
-        "rounded-none border-y-3 border-dashed border-ring/0 hover:border-foreground dark:hover:border-ring"
+        "rounded-none border-y-3 border-dashed border-ring/0 hover:border-foreground dark:hover:border-ring",
       )}
       {...props}
     >

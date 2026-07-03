@@ -27,7 +27,7 @@ const MAX_ITEMS = 8;
 
 const OUT_PATH = new URL(
   "../constants/campusAnnouncements.json",
-  import.meta.url
+  import.meta.url,
 );
 
 // Mirrors the `Announcement` interface in AnnouncementCarousel.tsx (plus href).
@@ -42,8 +42,18 @@ interface CampusAnnouncement {
 }
 
 const MONTHS = [
-  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
+  "JAN",
+  "FEB",
+  "MAR",
+  "APR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AUG",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DEC",
 ];
 
 /** "2026-04-13" → "APR 13, 2026 · AJIET" (carousel `meta` line). */
@@ -61,7 +71,10 @@ function titleFromSlug(slug: string): string {
 }
 
 function stripTags(s: string): string {
-  return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return s
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function decodeEntities(s: string): string {
@@ -99,7 +112,7 @@ async function fetchBody(url: string, attempts = 3): Promise<string | null> {
       if (res.ok) {
         const html = (await res.text()).replace(
           /<(script|style)[\s\S]*?<\/\1>/gi,
-          " "
+          " ",
         );
         for (const p of html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)) {
           const text = decodeEntities(stripTags(p[1]));
@@ -142,9 +155,7 @@ async function main() {
     // anchor: a stack of headings ending with the title, then an <h3> date.
     const window = clean.slice(Math.max(0, m.index - 1400), m.index + 200);
 
-    const headings = [
-      ...window.matchAll(/<h[1-5][^>]*>([\s\S]*?)<\/h[1-5]>/gi),
-    ]
+    const headings = [...window.matchAll(/<h[1-5][^>]*>([\s\S]*?)<\/h[1-5]>/gi)]
       .map((h) => decodeEntities(stripTags(h[1])))
       .filter((t) => t && !/^20\d\d-\d\d-\d\d$/.test(t));
     const title = headings.at(-1) ?? titleFromSlug(slug);
@@ -169,7 +180,9 @@ async function main() {
   const selected = items.slice(0, MAX_ITEMS);
 
   if (selected.length === 0) {
-    throw new Error("Parsed 0 announcements — page structure may have changed.");
+    throw new Error(
+      "Parsed 0 announcements — page structure may have changed.",
+    );
   }
 
   // Fetch a teaser for each selected item from its detail page. Done after the

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
@@ -85,7 +85,10 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
           demoUrl: demoUrl.trim() || null,
           techStack,
           status,
-          progressPct: Math.max(0, Math.min(100, Math.round(Number(progressPct) || 0))),
+          progressPct: Math.max(
+            0,
+            Math.min(100, Math.round(Number(progressPct) || 0)),
+          ),
           milestones: [],
         }),
       });
@@ -119,6 +122,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
             NEW PROJECT
           </h2>
           <button
+            type="button"
             onClick={() => onOpenChange(false)}
             className="retro text-lg text-muted-foreground hover:text-white"
             aria-label="Close"
@@ -234,8 +238,11 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
                 onBlur={(e) =>
                   setProgressPct(
                     String(
-                      Math.max(0, Math.min(100, Math.round(Number(e.target.value) || 0)))
-                    )
+                      Math.max(
+                        0,
+                        Math.min(100, Math.round(Number(e.target.value) || 0)),
+                      ),
+                    ),
                   )
                 }
                 placeholder="0"

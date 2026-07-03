@@ -20,7 +20,7 @@
  */
 export function usesSecureCookies(
   protocol: string | null | undefined,
-  forwardedProto: string | null | undefined
+  forwardedProto: string | null | undefined,
 ): boolean {
   const forwarded = forwardedProto?.split(",")[0]?.trim().toLowerCase();
   if (forwarded) return forwarded === "https";

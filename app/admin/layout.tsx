@@ -1,7 +1,7 @@
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
+import { auth } from "@/lib/auth";
+import { canAccessAdmin } from "@/lib/roles";
 
 export default async function AdminLayout({
   children,

@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
-import { logAudit } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
+import { type NextRequest, NextResponse } from "next/server";
+import { logAudit } from "@/lib/audit";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { canAccessAdmin } from "@/lib/roles";
 
 // GET — list allowlist entries (newest first). POST — add an entry by GitHub
 // username and/or email. Both require an admin session. Values are normalized to
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (!githubUsername && !email) {
       return NextResponse.json(
         { error: "Provide a GitHub username or an email" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -69,13 +69,13 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "That username or email is already on the allowlist" },
-        { status: 409 }
+        { status: 409 },
       );
     }
     console.error("Allowlist POST Error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

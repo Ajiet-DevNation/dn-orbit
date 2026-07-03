@@ -36,10 +36,22 @@ export const HudCardFrame = memo(function HudCardFrame({
         />
       )}
 
-      <div className="hud-bracket hud-bracket--tl" style={{ opacity: bracketOpacity }} />
-      <div className="hud-bracket hud-bracket--tr" style={{ opacity: bracketOpacity }} />
-      <div className="hud-bracket hud-bracket--bl" style={{ opacity: bracketOpacity }} />
-      <div className="hud-bracket hud-bracket--br" style={{ opacity: bracketOpacity }} />
+      <div
+        className="hud-bracket hud-bracket--tl"
+        style={{ opacity: bracketOpacity }}
+      />
+      <div
+        className="hud-bracket hud-bracket--tr"
+        style={{ opacity: bracketOpacity }}
+      />
+      <div
+        className="hud-bracket hud-bracket--bl"
+        style={{ opacity: bracketOpacity }}
+      />
+      <div
+        className="hud-bracket hud-bracket--br"
+        style={{ opacity: bracketOpacity }}
+      />
     </div>
   );
 });

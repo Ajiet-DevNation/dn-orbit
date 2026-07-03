@@ -1,11 +1,10 @@
-import { cn } from "@/lib/utils";
-
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/8bit-card";
+import { cn } from "@/lib/utils";
 
 export interface TerminalLine {
   color?: string;
@@ -76,7 +75,10 @@ export default function Advanced1({
             <div className="space-y-1">
               {lines.map((line, idx) => (
                 <p
-                  className={cn("retro text-sm leading-relaxed", lineClass(line.type))}
+                  className={cn(
+                    "retro text-sm leading-relaxed",
+                    lineClass(line.type),
+                  )}
                   key={`${line.text}-${idx}`}
                 >
                   {linePrefix(line.type)}

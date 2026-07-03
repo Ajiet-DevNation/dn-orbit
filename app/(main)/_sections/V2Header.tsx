@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
-import { PixelTabFill } from "./PixelTabFill";
-import { BrandLink } from "./BrandLink";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   Avatar,
-  AvatarImage,
   AvatarFallback,
+  AvatarImage,
 } from "@/components/ui/8bit-avatar";
 import { Button } from "@/components/ui/8bit-button";
-import { ProfileModal, type ProfileData } from "./ProfileModal";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
+import { BrandLink } from "./BrandLink";
+import { PixelTabFill } from "./PixelTabFill";
+import { type ProfileData, ProfileModal } from "./ProfileModal";
 
 interface V2HeaderProps {
   userName: string | null;
@@ -40,7 +40,7 @@ export function V2Header({
 }: V2HeaderProps) {
   const pathname = usePathname();
   const isLandingPage = pathname === "/";
-  
+
   const [activeTab, setActiveTab] = useState("events");
   const [profileOpen, setProfileOpen] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(!isLandingPage);
@@ -68,9 +68,9 @@ export function V2Header({
   // the viewport's vertical centre, so the nav highlight follows the scroll.
   useEffect(() => {
     if (!isLandingPage) return;
-    const sections = NAV_TABS.map((t) => document.getElementById(t.value)).filter(
-      (el): el is HTMLElement => el !== null
-    );
+    const sections = NAV_TABS.map((t) =>
+      document.getElementById(t.value),
+    ).filter((el): el is HTMLElement => el !== null);
     if (sections.length === 0) return;
 
     const io = new IntersectionObserver(
@@ -81,9 +81,9 @@ export function V2Header({
       },
       // A 1px detection band at the viewport's middle — the section spanning the
       // centre is the "current" one.
-      { rootMargin: "-50% 0px -50% 0px", threshold: 0 }
+      { rootMargin: "-50% 0px -50% 0px", threshold: 0 },
     );
-    sections.forEach((el) => io.observe(el));
+    for (const el of sections) io.observe(el);
     return () => io.disconnect();
   }, [isLandingPage]);
 
@@ -102,85 +102,87 @@ export function V2Header({
   return (
     <>
       <header className="sticky top-0 z-50 w-full bg-transparent">
-      <div className="relative flex items-center justify-between px-6 pt-6 pb-3 gap-4">
-
-        {/* Left: Logo + Brand — links home (smooth-scrolls to top when already on
+        <div className="relative flex items-center justify-between px-6 pt-6 pb-3 gap-4">
+          {/* Left: Logo + Brand — links home (smooth-scrolls to top when already on
             the landing page). Dark-grey pixel fill draws in on hover. */}
-        <BrandLink
-          className="shrink-0"
-          imageClassName="h-14 w-14 sm:h-16 sm:w-16 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
-          wordmarkClassName="text-2xl mt-1 hidden sm:block"
-          priority
-          onClick={() => {
-            if (isLandingPage) window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-        />
-
-        {/* Center: 8-bit nav tabs — absolutely centered to the viewport so the
-            differing logo/avatar widths don't push it off-centre. */}
-        <div className="absolute inset-x-0 top-6 flex justify-center pointer-events-none">
-          <div 
-            className="hidden md:block mt-3"
-            style={{
-              opacity: headerVisible ? 1 : 0,
-              transform: headerVisible ? "translateY(0)" : "translateY(-16px)",
-              transition:
-                "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1)",
-              willChange: "opacity, transform",
-              pointerEvents: headerVisible ? "auto" : "none",
+          <BrandLink
+            className="shrink-0"
+            imageClassName="h-14 w-14 sm:h-16 sm:w-16 drop-shadow-[0_0_8px_rgba(255,255,255,0.15)]"
+            wordmarkClassName="text-2xl mt-1 hidden sm:block"
+            priority
+            onClick={() => {
+              if (isLandingPage)
+                window.scrollTo({ top: 0, behavior: "smooth" });
             }}
-          >
-            <Tabs value={activeTab} onValueChange={handleTabChange}>
-              {/*
+          />
+
+          {/* Center: 8-bit nav tabs — absolutely centered to the viewport so the
+            differing logo/avatar widths don't push it off-centre. */}
+          <div className="absolute inset-x-0 top-6 flex justify-center pointer-events-none">
+            <div
+              className="hidden md:block mt-3"
+              style={{
+                opacity: headerVisible ? 1 : 0,
+                transform: headerVisible
+                  ? "translateY(0)"
+                  : "translateY(-16px)",
+                transition:
+                  "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1)",
+                willChange: "opacity, transform",
+                pointerEvents: headerVisible ? "auto" : "none",
+              }}
+            >
+              <Tabs value={activeTab} onValueChange={handleTabChange}>
+                {/*
                 TabsList background is bg-card (dark mode = #292929).
                 The pixel border divs inside use border-foreground / dark:border-ring.
                 The globals.css fix above corrects border-width from 24px → 6px.
               */}
-              <TabsList>
-                {NAV_TABS.map((tab) => (
-                  <TabsTrigger
-                    key={tab.value}
-                    value={tab.value}
-                    className="relative overflow-hidden px-4 py-2 text-xs transition-none data-[state=active]:bg-transparent! data-[state=active]:text-[#0a0a0a]"
-                  >
-                    {/* Green selection drawn in as scattered pixel blocks. */}
-                    <PixelTabFill />
-                    <span className="relative z-10">{tab.label}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+                <TabsList>
+                  {NAV_TABS.map((tab) => (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      className="relative overflow-hidden px-4 py-2 text-xs transition-none data-[state=active]:bg-transparent! data-[state=active]:text-[#0a0a0a]"
+                    >
+                      {/* Green selection drawn in as scattered pixel blocks. */}
+                      <PixelTabFill />
+                      <span className="relative z-10">{tab.label}</span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
           </div>
-        </div>
 
-        {/* Right: signed-in members get the 8bit avatar (click to edit profile);
+          {/* Right: signed-in members get the 8bit avatar (click to edit profile);
             anonymous visitors get a SIGN IN button into the members-only login. */}
-        {isAuthenticated ? (
-          <button
-            onClick={() => setProfileOpen(true)}
-            className="shrink-0 transition-transform duration-200 ease-out hover:scale-105 active:scale-95"
-            aria-label="Edit profile"
-          >
-            <Avatar className="size-16">
-              {userImage ? (
-                <AvatarImage
-                  src={userImage}
-                  alt={userName ?? "User"}
-                  className="object-cover"
-                />
-              ) : (
-                <AvatarFallback>{initials}</AvatarFallback>
-              )}
-            </Avatar>
-          </button>
-        ) : (
-          <Link href="/login" className="shrink-0" aria-label="Sign in">
-            <Button className="text-[10px]">SIGN IN</Button>
-          </Link>
-        )}
-
-      </div>
-    </header>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              className="shrink-0 transition-transform duration-200 ease-out hover:scale-105 active:scale-95"
+              aria-label="Edit profile"
+            >
+              <Avatar className="size-16">
+                {userImage ? (
+                  <AvatarImage
+                    src={userImage}
+                    alt={userName ?? "User"}
+                    className="object-cover"
+                  />
+                ) : (
+                  <AvatarFallback>{initials}</AvatarFallback>
+                )}
+              </Avatar>
+            </button>
+          ) : (
+            <Link href="/login" className="shrink-0" aria-label="Sign in">
+              <Button className="text-[10px]">SIGN IN</Button>
+            </Link>
+          )}
+        </div>
+      </header>
 
       {isAuthenticated && (
         <ProfileModal

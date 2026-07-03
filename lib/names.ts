@@ -6,5 +6,8 @@ export function toTitleCase(name: string | null | undefined): string {
   if (!name) return "";
   return name
     .toLowerCase()
-    .replace(/(^|[\s'\-./])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toUpperCase());
+    .replace(
+      /(^|[\s'\-./])(\p{L})/gu,
+      (_, sep: string, ch: string) => sep + ch.toUpperCase(),
+    );
 }

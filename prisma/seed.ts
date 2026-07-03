@@ -15,7 +15,9 @@ async function main() {
     where: { githubUsername: { equals: LOGIN, mode: "insensitive" } },
     data: { role: "president" },
   });
-  console.log(`Seed: set ${result.count} user(s) matching '${LOGIN}' -> president`);
+  console.log(
+    `Seed: set ${result.count} user(s) matching '${LOGIN}' -> president`,
+  );
   if (result.count === 0) {
     console.log("(No row yet — sign in once, then re-run the seed.)");
   }

@@ -25,8 +25,10 @@ export function PixelCheckbox({
       onClick={() => onChange(!checked)}
       className={cn(
         "flex size-5 shrink-0 cursor-pointer items-center justify-center border-2 bg-black transition-colors",
-        checked ? "border-[#22c55e]" : "border-white/30 hover:border-[#22c55e]/60",
-        className
+        checked
+          ? "border-[#22c55e]"
+          : "border-white/30 hover:border-[#22c55e]/60",
+        className,
       )}
     >
       {checked && <span className="block size-2.5 bg-[#22c55e]" />}

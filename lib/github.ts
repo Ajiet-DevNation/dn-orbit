@@ -21,8 +21,12 @@ export interface GitHubStats {
 async function fetchUserRepos(
   username: string,
   token: string,
-  includePrivate: boolean
-): Promise<{ reposCount: number; totalStars: number; topLanguages: Record<string, number> }> {
+  includePrivate: boolean,
+): Promise<{
+  reposCount: number;
+  totalStars: number;
+  topLanguages: Record<string, number>;
+}> {
   // Two endpoints, chosen by whether `token` belongs to `username`:
   //   • includePrivate → GET /user/repos returns the *authenticated* user's own
   //     repos, including PRIVATE ones (requires the `repo` scope). This is only
@@ -39,7 +43,8 @@ async function fetchUserRepos(
 
   // Fetch all repos (paginate up to 100 per page)
   let page = 1;
-  let allRepos: Array<{ stargazers_count: number; language: string | null }> = [];
+  let allRepos: Array<{ stargazers_count: number; language: string | null }> =
+    [];
 
   while (true) {
     const res = await fetch(buildUrl(page), {
@@ -50,7 +55,9 @@ async function fetchUserRepos(
     });
 
     if (!res.ok) {
-      throw new Error(`GitHub API error fetching repos: ${res.status} ${res.statusText}`);
+      throw new Error(
+        `GitHub API error fetching repos: ${res.status} ${res.statusText}`,
+      );
     }
 
     const repos = await res.json();
@@ -63,8 +70,9 @@ async function fetchUserRepos(
 
   // Count total stars across all repos
   const totalStars = allRepos.reduce(
-    (sum: number, repo: { stargazers_count: number }) => sum + repo.stargazers_count,
-    0
+    (sum: number, repo: { stargazers_count: number }) =>
+      sum + repo.stargazers_count,
+    0,
   );
 
   // Aggregate top languages
@@ -79,7 +87,7 @@ async function fetchUserRepos(
   const topLanguages = Object.fromEntries(
     Object.entries(languageCounts)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 5)
+      .slice(0, 5),
   );
 
   return {
@@ -91,7 +99,10 @@ async function fetchUserRepos(
 
 // ─── REST: fetch merged PRs count (via Search API) ───────────────────────────
 
-async function fetchMergedPRs(username: string, token: string): Promise<number> {
+async function fetchMergedPRs(
+  username: string,
+  token: string,
+): Promise<number> {
   const res = await fetch(
     `${GITHUB_API}/search/issues?q=author:${username}+type:pr+is:merged&per_page=1`,
     {
@@ -99,11 +110,13 @@ async function fetchMergedPRs(username: string, token: string): Promise<number> 
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
       },
-    }
+    },
   );
 
   if (!res.ok) {
-    throw new Error(`GitHub API error fetching PRs: ${res.status} ${res.statusText}`);
+    throw new Error(
+      `GitHub API error fetching PRs: ${res.status} ${res.statusText}`,
+    );
   }
 
   const data = await res.json();
@@ -114,7 +127,10 @@ async function fetchMergedPRs(username: string, token: string): Promise<number> 
 // GitHub's REST API doesn't expose total commits easily.
 // GraphQL contributionsCollection gives us the real number.
 
-async function fetchTotalCommits(username: string, token: string): Promise<number> {
+async function fetchTotalCommits(
+  username: string,
+  token: string,
+): Promise<number> {
   const query = `
     query($username: String!) {
       user(login: $username) {
@@ -142,7 +158,9 @@ async function fetchTotalCommits(username: string, token: string): Promise<numbe
   const json = await res.json();
 
   if (json.errors) {
-    throw new Error(`GitHub GraphQL query failed: ${JSON.stringify(json.errors)}`);
+    throw new Error(
+      `GitHub GraphQL query failed: ${JSON.stringify(json.errors)}`,
+    );
   }
 
   const collection = json.data?.user?.contributionsCollection;
@@ -185,7 +203,7 @@ interface OpenSourceSearchResponse {
 async function fetchOpenSourcePrs(
   username: string,
   token: string,
-  minStars: number
+  minStars: number,
 ): Promise<number> {
   const query = `
     query($q: String!, $after: String) {
@@ -225,7 +243,9 @@ async function fetchOpenSourcePrs(
 
     const json = (await res.json()) as OpenSourceSearchResponse;
     if (json.errors) {
-      throw new Error(`GitHub GraphQL query failed: ${JSON.stringify(json.errors)}`);
+      throw new Error(
+        `GitHub GraphQL query failed: ${JSON.stringify(json.errors)}`,
+      );
     }
 
     const search = json.data?.search;
@@ -250,7 +270,7 @@ async function fetchOpenSourcePrs(
 export async function fetchGitHubStats(
   username: string,
   token: string,
-  options: { includePrivate?: boolean; openSourceMinStars?: number } = {}
+  options: { includePrivate?: boolean; openSourceMinStars?: number } = {},
 ): Promise<GitHubStats> {
   // includePrivate must only be set when `token` is `username`'s own token.
   // It is what unlocks private-repo stats (repos, stars, languages); private

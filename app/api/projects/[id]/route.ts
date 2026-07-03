@@ -1,32 +1,38 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
+import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
-import { Prisma } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const session = await auth();
-    if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    if (!session)
+      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
 
     const { id } = await params;
-    
+
     // Fetch existing to check lead
     const project = await db.project.findUnique({
       where: { id },
-      select: { leadId: true }
+      select: { leadId: true },
     });
 
-    if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!project)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (project.leadId !== session.user.id && !canAccessAdmin(session.user.role)) {
+    if (
+      project.leadId !== session.user.id &&
+      !canAccessAdmin(session.user.role)
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await req.json();
-    const { techStack, milestones, githubRepoUrl, status, description, title } = body;
+    const { techStack, milestones, githubRepoUrl, status, description, title } =
+      body;
 
     const dataToUpdate: Prisma.ProjectUpdateInput = {};
     if (title !== undefined) dataToUpdate.title = title;
@@ -37,12 +43,16 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     if (milestones !== undefined) {
       dataToUpdate.milestones = milestones;
-      
+
       // Compute progressPct
       // format: { label: string, done: boolean }[]
       if (Array.isArray(milestones) && milestones.length > 0) {
-        const completed = milestones.filter((m: { done?: boolean }) => m.done).length;
-        dataToUpdate.progressPct = Math.round((completed / milestones.length) * 100);
+        const completed = milestones.filter(
+          (m: { done?: boolean }) => m.done,
+        ).length;
+        dataToUpdate.progressPct = Math.round(
+          (completed / milestones.length) * 100,
+        );
       } else if (Array.isArray(milestones) && milestones.length === 0) {
         dataToUpdate.progressPct = 0;
       }
@@ -56,7 +66,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json(updatedProject);
   } catch (error) {
     console.error("Update Project Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -66,18 +79,31 @@ export async function GET(_req: NextRequest, { params }: Params) {
     const project = await db.project.findUnique({
       where: { id },
       include: {
-        lead: { select: { id: true, name: true, githubUsername: true, image: true } },
+        lead: {
+          select: { id: true, name: true, githubUsername: true, image: true },
+        },
         members: {
           include: {
-            user: { select: { id: true, name: true, githubUsername: true, image: true } }
-          }
-        }
-      }
+            user: {
+              select: {
+                id: true,
+                name: true,
+                githubUsername: true,
+                image: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!project)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(project);
   } catch {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

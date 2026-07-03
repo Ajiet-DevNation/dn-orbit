@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
-  type FormFieldDef,
   type EventAudience,
+  type FormFieldDef,
   isFieldVisible,
   usnRequiredFor,
   validateSubmission,
@@ -91,7 +91,12 @@ describe("validateSubmission", () => {
     const r = validateSubmission({
       ...base,
       schema: [
-        field({ id: "x", type: "single_choice", required: true, options: ["A", "B"] }),
+        field({
+          id: "x",
+          type: "single_choice",
+          required: true,
+          options: ["A", "B"],
+        }),
       ],
       input: { name: "N", email: "a@b.com", responses: { x: "C" } },
     });
@@ -103,7 +108,12 @@ describe("validateSubmission", () => {
     const r = validateSubmission({
       ...base,
       schema: [
-        field({ id: "x", type: "multi_choice", required: true, options: ["A", "B"] }),
+        field({
+          id: "x",
+          type: "multi_choice",
+          required: true,
+          options: ["A", "B"],
+        }),
       ],
       input: { name: "N", email: "a@b.com", responses: { x: ["A", "Z"] } },
     });
@@ -133,8 +143,18 @@ describe("validateSubmission", () => {
     const r = validateSubmission({
       ...base,
       schema: [
-        field({ id: "mode", type: "single_choice", required: true, options: ["Individual", "Team"] }),
-        field({ id: "team", type: "short_text", required: true, visibleWhen: { fieldId: "mode", equals: "Team" } }),
+        field({
+          id: "mode",
+          type: "single_choice",
+          required: true,
+          options: ["Individual", "Team"],
+        }),
+        field({
+          id: "team",
+          type: "short_text",
+          required: true,
+          visibleWhen: { fieldId: "mode", equals: "Team" },
+        }),
       ],
       // Chose "Individual", so the required "team" field shouldn't block.
       input: { name: "N", email: "a@b.com", responses: { mode: "Individual" } },
@@ -147,8 +167,18 @@ describe("validateSubmission", () => {
     const r = validateSubmission({
       ...base,
       schema: [
-        field({ id: "mode", type: "single_choice", required: true, options: ["Individual", "Team"] }),
-        field({ id: "team", type: "short_text", required: true, visibleWhen: { fieldId: "mode", equals: "Team" } }),
+        field({
+          id: "mode",
+          type: "single_choice",
+          required: true,
+          options: ["Individual", "Team"],
+        }),
+        field({
+          id: "team",
+          type: "short_text",
+          required: true,
+          visibleWhen: { fieldId: "mode", equals: "Team" },
+        }),
       ],
       input: { name: "N", email: "a@b.com", responses: { mode: "Team" } },
     });

@@ -20,7 +20,10 @@ const memberCookie =
 const adminCookie =
   readFlag("--admin-cookie") || process.env.API_TEST_ADMIN_COOKIE || "";
 const cronSecret =
-  readFlag("--cron-secret") || process.env.API_TEST_CRON_SECRET || process.env.CRON_SECRET || "";
+  readFlag("--cron-secret") ||
+  process.env.API_TEST_CRON_SECRET ||
+  process.env.CRON_SECRET ||
+  "";
 
 const missingId = "00000000-0000-0000-0000-000000000000";
 
@@ -69,7 +72,12 @@ function formatPayload(payload) {
 
 function makeUnauthTests() {
   return [
-    { name: "auth session", method: "GET", path: "/api/auth/session", expected: [200] },
+    {
+      name: "auth session",
+      method: "GET",
+      path: "/api/auth/session",
+      expected: [200],
+    },
     {
       name: "events list unauth",
       method: "GET",
@@ -175,9 +183,27 @@ function makeUnauthTests() {
 
 function makeMemberTests() {
   return [
-    { name: "session with member cookie", method: "GET", path: "/api/auth/session", expected: [200], cookie: memberCookie },
-    { name: "admin weights as member", method: "GET", path: "/api/admin/config/weights", expected: [403], cookie: memberCookie },
-    { name: "event register missing", method: "POST", path: `/api/events/${missingId}/register`, expected: [404], cookie: memberCookie },
+    {
+      name: "session with member cookie",
+      method: "GET",
+      path: "/api/auth/session",
+      expected: [200],
+      cookie: memberCookie,
+    },
+    {
+      name: "admin weights as member",
+      method: "GET",
+      path: "/api/admin/config/weights",
+      expected: [403],
+      cookie: memberCookie,
+    },
+    {
+      name: "event register missing",
+      method: "POST",
+      path: `/api/events/${missingId}/register`,
+      expected: [404],
+      cookie: memberCookie,
+    },
     {
       name: "event feedback missing",
       method: "POST",
@@ -186,14 +212,32 @@ function makeMemberTests() {
       expected: [404],
       cookie: memberCookie,
     },
-    { name: "attendance as member forbidden", method: "GET", path: `/api/events/${missingId}/attendance`, expected: [403], cookie: memberCookie },
+    {
+      name: "attendance as member forbidden",
+      method: "GET",
+      path: `/api/events/${missingId}/attendance`,
+      expected: [403],
+      cookie: memberCookie,
+    },
   ];
 }
 
 function makeAdminTests() {
   const tests = [
-    { name: "session with admin cookie", method: "GET", path: "/api/auth/session", expected: [200], cookie: adminCookie },
-    { name: "admin weights get", method: "GET", path: "/api/admin/config/weights", expected: [200], cookie: adminCookie },
+    {
+      name: "session with admin cookie",
+      method: "GET",
+      path: "/api/auth/session",
+      expected: [200],
+      cookie: adminCookie,
+    },
+    {
+      name: "admin weights get",
+      method: "GET",
+      path: "/api/admin/config/weights",
+      expected: [200],
+      cookie: adminCookie,
+    },
     {
       name: "admin weights patch validation",
       method: "PATCH",
@@ -202,9 +246,27 @@ function makeAdminTests() {
       expected: [400],
       cookie: adminCookie,
     },
-    { name: "attendance list as admin", method: "GET", path: `/api/events/${missingId}/attendance`, expected: [200], cookie: adminCookie },
-    { name: "feedback list as admin", method: "GET", path: `/api/events/${missingId}/feedback`, expected: [200], cookie: adminCookie },
-    { name: "admin refresh member cache", method: "POST", path: `/api/admin/members/${missingId}/refresh`, expected: [200], cookie: adminCookie },
+    {
+      name: "attendance list as admin",
+      method: "GET",
+      path: `/api/events/${missingId}/attendance`,
+      expected: [200],
+      cookie: adminCookie,
+    },
+    {
+      name: "feedback list as admin",
+      method: "GET",
+      path: `/api/events/${missingId}/feedback`,
+      expected: [200],
+      cookie: adminCookie,
+    },
+    {
+      name: "admin refresh member cache",
+      method: "POST",
+      path: `/api/admin/members/${missingId}/refresh`,
+      expected: [200],
+      cookie: adminCookie,
+    },
     {
       name: "admin patch member validation",
       method: "PATCH",
@@ -249,20 +311,23 @@ async function runTests(label, tests) {
 
       const statusOk = test.expected.includes(result.status);
       const locationOk = test.expectLocationContains
-        ? !!result.location && result.location.includes(test.expectLocationContains)
+        ? !!result.location &&
+          result.location.includes(test.expectLocationContains)
         : true;
       const ok = statusOk && locationOk;
       if (ok) {
         passed += 1;
-        console.log(`PASS ${test.method} ${test.path} -> ${result.status} (${test.name})`);
+        console.log(
+          `PASS ${test.method} ${test.path} -> ${result.status} (${test.name})`,
+        );
       } else {
         failed += 1;
         console.log(
-          `FAIL ${test.method} ${test.path} -> ${result.status}, expected ${test.expected.join("/")} (${test.name})`
+          `FAIL ${test.method} ${test.path} -> ${result.status}, expected ${test.expected.join("/")} (${test.name})`,
         );
         if (test.expectLocationContains) {
           console.log(
-            `  location: ${result.location || "<none>"}, expected contains ${test.expectLocationContains}`
+            `  location: ${result.location || "<none>"}, expected contains ${test.expectLocationContains}`,
           );
         }
         console.log(`  payload: ${formatPayload(result.payload)}`);
@@ -270,7 +335,9 @@ async function runTests(label, tests) {
     } catch (error) {
       failed += 1;
       const message = error instanceof Error ? error.message : String(error);
-      console.log(`FAIL ${test.method} ${test.path} -> request error (${test.name})`);
+      console.log(
+        `FAIL ${test.method} ${test.path} -> request error (${test.name})`,
+      );
       console.log(`  error: ${message}`);
     }
   }
@@ -294,7 +361,9 @@ async function main() {
     totalPassed += member.passed;
     totalFailed += member.failed;
   } else {
-    console.log("\n[Member Cookie] skipped (set API_TEST_MEMBER_COOKIE or --member-cookie)");
+    console.log(
+      "\n[Member Cookie] skipped (set API_TEST_MEMBER_COOKIE or --member-cookie)",
+    );
   }
 
   if (adminCookie) {
@@ -302,7 +371,9 @@ async function main() {
     totalPassed += admin.passed;
     totalFailed += admin.failed;
   } else {
-    console.log("[Admin Cookie] skipped (set API_TEST_ADMIN_COOKIE or --admin-cookie)");
+    console.log(
+      "[Admin Cookie] skipped (set API_TEST_ADMIN_COOKIE or --admin-cookie)",
+    );
   }
 
   console.log("\nSummary");

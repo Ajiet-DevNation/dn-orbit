@@ -58,11 +58,14 @@ export function PixelReveal({
         if (entry.isIntersecting) {
           setRevealed(true);
           // Drop the cover grid from the DOM once it has fully cleared.
-          window.setTimeout(() => setDone(true), delayMs + SPREAD_MS + DURATION_MS);
+          window.setTimeout(
+            () => setDone(true),
+            delayMs + SPREAD_MS + DURATION_MS,
+          );
           io.disconnect();
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
     io.observe(el);
     return () => io.disconnect();

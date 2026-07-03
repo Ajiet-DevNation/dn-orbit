@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
 
 type Params = { params: Promise<{ id: string }> };
@@ -11,7 +11,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const event = await db.event.findUnique({
     where: { id },
     include: {
-      registrations: { select: { userId: true, attended: true, registeredAt: true } },
+      registrations: {
+        select: { userId: true, attended: true, registeredAt: true },
+      },
       feedback: { select: { rating: true, comments: true } },
     },
   });
@@ -29,8 +31,17 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const { id } = await params;
   const body = await req.json();
   const {
-    title, description, bannerUrl, eventType, eventDate, location, isPublished,
-    audience, capacity, registrationDeadline, formSchema,
+    title,
+    description,
+    bannerUrl,
+    eventType,
+    eventDate,
+    location,
+    isPublished,
+    audience,
+    capacity,
+    registrationDeadline,
+    formSchema,
   } = body;
 
   const updated = await db.event.update({
@@ -46,7 +57,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       ...(audience !== undefined && { audience }),
       ...(capacity !== undefined && { capacity }),
       ...(registrationDeadline !== undefined && {
-        registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null,
+        registrationDeadline: registrationDeadline
+          ? new Date(registrationDeadline)
+          : null,
       }),
       ...(formSchema !== undefined && { formSchema }),
     },

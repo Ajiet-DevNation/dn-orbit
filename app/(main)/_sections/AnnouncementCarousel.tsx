@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/8bit-card";
-import { cn } from "@/lib/utils";
 import campusAnnouncements from "@/constants/campusAnnouncements.json";
+import { cn } from "@/lib/utils";
 
 // Generic announcement — NOT tied to events. Any source (events, club news,
 // leaderboard resets, project drops) can be mapped into this shape upstream.
@@ -94,7 +94,7 @@ function AnnouncementSlide({
       className={cn(
         "h-full gap-4 py-8 border-white/10 shadow-[0_0_15px_rgba(34,197,94,0.05)] transition-colors duration-500",
         // Linked cards get a stronger hover cue than passive ones.
-        item.href ? "hover:border-[#22c55e]/70" : "hover:border-[#22c55e]/40"
+        item.href ? "hover:border-[#22c55e]/70" : "hover:border-[#22c55e]/40",
       )}
     >
       {item.tag && (
@@ -187,7 +187,7 @@ export function AnnouncementCarousel({
 
   const fillSet = Array.from(
     { length: fillCount },
-    (_, i) => items[i % items.length]
+    (_, i) => items[i % items.length],
   );
   const copyWidth = fillCount * (dims.w + dims.gap);
 
@@ -207,17 +207,17 @@ export function AnnouncementCarousel({
   const capturedRef = useRef(false);
 
   // Keep offset within (-copyWidth, 0] so the two stacked copies loop seamlessly.
-  const normalize = () => {
+  const normalize = useCallback(() => {
     if (copyWidth <= 0) return;
     while (offsetRef.current <= -copyWidth) offsetRef.current += copyWidth;
     while (offsetRef.current > 0) offsetRef.current -= copyWidth;
-  };
+  }, [copyWidth]);
 
-  const applyTransform = () => {
+  const applyTransform = useCallback(() => {
     if (trackRef.current) {
       trackRef.current.style.transform = `translate3d(${offsetRef.current}px,0,0)`;
     }
-  };
+  }, []);
 
   // Auto-drift loop. Pauses while dragging, when scrolled off-screen, or when
   // the user prefers reduced motion (the strip then holds still; drag still works).
@@ -238,9 +238,9 @@ export function AnnouncementCarousel({
     };
     rafId = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(rafId);
-    // copyWidth in deps so normalize uses the right span after a resize.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [copyWidth]);
+    // normalize is recreated when copyWidth changes, so the loop re-subscribes
+    // with the right span after a resize.
+  }, [normalize, applyTransform]);
 
   // Pause the drift when the carousel isn't visible (saves cycles).
   useEffect(() => {
@@ -256,7 +256,7 @@ export function AnnouncementCarousel({
             ? "transform"
             : "";
       },
-      { threshold: 0 }
+      { threshold: 0 },
     );
     io.observe(el);
     return () => io.disconnect();

@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface BrandLinkProps {
@@ -34,7 +34,7 @@ export function BrandLink({
       onClick={onClick}
       className={cn(
         "inline-flex w-fit items-center gap-0 transition-opacity duration-200 hover:opacity-80",
-        className
+        className,
       )}
     >
       <Image
@@ -49,7 +49,7 @@ export function BrandLink({
       <span
         className={cn(
           "font-[family-name:var(--font-pixel)] leading-none text-white",
-          wordmarkClassName
+          wordmarkClassName,
         )}
       >
         ORBIT

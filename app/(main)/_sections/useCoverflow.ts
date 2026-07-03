@@ -225,7 +225,8 @@ export function useCoverflow({
         return;
       }
       const focusSettled = Math.abs(diff) < SETTLE_EPS;
-      const introSettled = Math.abs(introTargetRef.current - introRef.current) < SETTLE_EPS;
+      const introSettled =
+        Math.abs(introTargetRef.current - introRef.current) < SETTLE_EPS;
       if (focusSettled && introSettled) {
         focusRef.current = targetRef.current;
         applyCards();
@@ -257,7 +258,7 @@ export function useCoverflow({
       manualRef.current += wrapDelta(index - targetRef.current, count);
       setTarget();
     },
-    [count, setTarget]
+    [count, setTarget],
   );
 
   const next = useCallback(() => {
@@ -315,7 +316,7 @@ export function useCoverflow({
           wake();
         }
       },
-      { threshold: 0 }
+      { threshold: 0 },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -380,7 +381,7 @@ export function useCoverflow({
           manualRef.current = startManualRef.current - dx / spread;
           setTarget();
         },
-        { signal }
+        { signal },
       );
       window.addEventListener(
         "pointerup",
@@ -389,11 +390,11 @@ export function useCoverflow({
           controller.abort();
           centreOn(Math.round(targetRef.current)); // snap to nearest card
         },
-        { signal }
+        { signal },
       );
       wake();
     },
-    [centreOn, setTarget, spread, wake]
+    [centreOn, setTarget, spread, wake],
   );
 
   useEffect(() => () => dragAbortRef.current?.abort(), []);
@@ -409,14 +410,14 @@ export function useCoverflow({
         centreOn(index);
       }
     },
-    [count, centreOn]
+    [count, centreOn],
   );
 
   const registerCard = useCallback(
     (index: number) => (el: HTMLDivElement | null) => {
       cardRefs.current[index] = el;
     },
-    []
+    [],
   );
 
   return {

@@ -1,17 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import {
   Bebas_Neue,
+  Geist,
   IBM_Plex_Mono,
   Inter_Tight,
-  Geist,
   Press_Start_2P,
 } from "next/font/google";
 import { DotGridBackground } from "@/components/ui/DotGridBackground";
 import "./globals.css";
-import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/8bit-toast";
-import { cn } from "@/lib/utils";
 import { auth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
+import { Providers } from "./providers";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -46,7 +46,8 @@ const pressStart = Press_Start_2P({
   display: "swap",
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dn-orbit.vercel.app";
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://dn-orbit.vercel.app";
 const SITE_DESCRIPTION =
   "ORBIT is the platform for DevNation, the student developer community at A J Institute of Engineering & Technology (AJIET), Mangaluru. Track the live leaderboard, explore club events and projects, and meet the members.";
 
@@ -127,7 +128,7 @@ export default async function RootLayout({
         interTight.variable,
         pressStart.variable,
         "font-sans",
-        geist.variable
+        geist.variable,
       )}
     >
       <body className="min-h-full flex flex-col bg-bg text-text">

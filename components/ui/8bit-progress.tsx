@@ -1,4 +1,4 @@
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
@@ -50,7 +50,7 @@ function Progress({
         className={cn(
           "bg-primary/20 relative w-full overflow-hidden",
           heightClass,
-          font !== "normal" && "retro"
+          font !== "normal" && "retro",
         )}
         {...props}
       >
@@ -59,7 +59,7 @@ function Progress({
           className={cn(
             "h-full transition-transform",
             variant === "retro" ? "flex w-full" : "w-full flex-1",
-            variant !== "retro" && (progressBg || "bg-primary")
+            variant !== "retro" && (progressBg || "bg-primary"),
           )}
           style={
             variant === "retro"
@@ -78,7 +78,7 @@ function Progress({
                       "flex-1 h-full mx-[1px]",
                       i < filledSquares
                         ? progressBg || "bg-primary"
-                        : "bg-transparent"
+                        : "bg-transparent",
                     )}
                   />
                 );
