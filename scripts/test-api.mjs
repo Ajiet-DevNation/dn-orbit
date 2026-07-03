@@ -19,12 +19,6 @@ const memberCookie =
   readFlag("--member-cookie") || process.env.API_TEST_MEMBER_COOKIE || "";
 const adminCookie =
   readFlag("--admin-cookie") || process.env.API_TEST_ADMIN_COOKIE || "";
-const cronSecret =
-  readFlag("--cron-secret") ||
-  process.env.API_TEST_CRON_SECRET ||
-  process.env.CRON_SECRET ||
-  "";
-
 const missingId = "00000000-0000-0000-0000-000000000000";
 
 async function request(path, options = {}) {
@@ -172,11 +166,12 @@ function makeUnauthTests() {
       expectLocationContains: "/login",
     },
     {
-      name: "cron without secret",
-      method: "GET",
-      path: "/api/cron/leaderboard",
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      // Self-throttling by design: a stale-check + DB lock bound the work, so
+      // anonymous calls are expected to succeed (typically "fresh"/"locked").
+      name: "on-visit sync trigger",
+      method: "POST",
+      path: "/api/sync",
+      expected: [200],
     },
   ];
 }
@@ -276,16 +271,6 @@ function makeAdminTests() {
       cookie: adminCookie,
     },
   ];
-
-  if (cronSecret) {
-    tests.push({
-      name: "cron with secret",
-      method: "GET",
-      path: "/api/cron/leaderboard",
-      expected: [200],
-      headers: { authorization: `Bearer ${cronSecret}` },
-    });
-  }
 
   return tests;
 }

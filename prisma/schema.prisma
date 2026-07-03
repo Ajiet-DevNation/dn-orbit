@@ -319,6 +319,21 @@ model ScoreWeight {
 }
 
 // ─────────────────────────────────────────────
+// SYNC RUNS (on-visit stats sync coordination)
+// ─────────────────────────────────────────────
+// Single-row-per-key coordination table for the on-visit stats sync: records
+// when the last full sync finished and holds a short-lived lock so concurrent
+// visitors can't stampede the external APIs. Replaces the GitHub Actions cron.
+
+model SyncRun {
+  key         String    @id
+  lastRunAt   DateTime? @map("last_run_at")
+  lockedUntil DateTime? @map("locked_until")
+
+  @@map("sync_runs")
+}
+
+// ─────────────────────────────────────────────
 // AUDIT LOG (system activity feed)
 // ─────────────────────────────────────────────
 // Append-only record of every meaningful mutation across the app (events,
