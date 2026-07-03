@@ -15,7 +15,8 @@
     "test": "bun test lib",
     "test:api": "node scripts/test-api.mjs",
     "test:api:auth": "node scripts/test-api.mjs",
-    "test:api:base": "node scripts/test-api.mjs --base-url=http://localhost:3000"
+    "test:api:base": "node scripts/test-api.mjs --base-url=http://localhost:3000",
+    "prepare": "husky"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
@@ -55,6 +56,9 @@
     "vaul": "^1.1.2",
     "ws": "^8.20.0"
   },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs,json,css}": "biome check --write --no-errors-on-unmatched"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.5.2",
     "@tailwindcss/postcss": "^4",
@@ -63,6 +67,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "tailwindcss": "^4.3.1",
     "typescript": "^5"
   },
