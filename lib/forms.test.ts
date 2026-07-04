@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
-  type FormFieldDef,
   type EventAudience,
+  type FormFieldDef,
   isFieldVisible,
   usnRequiredFor,
   validateSubmission,
@@ -26,6 +26,29 @@ describe("validateSubmission", () => {
     expect(r.ok).toBe(false);
     expect(r.errors.name).toBeTruthy();
     expect(r.errors.email).toBeTruthy();
+  });
+
+  test("oversized free text is rejected", () => {
+    const r = validateSubmission({
+      audience: "public",
+      schema: [{ id: "f1", label: "About", type: "text", required: false }],
+      input: {
+        name: "A",
+        email: "a@b.co",
+        responses: { f1: "x".repeat(2001) },
+      },
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.f1).toContain("too long");
+  });
+
+  test("oversized name is rejected", () => {
+    const r = validateSubmission({
+      audience: "public",
+      schema: [],
+      input: { name: "n".repeat(121), email: "a@b.co", responses: {} },
+    });
+    expect(r.ok).toBe(false);
   });
 
   test("rejects malformed email", () => {
@@ -91,7 +114,12 @@ describe("validateSubmission", () => {
     const r = validateSubmission({
       ...base,
       schema: [
-        field({ id: "x", type: "single_choice", required: true, options: ["A", "B"] }),
+        field({
+          id: "x",
+          type: "single_choice",
+          required: true,
+          options: ["A", "B"],
+        }),
       ],
       input: { name: "N", email: "a@b.com", responses: { x: "C" } },
     });
@@ -103,7 +131,12 @@ describe("validateSubmission", () => {
     const r = validateSubmission({
       ...base,
       schema: [
-        field({ id: "x", type: "multi_choice", required: true, options: ["A", "B"] }),
+        field({
+          id: "x",
+          type: "multi_choice",
+          required: true,
+          options: ["A", "B"],
+        }),
       ],
       input: { name: "N", email: "a@b.com", responses: { x: ["A", "Z"] } },
     });
@@ -133,8 +166,18 @@ describe("validateSubmission", () => {
     const r = validateSubmission({
       ...base,
       schema: [
-        field({ id: "mode", type: "single_choice", required: true, options: ["Individual", "Team"] }),
-        field({ id: "team", type: "short_text", required: true, visibleWhen: { fieldId: "mode", equals: "Team" } }),
+        field({
+          id: "mode",
+          type: "single_choice",
+          required: true,
+          options: ["Individual", "Team"],
+        }),
+        field({
+          id: "team",
+          type: "short_text",
+          required: true,
+          visibleWhen: { fieldId: "mode", equals: "Team" },
+        }),
       ],
       // Chose "Individual", so the required "team" field shouldn't block.
       input: { name: "N", email: "a@b.com", responses: { mode: "Individual" } },
@@ -147,8 +190,18 @@ describe("validateSubmission", () => {
     const r = validateSubmission({
       ...base,
       schema: [
-        field({ id: "mode", type: "single_choice", required: true, options: ["Individual", "Team"] }),
-        field({ id: "team", type: "short_text", required: true, visibleWhen: { fieldId: "mode", equals: "Team" } }),
+        field({
+          id: "mode",
+          type: "single_choice",
+          required: true,
+          options: ["Individual", "Team"],
+        }),
+        field({
+          id: "team",
+          type: "short_text",
+          required: true,
+          visibleWhen: { fieldId: "mode", equals: "Team" },
+        }),
       ],
       input: { name: "N", email: "a@b.com", responses: { mode: "Team" } },
     });

@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
+import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
 import { db } from "@/lib/db";
 import { parseFormSchema } from "@/lib/forms";
-import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
+import { canAccessAdmin } from "@/lib/roles";
 import EventCreationForm from "../../new/EventCreationForm";
 
 export const metadata = { title: "EDIT EVENT // ORBIT ADMIN" };

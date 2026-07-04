@@ -1,17 +1,17 @@
 // app/api/stats/github/[userId]/route.ts
 // Module 2 — GitHub Stats Integration
 
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
 import { db } from "@/lib/db";
 import { fetchGitHubStats } from "@/lib/github";
+import { canAccessAdmin } from "@/lib/roles";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
+  { params }: { params: Promise<{ userId: string }> },
 ) {
   const { userId } = await params;
 
@@ -45,7 +45,7 @@ export async function GET(
   if (!user.githubUsername) {
     return NextResponse.json(
       { error: "User has no GitHub username linked" },
-      { status: 422 }
+      { status: 422 },
     );
   }
 
@@ -56,8 +56,7 @@ export async function GET(
   });
 
   const isFresh =
-    cached &&
-    Date.now() - new Date(cached.fetchedAt).getTime() < CACHE_TTL_MS;
+    cached && Date.now() - new Date(cached.fetchedAt).getTime() < CACHE_TTL_MS;
 
   if (isFresh) {
     return NextResponse.json({
@@ -78,7 +77,11 @@ export async function GET(
   // person's public repos.
   const tokenOwnerId = isSelf ? userId : session.user.id;
   const ghAccount = await db.account.findFirst({
-    where: { userId: tokenOwnerId, provider: "github", access_token: { not: null } },
+    where: {
+      userId: tokenOwnerId,
+      provider: "github",
+      access_token: { not: null },
+    },
     select: { access_token: true },
   });
   const accessToken = ghAccount?.access_token;
@@ -86,7 +89,7 @@ export async function GET(
   if (!accessToken) {
     return NextResponse.json(
       { error: "No GitHub access token available" },
-      { status: 422 }
+      { status: 422 },
     );
   }
 
@@ -96,7 +99,7 @@ export async function GET(
   });
   const openSourceMinStars = weightConfig?.ghOpenSourceMinStars ?? 10;
 
-  let stats;
+  let stats: Awaited<ReturnType<typeof fetchGitHubStats>>;
   try {
     // Private-repo stats are only valid when the caller is reading their OWN
     // GitHub data with their OWN token. An admin viewing someone else's stats
@@ -109,7 +112,7 @@ export async function GET(
     console.error("[github-stats] Failed:", err);
     return NextResponse.json(
       { error: "Failed to fetch stats from GitHub" },
-      { status: 502 }
+      { status: 502 },
     );
   }
 
@@ -128,12 +131,12 @@ export async function GET(
 
   const saved = existing
     ? await db.githubStats.update({
-      where: { id: existing.id },
-      data: statsData,
-    })
+        where: { id: existing.id },
+        data: statsData,
+      })
     : await db.githubStats.create({
-      data: { userId, ...statsData },
-    });
+        data: { userId, ...statsData },
+      });
 
   // ── 6. Return response (WITH githubUsername) ───────────────
   return NextResponse.json({

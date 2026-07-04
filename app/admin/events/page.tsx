@@ -1,11 +1,11 @@
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
-import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/8bit-button";
+import { redirect } from "next/navigation";
 import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { PixelStatTile } from "@/components/admin/PixelStatTile";
+import { Button } from "@/components/ui/8bit-button";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { canAccessAdmin } from "@/lib/roles";
 import { EventTable } from "./EventTable";
 
 export default async function AdminEventsPage() {
@@ -14,14 +14,22 @@ export default async function AdminEventsPage() {
 
   const events = await db.event.findMany({
     select: {
-      id: true, title: true, eventType: true, eventDate: true,
-      location: true, isPublished: true, audience: true, reviewStatus: true,
+      id: true,
+      title: true,
+      eventType: true,
+      eventDate: true,
+      location: true,
+      isPublished: true,
+      audience: true,
+      reviewStatus: true,
     },
     orderBy: { eventDate: "desc" },
   });
   const total = events.length;
   const published = events.filter((e) => e.isPublished).length;
-  const pendingReview = events.filter((e) => e.reviewStatus === "pending").length;
+  const pendingReview = events.filter(
+    (e) => e.reviewStatus === "pending",
+  ).length;
 
   return (
     <div className="space-y-8 p-8">
@@ -29,7 +37,11 @@ export default async function AdminEventsPage() {
         title="EVENT MANAGEMENT"
         subtitle="CS_EVENT_ARCHIVE"
         actions={
-          <Button asChild size="sm" className="text-[9px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black">
+          <Button
+            asChild
+            size="sm"
+            className="text-[9px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+          >
             <Link href="/admin/events/new">+ NEW EVENT</Link>
           </Button>
         }

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
-import { toast } from "@/components/ui/8bit-toast";
 import { useRouter } from "next/navigation";
-import { PixelSlider } from "@/components/ui/PixelSlider";
+import type React from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
+import { toast } from "@/components/ui/8bit-toast";
+import { PixelSlider } from "@/components/ui/PixelSlider";
 
 interface WeightFormProps {
   initialWeights: {
@@ -26,12 +27,16 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
   });
   // Open-source knobs are kept as raw input strings so the fields can be cleared
   // mid-edit without snapping to 0; they're parsed on submit.
-  const [minStars, setMinStars] = useState(String(initialWeights.ghOpenSourceMinStars));
-  const [perPr, setPerPr] = useState(String(initialWeights.ghOpenSourcePerPrPoints));
+  const [minStars, setMinStars] = useState(
+    String(initialWeights.ghOpenSourceMinStars),
+  );
+  const [perPr, setPerPr] = useState(
+    String(initialWeights.ghOpenSourcePerPrPoints),
+  );
   const router = useRouter();
 
   const total = parseFloat(
-    (weights.githubWeight + weights.lcWeight + weights.eventWeight).toFixed(2)
+    (weights.githubWeight + weights.lcWeight + weights.eventWeight).toFixed(2),
   );
   const isValid = Math.abs(total - 1.0) < 0.01;
 
@@ -62,7 +67,9 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
         router.refresh();
         toast.success("Weights saved");
       } catch (err) {
-        toast.error("Failed to save: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        toast.error(
+          "Failed to save: " + (err instanceof Error ? err.message : "UNKNOWN"),
+        );
       }
     });
   };
@@ -77,9 +84,10 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
         ].map((item) => (
           <div key={item.key} className="space-y-2">
             <div className="flex justify-between items-end">
-              <label className="retro text-[9px] uppercase tracking-widest text-zinc-500">
+              {/* Visual heading only — the slider itself carries the aria-label. */}
+              <span className="retro text-[9px] uppercase tracking-widest text-zinc-500">
                 {item.label}
-              </label>
+              </span>
               <span className="retro text-[9px] text-white">
                 {(weights[item.key] * 100).toFixed(0)}%
               </span>
@@ -87,9 +95,7 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
             <PixelSlider
               aria-label={item.label}
               value={Math.round(weights[item.key] * 100)}
-              onChange={(v) =>
-                setWeights({ ...weights, [item.key]: v / 100 })
-              }
+              onChange={(v) => setWeights({ ...weights, [item.key]: v / 100 })}
               min={0}
               max={100}
               step={1}
@@ -132,38 +138,45 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
             OPEN SOURCE · GITHUB
           </span>
           <p className="retro text-[8px] leading-relaxed text-zinc-600 uppercase tracking-widest">
-            Merged PRs to repos a member doesn&apos;t own. Boosts their GitHub score.
+            Merged PRs to repos a member doesn&apos;t own. Boosts their GitHub
+            score.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="retro text-[8px] uppercase tracking-widest text-zinc-500">
+            <label
+              htmlFor="os-min-stars"
+              className="retro text-[8px] uppercase tracking-widest text-zinc-500"
+            >
               MIN UPSTREAM STARS
             </label>
             <Input
+              id="os-min-stars"
               type="number"
               min={0}
               step={1}
               value={minStars}
               disabled={isPending}
               onChange={(e) => setMinStars(e.target.value)}
-              aria-label="Minimum upstream stars"
               className="text-[10px]"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="retro text-[8px] uppercase tracking-widest text-zinc-500">
+            <label
+              htmlFor="os-per-pr"
+              className="retro text-[8px] uppercase tracking-widest text-zinc-500"
+            >
               POINTS PER PR
             </label>
             <Input
+              id="os-per-pr"
               type="number"
               min={0}
               step={1}
               value={perPr}
               disabled={isPending}
               onChange={(e) => setPerPr(e.target.value)}
-              aria-label="Points per merged PR"
               className="text-[10px]"
             />
           </div>
@@ -179,7 +192,8 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
           {isPending ? "SAVING…" : "SAVE WEIGHTS"}
         </Button>
         <p className="retro text-[8px] text-zinc-600 text-center uppercase tracking-widest leading-relaxed">
-          Changing these triggers a full leaderboard recalculation on the next cron run.
+          Changing these triggers a full leaderboard recalculation on the next
+          cron run.
         </p>
       </div>
     </form>

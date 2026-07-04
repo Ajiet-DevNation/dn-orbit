@@ -128,11 +128,11 @@ The following variables must be configured in your `.env` file:
 - `NEXTAUTH_URL`: Canonical application URL.
 - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`: GitHub OAuth credentials.
 
-### Stats cron
+### Stats sync
 
-If you want GitHub Actions to refresh member stats and recompute the leaderboard, add these repository secrets:
-
-- `CRON_URL`: Public base URL of the deployed app, such as `https://your-app.vercel.app`.
-- `CRON_SECRET`: Shared secret sent to `/api/cron/stats-sync`.
-
-The cron refreshes GitHub stats, LeetCode stats, and then recomputes `leaderboard_scores`.
+Member stats (GitHub + LeetCode) and the leaderboard refresh on demand, not on
+a cron: a visit to the landing page fires `POST /api/sync`, which re-syncs the
+whole cohort and recomputes `leaderboard_scores` only when the last run is
+older than `SYNC_STALE_MINUTES` (default 15). A DB lock guarantees a single
+runner, so concurrent visitors — or curl — can't stampede the external APIs.
+No repository secrets or GitHub Actions required.

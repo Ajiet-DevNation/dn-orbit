@@ -1,10 +1,10 @@
 "use server";
 
-import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { revalidatePath } from "next/cache";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -67,16 +67,16 @@ export async function updateProfile(formData: FormData) {
     revalidatePath("/profile");
     revalidatePath("/members");
     revalidatePath("/", "layout");
-    
+
     // We return the updated fields so the client can call NextAuth's `update()` method
-    return { 
-      success: true, 
+    return {
+      success: true,
       user: {
         name: updatedUser.name,
         usn: updatedUser.usn,
         branch: updatedUser.branch,
         lcUsername: updatedUser.lcUsername,
-      } 
+      },
     };
   } catch (error: unknown) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -88,7 +88,8 @@ export async function updateProfile(formData: FormData) {
 
       if (error.code === "P2025") {
         return {
-          error: "Could not find your user record. Please sign out and sign in again.",
+          error:
+            "Could not find your user record. Please sign out and sign in again.",
         };
       }
     } else if (error instanceof Error) {
@@ -98,7 +99,10 @@ export async function updateProfile(formData: FormData) {
         stack: error.stack,
       });
 
-      if (error.message.includes("ETIMEDOUT") || error.message.includes("timed out")) {
+      if (
+        error.message.includes("ETIMEDOUT") ||
+        error.message.includes("timed out")
+      ) {
         return {
           error:
             "Database connection timed out. Please retry in a few seconds.",

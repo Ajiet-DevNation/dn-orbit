@@ -1,15 +1,12 @@
-import * as React from "react";
-
-import { type VariantProps, cva } from "class-variance-authority";
-
-import { cn } from "@/lib/utils";
-
+import { cva, type VariantProps } from "class-variance-authority";
+import type * as React from "react";
 import {
   Tabs as ShadcnTabs,
   TabsContent as ShadcnTabsContent,
   TabsList as ShadcnTabsList,
   TabsTrigger as ShadcnTabsTrigger,
 } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 export const tabsVariants = cva("", {
   variants: {
@@ -77,7 +74,7 @@ function TabsTrigger({
     <ShadcnTabsTrigger
       className={cn(
         "border-none data-[state=active]:bg-accent data-[state=active]:text-foreground text-muted-foreground rounded-none",
-        className
+        className,
       )}
       {...props}
     >
@@ -93,6 +90,6 @@ function TabsContent({
   return <ShadcnTabsContent className={cn("", className)} {...props} />;
 }
 
-export { Tabs, TabsList, TabsContent, TabsTrigger };
+export { Tabs, TabsContent, TabsList, TabsTrigger };
 
 export default Tabs;

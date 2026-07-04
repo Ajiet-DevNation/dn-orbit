@@ -1,7 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Progress } from "@/components/ui/8bit-progress";
+import {
+  shouldEmit,
+  snapToGrid,
+  TRAIL_MAX_AGE_MS,
+  TRAIL_MAX_PARTICLES,
+  type TrailParticle,
+  trailAlpha,
+  trailSize,
+} from "@/lib/orbit-trail";
 import { cn } from "@/lib/utils";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
@@ -42,6 +51,22 @@ const ORBIT_RY = 135;
 const PLANET_ICON_SIZE = 55;
 const ORBIT_TILT = -Math.PI / 6;
 
+// ── 8-bit ghost trail ────────────────────────────────────────────────────────
+// Chunky grid-snapped squares left behind whenever a planet moves meaningfully
+// faster than its calm orbit — drag-flings, the shatter scatter, and the reform
+// pull-in (see lib/orbit-trail.ts for the emission/decay math). Colors match
+// each planet's brand glow.
+
+const PLANET_KEYS = ["github", "leetcode", "linkedin"] as const;
+type PlanetKey = (typeof PLANET_KEYS)[number];
+
+const TRAIL_CELL = 8;
+const TRAIL_COLORS: Record<PlanetKey, string> = {
+  github: "163, 113, 247",
+  leetcode: "255, 161, 22",
+  linkedin: "56, 189, 248",
+};
+
 // ─── SVG Icon Paths ──────────────────────────────────────────────────────────
 
 function GitHubIcon({ size }: { size: number }) {
@@ -53,6 +78,7 @@ function GitHubIcon({ size }: { size: number }) {
       viewBox="0 0 24 24"
       fill="currentColor"
       className="text-[#a371f7] drop-shadow-[0_0_8px_rgba(163,113,247,0.8)]"
+      aria-hidden="true"
     >
       <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
     </svg>
@@ -68,6 +94,7 @@ function LeetCodeIcon({ size }: { size: number }) {
       viewBox="0 0 24 24"
       fill="currentColor"
       className="text-[#FFA116] drop-shadow-[0_0_8px_rgba(255,161,22,0.8)]"
+      aria-hidden="true"
     >
       <path d="M13.483 0a1.374 1.374 0 0 0-.961.438L7.116 6.226l-3.854 4.126a5.266 5.266 0 0 0-1.209 2.104 5.35 5.35 0 0 0-.125.513 5.527 5.527 0 0 0 .062 2.362 5.83 5.83 0 0 0 .349 1.017 5.938 5.938 0 0 0 1.271 1.818l4.277 4.193.039.038c2.248 2.165 5.852 2.133 8.063-.074l2.396-2.392c.54-.54.54-1.414.003-1.955a1.378 1.378 0 0 0-1.951-.003l-2.396 2.392a3.021 3.021 0 0 1-4.205.038l-.02-.019-4.276-4.193c-.652-.64-.972-1.469-.948-2.263a2.68 2.68 0 0 1 .066-.523 2.545 2.545 0 0 1 .619-1.164L9.13 8.114c1.058-1.134 3.204-1.27 4.43-.278l3.501 2.831c.593.48 1.461.387 1.94-.207a1.384 1.384 0 0 0-.207-1.943l-3.5-2.831c-.8-.647-1.766-1.045-2.774-1.202l2.015-2.158A1.384 1.384 0 0 0 13.483 0zm-2.866 12.815a1.38 1.38 0 0 0-1.38 1.382 1.38 1.38 0 0 0 1.38 1.382H20.79a1.38 1.38 0 0 0 1.38-1.382 1.38 1.38 0 0 0-1.38-1.382z" />
     </svg>
@@ -83,6 +110,7 @@ function LinkedInIcon({ size }: { size: number }) {
       viewBox="0 0 24 24"
       fill="currentColor"
       className="text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]"
+      aria-hidden="true"
     >
       <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
     </svg>
@@ -107,7 +135,7 @@ type AnimationPhase = "drawing" | "orbiting";
 // Gentle deceleration — fast start, soft landing. Used for the JS-driven hero
 // reveal so it reads as a smooth fade-and-settle rather than a linear ramp.
 function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3);
+  return 1 - (1 - t) ** 3;
 }
 
 function extractPixelBlocks(imageData: ImageData): PixelBlock[] {
@@ -119,7 +147,7 @@ function extractPixelBlocks(imageData: ImageData): PixelBlock[] {
       const sampleX = Math.min(x + Math.floor(BLOCK_SIZE / 2), width - 1);
       const sampleY = Math.min(
         y + Math.floor(BLOCK_SIZE / 2),
-        imageData.height - 1
+        imageData.height - 1,
       );
       const idx = (sampleY * width + sampleX) * 4;
 
@@ -151,7 +179,9 @@ interface PixelLoadingScreenProps {
   mode?: "loading" | "hero";
 }
 
-export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps) {
+export function PixelLoadingScreen({
+  mode = "loading",
+}: PixelLoadingScreenProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [phase, setPhase] = useState<AnimationPhase>("drawing");
   const [drawProgress, setDrawProgress] = useState(mode === "hero" ? 100 : 0);
@@ -166,7 +196,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   const [orbitProgress, setOrbitProgress] = useState(mode === "hero" ? 0 : 1);
   const heroAnimRef = useRef<number>(0);
   const orbitAnimRef = useRef<number>(0);
-  
+
   // Directly tied into the JSX to prevent unused variable linter errors
   const [isMounted, setIsMounted] = useState(false);
 
@@ -196,20 +226,43 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       github: { x: 0, y: 0, vx: 0, vy: 0, scale: 1, z: 0 },
       leetcode: { x: 0, y: 0, vx: 0, vy: 0, scale: 1, z: 0 },
       linkedin: { x: 0, y: 0, vx: 0, vy: 0, scale: 1, z: 0 },
-    }
+    },
   });
 
   const [shattered, setShattered] = useState(false);
   const [flashActive, setFlashActive] = useState(false);
 
+  // Trail state lives in refs — the physics rAF writes it, the ring-canvas rAF
+  // reads it, and React never needs to re-render for a particle.
+  const trailsRef = useRef<Record<PlanetKey, TrailParticle[]>>({
+    github: [],
+    leetcode: [],
+    linkedin: [],
+  });
+  const lastTrailPosRef = useRef<
+    Record<PlanetKey, { x: number; y: number } | null>
+  >({ github: null, leetcode: null, linkedin: null });
+  // Decorative motion: honor prefers-reduced-motion by simply never emitting.
+  const reducedMotionRef = useRef(false);
+  useEffect(() => {
+    reducedMotionRef.current =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  }, []);
+
   // ── Synthetic Audio Generator (Web Audio API) ─────────────────────────────
-  
+
   const playFlashSound = useCallback(() => {
     if (typeof window === "undefined") return;
     // Respect reduced-motion: skip the synthesized audio "flash".
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     try {
-      const AudioContext = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext;
+      const AudioContext =
+        window.AudioContext ||
+        (
+          window as typeof window & {
+            webkitAudioContext?: typeof window.AudioContext;
+          }
+        ).webkitAudioContext;
       if (!AudioContext) return;
       const ctx = new AudioContext();
 
@@ -254,7 +307,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
     (
       durationMs: number,
       setValue: (v: number) => void,
-      frameRef: React.MutableRefObject<number>
+      frameRef: React.MutableRefObject<number>,
     ) => {
       const start = performance.now();
       const tick = (now: number) => {
@@ -267,14 +320,14 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       };
       frameRef.current = requestAnimationFrame(tick);
     },
-    []
+    [],
   );
 
   // ── Phase 1: Pixel-by-pixel logo drawing ──────────────────────────────────
 
   const drawLogo = useCallback(() => {
     const img = new Image();
-    
+
     img.onload = () => {
       if (!isMountedRef.current) return;
 
@@ -286,7 +339,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
       const scale = Math.min(
         CANVAS_SIZE / img.naturalWidth,
-        CANVAS_SIZE / img.naturalHeight
+        CANVAS_SIZE / img.naturalHeight,
       );
       const drawW = img.naturalWidth * scale;
       const drawH = img.naturalHeight * scale;
@@ -300,7 +353,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       const blocks = extractPixelBlocks(imageData);
 
       if (mode === "hero") {
-        const ctx = canvasRef.current?.getContext("2d", { willReadFrequently: true });
+        const ctx = canvasRef.current?.getContext("2d", {
+          willReadFrequently: true,
+        });
         if (ctx) {
           ctx.imageSmoothingEnabled = false;
           for (let i = 0; i < blocks.length; i++) {
@@ -336,10 +391,15 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         }
 
         if (canvasRef.current) {
-          const ctx = canvasRef.current.getContext("2d", { willReadFrequently: true });
+          const ctx = canvasRef.current.getContext("2d", {
+            willReadFrequently: true,
+          });
           if (ctx) {
             ctx.imageSmoothingEnabled = false;
-            const end = Math.min(currentBlock + BLOCKS_PER_FRAME, blocks.length);
+            const end = Math.min(
+              currentBlock + BLOCKS_PER_FRAME,
+              blocks.length,
+            );
             for (let i = currentBlock; i < end; i++) {
               const block = blocks[i];
               ctx.fillStyle = `rgba(${block.r}, ${block.g}, ${block.b}, ${block.a / 255})`;
@@ -349,7 +409,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
           }
         }
 
-        const raw = Math.floor((currentBlock / Math.max(blocks.length, 1)) * 100);
+        const raw = Math.floor(
+          (currentBlock / Math.max(blocks.length, 1)) * 100,
+        );
         setDrawProgress(Math.floor(raw / 5) * 5);
         animFrameRef.current = requestAnimationFrame(animate);
       };
@@ -414,6 +476,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
     // the shatter/reform beat (when opacity & scale animate).
     let lastOpacity = Number.NaN;
     let lastScale = Number.NaN;
+    // Trails invalidate the cache too: redraw every frame while any particle is
+    // alive, plus one final frame after the last one expires to clear it.
+    let lastTrailsAlive = false;
 
     const drawOrbitRing = () => {
       const w = backCanvas.width;
@@ -432,31 +497,47 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
           ringOpacity = 0;
         } else {
           const progress = Math.min((timeSinceShatter - 6000) / 11000, 1);
-          const easeOut = 1 - Math.pow(1 - progress, 3);
+          const easeOut = 1 - (1 - progress) ** 3;
           ringOpacity = progress;
           ringScale = 0.8 + 0.2 * easeOut;
         }
       }
 
+      // Drop expired trail particles once per frame (buffers are append-only,
+      // so the oldest particle sits at index 0).
+      for (const k of PLANET_KEYS) {
+        const buf = trailsRef.current[k];
+        if (buf.length && now - buf[0].bornAt >= TRAIL_MAX_AGE_MS) {
+          trailsRef.current[k] = buf.filter(
+            (p) => now - p.bornAt < TRAIL_MAX_AGE_MS,
+          );
+        }
+      }
+      const trailsAlive = PLANET_KEYS.some(
+        (k) => trailsRef.current[k].length > 0,
+      );
+
       // Nothing visibly changed since the last stroke → don't touch the canvas.
-      if (ringOpacity === lastOpacity && ringScale === lastScale) {
+      if (
+        ringOpacity === lastOpacity &&
+        ringScale === lastScale &&
+        !trailsAlive &&
+        !lastTrailsAlive
+      ) {
         frame = requestAnimationFrame(drawOrbitRing);
         return;
       }
       lastOpacity = ringOpacity;
       lastScale = ringScale;
+      lastTrailsAlive = trailsAlive;
 
       const bctx = backCanvas.getContext("2d");
       const fctx = frontCanvas.getContext("2d");
 
-      if (ringOpacity <= 0) {
-        if (bctx) bctx.clearRect(0, 0, w, h);
-        if (fctx) fctx.clearRect(0, 0, w, h);
-        frame = requestAnimationFrame(drawOrbitRing);
-        return;
-      }
-
-      const drawSaturnRing = (ctx: CanvasRenderingContext2D, isBack: boolean) => {
+      const drawSaturnRing = (
+        ctx: CanvasRenderingContext2D,
+        isBack: boolean,
+      ) => {
         const startAngle = isBack ? Math.PI : 0;
         const endAngle = isBack ? 2 * Math.PI : Math.PI;
 
@@ -471,13 +552,29 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
         // Slightly thicker ring for more presence.
         ctx.beginPath();
-        ctx.ellipse(cx, cy, ORBIT_RX, ORBIT_RY, ORBIT_TILT, startAngle, endAngle);
+        ctx.ellipse(
+          cx,
+          cy,
+          ORBIT_RX,
+          ORBIT_RY,
+          ORBIT_TILT,
+          startAngle,
+          endAngle,
+        );
         ctx.strokeStyle = `rgba(34, 197, 94, ${(isBack ? 0.22 : 0.45) * ringOpacity})`;
         ctx.lineWidth = 6;
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.ellipse(cx, cy, ORBIT_RX, ORBIT_RY, ORBIT_TILT, startAngle, endAngle);
+        ctx.ellipse(
+          cx,
+          cy,
+          ORBIT_RX,
+          ORBIT_RY,
+          ORBIT_TILT,
+          startAngle,
+          endAngle,
+        );
         ctx.strokeStyle = `rgba(255, 255, 255, ${(isBack ? 0.12 : 0.32) * ringOpacity})`;
         ctx.lineWidth = 2.5;
         ctx.stroke();
@@ -485,14 +582,42 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         ctx.restore();
       };
 
+      // Ghost squares, split across the two canvases so a trail laid on the far
+      // side of the ring stays behind the logo, like the planets themselves.
+      // Deliberately NOT scaled by ringOpacity: during the shatter beat the
+      // ring fades out but the flung planets (and their trails) stay visible.
+      const drawTrails = (ctx: CanvasRenderingContext2D, isBack: boolean) => {
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        for (const k of PLANET_KEYS) {
+          for (const p of trailsRef.current[k]) {
+            if (p.back !== isBack) continue;
+            const age = now - p.bornAt;
+            const alpha = trailAlpha(age);
+            if (alpha <= 0) continue;
+            const size = trailSize(age, TRAIL_CELL);
+            ctx.fillStyle = `rgba(${TRAIL_COLORS[k]}, ${alpha})`;
+            ctx.fillRect(
+              snapToGrid(cx + p.x, TRAIL_CELL) - size / 2,
+              snapToGrid(cy + p.y, TRAIL_CELL) - size / 2,
+              size,
+              size,
+            );
+          }
+        }
+        ctx.restore();
+      };
+
       if (bctx) {
         bctx.clearRect(0, 0, w, h);
-        drawSaturnRing(bctx, true);
+        if (ringOpacity > 0) drawSaturnRing(bctx, true);
+        drawTrails(bctx, true);
       }
 
       if (fctx) {
         fctx.clearRect(0, 0, w, h);
-        drawSaturnRing(fctx, false);
+        if (ringOpacity > 0) drawSaturnRing(fctx, false);
+        drawTrails(fctx, false);
       }
 
       frame = requestAnimationFrame(drawOrbitRing);
@@ -525,7 +650,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         // Frame-rate-independent return to the resting spin (1×). Normalising the
         // old fixed 0.05-per-frame factor to the real frame delta keeps the
         // settle identical on 60Hz and 120Hz displays instead of twice as fast.
-        const returnK = 1 - Math.pow(1 - 0.05, Math.min(delta, 50) / (1000 / 60));
+        const returnK = 1 - (1 - 0.05) ** (Math.min(delta, 50) / (1000 / 60));
         phys.spinVelocity += (1 - phys.spinVelocity) * returnK;
 
         let currentSpin = phys.spinVelocity;
@@ -534,7 +659,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
           const timeSinceShatter = now - phys.shatterStartTime;
           if (timeSinceShatter > 6000 && timeSinceShatter < 17000) {
             const reformProgress = (timeSinceShatter - 6000) / 11000;
-            const extraSpin = Math.pow(1 - reformProgress, 2) * 12; 
+            const extraSpin = (1 - reformProgress) ** 2 * 12;
             currentSpin += extraSpin;
           }
         }
@@ -543,7 +668,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       }
 
       const calcPos = (period: number, offset: number) => {
-        const angle = ((phys.accumulatedTime / period) * Math.PI * 2 + offset) % (Math.PI * 2);
+        const angle =
+          ((phys.accumulatedTime / period) * Math.PI * 2 + offset) %
+          (Math.PI * 2);
         const unX = ORBIT_RX * Math.cos(angle);
         const unY = ORBIT_RY * Math.sin(angle);
         const x = unX * Math.cos(ORBIT_TILT) - unY * Math.sin(ORBIT_TILT);
@@ -566,14 +693,15 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
           phys.isShattered = false;
           setShattered(false);
           setPlanetPositions(targetPositions);
-          
-          setFlashActive(true);
-          playFlashSound(); 
-          setTimeout(() => setFlashActive(false), 50);
 
+          setFlashActive(true);
+          playFlashSound();
+          setTimeout(() => setFlashActive(false), 50);
         } else {
           const isReforming = timeSinceShatter > 6000;
-          const reformProgress = isReforming ? (timeSinceShatter - 6000) / 11000 : 0;
+          const reformProgress = isReforming
+            ? (timeSinceShatter - 6000) / 11000
+            : 0;
 
           Object.keys(phys.particles).forEach((key, index) => {
             const k = key as keyof typeof phys.particles;
@@ -586,7 +714,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
               const dist = Math.sqrt(p.x * p.x + p.y * p.y) || 1;
 
-              const pushStrength = 0.04 * (1 - timeSinceShatter / 6000); 
+              const pushStrength = 0.04 * (1 - timeSinceShatter / 6000);
               p.vx += (p.x / dist) * pushStrength;
               p.vy += (p.y / dist) * pushStrength;
 
@@ -620,14 +748,13 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
 
               p.scale += (1 - p.scale) * 0.02;
               p.z += (0 - p.z) * 0.02;
-
             } else {
               p.vx *= 0.85;
               p.vy *= 0.85;
               p.x += p.vx;
               p.y += p.vy;
 
-              const pullStrength = 0.005 + Math.pow(reformProgress, 2) * 0.20; 
+              const pullStrength = 0.005 + reformProgress ** 2 * 0.2;
               p.x += (t.x - p.x) * pullStrength;
               p.y += (t.y - p.y) * pullStrength;
               p.z += (t.z - p.z) * pullStrength;
@@ -639,6 +766,26 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         }
       } else {
         setPlanetPositions(targetPositions);
+      }
+
+      // Trail emission — a planet leaves ghost blocks only while moving
+      // meaningfully faster than the calm orbit, which naturally covers the
+      // drag-fling, the shatter scatter, and the reform pull-in.
+      const current = phys.isShattered ? phys.particles : targetPositions;
+      if (!reducedMotionRef.current) {
+        for (const k of PLANET_KEYS) {
+          const pos = current[k];
+          const last = lastTrailPosRef.current[k];
+          if (
+            last &&
+            shouldEmit(Math.hypot(pos.x - last.x, pos.y - last.y), delta)
+          ) {
+            const buf = trailsRef.current[k];
+            buf.push({ x: pos.x, y: pos.y, bornAt: now, back: pos.z <= 0 });
+            if (buf.length > TRAIL_MAX_PARTICLES) buf.shift();
+          }
+          lastTrailPosRef.current[k] = { x: pos.x, y: pos.y };
+        }
       }
 
       frame = requestAnimationFrame(updatePositions);
@@ -654,10 +801,10 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
     const phys = physics.current;
     phys.isShattered = true;
     phys.shatterStartTime = performance.now();
-    hasShatteredRef.current = true; 
+    hasShatteredRef.current = true;
     setShattered(true);
 
-    const speed = Math.min(Math.abs(phys.spinVelocity), 40); 
+    const speed = Math.min(Math.abs(phys.spinVelocity), 40);
     const dir = Math.sign(phys.spinVelocity) || 1;
 
     setPlanetPositions((prev) => {
@@ -665,19 +812,19 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       keys.forEach((k) => {
         const pos = prev[k];
         const angle = Math.atan2(pos.y, pos.x);
-        
-        const tangent = angle + (dir * Math.PI / 2);
-        
+
+        const tangent = angle + (dir * Math.PI) / 2;
+
         phys.particles[k] = {
           x: pos.x,
           y: pos.y,
           vx: (Math.cos(tangent) * 0.5 + Math.cos(angle) * 1.5) * speed * 0.4,
-          vy: (Math.sin(tangent) * 0.5 + Math.sin(angle) * 1.5) * speed * 0.4, 
+          vy: (Math.sin(tangent) * 0.5 + Math.sin(angle) * 1.5) * speed * 0.4,
           scale: pos.scale,
-          z: pos.z
+          z: pos.z,
         };
       });
-      return { ...phys.particles }; 
+      return { ...phys.particles };
     });
   }, []);
 
@@ -685,11 +832,16 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
     if (physics.current.isShattered || phase !== "orbiting") return;
     physics.current.isDragging = true;
     physics.current.lastMouseY = e.clientY;
-    physics.current.spinVelocity = 0; 
+    physics.current.spinVelocity = 0;
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!physics.current.isDragging || physics.current.isShattered || phase !== "orbiting") return;
+    if (
+      !physics.current.isDragging ||
+      physics.current.isShattered ||
+      phase !== "orbiting"
+    )
+      return;
 
     const deltaY = e.clientY - physics.current.lastMouseY;
     physics.current.lastMouseY = e.clientY;
@@ -721,7 +873,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   };
 
   // ── Computed values ───────────────────────────────────────────────────────
-  
+
   const showOrbit = phase === "orbiting";
   // The progress bar is a loading affordance only — the landing-page hero must
   // never flash "LOADING…" while its entrance plays out.
@@ -761,7 +913,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
   // Loading overlay has no header, so push its logo down by the header height to
   // align with where the hero logo lands once the header is present.
   const contentOffsetY =
-    mode === "loading" ? LOGO_BASE_OFFSET_Y + HEADER_OFFSET : LOGO_BASE_OFFSET_Y;
+    mode === "loading"
+      ? LOGO_BASE_OFFSET_Y + HEADER_OFFSET
+      : LOGO_BASE_OFFSET_Y;
 
   return (
     <div className={wrapperClass}>
@@ -786,7 +940,8 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
       <div
         className="pointer-events-none absolute inset-0 z-[5] opacity-40"
         style={{
-          background: "radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 60%)",
+          background:
+            "radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 60%)",
         }}
       />
 
@@ -796,15 +951,20 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         style={{
           transform: `translateY(${contentOffsetY}px)`,
           opacity: flashActive ? 1 : 0,
-          transition: flashActive ? "none" : "opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1)",
+          transition: flashActive
+            ? "none"
+            : "opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
         <div
           className="w-[800px] h-[300px] rounded-[100%]"
           style={{
-            background: "radial-gradient(ellipse at center, rgba(255,255,255,1) 0%, rgba(34,197,94,0.6) 30%, transparent 70%)",
+            background:
+              "radial-gradient(ellipse at center, rgba(255,255,255,1) 0%, rgba(34,197,94,0.6) 30%, transparent 70%)",
             transform: `rotate(${ORBIT_TILT}rad) scale(${flashActive ? 0.5 : 1.2})`,
-            transition: flashActive ? "none" : "transform 1.5s cubic-bezier(0.16, 1, 0.3, 1)",
+            transition: flashActive
+              ? "none"
+              : "transform 1.5s cubic-bezier(0.16, 1, 0.3, 1)",
             filter: "blur(20px)",
             mixBlendMode: "screen",
           }}
@@ -815,24 +975,24 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         className="relative z-10 flex w-full max-w-[700px] flex-col items-center"
         style={{ transform: `translateY(${contentOffsetY}px)` }}
       >
-        
-        <div 
+        <div
           role="application"
           aria-label="Interactive Orbit Physics Canvas"
           tabIndex={0}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+            if (e.key === "Enter" || e.key === " ") e.preventDefault();
           }}
           className={cn(
             "relative w-full aspect-square flex items-center justify-center focus:outline-none",
-            !shattered && phase === "orbiting" && "cursor-grab active:cursor-grabbing"
+            !shattered &&
+              phase === "orbiting" &&
+              "cursor-grab active:cursor-grabbing",
           )}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          
           {showOrbit && (
             <canvas
               ref={orbitCanvasBackRef}
@@ -901,7 +1061,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   top: `calc(50% + ${(planetPositions.github.y / CANVAS_SIZE) * 100}%)`,
                   transform: `translate(-50%, -50%) scale(${planetPositions.github.scale})`,
                   zIndex: planetPositions.github.z > 0 ? 30 : 5,
-                  opacity: orbitReveal * (0.6 + 0.4 * ((planetPositions.github.z + 1) / 2)),
+                  opacity:
+                    orbitReveal *
+                    (0.6 + 0.4 * ((planetPositions.github.z + 1) / 2)),
                   transition: planetRevealTransition,
                 }}
               >
@@ -909,6 +1071,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   href="https://github.com/Ajiet-DevNation"
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="DevNation on GitHub"
                   draggable={false}
                   onDragStart={(e) => e.preventDefault()}
                   className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out hover:scale-[1.45]"
@@ -929,7 +1092,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   top: `calc(50% + ${(planetPositions.leetcode.y / CANVAS_SIZE) * 100}%)`,
                   transform: `translate(-50%, -50%) scale(${planetPositions.leetcode.scale})`,
                   zIndex: planetPositions.leetcode.z > 0 ? 30 : 5,
-                  opacity: orbitReveal * (0.6 + 0.4 * ((planetPositions.leetcode.z + 1) / 2)),
+                  opacity:
+                    orbitReveal *
+                    (0.6 + 0.4 * ((planetPositions.leetcode.z + 1) / 2)),
                   transition: planetRevealTransition,
                 }}
               >
@@ -937,6 +1102,7 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   href="https://leetcode.com/"
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="LeetCode"
                   draggable={false}
                   onDragStart={(e) => e.preventDefault()}
                   className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out hover:scale-[1.45]"
@@ -957,19 +1123,22 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
                   top: `calc(50% + ${(planetPositions.linkedin.y / CANVAS_SIZE) * 100}%)`,
                   transform: `translate(-50%, -50%) scale(${planetPositions.linkedin.scale})`,
                   zIndex: planetPositions.linkedin.z > 0 ? 30 : 5,
-                  opacity: orbitReveal * (0.6 + 0.4 * ((planetPositions.linkedin.z + 1) / 2)),
+                  opacity:
+                    orbitReveal *
+                    (0.6 + 0.4 * ((planetPositions.linkedin.z + 1) / 2)),
                   transition: planetRevealTransition,
                 }}
               >
-              <a
-                href="https://www.linkedin.com/company/devnationajiet/"
-                target="_blank"
-                rel="noopener noreferrer"
-                draggable={false}
-                onDragStart={(e) => e.preventDefault()}
-                className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 hover:scale-[1.7]"
-              >
-                <LinkedInIcon size={PLANET_ICON_SIZE * 0.85} />
+                <a
+                  href="https://www.linkedin.com/company/devnationajiet/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="DevNation on LinkedIn"
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 hover:scale-[1.7]"
+                >
+                  <LinkedInIcon size={PLANET_ICON_SIZE * 0.85} />
                 </a>
               </div>
             </>
@@ -979,19 +1148,20 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         <div
           className={cn(
             "mt-8 flex w-full max-w-xs flex-col items-center gap-4 retro",
-            "dark"
+            "dark",
           )}
           style={{
             opacity: isMounted && showProgress ? 1 : 0,
-            transform: isMounted && showProgress ? "translateY(0) scale(1)" : "translateY(16px) scale(0.95)",
+            transform:
+              isMounted && showProgress
+                ? "translateY(0) scale(1)"
+                : "translateY(16px) scale(0.95)",
             filter: isMounted && showProgress ? "blur(0)" : "blur(4px)",
             transition: "all 600ms cubic-bezier(0.16, 1, 0.3, 1)",
             pointerEvents: showProgress ? "auto" : "none",
           }}
         >
-          <p
-            className="text-[10px] uppercase tracking-widest text-accent pixel-pulse-text"
-          >
+          <p className="text-[10px] uppercase tracking-widest text-accent pixel-pulse-text">
             LOADING...
           </p>
 
@@ -1011,7 +1181,10 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
         </div>
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: static keyframe CSS string, no user input
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes pixel-pulse {
           0%, 49% { opacity: 1; }
           50%, 100% { opacity: 0.3; }
@@ -1020,7 +1193,9 @@ export function PixelLoadingScreen({ mode = "loading" }: PixelLoadingScreenProps
           animation: pixel-pulse 1.5s step-end infinite;
           text-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
         }
-      ` }} />
+      `,
+        }}
+      />
     </div>
   );
 }

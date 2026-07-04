@@ -1,9 +1,12 @@
 "use client";
 
-import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import {
+  type PixelColumn,
+  PixelDataTable,
+} from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
-import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
 
 interface RosterEntry {
   id: string;
@@ -43,7 +46,10 @@ export default function EventRosterClient({
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
       } catch (err) {
-        toast.error("Attendance update failed: " + (err instanceof Error ? err.message : "unknown"));
+        toast.error(
+          "Attendance update failed: " +
+            (err instanceof Error ? err.message : "unknown"),
+        );
       }
     });
   };
@@ -52,19 +58,37 @@ export default function EventRosterClient({
     Array.isArray(v) ? v.join(", ") : v == null ? "—" : String(v);
 
   const columns: PixelColumn<RosterEntry>[] = [
-    { key: "name", header: "NAME", render: (r) => <span className="text-white">{r.name}</span> },
-    { key: "email", header: "EMAIL", render: (r) => <span className="text-white/70">{r.email}</span> },
-    { key: "usn", header: "USN", render: (r) => <span className="text-white/70">{r.usn}</span> },
-    ...formFields.map((f): PixelColumn<RosterEntry> => ({
-      key: `resp_${f.id}`,
-      header: f.label.toUpperCase(),
-      render: (r) => <span className="text-white/70">{fmtValue(r.responses[f.id])}</span>,
-    })),
+    {
+      key: "name",
+      header: "NAME",
+      render: (r) => <span className="text-white">{r.name}</span>,
+    },
+    {
+      key: "email",
+      header: "EMAIL",
+      render: (r) => <span className="text-white/70">{r.email}</span>,
+    },
+    {
+      key: "usn",
+      header: "USN",
+      render: (r) => <span className="text-white/70">{r.usn}</span>,
+    },
+    ...formFields.map(
+      (f): PixelColumn<RosterEntry> => ({
+        key: `resp_${f.id}`,
+        header: f.label.toUpperCase(),
+        render: (r) => (
+          <span className="text-white/70">{fmtValue(r.responses[f.id])}</span>
+        ),
+      }),
+    ),
     {
       key: "status",
       header: "STATUS",
       render: (r) => (
-        <span className={`retro inline-block border-2 px-2 py-1 text-[8px] ${r.attended ? "border-[#22c55e] text-[#22c55e]" : "border-white/15 text-zinc-500"}`}>
+        <span
+          className={`retro inline-block border-2 px-2 py-1 text-[8px] ${r.attended ? "border-[#22c55e] text-[#22c55e]" : "border-white/15 text-zinc-500"}`}
+        >
           {r.attended ? "ATTENDED" : "ABSENT"}
         </span>
       ),
@@ -99,7 +123,11 @@ export default function EventRosterClient({
           ↓ EXPORT CSV
         </a>
       </div>
-      <PixelDataTable data={registrations} columns={columns} empty="NO REGISTRATIONS YET" />
+      <PixelDataTable
+        data={registrations}
+        columns={columns}
+        empty="NO REGISTRATIONS YET"
+      />
     </div>
   );
 }

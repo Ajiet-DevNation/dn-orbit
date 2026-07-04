@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { submitOnboarding } from "@/app/actions/onboarding";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useState } from "react";
+import { submitOnboarding } from "@/app/actions/onboarding";
+import { LeetCodeConnect } from "@/components/home/LeetCodeConnect";
 import { Button } from "@/components/ui/8bit-button";
 import {
   Card,
@@ -14,10 +15,15 @@ import {
 } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
-import { LeetCodeConnect } from "@/app/(main)/_sections/LeetCodeConnect";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/8bit-select";
-import { PixelStarsBackground } from "@/components/ui/PixelStarsBackground";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/8bit-select";
 import { toast } from "@/components/ui/8bit-toast";
+import { PixelStarsBackground } from "@/components/ui/PixelStarsBackground";
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
@@ -57,14 +63,21 @@ function SuccessOverlay() {
         }}
       />
       <div className="relative z-10 text-center space-y-6">
-        <div className="w-3 h-3 bg-emerald-500 mx-auto" style={{ animation: "pixel-pulse 1.5s step-end infinite", boxShadow: "0 0 12px rgba(16,185,129,0.8)" }} />
+        <div
+          className="w-3 h-3 bg-emerald-500 mx-auto"
+          style={{
+            animation: "pixel-pulse 1.5s step-end infinite",
+            boxShadow: "0 0 12px rgba(16,185,129,0.8)",
+          }}
+        />
         <h2 className="text-3xl md:text-5xl uppercase text-white drop-shadow-[0_4px_0_rgba(255,255,255,0.2)] leading-relaxed">
           PROFILE
           <br />
           COMMITTED
         </h2>
-        <p className="text-xs text-emerald-500 tracking-widest uppercase opacity-80"
-           style={{ animation: "pixel-pulse 1.5s step-end infinite" }}
+        <p
+          className="text-xs text-emerald-500 tracking-widest uppercase opacity-80"
+          style={{ animation: "pixel-pulse 1.5s step-end infinite" }}
         >
           &gt; UPLINK_SUCCESS · REDIRECTING
         </p>
@@ -137,8 +150,17 @@ export default function OnboardingPage() {
         <Card>
           <CardHeader className="p-6 pb-2 flex flex-col items-center text-center space-y-0">
             <div className="flex items-center justify-center gap-2">
-              <Image src="/assets/DNLogoTransparent.png" alt="DN Logo" width={84} height={84} priority className="w-[84px] h-[84px] pixelated drop-shadow-md" />
-              <div className="font-black text-[32px] tracking-widest uppercase mt-1">ORBIT</div>
+              <Image
+                src="/assets/DNLogoTransparent.png"
+                alt="DN Logo"
+                width={84}
+                height={84}
+                priority
+                className="w-[84px] h-[84px] pixelated drop-shadow-md"
+              />
+              <div className="font-black text-[32px] tracking-widest uppercase mt-1">
+                ORBIT
+              </div>
             </div>
             <CardTitle className="text-2xl leading-tight uppercase">
               CREATE YOUR PROFILE
@@ -164,7 +186,12 @@ export default function OnboardingPage() {
 
               <div className="space-y-5">
                 <div className="grid gap-3">
-                  <Label htmlFor="name" className="text-[10px] text-muted-foreground uppercase tracking-widest">FULL_NAME</Label>
+                  <Label
+                    htmlFor="name"
+                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
+                  >
+                    FULL_NAME
+                  </Label>
                   <Input
                     id="name"
                     placeholder="YOUR NAME"
@@ -174,11 +201,20 @@ export default function OnboardingPage() {
                     }
                     className={`text-xs ${fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   />
-                  {fieldErrors.name && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.name}</p>}
+                  {fieldErrors.name && (
+                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">
+                      {fieldErrors.name}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid gap-3">
-                  <Label htmlFor="usn" className="text-[10px] text-muted-foreground uppercase tracking-widest">USN</Label>
+                  <Label
+                    htmlFor="usn"
+                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
+                  >
+                    USN
+                  </Label>
                   <Input
                     id="usn"
                     placeholder="4AL22CS001"
@@ -188,13 +224,24 @@ export default function OnboardingPage() {
                     }
                     className={`text-xs uppercase ${fieldErrors.usn ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   />
-                  {fieldErrors.usn && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.usn}</p>}
+                  {fieldErrors.usn && (
+                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">
+                      {fieldErrors.usn}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid gap-3">
-                  <Label htmlFor="branch" className="text-[10px] text-muted-foreground uppercase tracking-widest">DOMAIN</Label>
+                  <Label
+                    htmlFor="branch"
+                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
+                  >
+                    DOMAIN
+                  </Label>
                   <Select value={branch} onValueChange={setBranch}>
-                    <SelectTrigger className={`w-full ${fieldErrors.branch ? "border-destructive" : ""}`}>
+                    <SelectTrigger
+                      className={`w-full ${fieldErrors.branch ? "border-destructive" : ""}`}
+                    >
                       <SelectValue placeholder="SELECT" />
                     </SelectTrigger>
                     <SelectContent>
@@ -208,11 +255,17 @@ export default function OnboardingPage() {
                       <SelectItem value="CSD">CSD</SelectItem>
                     </SelectContent>
                   </Select>
-                  {fieldErrors.branch && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.branch}</p>}
+                  {fieldErrors.branch && (
+                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">
+                      {fieldErrors.branch}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid gap-3">
-                  <Label className="text-[10px] text-muted-foreground uppercase tracking-widest">YEAR</Label>
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                    YEAR
+                  </Label>
                   <div className="grid grid-cols-4 gap-3">
                     {["1", "2", "3", "4"].map((y) => (
                       <Button
@@ -220,20 +273,28 @@ export default function OnboardingPage() {
                         type="button"
                         variant={year === y ? "default" : "outline"}
                         onClick={() => setYear(y)}
-                        className={`py-3 text-xs rounded-none h-auto transition-all ${year === y
-                          ? "bg-white text-black dark:bg-white dark:text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.5)] translate-y-1"
-                          : "opacity-50 hover:opacity-100"
-                          }`}
+                        className={`py-3 text-xs rounded-none h-auto transition-all ${
+                          year === y
+                            ? "bg-white text-black dark:bg-white dark:text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.5)] translate-y-1"
+                            : "opacity-50 hover:opacity-100"
+                        }`}
                       >
                         {y}
                       </Button>
                     ))}
                   </div>
-                  {fieldErrors.year && <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.year}</p>}
+                  {fieldErrors.year && (
+                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">
+                      {fieldErrors.year}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid gap-3">
-                  <Label htmlFor="lc_username" className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                  <Label
+                    htmlFor="lc_username"
+                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
+                  >
                     LEETCODE_USERNAME
                   </Label>
                   {/* CONNECT verifies the handle against the live profile so a
@@ -247,12 +308,17 @@ export default function OnboardingPage() {
                     invalid={!!fieldErrors.lcUsername}
                   />
                   {fieldErrors.lcUsername && (
-                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">{fieldErrors.lcUsername}</p>
+                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">
+                      {fieldErrors.lcUsername}
+                    </p>
                   )}
                 </div>
 
                 <div className="grid gap-3">
-                  <Label htmlFor="bio" className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                  <Label
+                    htmlFor="bio"
+                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
+                  >
                     BIO <span className="text-zinc-600">(OPTIONAL)</span>
                   </Label>
                   <Input
@@ -268,8 +334,12 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="grid gap-3">
-                  <Label htmlFor="github" className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                    GITHUB_USERNAME <span className="text-zinc-600">(AUTO-FILLED)</span>
+                  <Label
+                    htmlFor="github"
+                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
+                  >
+                    GITHUB_USERNAME{" "}
+                    <span className="text-zinc-600">(AUTO-FILLED)</span>
                   </Label>
                   <Input
                     id="github"
@@ -281,7 +351,10 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full mt-6 text-[10px] py-4 h-auto shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+              <Button
+                type="submit"
+                className="w-full mt-6 text-[10px] py-4 h-auto shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+              >
                 &gt; COMMIT_PROFILE
               </Button>
             </form>

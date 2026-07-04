@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
 
 type Params = { params: Promise<{ id: string }> };
@@ -28,14 +28,17 @@ export async function POST(req: NextRequest, { params }: Params) {
       }),
     ]);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: "Stats cache invalidated for user",
       updatedGithubRows: ghResult.count,
-      updatedLcRows: lcResult.count
+      updatedLcRows: lcResult.count,
     });
   } catch (error) {
     console.error("Manual Stat Refresh Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
+import { type NextRequest, NextResponse } from "next/server";
 import { isApproved } from "@/lib/access";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { canAccessAdmin } from "@/lib/roles";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(req: NextRequest, { params }: Params) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   if (!(await isApproved(session.user.id)))
     return NextResponse.json({ error: "Pending approval" }, { status: 403 });
 
@@ -16,13 +17,20 @@ export async function POST(req: NextRequest, { params }: Params) {
   const { rating, comments } = await req.json();
 
   if (!rating || rating < 1 || rating > 5) {
-    return NextResponse.json({ error: "rating must be between 1 and 5" }, { status: 400 });
+    return NextResponse.json(
+      { error: "rating must be between 1 and 5" },
+      { status: 400 },
+    );
   }
 
   const event = await db.event.findUnique({ where: { id: eventId } });
-  if (!event) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!event)
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
   if (event.eventDate > new Date()) {
-    return NextResponse.json({ error: "Cannot submit feedback before event ends" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Cannot submit feedback before event ends" },
+      { status: 403 },
+    );
   }
 
   const feedback = await db.feedback.upsert({
@@ -46,8 +54,10 @@ export async function POST(req: NextRequest, { params }: Params) {
 
 export async function GET(_req: NextRequest, { params }: Params) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-  if (!canAccessAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  if (!canAccessAdmin(session.user.role))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id: eventId } = await params;
 

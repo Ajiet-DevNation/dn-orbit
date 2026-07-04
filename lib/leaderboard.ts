@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   computeLeaderboard,
@@ -69,29 +69,26 @@ export async function recomputeLeaderboardScores() {
 
   const finalScores = computeLeaderboard(scoringInput, weights, totalEvents);
 
-  await db.$transaction(
-    finalScores.map((score) =>
-      db.leaderboardScore.upsert({
-        where: { userId: score.userId },
-        update: {
-          lcScore: score.lcScore,
-          githubScore: score.githubScore,
-          eventScore: score.eventScore,
-          totalScore: score.totalScore,
-          rank: score.rank,
-          computedAt: new Date(),
-        },
-        create: {
-          userId: score.userId,
-          lcScore: score.lcScore,
-          githubScore: score.githubScore,
-          eventScore: score.eventScore,
-          totalScore: score.totalScore,
-          rank: score.rank,
-        },
-      })
-    )
-  );
+  // Replace the whole board in one atomic swap. The previous per-user upsert
+  // batch issued 2×N statements inside one transaction; over a high-latency
+  // pooled connection (Neon) that blew Prisma's 5s transaction budget once the
+  // cohort grew. delete+createMany is two statements total — latency-immune —
+  // and readers still never observe a half-written board.
+  const computedAt = new Date();
+  await db.$transaction([
+    db.leaderboardScore.deleteMany({}),
+    db.leaderboardScore.createMany({
+      data: finalScores.map((score) => ({
+        userId: score.userId,
+        lcScore: score.lcScore,
+        githubScore: score.githubScore,
+        eventScore: score.eventScore,
+        totalScore: score.totalScore,
+        rank: score.rank,
+        computedAt,
+      })),
+    }),
+  ]);
 
   return { updatedUsersCount: finalScores.length };
 }

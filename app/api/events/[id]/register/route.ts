@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { type NextRequest, NextResponse } from "next/server";
 import { isApproved } from "@/lib/access";
 import { logAudit } from "@/lib/audit";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import {
+  type EventAudience,
   parseFormSchema,
   validateSubmission,
-  type EventAudience,
 } from "@/lib/forms";
 
 type Params = { params: Promise<{ id: string }> };
@@ -16,7 +16,8 @@ export async function POST(req: NextRequest, { params }: Params) {
   const { id: eventId } = await params;
 
   const event = await db.event.findUnique({ where: { id: eventId } });
-  if (!event) return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  if (!event)
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
   if (event.reviewStatus !== "approved" || !event.isPublished)
     return NextResponse.json({ error: "Event not available" }, { status: 403 });
 
@@ -55,7 +56,8 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   const body = await req.json().catch(() => null);
-  if (!body) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  if (!body)
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
   // Members submit under their account identity (email locked server-side).
   const input =
@@ -77,7 +79,10 @@ export async function POST(req: NextRequest, { params }: Params) {
   });
 
   if (!result.ok) {
-    return NextResponse.json({ error: "Validation failed", fields: result.errors }, { status: 422 });
+    return NextResponse.json(
+      { error: "Validation failed", fields: result.errors },
+      { status: 422 },
+    );
   }
 
   try {
@@ -122,7 +127,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     });
     return NextResponse.json({ id: outcome.id }, { status: 201 });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
       return NextResponse.json(
         { error: "This email is already registered for this event" },
         { status: 409 },
@@ -134,7 +142,8 @@ export async function POST(req: NextRequest, { params }: Params) {
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  if (!session)
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   const { id: eventId } = await params;
   await db.registration.deleteMany({
     where: { eventId, userId: session.user.id },

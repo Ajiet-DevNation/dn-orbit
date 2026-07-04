@@ -1,11 +1,11 @@
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { PixelPanel } from "@/components/admin/PixelPanel";
-import { WeightForm } from "./WeightForm";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { canAccessAdmin } from "@/lib/roles";
 import { LeaderboardPreview } from "./LeaderboardPreview";
+import { WeightForm } from "./WeightForm";
 
 export default async function AdminLeaderboardPage() {
   const session = await auth();

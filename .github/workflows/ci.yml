@@ -20,7 +20,7 @@ jobs:
       - uses: oven-sh/setup-bun@v1
       - run: bun install
       - run: bunx prisma generate
-      - run: bun run lint
+      - run: bunx biome ci .
       - run: bunx tsc --noEmit
       # Build directly (not `bun run build`) so CI never runs `prisma migrate
       # deploy` against the database — this is a compile check only.

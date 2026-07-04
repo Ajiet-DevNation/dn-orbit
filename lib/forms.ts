@@ -1,7 +1,11 @@
 // Single source of truth for registration form field definitions and the
 // submission validator shared by the client renderer and the server route.
 
-export type EventAudience = "members" | "college" | "members_college" | "public";
+export type EventAudience =
+  | "members"
+  | "college"
+  | "members_college"
+  | "public";
 
 // Admin "who can register" options (single source of truth for the label copy).
 export const AUDIENCE_OPTIONS: { value: EventAudience; label: string }[] = [
@@ -76,7 +80,11 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   dropdown: "Dropdown",
 };
 
-export const CHOICE_TYPES: FieldType[] = ["single_choice", "multi_choice", "dropdown"];
+export const CHOICE_TYPES: FieldType[] = [
+  "single_choice",
+  "multi_choice",
+  "dropdown",
+];
 
 // Whether an audience ever collects USN / College ID (used to show the field /
 // the "always collected" hint). For the combined members+AJIET tier the field
@@ -104,6 +112,14 @@ export function usnRequiredFor(
 
 // A loose, pragmatic email check. The server is authoritative; this is shared.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Upper bounds on registrant-supplied text. Public events accept anonymous
+// submissions, so without caps a single registrant could stuff megabytes into
+// the responses Json column (and every CSV export of it).
+const MAX_NAME_LEN = 120;
+const MAX_EMAIL_LEN = 254; // RFC 5321 practical limit
+const MAX_USN_LEN = 32;
+const MAX_TEXT_LEN = 2000;
 
 // Default USN pattern (RIT-style) used as a hint; admins may override per event.
 export const DEFAULT_USN_PATTERN = "^1MS\\d{2}[A-Z]{2}\\d{3}$";
@@ -150,14 +166,18 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
   const name = (input.name ?? "").trim();
   const email = (input.email ?? "").trim();
   if (!name) errors.name = "Name is required";
+  else if (name.length > MAX_NAME_LEN) errors.name = "Name is too long";
   if (!email) errors.email = "Email is required";
-  else if (!EMAIL_RE.test(email)) errors.email = "Enter a valid email";
+  else if (email.length > MAX_EMAIL_LEN || !EMAIL_RE.test(email))
+    errors.email = "Enter a valid email";
 
   let usn: string | undefined;
   if (usnRequiredFor(audience, !!args.isMember)) {
     usn = (input.usn ?? "").trim();
     if (!usn) {
       errors.usn = "USN / College ID is required";
+    } else if (usn.length > MAX_USN_LEN) {
+      errors.usn = "USN is too long";
     } else if (args.usnPattern) {
       try {
         if (!new RegExp(args.usnPattern).test(usn)) {
@@ -202,22 +222,29 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
       case "single_choice":
       case "dropdown": {
         const s = String(raw);
-        if (!(f.options ?? []).includes(s)) errors[f.id] = "Choose a valid option";
+        if (!(f.options ?? []).includes(s))
+          errors[f.id] = "Choose a valid option";
         else responses[f.id] = s;
         break;
       }
       case "multi_choice": {
         const arr = Array.isArray(raw) ? raw.map(String) : [String(raw)];
         const opts = f.options ?? [];
-        if (!arr.every((v) => opts.includes(v))) errors[f.id] = "Invalid selection";
+        if (!arr.every((v) => opts.includes(v)))
+          errors[f.id] = "Invalid selection";
         else responses[f.id] = arr;
         break;
       }
       default: {
         const s = String(raw);
+        if (s.length > MAX_TEXT_LEN) {
+          errors[f.id] = `${f.label} is too long`;
+          break;
+        }
         if (f.pattern) {
           try {
-            if (!new RegExp(f.pattern).test(s)) errors[f.id] = `${f.label} format is invalid`;
+            if (!new RegExp(f.pattern).test(s))
+              errors[f.id] = `${f.label} format is invalid`;
             else responses[f.id] = s;
           } catch {
             responses[f.id] = s;
@@ -243,7 +270,8 @@ export function parseFormSchema(value: unknown): FormFieldDef[] {
   const out: FormFieldDef[] = [];
   for (const r of value) {
     if (
-      r && typeof r === "object" &&
+      r &&
+      typeof r === "object" &&
       typeof (r as FormFieldDef).id === "string" &&
       typeof (r as FormFieldDef).label === "string" &&
       typeof (r as FormFieldDef).type === "string"

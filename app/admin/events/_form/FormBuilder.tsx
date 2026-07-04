@@ -6,7 +6,6 @@ import { PixelFormField } from "@/app/(main)/events/[id]/register/PixelFormField
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
-import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
 import {
   Select,
   SelectContent,
@@ -14,14 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
+import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
 import {
-  CHOICE_TYPES,
-  FIELD_TYPE_LABELS,
   audienceCollectsUsn,
-  isFieldVisible,
+  CHOICE_TYPES,
   type EventAudience,
+  FIELD_TYPE_LABELS,
   type FieldType,
   type FormFieldDef,
+  isFieldVisible,
 } from "@/lib/forms";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +59,7 @@ function IconBtn({
         "retro flex size-7 items-center justify-center border-2 text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-25",
         danger
           ? "border-[#ef4444]/50 text-[#ef4444] hover:bg-[#ef4444] hover:text-black"
-          : "border-white/25 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]"
+          : "border-white/25 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]",
       )}
     >
       {children}
@@ -243,7 +243,9 @@ export function FormBuilder({
                 <Input
                   value={f.description ?? ""}
                   placeholder="Optional"
-                  onChange={(e) => update(f.id, { description: e.target.value })}
+                  onChange={(e) =>
+                    update(f.id, { description: e.target.value })
+                  }
                 />
               </div>
               {!isChoice && (
@@ -312,8 +314,13 @@ export function FormBuilder({
             {condCandidates.length > 0 && (
               <div className="grid gap-2 border-t-2 border-white/10 pt-4">
                 <Label className="inline-flex items-center gap-2 text-[9px]">
-                  <span aria-hidden className="text-[#22c55e]">⑂</span>
-                  SHOW ONLY IF <span className="text-muted-foreground">(BRANCHING · OPTIONAL)</span>
+                  <span aria-hidden className="text-[#22c55e]">
+                    ⑂
+                  </span>
+                  SHOW ONLY IF{" "}
+                  <span className="text-muted-foreground">
+                    (BRANCHING · OPTIONAL)
+                  </span>
                 </Label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Select
@@ -350,7 +357,10 @@ export function FormBuilder({
                       value={f.visibleWhen.equals}
                       onValueChange={(equals) =>
                         update(f.id, {
-                          visibleWhen: { fieldId: f.visibleWhen!.fieldId, equals },
+                          visibleWhen: {
+                            fieldId: f.visibleWhen!.fieldId,
+                            equals,
+                          },
                         })
                       }
                     >
@@ -433,7 +443,7 @@ function LivePreview({ fields }: { fields: FormFieldDef[] }) {
             value={responses[f.id]}
             onChange={(v) => setResponses((prev) => ({ ...prev, [f.id]: v }))}
           />
-        ) : null
+        ) : null,
       )}
     </div>
   );

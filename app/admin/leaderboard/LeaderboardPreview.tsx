@@ -36,7 +36,9 @@ export function LeaderboardPreview({ rows }: { rows: PreviewRow[] }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4 border-b-2 border-white/10 pb-2">
         <span className="retro text-[9px] tracking-widest text-zinc-500">
-          {query ? "PREVIEW_TELEMETRY (SEARCH)" : `PREVIEW_TELEMETRY (TOP_${TOP_N})`}
+          {query
+            ? "PREVIEW_TELEMETRY (SEARCH)"
+            : `PREVIEW_TELEMETRY (TOP_${TOP_N})`}
         </span>
       </div>
 

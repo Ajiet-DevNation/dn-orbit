@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import {
+  type PixelColumn,
+  PixelDataTable,
+} from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
-import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
 
 interface ProjectRow {
   id: string;
@@ -26,7 +29,8 @@ interface EventRow {
 
 type Tab = "projects" | "events";
 
-const btn = "retro border-2 px-3 py-1 text-[8px] transition-colors disabled:opacity-50";
+const btn =
+  "retro border-2 px-3 py-1 text-[8px] transition-colors disabled:opacity-50";
 
 function Author({ name, github }: { name: string; github: string | null }) {
   return (
@@ -67,9 +71,13 @@ export function ApprovalsQueue({
         });
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
-        toast.success(`${action === "approve" ? "APPROVED" : "REJECTED"}: ${title}`);
+        toast.success(
+          `${action === "approve" ? "APPROVED" : "REJECTED"}: ${title}`,
+        );
       } catch (err) {
-        toast.error("ACTION_FAILED: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        toast.error(
+          "ACTION_FAILED: " + (err instanceof Error ? err.message : "UNKNOWN"),
+        );
       }
     });
 
@@ -107,7 +115,11 @@ export function ApprovalsQueue({
         </div>
       ),
     },
-    { key: "author", header: "SUBMITTED_BY", render: (p) => <Author name={p.authorName} github={p.authorGithub} /> },
+    {
+      key: "author",
+      header: "SUBMITTED_BY",
+      render: (p) => <Author name={p.authorName} github={p.authorGithub} />,
+    },
     {
       key: "when",
       header: "SUBMITTED",
@@ -117,7 +129,12 @@ export function ApprovalsQueue({
         </span>
       ),
     },
-    { key: "actions", header: "ACTIONS", align: "right", render: (p) => actionCell("projects", p.id, p.title) },
+    {
+      key: "actions",
+      header: "ACTIONS",
+      align: "right",
+      render: (p) => actionCell("projects", p.id, p.title),
+    },
   ];
 
   const eventCols: PixelColumn<EventRow>[] = [
@@ -133,7 +150,11 @@ export function ApprovalsQueue({
         </div>
       ),
     },
-    { key: "author", header: "SUBMITTED_BY", render: (e) => <Author name={e.authorName} github={e.authorGithub} /> },
+    {
+      key: "author",
+      header: "SUBMITTED_BY",
+      render: (e) => <Author name={e.authorName} github={e.authorGithub} />,
+    },
     {
       key: "when",
       header: "EVENT_DATE",
@@ -147,12 +168,19 @@ export function ApprovalsQueue({
       key: "publish",
       header: "DRAFT?",
       render: (e) => (
-        <span className={`retro text-[8px] ${e.isPublished ? "text-[#22c55e]" : "text-amber-400"}`}>
+        <span
+          className={`retro text-[8px] ${e.isPublished ? "text-[#22c55e]" : "text-amber-400"}`}
+        >
           {e.isPublished ? "WILL_GO_LIVE" : "DRAFT"}
         </span>
       ),
     },
-    { key: "actions", header: "ACTIONS", align: "right", render: (e) => actionCell("events", e.id, e.title) },
+    {
+      key: "actions",
+      header: "ACTIONS",
+      align: "right",
+      render: (e) => actionCell("events", e.id, e.title),
+    },
   ];
 
   const tabBtn = (t: Tab, label: string, count: number) => (
@@ -177,9 +205,17 @@ export function ApprovalsQueue({
       </div>
 
       {tab === "projects" ? (
-        <PixelDataTable data={projects} columns={projectCols} empty="NO PENDING PROJECTS" />
+        <PixelDataTable
+          data={projects}
+          columns={projectCols}
+          empty="NO PENDING PROJECTS"
+        />
       ) : (
-        <PixelDataTable data={events} columns={eventCols} empty="NO PENDING EVENTS" />
+        <PixelDataTable
+          data={events}
+          columns={eventCols}
+          empty="NO PENDING EVENTS"
+        />
       )}
     </div>
   );

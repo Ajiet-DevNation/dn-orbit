@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
+import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { canAccessAdmin } from "@/lib/roles";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -45,6 +45,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Review Event Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

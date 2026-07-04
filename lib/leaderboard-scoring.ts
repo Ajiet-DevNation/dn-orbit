@@ -45,16 +45,14 @@ function clamp(n: number, min: number, max: number): number {
 
 // Raw, un-normalised component scores. LeetCode and GitHub are relative (each is
 // later divided by the cohort maximum), so only their *shape* matters here.
-export function rawLcScore(
-  lc: ScoringUserInput["lc"]
-): number {
+export function rawLcScore(lc: ScoringUserInput["lc"]): number {
   if (!lc) return 0;
   return lc.easySolved * 1 + lc.mediumSolved * 3 + lc.hardSolved * 5;
 }
 
 export function rawGithubScore(
   gh: ScoringUserInput["gh"],
-  openSourcePerPrPoints = 0
+  openSourcePerPrPoints = 0,
 ): number {
   if (!gh) return 0;
   const openSource = (gh.openSourcePrs ?? 0) * openSourcePerPrPoints;
@@ -75,14 +73,16 @@ export function rawGithubScore(
 export function computeLeaderboard(
   users: ScoringUserInput[],
   weights: ScoringWeights,
-  totalEvents: number
+  totalEvents: number,
 ): ScoredUser[] {
   const raw = users.map((u) => ({
     userId: u.userId,
     rawLc: rawLcScore(u.lc),
     rawGh: rawGithubScore(u.gh, weights.githubOpenSourcePerPrPoints ?? 0),
     eventScore:
-      totalEvents > 0 ? clamp((u.attendedCount / totalEvents) * 100, 0, 100) : 0,
+      totalEvents > 0
+        ? clamp((u.attendedCount / totalEvents) * 100, 0, 100)
+        : 0,
   }));
 
   // LeetCode and GitHub raw values are unbounded activity counts with
@@ -114,8 +114,7 @@ export function computeLeaderboard(
   });
 
   scored.sort(
-    (a, b) =>
-      b.totalScore - a.totalScore || a.userId.localeCompare(b.userId)
+    (a, b) => b.totalScore - a.totalScore || a.userId.localeCompare(b.userId),
   );
 
   return scored.map((s, i) => ({ ...s, rank: i + 1 }));

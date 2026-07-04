@@ -1,8 +1,8 @@
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
-import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { AdminHeading } from "@/components/ui/AdminHeading";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { canAccessAdmin } from "@/lib/roles";
 import { RequestsTable } from "./RequestsTable";
 
 export default async function AdminRequestsPage() {

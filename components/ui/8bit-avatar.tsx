@@ -1,12 +1,11 @@
+import { cva } from "class-variance-authority";
 import type React from "react";
 import { forwardRef, useId } from "react";
-
 import {
   Avatar as ShadcnAvatar,
   AvatarFallback as ShadcnAvatarFallback,
   AvatarImage as ShadcnAvatarImage,
 } from "@/components/ui/avatar";
-import { cva } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
@@ -41,11 +40,19 @@ const Avatar = forwardRef<
   const clipId = `pixel-clip-${rawId.replace(/:/g, "")}`;
 
   return (
-    <div className={cn("relative flex items-center justify-center size-10 shrink-0", className)}>
+    <div
+      className={cn(
+        "relative flex items-center justify-center size-10 shrink-0",
+        className,
+      )}
+    >
       {isPixel && (
         <>
           {/* SVG Clip Path (Perfect 30x30 inner boundary, scaled by 1/30) */}
-          <svg className="absolute w-0 h-0 pointer-events-none">
+          <svg
+            className="absolute w-0 h-0 pointer-events-none"
+            aria-hidden="true"
+          >
             <defs>
               <clipPath id={clipId} clipPathUnits="objectBoundingBox">
                 <path
@@ -63,6 +70,7 @@ const Avatar = forwardRef<
             viewBox="0 0 30 30"
             preserveAspectRatio="none"
             style={{ zIndex: 0 }}
+            aria-hidden="true"
           >
             <path
               d="M 11 0 H 19 V 1 H 21 V 2 H 23 V 3 H 24 V 4 H 25 V 5 H 26 V 6 H 27 V 7 H 28 V 9 H 29 V 11 H 30 V 19 H 29 V 21 H 28 V 23 H 27 V 24 H 26 V 25 H 25 V 26 H 24 V 27 H 23 V 28 H 21 V 29 H 19 V 30 H 11 V 29 H 9 V 28 H 7 V 27 H 6 V 26 H 5 V 25 H 4 V 24 H 3 V 23 H 2 V 21 H 1 V 19 H 0 V 11 H 1 V 9 H 2 V 7 H 3 V 6 H 4 V 5 H 5 V 4 H 6 V 3 H 7 V 2 H 9 V 1 H 11 Z"
@@ -81,7 +89,7 @@ const Avatar = forwardRef<
           "relative flex size-full shrink-0 overflow-hidden text-xs bg-background",
           !isPixel && "rounded-none",
           font !== "normal" && "retro",
-          variant === "retro" && "image-rendering-pixelated"
+          variant === "retro" && "image-rendering-pixelated",
         )}
         style={{
           ...(isPixel ? { clipPath: `url(#${clipId})` } : {}),
@@ -121,12 +129,12 @@ const AvatarImage = forwardRef<HTMLImageElement, BitAvatarImageProps>(
         className={cn(
           "aspect-square h-full w-full",
           font === "retro" && "retro",
-          className
+          className,
         )}
         {...props}
       />
     );
-  }
+  },
 );
 AvatarImage.displayName = "AvatarImage";
 
@@ -139,13 +147,13 @@ const AvatarFallback = forwardRef<
     data-slot="avatar-fallback"
     className={cn(
       "flex h-full w-full items-center justify-center rounded-none bg-muted text-foreground",
-      className
+      className,
     )}
     {...props}
   />
 ));
 AvatarFallback.displayName = "AvatarFallback";
 
-export { Avatar, AvatarImage, AvatarFallback };
+export { Avatar, AvatarFallback, AvatarImage };
 
 export default Avatar;

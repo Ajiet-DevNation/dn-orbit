@@ -4,7 +4,7 @@
 // +1 nets rightward (Members).
 export function glideEndpoints(
   direction: -1 | 1,
-  distancePx: number
+  distancePx: number,
 ): { fromX: number; toX: number } {
   const d = Math.sign(direction) || 1;
   return { fromX: -d * distancePx, toX: d * distancePx };

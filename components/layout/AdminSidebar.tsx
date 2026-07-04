@@ -1,26 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
-  Users,
   Calendar,
-  Settings,
+  Home,
+  Inbox,
   LayoutDashboard,
   LogOut,
-  Trophy,
-  Rocket,
-  UserCheck,
-  Inbox,
   Menu,
+  Rocket,
+  Settings,
+  Trophy,
+  UserCheck,
+  Users,
   X,
-  Home,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/8bit-button";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { SidebarBrand } from "@/components/layout/SidebarBrand";
+import { Button } from "@/components/ui/8bit-button";
+import { cn } from "@/lib/utils";
 
 // Icons live here (client) — a server component can't pass component refs as
 // props, so the admin layout owns only data and delegates the nav to this.
@@ -43,6 +43,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
     <>
       {/* Mobile hamburger */}
       <button
+        type="button"
         onClick={() => setOpen(true)}
         aria-label="Open admin menu"
         className="retro fixed left-3 top-3 z-50 flex items-center gap-2 border-2 border-[#22c55e]/40 bg-black px-3 py-2 text-[9px] text-[#22c55e] md:hidden"
@@ -63,12 +64,13 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex h-screen w-72 flex-col border-r-2 border-white/10 bg-black transition-transform duration-300",
           open ? "translate-x-0" : "-translate-x-full",
-          "md:translate-x-0"
+          "md:translate-x-0",
         )}
       >
         <div className="flex items-center justify-between md:block">
           <SidebarBrand />
           <button
+            type="button"
             onClick={() => setOpen(false)}
             aria-label="Close menu"
             className="mr-4 text-[#22c55e] md:hidden"
@@ -98,7 +100,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
                   "retro group flex items-center gap-4 border-2 px-4 py-3 text-[9px] tracking-widest transition-colors",
                   active
                     ? "border-[#22c55e]/40 bg-[#22c55e]/[0.08] text-[#22c55e]"
-                    : "border-white/10 text-zinc-500 hover:border-[#22c55e]/30 hover:bg-[#22c55e]/[0.06] hover:text-[#22c55e]"
+                    : "border-white/10 text-zinc-500 hover:border-[#22c55e]/30 hover:bg-[#22c55e]/[0.06] hover:text-[#22c55e]",
                 )}
               >
                 <item.icon className="h-4 w-4 opacity-40 transition-[color,opacity] group-hover:text-[#22c55e] group-hover:opacity-100" />

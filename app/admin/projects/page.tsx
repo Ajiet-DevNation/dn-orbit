@@ -1,9 +1,9 @@
-import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
-import { canAccessAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { PixelStatTile } from "@/components/admin/PixelStatTile";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { canAccessAdmin } from "@/lib/roles";
 import { ProjectTable } from "./ProjectTable";
 
 export default async function AdminProjectsPage() {
@@ -33,8 +33,12 @@ export default async function AdminProjectsPage() {
       submittedAt: "desc",
     },
   });
-  const pendingCount = projects.filter((p) => p.reviewStatus === "pending").length;
-  const approvedCount = projects.filter((p) => p.reviewStatus === "approved").length;
+  const pendingCount = projects.filter(
+    (p) => p.reviewStatus === "pending",
+  ).length;
+  const approvedCount = projects.filter(
+    (p) => p.reviewStatus === "approved",
+  ).length;
 
   return (
     <div className="space-y-8 p-8">
@@ -44,8 +48,14 @@ export default async function AdminProjectsPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <PixelStatTile label="PENDING" value={pendingCount.toString().padStart(2, "0")} />
-        <PixelStatTile label="APPROVED" value={approvedCount.toString().padStart(2, "0")} />
+        <PixelStatTile
+          label="PENDING"
+          value={pendingCount.toString().padStart(2, "0")}
+        />
+        <PixelStatTile
+          label="APPROVED"
+          value={approvedCount.toString().padStart(2, "0")}
+        />
       </div>
 
       <ProjectTable

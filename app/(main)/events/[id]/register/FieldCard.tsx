@@ -32,11 +32,15 @@ export function FieldCard({
         {required && <span className="text-[#ef4444]"> *</span>}
       </Label>
       {description && (
-        <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {description}
+        </p>
       )}
       {children}
       {error && (
-        <p className="font-mono text-[11px] leading-relaxed text-[#ef4444]">{error}</p>
+        <p className="font-mono text-[11px] leading-relaxed text-[#ef4444]">
+          {error}
+        </p>
       )}
     </div>
   );

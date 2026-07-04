@@ -1,13 +1,17 @@
 import { notFound, redirect } from "next/navigation";
-import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { parseFormSchema, type EventAudience } from "@/lib/forms";
+import { db } from "@/lib/db";
+import { type EventAudience, parseFormSchema } from "@/lib/forms";
 import { RegistrationForm } from "./RegistrationForm";
 
 // Matches the events grid format, e.g. "AUG 18, 2026".
 function formatEventDateLong(date: Date): string {
   return date
-    .toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+    .toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    })
     .toUpperCase();
 }
 
@@ -21,7 +25,8 @@ export default async function RegisterPage({
     where: { id },
     include: { _count: { select: { registrations: true } } },
   });
-  if (!event || event.reviewStatus !== "approved" || !event.isPublished) notFound();
+  if (!event || event.reviewStatus !== "approved" || !event.isPublished)
+    notFound();
 
   const audience = event.audience as EventAudience;
   const session = await auth();

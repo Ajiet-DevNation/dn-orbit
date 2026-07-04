@@ -39,7 +39,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 async function getCroppedBlob(
   src: string,
   area: Area,
-  aspect: number
+  aspect: number,
 ): Promise<Blob> {
   const image = await loadImage(src);
   const outW = OUTPUT_WIDTH;
@@ -59,15 +59,15 @@ async function getCroppedBlob(
     -area.x * scale,
     -area.y * scale,
     image.naturalWidth * scale,
-    image.naturalHeight * scale
+    image.naturalHeight * scale,
   );
 
   return new Promise((resolve, reject) =>
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("Export failed"))),
       "image/webp",
-      0.85
-    )
+      0.85,
+    ),
   );
 }
 
@@ -115,7 +115,10 @@ export function ImageCropUpload({
   // The zoom at which the entire image is exactly contained in the frame
   // (react-easy-crop's zoom=1 means "cover"). Letting minZoom reach here is what
   // makes the "keep the whole image" option possible.
-  function onMediaLoaded(media: { naturalWidth: number; naturalHeight: number }) {
+  function onMediaLoaded(media: {
+    naturalWidth: number;
+    naturalHeight: number;
+  }) {
     const mediaAspect = media.naturalWidth / media.naturalHeight;
     const containZoom =
       Math.min(mediaAspect, aspect) / Math.max(mediaAspect, aspect);
@@ -134,7 +137,8 @@ export function ImageCropUpload({
       form.append("kind", kind);
       const res = await fetch("/api/upload", { method: "POST", body: form });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error ?? `Upload failed (${res.status})`);
+      if (!res.ok)
+        throw new Error(body.error ?? `Upload failed (${res.status})`);
       onChange(body.url as string);
       closeCropper();
     } catch (err) {
@@ -160,7 +164,7 @@ export function ImageCropUpload({
             className="relative w-full overflow-hidden border-2 border-white/15 bg-[#0d0d0d]"
             style={{ aspectRatio: String(aspect) }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {/* biome-ignore lint/performance/noImgElement: local object-URL preview — not optimizable */}
             <img
               src={value}
               alt="Selected cover"
@@ -229,12 +233,16 @@ export function ImageCropUpload({
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
                 onMediaLoaded={onMediaLoaded}
-                onCropComplete={(_, areaPixels) => (areaRef.current = areaPixels)}
+                onCropComplete={(_, areaPixels) =>
+                  (areaRef.current = areaPixels)
+                }
               />
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="retro text-[8px] text-muted-foreground">FIT</span>
+              <span className="retro text-[8px] text-muted-foreground">
+                FIT
+              </span>
               <input
                 type="range"
                 min={minZoom}
@@ -245,7 +253,9 @@ export function ImageCropUpload({
                 className="h-1 flex-1 cursor-pointer accent-[#22c55e]"
                 aria-label="Zoom"
               />
-              <span className="retro text-[8px] text-muted-foreground">ZOOM</span>
+              <span className="retro text-[8px] text-muted-foreground">
+                ZOOM
+              </span>
             </div>
 
             <p className="retro text-[8px] leading-relaxed text-muted-foreground">

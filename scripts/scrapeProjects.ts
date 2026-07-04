@@ -149,12 +149,14 @@ async function buildTechStack(repo: Repo): Promise<string[]> {
 
 async function main() {
   const repos = await getJson<Repo[]>(
-    `${API}/orgs/${ORG}/repos?per_page=100&sort=pushed&type=public`
+    `${API}/orgs/${ORG}/repos?per_page=100&sort=pushed&type=public`,
   );
 
   const now = Date.now();
   const selected = repos
-    .filter((r) => !r.archived && (r.description?.trim().length ?? 0) >= MIN_DESC)
+    .filter(
+      (r) => !r.archived && (r.description?.trim().length ?? 0) >= MIN_DESC,
+    )
     .sort((a, b) => Date.parse(b.pushed_at) - Date.parse(a.pushed_at))
     .slice(0, MAX_PROJECTS);
 

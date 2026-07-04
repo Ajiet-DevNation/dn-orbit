@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useMemo, useState, useTransition } from "react";
-import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
-import { toast } from "@/components/ui/8bit-toast";
-import { Command, CommandInput } from "@/components/ui/8bit-command";
 import { useRouter } from "next/navigation";
+import React, { useMemo, useState, useTransition } from "react";
+import {
+  type PixelColumn,
+  PixelDataTable,
+} from "@/components/admin/PixelDataTable";
+import { Command, CommandInput } from "@/components/ui/8bit-command";
 import {
   Select,
   SelectContent,
@@ -12,8 +14,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
-import { ROLES, ROLE_LABELS, canAccessAdmin, canManageRoles, type Role } from "@/lib/roles";
+import { toast } from "@/components/ui/8bit-toast";
 import { toTitleCase } from "@/lib/names";
+import {
+  canAccessAdmin,
+  canManageRoles,
+  ROLE_LABELS,
+  ROLES,
+  type Role,
+} from "@/lib/roles";
 
 interface Member {
   id: string;
@@ -49,7 +58,11 @@ function memberHaystack(m: Member): string {
     .toLowerCase();
 }
 
-export function MemberTable({ initialMembers, currentUserId, currentUserRole }: MemberTableProps) {
+export function MemberTable({
+  initialMembers,
+  currentUserId,
+  currentUserRole,
+}: MemberTableProps) {
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
   const router = useRouter();
@@ -85,9 +98,14 @@ export function MemberTable({ initialMembers, currentUserId, currentUserRole }: 
         if (!res.ok) throw new Error(await res.text());
 
         router.refresh();
-        toast.success(`CLEARANCE_UPDATED: ${ROLE_LABELS[newRole].toUpperCase()}`);
+        toast.success(
+          `CLEARANCE_UPDATED: ${ROLE_LABELS[newRole].toUpperCase()}`,
+        );
       } catch (err) {
-        toast.error("CLEARANCE_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        toast.error(
+          "CLEARANCE_FAILURE: " +
+            (err instanceof Error ? err.message : "UNKNOWN"),
+        );
       }
     });
   };
@@ -98,8 +116,12 @@ export function MemberTable({ initialMembers, currentUserId, currentUserRole }: 
       header: "NAME",
       render: (m) => (
         <div className="flex flex-col">
-          <span className="text-white font-black">{m.name ? toTitleCase(m.name) : "UNNAMED_NODE"}</span>
-          <span className="text-[9px] text-zinc-600 tracking-tighter">{m.email}</span>
+          <span className="text-white font-black">
+            {m.name ? toTitleCase(m.name) : "UNNAMED_NODE"}
+          </span>
+          <span className="text-[9px] text-zinc-600 tracking-tighter">
+            {m.email}
+          </span>
         </div>
       ),
     },
@@ -127,7 +149,9 @@ export function MemberTable({ initialMembers, currentUserId, currentUserRole }: 
       key: "branch",
       header: "BRANCH/YEAR",
       render: (m) => (
-        <span className="text-white/70">{m.branch ? `${m.branch} (${m.year}Y)` : "N/A"}</span>
+        <span className="text-white/70">
+          {m.branch ? `${m.branch} (${m.year}Y)` : "N/A"}
+        </span>
       ),
     },
     {

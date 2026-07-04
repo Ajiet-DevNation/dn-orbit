@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "@/components/ui/8bit-toast";
+import React, { useState, useTransition } from "react";
 import { PixelPanel } from "@/components/admin/PixelPanel";
-import { Input } from "@/components/ui/8bit-input";
 import { Button } from "@/components/ui/8bit-button";
+import { Input } from "@/components/ui/8bit-input";
+import { toast } from "@/components/ui/8bit-toast";
 
 export interface AllowlistEntry {
   id: string;
@@ -22,7 +22,7 @@ interface AllowlistManagerProps {
 function formatStamp(iso: string): string {
   const d = new Date(iso);
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
-    d.getDate()
+    d.getDate(),
   ).padStart(2, "0")}`;
 }
 
@@ -55,7 +55,9 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
         router.refresh();
         toast.success("Added to allowlist");
       } catch (err) {
-        toast.error("Failed: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        toast.error(
+          "Failed: " + (err instanceof Error ? err.message : "UNKNOWN"),
+        );
       }
     });
   };
@@ -70,7 +72,9 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
         router.refresh();
         toast.success("Removed from allowlist");
       } catch (err) {
-        toast.error("Failed: " + (err instanceof Error ? err.message : "UNKNOWN"));
+        toast.error(
+          "Failed: " + (err instanceof Error ? err.message : "UNKNOWN"),
+        );
       }
     });
   };
@@ -80,7 +84,8 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
       <PixelPanel title="ALLOWLIST">
         <div className="space-y-6">
           <p className="retro text-[9px] text-zinc-500 uppercase tracking-[0.2em] leading-relaxed max-w-2xl">
-            Only GitHub accounts whose username or email appears below (or in the ADMIN_GITHUB_USERNAMES env) may sign in. The public can browse without an account.
+            Only GitHub accounts whose username or email appears below may sign
+            in. The public can browse without an account.
           </p>
 
           {/* Add form — grid so the 8-bit inputs each get an equal track and
@@ -89,10 +94,14 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
               anchor and match the inputs' height exactly. */}
           <div className="grid grid-cols-1 gap-4 border-2 border-dashed border-white/20 p-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-stretch [&>*]:min-w-0">
             <div className="flex flex-col gap-1.5">
-              <label className="retro text-[8px] text-zinc-600 uppercase tracking-widest">
+              <label
+                htmlFor="allowlist-github-username"
+                className="retro text-[8px] text-zinc-600 uppercase tracking-widest"
+              >
                 GITHUB USERNAME
               </label>
               <Input
+                id="allowlist-github-username"
                 value={githubUsername}
                 onChange={(e) => setGithubUsername(e.target.value)}
                 placeholder="octocat"
@@ -100,10 +109,14 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="retro text-[8px] text-zinc-600 uppercase tracking-widest">
+              <label
+                htmlFor="allowlist-email"
+                className="retro text-[8px] text-zinc-600 uppercase tracking-widest"
+              >
                 EMAIL (OPTIONAL)
               </label>
               <Input
+                id="allowlist-email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="member@ajiet.edu.in"
@@ -111,10 +124,14 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="retro text-[8px] text-zinc-600 uppercase tracking-widest">
+              <label
+                htmlFor="allowlist-note"
+                className="retro text-[8px] text-zinc-600 uppercase tracking-widest"
+              >
                 NOTE (OPTIONAL)
               </label>
               <Input
+                id="allowlist-note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="3rd yr CSE"
@@ -140,10 +157,18 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
           {/* Entry list */}
           <div className="border-2 border-white/10">
             <div className="grid grid-cols-[1.2fr_1.5fr_1fr_auto] gap-4 border-b-2 border-white/10 bg-zinc-950/50 px-4 py-2">
-              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600">GitHub</span>
-              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600">Email</span>
-              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600">Added</span>
-              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600 text-right">Action</span>
+              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600">
+                GitHub
+              </span>
+              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600">
+                Email
+              </span>
+              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600">
+                Added
+              </span>
+              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600 text-right">
+                Action
+              </span>
             </div>
 
             {initialEntries.length === 0 ? (

@@ -1,10 +1,13 @@
 "use client";
 
-import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import {
+  type PixelColumn,
+  PixelDataTable,
+} from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
 import { useConfirm } from "@/components/ui/PixelConfirm";
-import { PixelDataTable, type PixelColumn } from "@/components/admin/PixelDataTable";
 import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
 
 interface EventRow {
@@ -34,7 +37,9 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
       } catch (err) {
-        toast.error("Publish failed: " + (err instanceof Error ? err.message : "unknown"));
+        toast.error(
+          "Publish failed: " + (err instanceof Error ? err.message : "unknown"),
+        );
       }
     });
   };
@@ -53,12 +58,15 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
         toast.success("Event deleted");
         router.refresh();
       } catch (err) {
-        toast.error("Delete failed: " + (err instanceof Error ? err.message : "unknown"));
+        toast.error(
+          "Delete failed: " + (err instanceof Error ? err.message : "unknown"),
+        );
       }
     });
   };
 
-  const btn = "retro border-2 px-3 py-1 text-[8px] transition-colors disabled:opacity-50";
+  const btn =
+    "retro border-2 px-3 py-1 text-[8px] transition-colors disabled:opacity-50";
 
   const columns: PixelColumn<EventRow>[] = [
     {
@@ -67,13 +75,38 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
       render: (e) => (
         <div className="flex max-w-[18rem] flex-col sm:max-w-[26rem]">
           <span className="truncate text-white">{e.title}</span>
-          <span className="retro truncate text-[8px] text-zinc-500">{e.eventType ?? "GENERAL_ASSEMBLY"}</span>
+          <span className="retro truncate text-[8px] text-zinc-500">
+            {e.eventType ?? "GENERAL_ASSEMBLY"}
+          </span>
         </div>
       ),
     },
-    { key: "date", header: "DATE", render: (e) => <span className="text-white/70">{new Date(e.eventDate).toLocaleDateString()}</span> },
-    { key: "audience", header: "AUDIENCE", render: (e) => <span className="retro text-[8px] text-[#22c55e]">{AUDIENCE_BADGE_LABELS[e.audience as EventAudience] ?? e.audience.toUpperCase()}</span> },
-    { key: "location", header: "LOCATION", render: (e) => <span className="text-white/70">{e.location || "VIRTUAL"}</span> },
+    {
+      key: "date",
+      header: "DATE",
+      render: (e) => (
+        <span className="text-white/70">
+          {new Date(e.eventDate).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: "audience",
+      header: "AUDIENCE",
+      render: (e) => (
+        <span className="retro text-[8px] text-[#22c55e]">
+          {AUDIENCE_BADGE_LABELS[e.audience as EventAudience] ??
+            e.audience.toUpperCase()}
+        </span>
+      ),
+    },
+    {
+      key: "location",
+      header: "LOCATION",
+      render: (e) => (
+        <span className="text-white/70">{e.location || "VIRTUAL"}</span>
+      ),
+    },
     {
       key: "review",
       header: "REVIEW",
@@ -95,7 +128,9 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
       key: "status",
       header: "PUBLISH",
       render: (e) => (
-        <span className={`retro inline-block border-2 px-2 py-1 text-[8px] ${e.isPublished ? "border-[#22c55e] text-[#22c55e]" : "border-white/15 text-zinc-500"}`}>
+        <span
+          className={`retro inline-block border-2 px-2 py-1 text-[8px] ${e.isPublished ? "border-[#22c55e] text-[#22c55e]" : "border-white/15 text-zinc-500"}`}
+        >
           {e.isPublished ? "PUBLISHED" : "DRAFT"}
         </span>
       ),
@@ -106,10 +141,36 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
       align: "right",
       render: (e) => (
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={() => router.push(`/admin/events/${e.id}`)} className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}>ROSTER</button>
-          <button type="button" onClick={() => router.push(`/admin/events/${e.id}/edit`)} className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}>EDIT</button>
-          <button type="button" disabled={isPending} onClick={() => togglePublish(e.id, e.isPublished)} className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}>{e.isPublished ? "UNPUBLISH" : "PUBLISH"}</button>
-          <button type="button" disabled={isPending} onClick={() => remove(e.id)} className={`${btn} border-red-500/40 text-red-400 hover:bg-red-500/10`}>DELETE</button>
+          <button
+            type="button"
+            onClick={() => router.push(`/admin/events/${e.id}`)}
+            className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}
+          >
+            ROSTER
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/admin/events/${e.id}/edit`)}
+            className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}
+          >
+            EDIT
+          </button>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => togglePublish(e.id, e.isPublished)}
+            className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}
+          >
+            {e.isPublished ? "UNPUBLISH" : "PUBLISH"}
+          </button>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => remove(e.id)}
+            className={`${btn} border-red-500/40 text-red-400 hover:bg-red-500/10`}
+          >
+            DELETE
+          </button>
         </div>
       ),
     },
@@ -117,7 +178,11 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
 
   return (
     <>
-      <PixelDataTable data={initialEvents} columns={columns} empty="NO EVENTS" />
+      <PixelDataTable
+        data={initialEvents}
+        columns={columns}
+        empty="NO EVENTS"
+      />
       {dialog}
     </>
   );

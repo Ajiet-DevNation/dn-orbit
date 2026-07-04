@@ -1,4 +1,4 @@
-import { test, expect } from "bun:test";
+import { expect, test } from "bun:test";
 import { APPROVAL_STATUSES, isApprovalStatus, STATUS_LABELS } from "./status";
 
 test("APPROVAL_STATUSES lists the three states", () => {

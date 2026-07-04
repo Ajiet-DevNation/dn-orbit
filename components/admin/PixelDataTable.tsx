@@ -43,11 +43,17 @@ export function PixelDataTable<T>({
         </thead>
         <tbody>
           {data.map((row, i) => (
-            <tr key={i} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]">
+            <tr
+              key={i}
+              className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]"
+            >
               {columns.map((c) => (
                 <td
                   key={c.key}
-                  className={cn("px-4 py-3 text-xs text-white", c.align === "right" && "text-right")}
+                  className={cn(
+                    "px-4 py-3 text-xs text-white",
+                    c.align === "right" && "text-right",
+                  )}
                 >
                   {c.render(row)}
                 </td>

@@ -1,2 +1,2 @@
-export type { FormFieldDef, FieldType } from "@/lib/forms";
-export { FIELD_TYPE_LABELS, CHOICE_TYPES } from "@/lib/forms";
+export type { FieldType, FormFieldDef } from "@/lib/forms";
+export { CHOICE_TYPES, FIELD_TYPE_LABELS } from "@/lib/forms";
