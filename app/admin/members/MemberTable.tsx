@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   type PixelColumn,
   PixelDataTable,

@@ -62,6 +62,14 @@
 
 /* ── Base Reset ── */
 
+/* The `!important`s in this file are load-bearing, not laziness — Biome's
+   noImportantStyles is suppressed for each one below with the reason.
+   Auto-"fixing" them silently breaks the sharp-corner reset and, worse, the
+   reduced-motion policy. */
+
+/* biome-ignore lint/complexity/noImportantStyles: a `*` selector loses to every
+   component's `rounded-*` utility on specificity; !important is what makes the
+   site-wide sharp-corner reset actually win. */
 * {
   border-radius: 0 !important;
 }
@@ -93,6 +101,10 @@ body {
   html {
     scroll-behavior: auto;
   }
+  /* biome-ignore lint/complexity/noImportantStyles: without !important any
+     component-level animation/transition wins on specificity and the
+     reduced-motion preference is silently ignored. This is an accessibility
+     guarantee, not a style choice. */
   *,
   *::before,
   *::after {
@@ -344,6 +356,8 @@ body {
 }
 
 /* v2: undo the global border-radius reset so 8-bit components render correctly */
+/* biome-ignore lint/complexity/noImportantStyles: must beat the `*` reset above,
+   which is itself !important. */
 [data-v2] * {
   border-radius: revert !important;
 }
@@ -400,6 +414,8 @@ input[type="radio"]:not(:disabled),
   that out, leaving a square photo — restore the circular clip here.
   Higher specificity (two attribute selectors) + !important beats `[data-v2] *`.
 */
+/* biome-ignore lint/complexity/noImportantStyles: same — avatars must stay round
+   despite the !important sharp-corner reset. */
 [data-v2] [data-slot="avatar"] {
   border-radius: 9999px !important;
 }

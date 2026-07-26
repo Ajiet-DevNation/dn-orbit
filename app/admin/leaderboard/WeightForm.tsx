@@ -68,7 +68,7 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
         toast.success("Weights saved");
       } catch (err) {
         toast.error(
-          "Failed to save: " + (err instanceof Error ? err.message : "UNKNOWN"),
+          `Failed to save: ${err instanceof Error ? err.message : "UNKNOWN"}`,
         );
       }
     });

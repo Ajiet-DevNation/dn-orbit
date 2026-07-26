@@ -24,7 +24,7 @@ It has 9 feature modules:
 | 1 | Auth & Onboarding | GitHub OAuth, session, onboarding form |
 | 2 | GitHub Stats | GitHub API integration, stat caching |
 | 3 | LeetCode Stats | LC public GraphQL API, stat caching |
-| 4 | Leaderboard | Scoring engine, nightly cron, UI |
+| 4 | Leaderboard | Scoring engine, on-visit drip queue + GitHub webhook, UI |
 | 5 | CMS — Events | Event CRUD, registration, feedback |
 | 6 | Members Section | Member cards, bio pages, visibility |
 | 7 | Admin Panel | RBAC, dashboards, config |
@@ -109,7 +109,7 @@ middleware.ts         # auth + RBAC enforcement for /admin/* and protected route
 | Auth | NextAuth.js (GitHub OAuth provider only) |
 | Deployment | Vercel |
 | Package manager | Bun |
-| Linting | ESLint 9 (eslint-config-next) |
+| Linting | Biome 2 (lint + format) |
 
 ---
 
@@ -156,9 +156,11 @@ enum ProjectStatus { planning  active  completed  stalled }
 
 - Auth provider: **GitHub OAuth only** (no email/password, no other providers)
 - Session managed by NextAuth.js
-- Two roles: `admin` and `member` (stored in `users.role`)
+- Six tiers: `president`, `vice_president`, `core_member`, `member`, `alumni`,
+  `ajiet_student` (stored in `users.role`)
 - First admin must be set manually in the DB
-- All `/admin/*` routes must be protected by middleware checking `role === "admin"`
+- `/admin/*` is protected by `proxy.ts` (Next 16's middleware replacement);
+  `lib/roles.ts` owns the tier predicates (`canAccessAdmin`, `canManageRoles`)
 - All dashboard routes require a valid session — redirect to login if unauthenticated
 - Onboarding: on first login, if user has no `usn` set, redirect to `/onboarding`
 
@@ -168,10 +170,12 @@ enum ProjectStatus { planning  active  completed  stalled }
 
 Both GitHub and LeetCode stats follow the same cache pattern:
 
-1. On dashboard load, check `fetched_at` on the most recent stats row
-2. If `fetched_at` is older than 24 hours → refetch from external API
-3. Store new row in DB with updated `fetched_at`
-4. Always use the most recent row for display
+1. `stats_sync_state` holds per-member freshness (`gh_fetched_at`,
+   `lc_fetched_at`) plus webhook dirty flags and failure backoff.
+2. `POST /api/sync` claims the stalest few members (dirty first) and refreshes
+   only those, inside a wall-clock budget.
+3. Stats rows are updated in place; `fetched_at` is stamped only on success.
+4. Always use the most recent row for display.
 
 GitHub stats use the GitHub REST/GraphQL API with the OAuth token from the user's session.
 LeetCode stats use the unofficial public GraphQL endpoint: `https://alfa.leetcode.com/graphql`
@@ -181,7 +185,9 @@ with the `lc_username` stored in the `users` table.
 
 ## Leaderboard scoring formula
 
-Scores are computed nightly via a Vercel Cron job and stored in `leaderboard_scores`.
+Scores are recomputed by the stats drip queue (`lib/sync.ts`) whenever a refresh
+actually changes a member's stats, and stored in `leaderboard_scores`. There is
+no cron — that was removed. See `lib/sync-queue.ts` for the TTLs and backoff.
 Weights come from the `score_weights` table (admin-configurable).
 
 ```
@@ -222,7 +228,9 @@ Never compute scores on-the-fly for the leaderboard page — always read from `l
 
 - All API routes live in `app/api/` as `route.ts` files
 - Return typed `Response` objects using `NextResponse.json()`
-- Always validate request body — use Zod or manual checks
+- Validate request bodies with the shared zod schemas in `lib/validation.ts`
+  (`parseBody(req, schema)` returns a discriminated result, so a malformed body
+  is a 400 rather than an unhandled 500)
 - Return proper HTTP status codes (400 for bad input, 401 for unauth, 403 for forbidden, 404 for not found)
 
 ### Styling
@@ -293,6 +301,24 @@ bunx prisma studio
 
 Lint + typecheck:
 ```bash
-bun run lint
+bun run lint      # biome check .
+bun run lint:fix  # biome check --write .
 bunx tsc --noEmit
+bun test lib      # pure-logic unit tests
 ```
+
+## Motion and `prefers-reduced-motion`
+
+`app/globals.css` flattens **every CSS animation and transition** under
+`prefers-reduced-motion: reduce`, with `!important`. Two consequences worth
+knowing before writing any animation:
+
+- A CSS-driven effect you want to survive that preference **cannot**. Signature
+  motion in this codebase is therefore rAF-driven and writes styles imperatively.
+- A rAF loop is *not* covered by the reset, so every one of them must check
+  `matchMedia("(prefers-reduced-motion: reduce)")` itself and take an explicit
+  reduced path. Look at `AboutTerminal`, `PixelModal` or `OrbitStage` for the
+  established shape.
+
+Do not "fix" the `!important`s in `globals.css` — they are what make the reset
+win on specificity, and there are `biome-ignore` comments explaining each one.

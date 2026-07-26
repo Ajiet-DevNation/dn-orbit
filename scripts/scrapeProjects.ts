@@ -111,7 +111,7 @@ function snippet(text: string, max = DESC_MAX): string {
   if (clean.length <= max) return clean;
   const cut = clean.slice(0, max);
   const lastSpace = cut.lastIndexOf(" ");
-  return cut.slice(0, lastSpace > 0 ? lastSpace : max).trimEnd() + "…";
+  return `${cut.slice(0, lastSpace > 0 ? lastSpace : max).trimEnd()}…`;
 }
 
 /** Top languages by bytes, plus any framework topics, deduped and capped. */
@@ -179,7 +179,7 @@ async function main() {
   }
 
   const outFile = fileURLToPath(OUT_PATH);
-  writeFileSync(outFile, JSON.stringify(projects, null, 2) + "\n");
+  writeFileSync(outFile, `${JSON.stringify(projects, null, 2)}\n`);
   console.log(`Wrote ${projects.length} projects to ${outFile}`);
 }
 

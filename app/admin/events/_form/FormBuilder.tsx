@@ -161,8 +161,12 @@ export function FormBuilder({
         const condCandidates = value
           .slice(0, idx)
           .filter((q) => CHOICE_TYPES.includes(q.type));
-        const controlling = f.visibleWhen
-          ? value.find((q) => q.id === f.visibleWhen!.fieldId)
+        // Bound once so neither a non-null assertion nor an optional chain is
+        // needed — the latter would widen fieldId to `string | undefined` and
+        // break the VisibleWhen shape.
+        const rule = f.visibleWhen;
+        const controlling = rule
+          ? value.find((q) => q.id === rule.fieldId)
           : undefined;
         return (
           <div
@@ -357,6 +361,11 @@ export function FormBuilder({
                       value={f.visibleWhen.equals}
                       onValueChange={(equals) =>
                         update(f.id, {
+                          // biome-ignore lint/style/noNonNullAssertion: the
+                          // `f.visibleWhen &&` guard on this branch proves it is
+                          // set; TypeScript can't carry that narrowing into a
+                          // callback. An optional chain here would widen
+                          // fieldId to `string | undefined` and break the rule.
                           visibleWhen: {
                             fieldId: f.visibleWhen!.fieldId,
                             equals,

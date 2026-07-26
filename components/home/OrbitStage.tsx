@@ -1097,14 +1097,17 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
       >
         <div
           ref={stageRef}
-          role="application"
-          aria-label="Interactive Orbit Physics Canvas"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") e.preventDefault();
-          }}
+          // A plain container, deliberately. It carried role="application" plus
+          // a tabIndex and a keydown handler that only called preventDefault() —
+          // so it took a tab stop, told screen readers to route every keystroke
+          // into it, and then did nothing with them.
+          //
+          // Not aria-hidden either: the three planets inside are real links and
+          // must stay in the accessibility tree. They are keyboard-reachable on
+          // their own, which is the whole of the useful interaction here; the
+          // drag-to-spin is a pointer enhancement on top of that.
           className={cn(
-            "relative w-full aspect-square flex items-center justify-center focus:outline-none",
+            "relative w-full aspect-square flex items-center justify-center",
             // touch-pan-y: keep vertical page scrolling working on phones while
             // the horizontal/vertical drag spins the orbit.
             "touch-pan-y",
@@ -1185,63 +1188,60 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
             />
           )}
 
-          {showOrbit && (
-            <>
-              {PLANETS.map(({ key, href, label, Icon, hoverScale }) => (
-                <div
-                  key={key}
-                  ref={(el) => {
-                    planetElsRef.current[key] = el;
-                  }}
-                  className="absolute left-1/2 top-1/2 pointer-events-auto flex items-center justify-center"
-                  onPointerEnter={() => (isPausedRef.current = true)}
-                  onPointerLeave={() => (isPausedRef.current = false)}
-                  style={{
-                    width: PLANET_ICON_SIZE,
-                    height: PLANET_ICON_SIZE,
-                    // Statically centred with margins so the per-frame write is
-                    // a pure transform. `left`/`top` used to carry the position
-                    // as calc() strings — layout-triggering, every frame.
-                    marginLeft: -PLANET_ICON_SIZE / 2,
-                    marginTop: -PLANET_ICON_SIZE / 2,
-                    opacity: 0,
-                    willChange: "transform",
-                    transition: planetRevealTransition,
-                  }}
-                >
-                  {/* Front-swing halo — opacity is driven per frame, the
+          {showOrbit &&
+            PLANETS.map(({ key, href, label, Icon, hoverScale }) => (
+              <div
+                key={key}
+                ref={(el) => {
+                  planetElsRef.current[key] = el;
+                }}
+                className="absolute left-1/2 top-1/2 pointer-events-auto flex items-center justify-center"
+                onPointerEnter={() => (isPausedRef.current = true)}
+                onPointerLeave={() => (isPausedRef.current = false)}
+                style={{
+                  width: PLANET_ICON_SIZE,
+                  height: PLANET_ICON_SIZE,
+                  // Statically centred with margins so the per-frame write is
+                  // a pure transform. `left`/`top` used to carry the position
+                  // as calc() strings — layout-triggering, every frame.
+                  marginLeft: -PLANET_ICON_SIZE / 2,
+                  marginTop: -PLANET_ICON_SIZE / 2,
+                  opacity: 0,
+                  willChange: "transform",
+                  transition: planetRevealTransition,
+                }}
+              >
+                {/* Front-swing halo — opacity is driven per frame, the
                       gradient itself is static. Must stay the FIRST child;
                       paintPlanets finds it via firstElementChild. */}
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute -inset-6 -z-10"
-                    style={{
-                      opacity: 0,
-                      background: `radial-gradient(circle, rgba(${TRAIL_COLORS[key]},0.45) 0%, transparent 68%)`,
-                    }}
-                  />
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={label}
-                    draggable={false}
-                    onDragStart={(e) => e.preventDefault()}
-                    className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out"
-                    style={{ ["--hover-scale" as string]: hoverScale }}
-                    onPointerEnter={(e) => {
-                      e.currentTarget.style.transform = `scale(${hoverScale})`;
-                    }}
-                    onPointerLeave={(e) => {
-                      e.currentTarget.style.transform = "";
-                    }}
-                  >
-                    <Icon size={PLANET_ICON_SIZE * 0.85} />
-                  </a>
-                </div>
-              ))}
-            </>
-          )}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -inset-6 -z-10"
+                  style={{
+                    opacity: 0,
+                    background: `radial-gradient(circle, rgba(${TRAIL_COLORS[key]},0.45) 0%, transparent 68%)`,
+                  }}
+                />
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out"
+                  style={{ ["--hover-scale" as string]: hoverScale }}
+                  onPointerEnter={(e) => {
+                    e.currentTarget.style.transform = `scale(${hoverScale})`;
+                  }}
+                  onPointerLeave={(e) => {
+                    e.currentTarget.style.transform = "";
+                  }}
+                >
+                  <Icon size={PLANET_ICON_SIZE * 0.85} />
+                </a>
+              </div>
+            ))}
         </div>
 
         <div

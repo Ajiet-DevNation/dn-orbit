@@ -37,7 +37,7 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
         toast.success(`MEMBER_${status.toUpperCase()}`);
       } catch (err) {
         toast.error(
-          "ACTION_FAILED: " + (err instanceof Error ? err.message : "UNKNOWN"),
+          `ACTION_FAILED: ${err instanceof Error ? err.message : "UNKNOWN"}`,
         );
       }
     });

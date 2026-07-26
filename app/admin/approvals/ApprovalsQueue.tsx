@@ -76,7 +76,7 @@ export function ApprovalsQueue({
         );
       } catch (err) {
         toast.error(
-          "ACTION_FAILED: " + (err instanceof Error ? err.message : "UNKNOWN"),
+          `ACTION_FAILED: ${err instanceof Error ? err.message : "UNKNOWN"}`,
         );
       }
     });
