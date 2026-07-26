@@ -16,8 +16,6 @@ import { cn } from "@/lib/utils";
 // and two CTAs were tried here and cut: they crowded the orbit and pulled the
 // eye away from the logo, which is the thing the hero is actually for.
 
-const SWEEP_MS = 900;
-
 function prefersReducedMotion(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -36,11 +34,21 @@ function prefersReducedMotion(): boolean {
 const BLOCKS = ["█", "▓", "▒", "░"] as const;
 
 /** Delay between one letter starting and the next. */
-const STAGGER_MS = 110;
+const STAGGER_MS = 95;
 /** How long a letter spends scrambling before it settles. */
-const DECODE_MS = 260;
+const DECODE_MS = 300;
 /** How often the block glyph swaps while scrambling. */
-const FLICKER_MS = 55;
+const FLICKER_MS = 50;
+/** Beat before the first letter, so the eye has landed by the time it starts. */
+const LEAD_IN_MS = 260;
+/** Extra pause on the DEV|NATION boundary — reads as two words, not nine glyphs. */
+const WORD_BREAK_MS = 150;
+/** Blink period of the trailing block cursor. */
+const CURSOR_MS = 460;
+/** How long the cursor lingers after the last letter before leaving. */
+const CURSOR_HOLD_MS = 1500;
+/** Vertical drop a letter falls through as it resolves, in em. */
+const DROP_EM = 0.18;
 
 const WORD = "DEVNATION";
 /** Index at which the colour switches from white to accent green. */
@@ -56,10 +64,13 @@ function Wordmark() {
 
     const settle = () => {
       chars.forEach((el, i) => {
-        if (el) {
-          el.textContent = WORD[i];
-          el.style.opacity = "1";
-        }
+        if (!el) return;
+        el.textContent = WORD[i];
+        el.style.opacity = "1";
+        // Clear the in-flight transform/filter so the finished word sits exactly
+        // on the baseline at its true colour.
+        el.style.transform = "";
+        el.style.filter = "";
       });
       if (cursor) cursor.style.opacity = "0";
     };
@@ -71,7 +82,12 @@ function Wordmark() {
       return;
     }
 
-    const total = WORD.length * STAGGER_MS + DECODE_MS;
+    // When each letter starts, with an extra beat at the DEV|NATION boundary.
+    const startAt = WORD.split("").map(
+      (_, i) => LEAD_IN_MS + i * STAGGER_MS + (i >= SPLIT ? WORD_BREAK_MS : 0),
+    );
+    const lastLanded = startAt[WORD.length - 1] + DECODE_MS;
+
     let raf = 0;
     let start = 0;
 
@@ -82,38 +98,54 @@ function Wordmark() {
       for (let i = 0; i < WORD.length; i++) {
         const el = chars[i];
         if (!el) continue;
-        const began = i * STAGGER_MS;
+        const began = startAt[i];
 
         if (elapsed < began) {
           el.style.opacity = "0";
           continue;
         }
 
-        el.style.opacity = "1";
-
         if (elapsed >= began + DECODE_MS) {
-          if (el.textContent !== WORD[i]) el.textContent = WORD[i];
+          // Settled: clear the per-letter transform so the word sits perfectly
+          // on the baseline rather than a hair off from rounding.
+          if (el.textContent !== WORD[i]) {
+            el.textContent = WORD[i];
+            el.style.opacity = "1";
+            el.style.transform = "";
+            el.style.filter = "";
+          }
           continue;
         }
 
-        // Walk the block ramp as the character resolves, with a flicker on top
-        // so it doesn't march predictably from █ to ░.
+        // Resolving. Ease the letter in rather than snapping it to full
+        // opacity — the snap is what made the old version read as a plain
+        // reveal instead of something materialising.
         const t = (elapsed - began) / DECODE_MS;
+        const eased = 1 - (1 - t) ** 3;
+        el.style.opacity = String(0.25 + 0.75 * eased);
+        // Small settle: drops the last fraction of an em into place.
+        el.style.transform = `translateY(${(1 - eased) * DROP_EM}em)`;
+        // Brightness falls off as it locks in, so the glyph "cools" into the
+        // final colour instead of arriving at it.
+        el.style.filter = `brightness(${1 + (1 - eased) * 1.4})`;
+
+        // Walk the block ramp, with a flicker so it doesn't march predictably
+        // from █ to ░.
         const ramp = Math.min(BLOCKS.length - 1, Math.floor(t * BLOCKS.length));
-        const jitter = Math.floor(elapsed / FLICKER_MS + i) % 2;
+        const jitter = Math.floor(elapsed / FLICKER_MS + i * 2) % 2;
         const glyph = BLOCKS[Math.min(BLOCKS.length - 1, ramp + jitter)];
         if (el.textContent !== glyph) el.textContent = glyph;
       }
 
-      // Block cursor rides just past the last landed character, then blinks a
-      // couple of times and leaves.
+      // Block cursor sits just past the newest letter and blinks throughout,
+      // then leaves once the word has been complete for a beat.
       if (cursor) {
-        const done = elapsed >= total;
-        const blink = Math.floor(elapsed / 420) % 2 === 0;
-        cursor.style.opacity = done && !blink ? "0" : "1";
+        const gone = elapsed > lastLanded + CURSOR_HOLD_MS;
+        const lit = elapsed % CURSOR_MS < CURSOR_MS * 0.55;
+        cursor.style.opacity = gone || !lit ? "0" : "1";
       }
 
-      if (elapsed < total + 1400) {
+      if (elapsed < lastLanded + CURSOR_HOLD_MS + 200) {
         raf = requestAnimationFrame(frame);
         return;
       }
@@ -171,65 +203,10 @@ function Wordmark() {
   );
 }
 
-/**
- * One-shot CRT power-on: a bright band sweeps down the hero as it mounts, the
- * way a tube warms up. Transform + opacity only, so it stays on the compositor.
- */
-function useCrtSweep(ref: React.RefObject<HTMLDivElement | null>) {
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (prefersReducedMotion()) {
-      el.style.opacity = "0";
-      return;
-    }
-
-    let raf = 0;
-    let start = 0;
-    const tick = (now: number) => {
-      if (!start) start = now;
-      const t = Math.min(1, (now - start) / SWEEP_MS);
-      el.style.transform = `translate3d(0, ${t * 100}vh, 0)`;
-      el.style.opacity = String((1 - t) * 0.55);
-      if (t < 1) {
-        raf = requestAnimationFrame(tick);
-        return;
-      }
-      el.style.opacity = "0";
-    };
-
-    // Same reason as the wordmark: this played out behind the splash.
-    const cancel = onBootSplashDone(() => {
-      raf = requestAnimationFrame(tick);
-    });
-
-    return () => {
-      cancel();
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [ref]);
-}
-
 export function HeroOrbit() {
-  const sweepRef = useRef<HTMLDivElement>(null);
-  useCrtSweep(sweepRef);
-
   return (
     <section className="relative w-full" aria-label="DevNation ORBIT">
       <OrbitStage mode="hero" />
-
-      {/* CRT power-on band. pointer-events-none so it never eats a drag. */}
-      <div
-        ref={sweepRef}
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 z-[70] h-24"
-        style={{
-          opacity: 0,
-          background:
-            "linear-gradient(to bottom, transparent, rgba(34,197,94,0.10) 35%, rgba(255,255,255,0.18) 50%, rgba(34,197,94,0.10) 65%, transparent)",
-          willChange: "transform, opacity",
-        }}
-      />
 
       {/* pointer-events-none on the wrapper so the whole area above stays
           draggable; the scroll cue opts back in. */}
