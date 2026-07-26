@@ -65,6 +65,10 @@ function formatPayload(payload) {
 }
 
 function makeUnauthTests() {
+  // These previously all asserted a 302/307 to /login. Nothing ever produced
+  // that: proxy.ts only guards /onboarding and /admin, so every /api/** route
+  // is reached directly and answers for itself. The expectations below are the
+  // real contract, which makes this file a genuine authz regression check.
   return [
     {
       name: "auth session",
@@ -73,97 +77,109 @@ function makeUnauthTests() {
       expected: [200],
     },
     {
-      name: "events list unauth",
+      // Public listings: approved + published rows only, no moderation columns.
+      name: "events list unauth is public",
       method: "GET",
       path: "/api/events",
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [200],
     },
     {
-      name: "projects list unauth",
+      name: "projects list unauth is public",
       method: "GET",
       path: "/api/projects",
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [200],
     },
     {
+      // Unknown/unpublished events 404 rather than 403 — a 403 would confirm
+      // the id exists.
       name: "event detail missing unauth",
       method: "GET",
       path: `/api/events/${missingId}`,
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [404],
     },
     {
       name: "project detail missing unauth",
       method: "GET",
       path: `/api/projects/${missingId}`,
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [404],
     },
     {
+      // Event lookup runs before the auth branch, so a missing event 404s.
       name: "event register unauth",
       method: "POST",
       path: `/api/events/${missingId}/register`,
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [404],
     },
     {
       name: "event feedback post unauth",
       method: "POST",
       path: `/api/events/${missingId}/feedback`,
       body: { rating: 5, comments: "test" },
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [401],
     },
     {
+      // Checks the session before the role, so anonymous gets 401 (a signed-in
+      // non-admin is the one who gets 403 — see makeMemberTests).
       name: "event feedback get unauth",
       method: "GET",
       path: `/api/events/${missingId}/feedback`,
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [401],
     },
     {
+      // No GET handler exists on attendance — Next answers 405.
       name: "event attendance unauth",
       method: "GET",
       path: `/api/events/${missingId}/attendance`,
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [405],
     },
     {
       name: "admin weights unauth",
       method: "GET",
       path: "/api/admin/config/weights",
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [403],
     },
     {
       name: "admin member patch unauth",
       method: "PATCH",
       path: `/api/admin/members/${missingId}`,
       body: { bio: "x" },
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [403],
     },
     {
       name: "admin refresh unauth",
       method: "POST",
       path: `/api/admin/members/${missingId}/refresh`,
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [403],
     },
     {
       name: "stats github unauth",
       method: "GET",
       path: `/api/stats/github/${missingId}`,
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [401],
     },
     {
       name: "stats lc unauth",
       method: "GET",
       path: `/api/stats/lc/${missingId}`,
-      expected: [307, 302],
-      expectLocationContains: "/login",
+      expected: [401],
+    },
+    {
+      // Regression guard for the fixed disclosure: this route used to return
+      // every registration (userId, attended, registeredAt) and every feedback
+      // row to any anonymous caller holding an event id.
+      name: "event detail never exposes roster or feedback to anonymous callers",
+      method: "GET",
+      path: `/api/events/${missingId}`,
+      expected: [404],
+      expectBodyExcludes: ["registrations", "feedback"],
+    },
+    {
+      // Cross-site callers can't drive the sync trigger.
+      name: "sync trigger rejects a cross-origin caller",
+      method: "POST",
+      path: "/api/sync",
+      headers: { origin: "https://evil.example" },
+      expected: [403],
     },
     {
       // Self-throttling by design: a stale-check + DB lock bound the work, so
@@ -299,7 +315,18 @@ async function runTests(label, tests) {
         ? !!result.location &&
           result.location.includes(test.expectLocationContains)
         : true;
-      const ok = statusOk && locationOk;
+
+      // Guards against a response body ever carrying keys it shouldn't (e.g.
+      // an event detail leaking its registration roster). Checked against the
+      // serialized body so nested keys are caught too.
+      const serialized =
+        result.payload == null ? "" : JSON.stringify(result.payload);
+      const leaked = (test.expectBodyExcludes || []).filter((key) =>
+        serialized.includes(`"${key}"`),
+      );
+      const bodyOk = leaked.length === 0;
+
+      const ok = statusOk && locationOk && bodyOk;
       if (ok) {
         passed += 1;
         console.log(
@@ -314,6 +341,9 @@ async function runTests(label, tests) {
           console.log(
             `  location: ${result.location || "<none>"}, expected contains ${test.expectLocationContains}`,
           );
+        }
+        if (leaked.length) {
+          console.log(`  body leaked disallowed keys: ${leaked.join(", ")}`);
         }
         console.log(`  payload: ${formatPayload(result.payload)}`);
       }

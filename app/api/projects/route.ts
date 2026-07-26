@@ -3,6 +3,7 @@ import { isApproved } from "@/lib/access";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { createProjectSchema, parseBody } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +13,12 @@ export async function POST(req: NextRequest) {
     if (!(await isApproved(session.user.id)))
       return NextResponse.json({ error: "Pending approval" }, { status: 403 });
 
-    const body = await req.json();
+    // Status is enum-checked and progressPct bounded to 0–100 by the schema, so
+    // anything that gets here is already safe to hand to Prisma.
+    const parsed = await parseBody(req, createProjectSchema);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
     const {
       title,
       description,
@@ -23,35 +29,10 @@ export async function POST(req: NextRequest) {
       milestones,
       status,
       progressPct,
-    } = body;
+    } = parsed.data;
 
-    if (!title) {
-      return NextResponse.json({ error: "title is required" }, { status: 400 });
-    }
-    // GitHub repo is mandatory for a project submission.
-    if (!githubRepoUrl || !String(githubRepoUrl).trim()) {
-      return NextResponse.json(
-        { error: "GitHub repo URL is required" },
-        { status: 400 },
-      );
-    }
-
-    // Whitelist status against the ProjectStatus enum and clamp progress to an
-    // integer 0–100 — never trust the client. Unknown/missing values fall back
-    // to a fresh "planning, 0%" project.
-    const ALLOWED_STATUS = [
-      "planning",
-      "active",
-      "completed",
-      "stalled",
-    ] as const;
-    const safeStatus = ALLOWED_STATUS.includes(status)
-      ? (status as (typeof ALLOWED_STATUS)[number])
-      : "planning";
-    const safeProgress = Math.max(
-      0,
-      Math.min(100, Math.round(Number(progressPct) || 0)),
-    );
+    const safeStatus = status ?? "planning";
+    const safeProgress = progressPct ?? 0;
 
     const project = await db.project.create({
       data: {
@@ -92,6 +73,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// Bound on an unauthenticated, unpaginated endpoint — see the events list route.
+const MAX_PROJECTS = 500;
+
 export async function GET() {
   try {
     const projects = await db.project.findMany({
@@ -103,6 +87,7 @@ export async function GET() {
         },
       },
       orderBy: { submittedAt: "desc" },
+      take: MAX_PROJECTS,
     });
     return NextResponse.json(projects);
   } catch {

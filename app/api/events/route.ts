@@ -1,8 +1,32 @@
+import type { Prisma } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
+import { createEventSchema, parseBody } from "@/lib/validation";
+
+// Same explicit allowlist as the detail route — moderation columns
+// (reviewStatus, reviewedById, createdBy) are not public information.
+const PUBLIC_EVENT_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  bannerUrl: true,
+  eventType: true,
+  eventDate: true,
+  location: true,
+  audience: true,
+  capacity: true,
+  registrationDeadline: true,
+  formSchema: true,
+  createdAt: true,
+} as const;
+
+// Bound on an unauthenticated, unpaginated endpoint. The club will not have
+// 500 published events; if it ever does, this needs real pagination rather than
+// a silently truncated list.
+const MAX_EVENTS = 500;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -17,7 +41,9 @@ export async function GET(req: NextRequest) {
       ...(type === "upcoming" ? { eventDate: { gte: now } } : {}),
       ...(type === "past" ? { eventDate: { lt: now } } : {}),
     },
+    select: PUBLIC_EVENT_SELECT,
     orderBy: { eventDate: "asc" },
+    take: MAX_EVENTS,
   });
 
   return NextResponse.json(events);
@@ -31,6 +57,10 @@ export async function POST(req: NextRequest) {
 
   const isAdmin = canAccessAdmin(session.user.role);
 
+  const parsed = await parseBody(req, createEventSchema);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
   const {
     title,
     description,
@@ -43,14 +73,7 @@ export async function POST(req: NextRequest) {
     capacity,
     registrationDeadline,
     formSchema,
-  } = await req.json();
-
-  if (!title || !eventDate) {
-    return NextResponse.json(
-      { error: "title and eventDate are required" },
-      { status: 400 },
-    );
-  }
+  } = parsed.data;
 
   const event = await db.event.create({
     data: {
@@ -58,14 +81,14 @@ export async function POST(req: NextRequest) {
       description,
       bannerUrl,
       eventType,
-      eventDate: new Date(eventDate),
+      eventDate,
       location,
       audience: audience ?? "public",
       capacity: capacity ?? null,
-      registrationDeadline: registrationDeadline
-        ? new Date(registrationDeadline)
-        : null,
-      formSchema: formSchema ?? undefined,
+      registrationDeadline: registrationDeadline ?? null,
+      formSchema: (formSchema ?? undefined) as
+        | Prisma.InputJsonValue
+        | undefined,
       // Every new event enters the moderation queue regardless of who submits it.
       reviewStatus: "pending",
       // isPublished is the author's draft/live choice (separate from moderation);
