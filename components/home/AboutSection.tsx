@@ -1,10 +1,9 @@
-import type { TerminalLine } from "@/lib/terminal-typing";
-import { AboutTerminal } from "./AboutTerminal";
+import { AboutTerminal, type TerminalLine } from "./AboutTerminal";
 
-// The About copy, delivered as a shell session that types itself out when the
-// card scrolls into view. Kept to short lines so the pixel font stays readable
-// inside the terminal, and grouped so each command answers one question:
-// who, why, what we do, who we're part of, what this site is, how to join.
+// The About copy, delivered as a fake terminal session that types itself out as
+// you scroll through the pinned section. Kept to short lines so the pixel font
+// stays readable inside the terminal, and grouped so each command answers one
+// question: who, why, what we do, who we're part of, what this is, how to join.
 const ABOUT_LINES: TerminalLine[] = [
   { type: "comment", text: "# devnation :: ajiet :: orbit" },
   { type: "input", text: "whoami" },

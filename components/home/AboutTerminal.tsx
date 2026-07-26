@@ -1,21 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/8bit-card";
-import {
-  activeLineAt,
-  buildSchedule,
-  charsRevealedAt,
-  type TerminalLine,
-} from "@/lib/terminal-typing";
 import { cn } from "@/lib/utils";
 
-export type { TerminalLine };
+export interface TerminalLine {
+  text: string;
+  type: "input" | "output" | "comment";
+}
 
 interface AboutTerminalProps {
   title?: string;
@@ -23,26 +20,41 @@ interface AboutTerminalProps {
   className?: string;
 }
 
-// ─── Autoplay typing, inside a short pin ─────────────────────────────────────
-//
-// This used to be scroll-SCRUBBED across a 500vh section: the transcript's
-// progress was a direct function of scrollTop, so the DevNation description
-// appeared only as fast as you dragged the scrollbar, un-typed itself when you
-// scrolled back up, and needed five screens of scrolling to finish. The "%" in
-// the title bar was scroll progress, not a loading indicator.
-//
-// Now the typing is time-driven and starts when the card comes into view. The
-// section keeps a shortened pin so the card stays put while the session plays
-// and then releases — scroll holds the terminal in place, it no longer drives
-// the text.
-//
-// Nothing here writes React state per frame. The rAF loop mutates the line
-// elements directly, so a ~1400-character session costs zero re-renders. The
-// previous version called setTyped() on every frame while catching up.
+// ─── Scroll-scrubbed reveal ──────────────────────────────────────────────────
+// The terminal is driven by scroll position, not by a timer. The section is made
+// tall and its inner card is pinned (sticky) to the viewport; as you scroll
+// through the tall region the card stays put and the transcript types itself out
+// in lockstep with the scroll. Because the reveal is bound to scroll offset (not
+// a CSS/JS animation), it works identically with prefers-reduced-motion on — the
+// media query only neutralises time-based animation, never scroll position.
 
-// Tall enough to hold the card on screen for the length of the session, short
-// enough that it isn't a scroll tax. 500vh before.
-const SECTION_VH = 200;
+// Total height of the scroll region, in viewport heights. The first 100vh fills
+// the screen as the card pins; the remainder is the "scrub" distance that drives
+// typing. Bigger = more scrolling to finish the transcript.
+const SECTION_VH = 500;
+// Keep the card blank for a short lead-in and finished before it unpins, so the
+// pinned moment reads as "stop, watch it type, move on".
+const SCRUB_START = 0.08;
+const SCRUB_END = 0.82;
+
+// Typing cadence. Scroll events arrive in coarse jumps (a wheel notch can be
+// dozens of characters at once), so scroll only sets a *target* character count;
+// a rAF loop eases the displayed count toward it. The easing is frame-rate
+// *independent* (movement scales with elapsed ms via an exponential approach),
+// so a frame dropped during a heavy scroll doesn't produce a visible chunk — the
+// cadence stays even. `TAU_MS` is the smoothing time-constant; `READ_CPS` is the
+// steady letter-by-letter speed; `FLICK_CPS` lifts the ceiling only when far
+// behind (a fast flick) so it catches up without dumping a block of text. All
+// pure JS, so prefers-reduced-motion never disables it.
+const TAU_MS = 85;
+const READ_CPS = 70;
+const FLICK_CPS = 420;
+const FLICK_GAP = 40;
+const MAX_DT_MS = 50; // clamp dt so returning from an idle tab doesn't leap
+
+function clamp01(n: number): number {
+  return n < 0 ? 0 : n > 1 ? 1 : n;
+}
 
 function lineClass(type: TerminalLine["type"]): string {
   // Commands glow green like a real shell prompt; comments dim; output neutral.
@@ -51,12 +63,36 @@ function lineClass(type: TerminalLine["type"]): string {
   return "text-foreground/85";
 }
 
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
-  );
+function linePrefix(type: TerminalLine["type"]): string {
+  return type === "input" ? "> " : "";
 }
+
+// One transcript line. Memoised on its revealed-character count, so a line that
+// has finished typing stops re-rendering while the ones below it fill in —
+// without it, every character reconciled all ~24 lines.
+const TerminalLineView = memo(function TerminalLineView({
+  type,
+  full,
+  revealed,
+  typing,
+}: {
+  type: TerminalLine["type"];
+  full: string;
+  revealed: number;
+  typing: boolean;
+}) {
+  const shown = full.slice(0, revealed);
+  return (
+    <p className={cn("retro text-sm leading-relaxed", lineClass(type))}>
+      {shown.length ? shown : " "}
+      {typing && (
+        <span className="cursor-blink ml-0.5 inline-block text-emerald-300">
+          ▋
+        </span>
+      )}
+    </p>
+  );
+});
 
 export function AboutTerminal({
   title = "Terminal",
@@ -64,154 +100,184 @@ export function AboutTerminal({
   className,
 }: AboutTerminalProps) {
   const sectionRef = useRef<HTMLElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const percentRef = useRef<HTMLSpanElement>(null);
-  const promptRef = useRef<HTMLParagraphElement>(null);
-  // One entry per line: the <p>, its text <span>, and its cursor <span>.
-  const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
+  const [typed, setTyped] = useState(0);
 
-  const schedule = useMemo(() => buildSchedule(lines), [lines]);
+  // Smoothing state: `targetRef` is where scroll says we should be; `displayedRef`
+  // is the eased float the UI actually renders. `loopRef`/`runningRef` keep a
+  // single rAF easing loop that only runs while there's catching up to do;
+  // `lastTimeRef` carries the previous frame timestamp for time-based easing.
+  const targetRef = useRef(0);
+  const displayedRef = useRef(0);
+  const loopRef = useRef(0);
+  const runningRef = useRef(false);
+  const lastTimeRef = useRef(0);
 
-  useEffect(() => {
-    const section = sectionRef.current;
-    const card = cardRef.current;
-    if (!section || !card) return;
-
-    const { fullLines, charTimes, lineAppearAt, lineStartIndex, totalMs } =
-      schedule;
-
-    // Paint a given revealed-character count straight to the DOM.
-    let lastElapsed = 0;
-    let lastTyped = -1;
-    const paint = (typed: number) => {
-      if (typed === lastTyped) return;
-      lastTyped = typed;
-
-      const active = activeLineAt(schedule, typed);
-
-      for (let i = 0; i < fullLines.length; i++) {
-        const p = lineRefs.current[i];
-        if (!p) continue;
-
-        const start = lineStartIndex[i];
-        const full = fullLines[i];
-        const visible = typed >= start && lastElapsed >= lineAppearAt[i];
-
-        // `hidden` rather than unmounting: the transcript stays in the DOM for
-        // search engines and screen readers, and the card never reflows.
-        p.style.visibility = visible ? "visible" : "hidden";
-        if (!visible) continue;
-
-        const revealed = Math.min(full.length, Math.max(0, typed - start));
-        const text = p.firstElementChild as HTMLSpanElement | null;
-        const cursor = p.lastElementChild as HTMLSpanElement | null;
-        if (text && text.textContent !== full.slice(0, revealed)) {
-          text.textContent = full.slice(0, revealed);
-        }
-        if (cursor) cursor.style.display = i === active ? "" : "none";
-      }
-
-      const done = typed >= schedule.totalChars;
-      if (promptRef.current) {
-        promptRef.current.style.visibility = done ? "visible" : "hidden";
-      }
-
-      if (percentRef.current) {
-        const pct = schedule.totalChars
-          ? Math.round((typed / schedule.totalChars) * 100)
-          : 100;
-        const label = `${pct}%`;
-        if (percentRef.current.textContent !== label) {
-          percentRef.current.textContent = label;
-        }
-      }
-
-      // Follow the cursor: the transcript is taller than the fixed screen.
-      const scroller = scrollRef.current;
-      if (scroller) scroller.scrollTop = scroller.scrollHeight;
-    };
-
-    // Reduced motion: no session, just the finished transcript. The global CSS
-    // reset can't flatten a rAF loop, so this has to be handled explicitly.
-    if (prefersReducedMotion()) {
-      lastElapsed = totalMs;
-      paint(schedule.totalChars);
-      return;
+  // Full string for each line (prefix + text); typing walks this combined text.
+  const fullLines = useMemo(
+    () => lines.map((l) => linePrefix(l.type) + l.text),
+    [lines],
+  );
+  const totalChars = useMemo(
+    () => fullLines.reduce((sum, s) => sum + s.length, 0),
+    [fullLines],
+  );
+  // Cumulative start index of each line within the combined transcript, so the
+  // global cursor position can be sliced per line without mutating during render.
+  const startOffsets = useMemo(() => {
+    const offsets: number[] = [];
+    let acc = 0;
+    for (const s of fullLines) {
+      offsets.push(acc);
+      acc += s.length;
     }
+    return offsets;
+  }, [fullLines]);
 
-    // Start blanked. This runs before paint on hydration, so the fully-rendered
-    // server markup (good for SEO and no-JS) never flashes.
-    lastElapsed = 0;
-    paint(0);
+  // The easing loop: walk `displayedRef` toward `targetRef` a little each frame,
+  // committing the integer character count to state. Self-stops once it catches
+  // up so we're not running rAF forever; `wake()` restarts it when scroll moves.
+  const wake = useCallback(() => {
+    if (runningRef.current) return;
+    runningRef.current = true;
+    lastTimeRef.current = performance.now();
 
-    let raf = 0;
-    let startedAt = 0;
-    let playing = false;
+    const step = (now: number) => {
+      const dt = Math.min(now - lastTimeRef.current, MAX_DT_MS);
+      lastTimeRef.current = now;
 
-    const frame = (now: number) => {
-      if (!startedAt) startedAt = now;
-      lastElapsed = now - startedAt;
-      paint(charsRevealedAt(charTimes, lastElapsed));
+      const diff = targetRef.current - displayedRef.current;
 
-      if (lastElapsed < totalMs) {
-        raf = requestAnimationFrame(frame);
+      if (Math.abs(diff) < 0.5) {
+        displayedRef.current = targetRef.current;
+        runningRef.current = false;
+        loopRef.current = 0;
+        const next = Math.round(displayedRef.current);
+        setTyped((p) => (p === next ? p : next));
         return;
       }
-      raf = 0;
-      playing = false;
+
+      // Frame-rate-independent exponential ease toward the target…
+      let move = diff * (1 - Math.exp(-dt / TAU_MS));
+      // …capped to a readable letter cadence (chars/sec × seconds), with the cap
+      // lifted only when far behind so a fast flick catches up without dumping.
+      const cps = Math.abs(diff) > FLICK_GAP ? FLICK_CPS : READ_CPS;
+      const maxMove = (cps / 1000) * dt;
+      if (move > maxMove) move = maxMove;
+      else if (move < -maxMove) move = -maxMove;
+      displayedRef.current += move;
+
+      const next = Math.round(displayedRef.current);
+      setTyped((p) => (p === next ? p : next));
+      loopRef.current = requestAnimationFrame(step);
     };
 
-    const play = () => {
-      if (playing) return;
-      playing = true;
-      startedAt = 0;
-      raf = requestAnimationFrame(frame);
+    loopRef.current = requestAnimationFrame(step);
+  }, []);
+
+  // Map scroll progress through the tall section onto a target character count,
+  // then nudge the easing loop awake. Target is purely a function of scroll
+  // offset, so reduced-motion never disables it.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    let frame = 0;
+    // getBoundingClientRect() on every scroll event costs a layout flush even
+    // when the terminal is nowhere near the viewport. An IntersectionObserver
+    // gates the whole handler so scrolling the rest of the page — including the
+    // two coverflow carousels — doesn't pay for this section.
+    let inView = false;
+
+    const update = () => {
+      frame = 0;
+      const el = sectionRef.current;
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const scrubDistance = rect.height - window.innerHeight;
+      // While pinned, rect.top runs from 0 down to -scrubDistance.
+      const raw = scrubDistance > 0 ? -rect.top / scrubDistance : 1;
+      const progress = clamp01((raw - SCRUB_START) / (SCRUB_END - SCRUB_START));
+
+      targetRef.current = progress * totalChars;
+      wake();
     };
 
-    const stop = () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = 0;
-      playing = false;
+    const onScroll = () => {
+      if (frame || !inView) return;
+      frame = requestAnimationFrame(update);
     };
 
-    // Skip to the end on click/tap — a visitor who has read it shouldn't have
-    // to wait through the session again.
-    const skip = () => {
-      stop();
-      lastElapsed = totalMs;
-      paint(schedule.totalChars);
-    };
-    card.addEventListener("click", skip);
-
-    // Autoplay on entry; rewind and replay after the section has fully left, so
-    // coming back to it shows the session rather than a wall of finished text.
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          play();
-        } else {
-          stop();
-          lastElapsed = 0;
-          paint(0);
-        }
+        inView = entry.isIntersecting;
+        // Resync on entry so a jump-scroll (anchor link, refresh mid-page)
+        // lands on the right character instead of waiting for the next event.
+        if (inView) update();
       },
-      { threshold: 0.35 },
+      // rootMargin keeps it live slightly beyond the viewport, so the state is
+      // already correct by the time the card is actually visible.
+      { rootMargin: "20% 0px" },
     );
-    io.observe(card);
+    io.observe(section);
 
-    const onVisibility = () => {
-      if (document.hidden) stop();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
     return () => {
-      stop();
       io.disconnect();
-      card.removeEventListener("click", skip);
-      document.removeEventListener("visibilitychange", onVisibility);
+      if (frame) cancelAnimationFrame(frame);
+      if (loopRef.current) cancelAnimationFrame(loopRef.current);
+      runningRef.current = false;
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
     };
-  }, [schedule]);
+  }, [totalChars, wake]);
+
+  // Keep the freshly-typed line in view: the transcript is taller than the fixed
+  // screen, so follow the cursor by pinning the scroll to the bottom as it types.
+  //
+  // Writing a huge scrollTop lets the browser clamp it to the maximum instead of
+  // us reading el.scrollHeight — reading it forced a synchronous layout on every
+  // single character (~70 per second at the steady cadence), which is the main
+  // thing that made the typing feel steppy rather than smooth.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `typed` is the intentional trigger — the effect re-pins the scroll each time a character lands
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = 1e7;
+  }, [typed]);
+
+  const allDone = typed >= totalChars;
+  // How far into the scrub we are, surfaced as a tiny progress glyph in the
+  // title bar so it's obvious the terminal is reacting to the scroll.
+  const scrubPct =
+    totalChars > 0
+      ? Math.round((Math.min(typed, totalChars) / totalChars) * 100)
+      : 0;
+
+  // Walk the lines and slice each by how far the global cursor has advanced.
+  // Unreached lines render nothing at all (not hidden) — the transcript has to
+  // GROW downward for the follow-the-cursor scroll below to sit at the bottom.
+  const renderedLines = lines.map((line, idx) => {
+    const full = fullLines[idx];
+    const start = startOffsets[idx];
+
+    const reached = typed > start || (full.length === 0 && typed >= start);
+    if (!reached) return null;
+
+    const revealed = Math.min(full.length, Math.max(0, typed - start));
+
+    return (
+      <TerminalLineView
+        key={`${line.text}-${idx}`}
+        type={line.type}
+        full={full}
+        revealed={revealed}
+        typing={!allDone && revealed < full.length}
+      />
+    );
+  });
 
   return (
     <section
@@ -219,84 +285,50 @@ export function AboutTerminal({
       className={cn("relative w-full", className)}
       style={{ height: `${SECTION_VH}vh` }}
     >
-      {/* Pinned stage — the card holds still while the session plays, then the
-          section releases and the page moves on. */}
+      {/* Pinned viewport-height stage — the card stays centred while the scroll
+          scrubs the transcript through it. */}
       <div className="sticky top-0 flex min-h-screen w-full items-center justify-center px-4">
         <div className="mx-auto w-full max-w-5xl">
-          {/* biome-ignore lint/a11y/noStaticElementInteractions: click only skips
-              the typing to its end; the content is fully present either way and
-              the card is not a control. */}
-          <div ref={cardRef} className="cursor-pointer">
-            <Card className="about-card bg-background">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1.5">
-                      <div className="size-2.5 bg-destructive" />
-                      <div className="size-2.5 bg-yellow-500" />
-                      <div className="size-2.5 bg-green-500" />
-                    </div>
-                    <CardTitle className="retro text-[10px] text-muted-foreground">
-                      {title}
-                    </CardTitle>
+          <Card className="about-card bg-background">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1.5">
+                    <div className="size-2.5 bg-destructive" />
+                    <div className="size-2.5 bg-yellow-500" />
+                    <div className="size-2.5 bg-green-500" />
                   </div>
-                  <span
-                    ref={percentRef}
-                    className="retro text-[8px] tabular-nums text-muted-foreground/60"
-                  >
-                    0%
-                  </span>
+                  <CardTitle className="retro text-[10px] text-muted-foreground">
+                    {title}
+                  </CardTitle>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {/* Fixed-height "screen": CRT scanlines stay pinned over the
-                    visible area while the transcript scrolls underneath, so the
-                    card never resizes as lines fill in. */}
-                <div className="terminal-screen">
-                  <div
-                    ref={scrollRef}
-                    className="no-scrollbar h-[clamp(22rem,58vh,36rem)] overflow-hidden"
-                  >
-                    <div className="space-y-1.5">
-                      {lines.map((line, idx) => (
-                        <p
-                          // biome-ignore lint/suspicious/noArrayIndexKey: the
-                          // transcript is a fixed, ordered script — index IS the
-                          // identity, and blank lines repeat.
-                          key={idx}
-                          ref={(el) => {
-                            lineRefs.current[idx] = el;
-                          }}
-                          className={cn(
-                            "retro text-sm leading-relaxed",
-                            lineClass(line.type),
-                          )}
-                        >
-                          {/* Text and cursor are separate elements so the rAF
-                              loop can rewrite one without touching the other. */}
-                          <span>{schedule.fullLines[idx] || " "}</span>
-                          <span
-                            className="cursor-blink ml-0.5 inline-block text-emerald-300"
-                            style={{ display: "none" }}
-                          >
-                            ▋
-                          </span>
-                        </p>
-                      ))}
-                      <p
-                        ref={promptRef}
-                        className="retro text-sm text-emerald-300"
-                        style={{ visibility: "hidden" }}
-                      >
+                <span className="retro text-[8px] tabular-nums text-muted-foreground/60">
+                  {scrubPct}%
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Fixed-height "screen": CRT scanlines stay pinned over the visible
+                  area (outer wrapper) while the transcript scrolls underneath
+                  (inner), so the card never resizes as lines fill in. */}
+              <div className="terminal-screen">
+                <div
+                  ref={scrollRef}
+                  className="no-scrollbar h-[clamp(22rem,58vh,36rem)] overflow-hidden"
+                >
+                  <div className="space-y-1.5">
+                    {renderedLines}
+                    {allDone && (
+                      <p className="retro text-sm text-emerald-300">
                         {"> "}
                         <span className="cursor-blink inline-block">▋</span>
                       </p>
-                    </div>
+                    )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </section>

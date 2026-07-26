@@ -50,18 +50,25 @@ export function DetailOverlay({
       ref={panelRef}
       className="fixed inset-0 overflow-y-auto bg-[#0a0a0a]"
       style={{ zIndex: Z_MODAL.base - 40 }}
-      onMouseDown={(e) => {
-        // mousedown on the backdrop itself — a drag that started on the card
-        // and ended out here must not close.
-        if (e.target === e.currentTarget) onClose();
-      }}
+      // Anything that reaches this element came from the background: the card,
+      // the detail panel and the close button all stop propagation themselves.
+      //
+      // There used to be an `e.target === e.currentTarget` check here, which
+      // never passed — the centring wrapper below fills the whole overlay, so
+      // every background click landed on THAT and the check saw a child rather
+      // than the root. Clicking the background did nothing at all.
+      onMouseDown={onClose}
     >
       <div className="relative mx-auto flex min-h-full w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 py-24 lg:flex-row lg:gap-16">
-        <OverlayCloseButton
-          onClick={onClose}
-          label={closeLabel}
-          className="fixed right-4 top-4 z-10"
-        />
+        {/* Wrapped so the button's own mousedown doesn't ALSO trigger the
+            backdrop dismissal above and run the close transition twice. */}
+        <DetailOverlayContent className="contents">
+          <OverlayCloseButton
+            onClick={onClose}
+            label={closeLabel}
+            className="fixed right-4 top-4 z-10"
+          />
+        </DetailOverlayContent>
         {children}
       </div>
     </div>
