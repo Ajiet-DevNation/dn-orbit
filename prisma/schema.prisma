@@ -11,7 +11,6 @@ datasource db {
   provider = "postgresql"
 }
 
-
 // ─────────────────────────────────────────────
 // ENUMS
 // ─────────────────────────────────────────────
@@ -56,39 +55,40 @@ enum EventAudience {
 // ─────────────────────────────────────────────
 
 model User {
-  id              String    @id @default(uuid())
-  githubId        String    @unique @map("github_id")
-  githubUsername  String    @unique @map("github_username")
-  email           String    @unique
-  name            String
+  id             String         @id @default(uuid())
+  githubId       String         @unique @map("github_id")
+  githubUsername String         @unique @map("github_username")
+  email          String         @unique
+  name           String
   /// Auth.js profile image (`avatar_url` in DB)
-  image           String?   @map("avatar_url")
-  emailVerified   DateTime? @map("email_verified")
-  role            Role      @default(ajiet_student)
-  status          ApprovalStatus @default(pending)
+  image          String?        @map("avatar_url")
+  emailVerified  DateTime?      @map("email_verified")
+  role           Role           @default(ajiet_student)
+  status         ApprovalStatus @default(pending)
 
   // Onboarding fields
-  lcUsername      String?  @map("lc_username")
-  branch          String?
-  year            Int?
-  usn             String?
-  bio             String?
-  isVisible       Boolean  @default(true) @map("is_visible")
+  lcUsername String? @map("lc_username")
+  branch     String?
+  year       Int?
+  usn        String?
+  bio        String?
+  isVisible  Boolean @default(true) @map("is_visible")
 
-  createdAt       DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  accounts          Account[]
-  sessions          Session[]
-  githubStats       GithubStats[]
-  lcStats           LcStats[]
-  leaderboardScore  LeaderboardScore?
-  createdEvents     Event[]           @relation("EventCreator")
-  reviewedEvents    Event[]           @relation("EventReviewer")
-  registrations     Registration[]
-  feedback          Feedback[]
-  ledProjects       Project[]         @relation("ProjectLead")
-  reviewedProjects  Project[]         @relation("ProjectReviewer")
+  accounts           Account[]
+  sessions           Session[]
+  githubStats        GithubStats[]
+  lcStats            LcStats[]
+  leaderboardScore   LeaderboardScore?
+  statsSyncState     StatsSyncState?
+  createdEvents      Event[]           @relation("EventCreator")
+  reviewedEvents     Event[]           @relation("EventReviewer")
+  registrations      Registration[]
+  feedback           Feedback[]
+  ledProjects        Project[]         @relation("ProjectLead")
+  reviewedProjects   Project[]         @relation("ProjectReviewer")
   projectMemberships ProjectMember[]
 
   @@map("users")
@@ -122,18 +122,18 @@ model Allowlist {
 // ─────────────────────────────────────────────
 
 model Account {
-  id                 String  @id @default(uuid())
-  userId             String  @map("user_id")
-  type               String
-  provider           String
-  providerAccountId  String  @map("provider_account_id")
-  refresh_token      String? @db.Text
-  access_token       String? @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String? @db.Text
-  session_state      String?
+  id                String  @id @default(uuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -169,18 +169,18 @@ model VerificationToken {
 // ─────────────────────────────────────────────
 
 model GithubStats {
-  id           String   @id @default(uuid())
-  userId       String   @map("user_id")
-  reposCount   Int      @default(0) @map("repos_count")
-  totalCommits Int      @default(0) @map("total_commits")
-  totalPrs     Int      @default(0) @map("total_prs")
-  totalStars   Int      @default(0) @map("total_stars")
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  reposCount    Int      @default(0) @map("repos_count")
+  totalCommits  Int      @default(0) @map("total_commits")
+  totalPrs      Int      @default(0) @map("total_prs")
+  totalStars    Int      @default(0) @map("total_stars")
   // Merged PRs to public repos the user does NOT own, where the upstream repo
   // has at least ScoreWeight.ghOpenSourceMinStars stars — i.e. real open-source
   // contributions. Feeds the GitHub component of the leaderboard score.
-  openSourcePrs Int     @default(0) @map("open_source_prs")
-  topLanguages Json     @default("[]") @map("top_languages") // string[]
-  fetchedAt    DateTime @default(now()) @map("fetched_at")
+  openSourcePrs Int      @default(0) @map("open_source_prs")
+  topLanguages  Json     @default("[]") @map("top_languages") // string[]
+  fetchedAt     DateTime @default(now()) @map("fetched_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -212,23 +212,23 @@ model LcStats {
 // ─────────────────────────────────────────────
 
 model Event {
-  id          String   @id @default(uuid())
-  createdBy   String   @map("created_by")
-  title       String
-  description String?
-  bannerUrl   String?  @map("banner_url")
-  eventType   String?  @map("event_type")
-  eventDate   DateTime @map("event_date")
-  location    String?
-  isPublished          Boolean       @default(false) @map("is_published")
+  id                   String         @id @default(uuid())
+  createdBy            String         @map("created_by")
+  title                String
+  description          String?
+  bannerUrl            String?        @map("banner_url")
+  eventType            String?        @map("event_type")
+  eventDate            DateTime       @map("event_date")
+  location             String?
+  isPublished          Boolean        @default(false) @map("is_published")
   reviewStatus         ApprovalStatus @default(pending) @map("review_status")
   reviewedById         String?        @map("reviewed_by")
   reviewedAt           DateTime?      @map("reviewed_at")
-  audience             EventAudience @default(public)
+  audience             EventAudience  @default(public)
   capacity             Int?
-  registrationDeadline DateTime?     @map("registration_deadline")
-  formSchema           Json?         @map("form_schema")
-  createdAt            DateTime      @default(now()) @map("created_at")
+  registrationDeadline DateTime?      @map("registration_deadline")
+  formSchema           Json?          @map("form_schema")
+  createdAt            DateTime       @default(now()) @map("created_at")
 
   creator       User           @relation("EventCreator", fields: [createdBy], references: [id])
   reviewedBy    User?          @relation("EventReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
@@ -268,7 +268,7 @@ model Feedback {
   id          String   @id @default(uuid())
   userId      String   @map("user_id")
   eventId     String   @map("event_id")
-  rating      Int      // 1–5
+  rating      Int // 1–5
   comments    String?
   submittedAt DateTime @default(now()) @map("submitted_at")
 
@@ -303,17 +303,17 @@ model LeaderboardScore {
 // ─────────────────────────────────────────────
 
 model ScoreWeight {
-  id            String   @id @default(uuid())
-  githubWeight  Float    @default(0.33) @map("github_weight")
-  lcWeight      Float    @default(0.33) @map("lc_weight")
-  eventWeight   Float    @default(0.34) @map("event_weight")
+  id                      String   @id @default(uuid())
+  githubWeight            Float    @default(0.33) @map("github_weight")
+  lcWeight                Float    @default(0.33) @map("lc_weight")
+  eventWeight             Float    @default(0.34) @map("event_weight")
   // Open-source contribution tuning (part of the GitHub component, not a
   // top-level weight). minStars is applied at fetch time when counting a
   // member's qualifying merged PRs; perPrPoints is applied at score time.
-  ghOpenSourceMinStars    Int   @default(10) @map("gh_open_source_min_stars")
-  ghOpenSourcePerPrPoints Float @default(10) @map("gh_open_source_per_pr_points")
-  updatedBy     String?  @map("updated_by") // user id of last admin to change it
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+  ghOpenSourceMinStars    Int      @default(10) @map("gh_open_source_min_stars")
+  ghOpenSourcePerPrPoints Float    @default(10) @map("gh_open_source_per_pr_points")
+  updatedBy               String?  @map("updated_by") // user id of last admin to change it
+  updatedAt               DateTime @default(now()) @updatedAt @map("updated_at")
 
   @@map("score_weights")
 }
@@ -331,6 +331,48 @@ model SyncRun {
   lockedUntil DateTime? @map("locked_until")
 
   @@map("sync_runs")
+}
+
+// Per-member refresh state for the stats drip queue.
+//
+// Replaces the all-or-nothing global sync: instead of one lock that pulled
+// EVERY member's GitHub + LeetCode stats inside a single 60s request (where one
+// slow member stalled the batch and a timeout wasted the whole run), each
+// /api/sync call claims a handful of the stalest members and refreshes only
+// those. Normal traffic converges the cohort within a few page views.
+//
+// `ghDirty` is set by the GitHub webhook when a member actually pushes, which
+// jumps them to the front of the queue — that is what makes the board reflect
+// real activity in seconds rather than on a fixed tick.
+model StatsSyncState {
+  userId String @id @map("user_id")
+
+  // Null means "never fetched" and sorts first — new members refresh promptly.
+  ghFetchedAt DateTime? @map("gh_fetched_at")
+  lcFetchedAt DateTime? @map("lc_fetched_at")
+
+  // Webhook-driven priority flags.
+  ghDirty Boolean @default(false) @map("gh_dirty")
+  lcDirty Boolean @default(false) @map("lc_dirty")
+
+  // Consecutive failures, and when this member may next be attempted. A member
+  // with a revoked GitHub token used to be retried on every single visit
+  // forever; failures now back off exponentially.
+  failCount     Int       @default(0) @map("fail_count")
+  nextAttemptAt DateTime? @map("next_attempt_at")
+
+  // Held while a drain is refreshing this member, so two concurrent visitors
+  // can't both fetch the same person.
+  lockedUntil DateTime? @map("locked_until")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The queue's ordering index: dirty first, then stalest.
+  @@index([ghDirty, ghFetchedAt])
+  @@index([nextAttemptAt])
+  @@map("stats_sync_state")
 }
 
 // ─────────────────────────────────────────────
@@ -358,22 +400,22 @@ model AuditLog {
 // ─────────────────────────────────────────────
 
 model Project {
-  id            String        @id @default(uuid())
-  leadId        String        @map("lead_id")
+  id            String         @id @default(uuid())
+  leadId        String         @map("lead_id")
   title         String
   description   String?
-  imageUrl      String?       @map("image_url")
-  status        ProjectStatus @default(planning)
-  progressPct   Int           @default(0) @map("progress_pct") // 0–100
-  githubRepoUrl String?       @map("github_repo_url")
-  demoUrl       String?       @map("demo_url")
-  techStack     Json          @default("[]") @map("tech_stack")  // string[]
-  milestones    Json          @default("[]") // { label: string, done: boolean }[]
+  imageUrl      String?        @map("image_url")
+  status        ProjectStatus  @default(planning)
+  progressPct   Int            @default(0) @map("progress_pct") // 0–100
+  githubRepoUrl String?        @map("github_repo_url")
+  demoUrl       String?        @map("demo_url")
+  techStack     Json           @default("[]") @map("tech_stack") // string[]
+  milestones    Json           @default("[]") // { label: string, done: boolean }[]
   reviewStatus  ApprovalStatus @default(pending) @map("review_status")
-  reviewedById  String?       @map("reviewed_by")
-  reviewedAt    DateTime?     @map("reviewed_at")
-  submittedAt   DateTime      @default(now()) @map("submitted_at")
-  updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at")
+  reviewedById  String?        @map("reviewed_by")
+  reviewedAt    DateTime?      @map("reviewed_at")
+  submittedAt   DateTime       @default(now()) @map("submitted_at")
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
 
   lead       User            @relation("ProjectLead", fields: [leadId], references: [id])
   reviewedBy User?           @relation("ProjectReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
@@ -390,7 +432,7 @@ model ProjectMember {
   id        String   @id @default(uuid())
   projectId String   @map("project_id")
   userId    String   @map("user_id")
-  role      String?  // e.g. "frontend", "backend", "ml", "lead"
+  role      String? // e.g. "frontend", "backend", "ml", "lead"
   joinedAt  DateTime @default(now()) @map("joined_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)

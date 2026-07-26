@@ -9,7 +9,7 @@ type SyncResult = {
   detail: string;
 };
 
-async function syncGitHubStatsForUser(
+export async function syncGitHubStatsForUser(
   userId: string,
   openSourceMinStars: number,
 ) {
@@ -102,7 +102,7 @@ async function syncGitHubStatsForUser(
   }
 }
 
-async function syncLeetCodeStatsForUser(userId: string) {
+export async function syncLeetCodeStatsForUser(userId: string) {
   const user = await db.user.findUnique({
     where: { id: userId },
     select: { lcUsername: true },

@@ -27,6 +27,7 @@ import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
 import { canAccessAdmin } from "@/lib/roles";
 import { languagesFromRecord } from "@/lib/stats-utils";
+import { lastSyncedAt } from "@/lib/sync";
 
 export const metadata = {
   // Absolute title so the home page reads cleanly (no "%s — ORBIT" template).
@@ -201,9 +202,10 @@ export default async function V2Page() {
   // Live figures for the hero ticker. Two cheap aggregates rather than loading
   // rows we'd only count; the events and projects totals reuse what's already
   // been fetched above, so this adds no round trips for those.
-  const [memberCount, commitTotal] = await Promise.all([
+  const [memberCount, commitTotal, syncedAt] = await Promise.all([
     db.user.count({ where: LEADERBOARD_VISIBLE_USER_FILTER }),
     db.githubStats.aggregate({ _sum: { totalCommits: true } }),
+    lastSyncedAt(),
   ]);
 
   const heroStats = {
@@ -268,7 +270,10 @@ export default async function V2Page() {
       )}
       <AboutSection />
       <EventsSection events={eventCards} />
-      <LeaderboardSection entries={leaderboard} />
+      <LeaderboardSection
+        entries={leaderboard}
+        syncedAt={syncedAt?.toISOString() ?? null}
+      />
       <ProjectsSection projects={projects} />
       <MembersSection />
       <Footer />

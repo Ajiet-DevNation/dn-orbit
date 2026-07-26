@@ -95,7 +95,7 @@ const customAdapter: Adapter = {
     // the President promotes them into membership/admin tiers from the panel.
     const grant = (await allowlistEntry(u.githubUsername, u.email))?.grantRole;
     // Merge GitHub-specific columns with Auth.js user fields the adapter expects
-    return db.user.create({
+    const created = await db.user.create({
       data: {
         githubId: u.githubId,
         githubUsername: u.githubUsername,
@@ -105,8 +105,13 @@ const customAdapter: Adapter = {
         emailVerified: u.emailVerified,
         role: grant ?? "ajiet_student",
         status: grant ? "approved" : "pending",
+        // Enrol in the stats drip queue immediately, with no fetch timestamps —
+        // which sorts them first, so a new member's stats land on the very next
+        // drain rather than waiting out a TTL.
+        statsSyncState: { create: {} },
       },
-    }) as unknown as AdapterUser;
+    });
+    return created as unknown as AdapterUser;
   },
 };
 
