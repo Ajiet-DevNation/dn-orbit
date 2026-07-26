@@ -3,6 +3,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Progress } from "@/components/ui/8bit-progress";
 import {
+  CANVAS_SIZE,
+  easeOutCubic,
+  FLING_THRESHOLD,
+  ORBIT_RX,
+  ORBIT_RY,
+  ORBIT_TILT,
+  type OrbitPosition,
+  orbitPositions,
+  PLANET_ICON_SIZE,
+  PLANET_KEYS,
+  type PlanetKey,
+  reformProgressAt,
+  reformSpinBoost,
+  ringRevealAt,
+  settleSpin,
+  shatterPhaseAt,
+  shatterVelocity,
+  stepReform,
+  stepScatter,
+} from "@/lib/orbit-engine";
+import {
   shouldEmit,
   snapToGrid,
   TRAIL_MAX_AGE_MS,
@@ -14,10 +35,11 @@ import {
 import { cn } from "@/lib/utils";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
+// Geometry, orbit timing and the shatter physics live in lib/orbit-engine so
+// they can be unit-tested without a DOM. What's left here is presentation.
 
 const BLOCK_SIZE = 18;
 const BLOCKS_PER_FRAME = 20;
-const CANVAS_SIZE = 900;
 const ORBIT_FADE_IN_MS = 800;
 
 // Resting scale of the freshly-drawn logo. The loading screen draws and holds
@@ -39,26 +61,11 @@ const LOGO_BASE_OFFSET_Y = -80;
 // logo ≈ 100px).
 const HEADER_OFFSET = 100;
 
-// Slower base speed for a more relaxed, stable feel
-const ORBIT_PERIODS = {
-  github: 12000,
-  leetcode: 12000,
-  linkedin: 12000,
-} as const;
-
-const ORBIT_RX = 410;
-const ORBIT_RY = 135;
-const PLANET_ICON_SIZE = 55;
-const ORBIT_TILT = -Math.PI / 6;
-
 // ── 8-bit ghost trail ────────────────────────────────────────────────────────
 // Chunky grid-snapped squares left behind whenever a planet moves meaningfully
 // faster than its calm orbit — drag-flings, the shatter scatter, and the reform
 // pull-in (see lib/orbit-trail.ts for the emission/decay math). Colors match
 // each planet's brand glow.
-
-const PLANET_KEYS = ["github", "leetcode", "linkedin"] as const;
-type PlanetKey = (typeof PLANET_KEYS)[number];
 
 const TRAIL_CELL = 8;
 const TRAIL_COLORS: Record<PlanetKey, string> = {
@@ -117,6 +124,38 @@ function LinkedInIcon({ size }: { size: number }) {
   );
 }
 
+// The three orbiting links, in one place — the markup for these used to be
+// three near-identical 30-line blocks differing only by icon, href and label.
+const PLANETS: {
+  key: PlanetKey;
+  href: string;
+  label: string;
+  Icon: (props: { size: number }) => React.ReactElement;
+  hoverScale: number;
+}[] = [
+  {
+    key: "github",
+    href: "https://github.com/Ajiet-DevNation",
+    label: "DevNation on GitHub",
+    Icon: GitHubIcon,
+    hoverScale: 1.45,
+  },
+  {
+    key: "leetcode",
+    href: "https://leetcode.com/",
+    label: "LeetCode",
+    Icon: LeetCodeIcon,
+    hoverScale: 1.45,
+  },
+  {
+    key: "linkedin",
+    href: "https://www.linkedin.com/company/devnationajiet/",
+    label: "DevNation on LinkedIn",
+    Icon: LinkedInIcon,
+    hoverScale: 1.7,
+  },
+];
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface PixelBlock {
@@ -131,12 +170,6 @@ interface PixelBlock {
 type AnimationPhase = "drawing" | "orbiting";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-// Gentle deceleration — fast start, soft landing. Used for the JS-driven hero
-// reveal so it reads as a smooth fade-and-settle rather than a linear ramp.
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3;
-}
 
 function extractPixelBlocks(imageData: ImageData): PixelBlock[] {
   const blocks: PixelBlock[] = [];
@@ -492,15 +525,9 @@ export function PixelLoadingScreen({
       let ringScale = 1;
 
       if (phys.isShattered) {
-        const timeSinceShatter = now - phys.shatterStartTime;
-        if (timeSinceShatter < 6000) {
-          ringOpacity = 0;
-        } else {
-          const progress = Math.min((timeSinceShatter - 6000) / 11000, 1);
-          const easeOut = 1 - (1 - progress) ** 3;
-          ringOpacity = progress;
-          ringScale = 0.8 + 0.2 * easeOut;
-        }
+        const reveal = ringRevealAt(now - phys.shatterStartTime);
+        ringOpacity = reveal.opacity;
+        ringScale = reveal.scale;
       }
 
       // Drop expired trail particles once per frame (buffers are append-only,
@@ -629,10 +656,89 @@ export function PixelLoadingScreen({
 
   // ── Physics Position Calculator ────────────────────────────────────────────
 
-  const [planetPositions, setPlanetPositions] = useState({
+  // Planet positions live in a ref and are written straight to the DOM.
+  //
+  // They used to be React state updated on EVERY rAF tick, which re-rendered
+  // this entire component ~60x/second for as long as the hero was mounted — and
+  // each planet was positioned with `left`/`top` as calc() strings, which are
+  // layout-triggering properties, so every one of those frames also forced a
+  // reflow. Now the elements are statically centred with margins and only their
+  // `transform` (compositor-only) changes per frame. Zero renders while
+  // orbiting.
+  const planetPositionsRef = useRef<Record<PlanetKey, OrbitPosition>>({
     github: { x: 0, y: 0, scale: 1, z: 0 },
     leetcode: { x: 0, y: 0, scale: 1, z: 0 },
     linkedin: { x: 0, y: 0, scale: 1, z: 0 },
+  });
+  const planetElsRef = useRef<Record<PlanetKey, HTMLDivElement | null>>({
+    github: null,
+    leetcode: null,
+    linkedin: null,
+  });
+  // Canvas units → CSS px. The stage is square and scales with the viewport, so
+  // this is remeasured on resize rather than assumed.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const scaleFactorRef = useRef(1);
+  // Last written z-index / opacity per planet — both force a style recalc, so
+  // they're only touched when the rounded value actually changes.
+  const lastZIndexRef = useRef<Record<PlanetKey, number>>({
+    github: 0,
+    leetcode: 0,
+    linkedin: 0,
+  });
+  const lastOpacityRef = useRef<Record<PlanetKey, number>>({
+    github: -1,
+    leetcode: -1,
+    linkedin: -1,
+  });
+  // Read by the paint function; kept in a ref so the physics loop never needs
+  // to be torn down and restarted when the reveal tween advances.
+  const orbitRevealRef = useRef(mode === "hero" ? 0 : 1);
+
+  const paintPlanets = useCallback(() => {
+    const k = scaleFactorRef.current;
+    const reveal = orbitRevealRef.current;
+    for (const key of PLANET_KEYS) {
+      const el = planetElsRef.current[key];
+      if (!el) continue;
+      const p = planetPositionsRef.current[key];
+
+      el.style.transform = `translate3d(${p.x * k}px, ${p.y * k}px, 0) scale(${p.scale})`;
+
+      const z = p.z > 0 ? 30 : 5;
+      if (lastZIndexRef.current[key] !== z) {
+        el.style.zIndex = String(z);
+        lastZIndexRef.current[key] = z;
+      }
+
+      // Depth-faded: planets on the far side of the ring dim.
+      const opacity =
+        Math.round(reveal * (0.6 + 0.4 * ((p.z + 1) / 2)) * 100) / 100;
+      if (lastOpacityRef.current[key] !== opacity) {
+        el.style.opacity = String(opacity);
+        lastOpacityRef.current[key] = opacity;
+      }
+    }
+  }, []);
+
+  // Keep the canvas-unit → px factor correct across resizes.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const measure = () => {
+      scaleFactorRef.current = stage.clientWidth / CANVAS_SIZE;
+      paintPlanets();
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(stage);
+    return () => ro.disconnect();
+  }, [paintPlanets]);
+
+  // Repaint when the entrance tween advances the reveal, so the planets fade in
+  // even before the physics loop starts writing every frame.
+  useEffect(() => {
+    paintPlanets();
   });
 
   useEffect(() => {
@@ -647,126 +753,46 @@ export function PixelLoadingScreen({
       const phys = physics.current;
 
       if (!phys.isDragging && (!isPausedRef.current || phys.isShattered)) {
-        // Frame-rate-independent return to the resting spin (1×). Normalising the
-        // old fixed 0.05-per-frame factor to the real frame delta keeps the
-        // settle identical on 60Hz and 120Hz displays instead of twice as fast.
-        const returnK = 1 - (1 - 0.05) ** (Math.min(delta, 50) / (1000 / 60));
-        phys.spinVelocity += (1 - phys.spinVelocity) * returnK;
-
+        phys.spinVelocity = settleSpin(phys.spinVelocity, delta);
         let currentSpin = phys.spinVelocity;
-
         if (phys.isShattered) {
-          const timeSinceShatter = now - phys.shatterStartTime;
-          if (timeSinceShatter > 6000 && timeSinceShatter < 17000) {
-            const reformProgress = (timeSinceShatter - 6000) / 11000;
-            const extraSpin = (1 - reformProgress) ** 2 * 12;
-            currentSpin += extraSpin;
-          }
+          currentSpin += reformSpinBoost(now - phys.shatterStartTime);
         }
-
         phys.accumulatedTime += delta * currentSpin;
       }
 
-      const calcPos = (period: number, offset: number) => {
-        const angle =
-          ((phys.accumulatedTime / period) * Math.PI * 2 + offset) %
-          (Math.PI * 2);
-        const unX = ORBIT_RX * Math.cos(angle);
-        const unY = ORBIT_RY * Math.sin(angle);
-        const x = unX * Math.cos(ORBIT_TILT) - unY * Math.sin(ORBIT_TILT);
-        const y = unX * Math.sin(ORBIT_TILT) + unY * Math.cos(ORBIT_TILT);
-        const z = Math.sin(angle);
-        const scale = 0.7 + 0.3 * ((z + 1) / 2);
-        return { x, y, scale, z };
-      };
-
-      const targetPositions = {
-        github: calcPos(ORBIT_PERIODS.github, 0),
-        leetcode: calcPos(ORBIT_PERIODS.leetcode, (Math.PI * 2) / 3),
-        linkedin: calcPos(ORBIT_PERIODS.linkedin, (Math.PI * 4) / 3),
-      };
+      const targetPositions = orbitPositions(phys.accumulatedTime);
 
       if (phys.isShattered) {
-        const timeSinceShatter = now - phys.shatterStartTime;
+        const elapsed = now - phys.shatterStartTime;
+        const stage = shatterPhaseAt(elapsed);
 
-        if (timeSinceShatter >= 17000) {
+        if (stage === "done") {
           phys.isShattered = false;
           setShattered(false);
-          setPlanetPositions(targetPositions);
+          planetPositionsRef.current = targetPositions;
 
           setFlashActive(true);
           playFlashSound();
           setTimeout(() => setFlashActive(false), 50);
         } else {
-          const isReforming = timeSinceShatter > 6000;
-          const reformProgress = isReforming
-            ? (timeSinceShatter - 6000) / 11000
-            : 0;
-
-          Object.keys(phys.particles).forEach((key, index) => {
-            const k = key as keyof typeof phys.particles;
+          const reform = reformProgressAt(elapsed);
+          PLANET_KEYS.forEach((k, index) => {
             const p = phys.particles[k];
-            const t = targetPositions[k];
-
-            if (!isReforming) {
-              p.x += p.vx;
-              p.y += p.vy;
-
-              const dist = Math.sqrt(p.x * p.x + p.y * p.y) || 1;
-
-              const pushStrength = 0.04 * (1 - timeSinceShatter / 6000);
-              p.vx += (p.x / dist) * pushStrength;
-              p.vy += (p.y / dist) * pushStrength;
-
-              p.x += Math.sin(now / 500 + index) * 0.8;
-              p.y += Math.cos(now / 400 + index) * 0.8;
-
-              const LOGO_HALF_W = 330;
-              const LOGO_HALF_H = 150;
-
-              if (Math.abs(p.x) < LOGO_HALF_W && Math.abs(p.y) < LOGO_HALF_H) {
-                const distToXEdge = LOGO_HALF_W - Math.abs(p.x);
-                const distToYEdge = LOGO_HALF_H - Math.abs(p.y);
-
-                if (distToXEdge < distToYEdge) {
-                  p.x = Math.sign(p.x) * LOGO_HALF_W;
-                  p.vx *= -0.9;
-                } else {
-                  p.y = Math.sign(p.y) * LOGO_HALF_H;
-                  p.vy *= -0.9;
-                }
-              }
-
-              const OUTER_BOUNDS = 400;
-              if (dist > OUTER_BOUNDS) {
-                p.vx -= (p.x / dist) * 0.3;
-                p.vy -= (p.y / dist) * 0.3;
-              }
-
-              p.vx *= 0.98;
-              p.vy *= 0.98;
-
-              p.scale += (1 - p.scale) * 0.02;
-              p.z += (0 - p.z) * 0.02;
+            if (stage === "scatter") {
+              stepScatter(p, elapsed, now, index);
             } else {
-              p.vx *= 0.85;
-              p.vy *= 0.85;
-              p.x += p.vx;
-              p.y += p.vy;
-
-              const pullStrength = 0.005 + reformProgress ** 2 * 0.2;
-              p.x += (t.x - p.x) * pullStrength;
-              p.y += (t.y - p.y) * pullStrength;
-              p.z += (t.z - p.z) * pullStrength;
-              p.scale += (t.scale - p.scale) * pullStrength;
+              stepReform(p, targetPositions[k], reform);
             }
           });
-
-          setPlanetPositions({ ...phys.particles });
+          planetPositionsRef.current = phys.particles;
         }
       } else {
-        setPlanetPositions(targetPositions);
+        planetPositionsRef.current = targetPositions;
       }
+
+      // Compositor-only DOM write — no React render.
+      paintPlanets();
 
       // Trail emission — a planet leaves ghost blocks only while moving
       // meaningfully faster than the calm orbit, which naturally covers the
@@ -793,7 +819,7 @@ export function PixelLoadingScreen({
 
     frame = requestAnimationFrame(updatePositions);
     return () => cancelAnimationFrame(frame);
-  }, [phase, playFlashSound]);
+  }, [phase, playFlashSound, paintPlanets]);
 
   // ── Drag & Shatter Interaction Handlers ─────────────────────────────────────
 
@@ -804,38 +830,35 @@ export function PixelLoadingScreen({
     hasShatteredRef.current = true;
     setShattered(true);
 
-    const speed = Math.min(Math.abs(phys.spinVelocity), 40);
-    const dir = Math.sign(phys.spinVelocity) || 1;
-
-    setPlanetPositions((prev) => {
-      const keys: (keyof typeof prev)[] = ["github", "leetcode", "linkedin"];
-      keys.forEach((k) => {
-        const pos = prev[k];
-        const angle = Math.atan2(pos.y, pos.x);
-
-        const tangent = angle + (dir * Math.PI) / 2;
-
-        phys.particles[k] = {
-          x: pos.x,
-          y: pos.y,
-          vx: (Math.cos(tangent) * 0.5 + Math.cos(angle) * 1.5) * speed * 0.4,
-          vy: (Math.sin(tangent) * 0.5 + Math.sin(angle) * 1.5) * speed * 0.4,
-          scale: pos.scale,
-          z: pos.z,
-        };
-      });
-      return { ...phys.particles };
-    });
+    for (const k of PLANET_KEYS) {
+      const pos = planetPositionsRef.current[k];
+      phys.particles[k] = {
+        x: pos.x,
+        y: pos.y,
+        scale: pos.scale,
+        z: pos.z,
+        ...shatterVelocity(pos, phys.spinVelocity),
+      };
+    }
+    planetPositionsRef.current = phys.particles;
   }, []);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // ── Pointer (not mouse) events ─────────────────────────────────────────────
+  // These were onMouseDown/Move/Up, which fire only for a real mouse. The
+  // drag-to-spin and fling-to-shatter interaction — the whole reason the hero is
+  // interactive — was therefore completely dead on phones and tablets. Pointer
+  // events cover mouse, touch and pen with one path.
+
+  const handlePointerDown = (e: React.PointerEvent) => {
     if (physics.current.isShattered || phase !== "orbiting") return;
     physics.current.isDragging = true;
     physics.current.lastMouseY = e.clientY;
     physics.current.spinVelocity = 0;
+    // Capture so the gesture keeps tracking if the finger leaves the element.
+    e.currentTarget.setPointerCapture?.(e.pointerId);
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handlePointerMove = (e: React.PointerEvent) => {
     if (
       !physics.current.isDragging ||
       physics.current.isShattered ||
@@ -846,23 +869,21 @@ export function PixelLoadingScreen({
     const deltaY = e.clientY - physics.current.lastMouseY;
     physics.current.lastMouseY = e.clientY;
 
-    // The orbit follows the cursor 1:1 (responsive), but the fling velocity is a
-    // low-pass average of the recent motion rather than the last jittery frame —
-    // so releasing reflects the gesture's true speed and the fling feels smooth
-    // instead of snapping to whatever the final mouse event happened to be.
+    // The orbit follows the pointer 1:1 (responsive), but the fling velocity is
+    // a low-pass average of the recent motion rather than the last jittery frame
+    // — so releasing reflects the gesture's true speed and the fling feels
+    // smooth instead of snapping to whatever the final event happened to be.
     physics.current.accumulatedTime -= deltaY * 30;
     physics.current.spinVelocity =
       physics.current.spinVelocity * 0.6 + -deltaY * 0.4;
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = (e?: React.PointerEvent) => {
     if (!physics.current.isDragging || physics.current.isShattered) return;
     physics.current.isDragging = false;
+    if (e) e.currentTarget.releasePointerCapture?.(e.pointerId);
 
-    // Threshold lowered from 20 → 16 to match the smoothed (averaged, so
-    // lower-peak) release velocity, keeping the fling as easy to trigger as
-    // before while the motion itself is gentler.
-    if (Math.abs(physics.current.spinVelocity) > 16) {
+    if (Math.abs(physics.current.spinVelocity) > FLING_THRESHOLD) {
       triggerShatter();
     } else {
       physics.current.spinVelocity *= 0.8;
@@ -885,6 +906,9 @@ export function PixelLoadingScreen({
   // original CSS-transition behaviour keyed off `orbitVisible`.
   const isHero = mode === "hero";
   const orbitReveal = isHero ? orbitProgress : orbitVisible ? 1 : 0;
+  // The planets' opacity is written by the rAF loop (not React), so hand the
+  // current reveal value across through a ref and repaint on change.
+  orbitRevealRef.current = orbitReveal;
   const orbitRingScale = isHero
     ? 0.86 + 0.14 * orbitProgress
     : orbitVisible
@@ -976,6 +1000,7 @@ export function PixelLoadingScreen({
         style={{ transform: `translateY(${contentOffsetY}px)` }}
       >
         <div
+          ref={stageRef}
           role="application"
           aria-label="Interactive Orbit Physics Canvas"
           tabIndex={0}
@@ -984,14 +1009,18 @@ export function PixelLoadingScreen({
           }}
           className={cn(
             "relative w-full aspect-square flex items-center justify-center focus:outline-none",
+            // touch-pan-y: keep vertical page scrolling working on phones while
+            // the horizontal/vertical drag spins the orbit.
+            "touch-pan-y",
             !shattered &&
               phase === "orbiting" &&
               "cursor-grab active:cursor-grabbing",
           )}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onPointerLeave={handlePointerUp}
         >
           {showOrbit && (
             <canvas
@@ -1049,98 +1078,48 @@ export function PixelLoadingScreen({
 
           {showOrbit && (
             <>
-              {/* GitHub */}
-              <div
-                className="absolute pointer-events-auto flex items-center justify-center"
-                onMouseEnter={() => (isPausedRef.current = true)}
-                onMouseLeave={() => (isPausedRef.current = false)}
-                style={{
-                  width: PLANET_ICON_SIZE,
-                  height: PLANET_ICON_SIZE,
-                  left: `calc(50% + ${(planetPositions.github.x / CANVAS_SIZE) * 100}%)`,
-                  top: `calc(50% + ${(planetPositions.github.y / CANVAS_SIZE) * 100}%)`,
-                  transform: `translate(-50%, -50%) scale(${planetPositions.github.scale})`,
-                  zIndex: planetPositions.github.z > 0 ? 30 : 5,
-                  opacity:
-                    orbitReveal *
-                    (0.6 + 0.4 * ((planetPositions.github.z + 1) / 2)),
-                  transition: planetRevealTransition,
-                }}
-              >
-                <a
-                  href="https://github.com/Ajiet-DevNation"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="DevNation on GitHub"
-                  draggable={false}
-                  onDragStart={(e) => e.preventDefault()}
-                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out hover:scale-[1.45]"
+              {PLANETS.map(({ key, href, label, Icon, hoverScale }) => (
+                <div
+                  key={key}
+                  ref={(el) => {
+                    planetElsRef.current[key] = el;
+                  }}
+                  className="absolute left-1/2 top-1/2 pointer-events-auto flex items-center justify-center"
+                  onPointerEnter={() => (isPausedRef.current = true)}
+                  onPointerLeave={() => (isPausedRef.current = false)}
+                  style={{
+                    width: PLANET_ICON_SIZE,
+                    height: PLANET_ICON_SIZE,
+                    // Statically centred with margins so the per-frame write is
+                    // a pure transform. `left`/`top` used to carry the position
+                    // as calc() strings — layout-triggering, every frame.
+                    marginLeft: -PLANET_ICON_SIZE / 2,
+                    marginTop: -PLANET_ICON_SIZE / 2,
+                    opacity: 0,
+                    willChange: "transform",
+                    transition: planetRevealTransition,
+                  }}
                 >
-                  <GitHubIcon size={PLANET_ICON_SIZE * 0.85} />
-                </a>
-              </div>
-
-              {/* LeetCode */}
-              <div
-                className="absolute pointer-events-auto flex items-center justify-center"
-                onMouseEnter={() => (isPausedRef.current = true)}
-                onMouseLeave={() => (isPausedRef.current = false)}
-                style={{
-                  width: PLANET_ICON_SIZE,
-                  height: PLANET_ICON_SIZE,
-                  left: `calc(50% + ${(planetPositions.leetcode.x / CANVAS_SIZE) * 100}%)`,
-                  top: `calc(50% + ${(planetPositions.leetcode.y / CANVAS_SIZE) * 100}%)`,
-                  transform: `translate(-50%, -50%) scale(${planetPositions.leetcode.scale})`,
-                  zIndex: planetPositions.leetcode.z > 0 ? 30 : 5,
-                  opacity:
-                    orbitReveal *
-                    (0.6 + 0.4 * ((planetPositions.leetcode.z + 1) / 2)),
-                  transition: planetRevealTransition,
-                }}
-              >
-                <a
-                  href="https://leetcode.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="LeetCode"
-                  draggable={false}
-                  onDragStart={(e) => e.preventDefault()}
-                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out hover:scale-[1.45]"
-                >
-                  <LeetCodeIcon size={PLANET_ICON_SIZE * 0.85} />
-                </a>
-              </div>
-
-              {/* LinkedIn */}
-              <div
-                className="absolute pointer-events-auto flex items-center justify-center"
-                onMouseEnter={() => (isPausedRef.current = true)}
-                onMouseLeave={() => (isPausedRef.current = false)}
-                style={{
-                  width: PLANET_ICON_SIZE,
-                  height: PLANET_ICON_SIZE,
-                  left: `calc(50% + ${(planetPositions.linkedin.x / CANVAS_SIZE) * 100}%)`,
-                  top: `calc(50% + ${(planetPositions.linkedin.y / CANVAS_SIZE) * 100}%)`,
-                  transform: `translate(-50%, -50%) scale(${planetPositions.linkedin.scale})`,
-                  zIndex: planetPositions.linkedin.z > 0 ? 30 : 5,
-                  opacity:
-                    orbitReveal *
-                    (0.6 + 0.4 * ((planetPositions.linkedin.z + 1) / 2)),
-                  transition: planetRevealTransition,
-                }}
-              >
-                <a
-                  href="https://www.linkedin.com/company/devnationajiet/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="DevNation on LinkedIn"
-                  draggable={false}
-                  onDragStart={(e) => e.preventDefault()}
-                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 hover:scale-[1.7]"
-                >
-                  <LinkedInIcon size={PLANET_ICON_SIZE * 0.85} />
-                </a>
-              </div>
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    draggable={false}
+                    onDragStart={(e) => e.preventDefault()}
+                    className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out"
+                    style={{ ["--hover-scale" as string]: hoverScale }}
+                    onPointerEnter={(e) => {
+                      e.currentTarget.style.transform = `scale(${hoverScale})`;
+                    }}
+                    onPointerLeave={(e) => {
+                      e.currentTarget.style.transform = "";
+                    }}
+                  >
+                    <Icon size={PLANET_ICON_SIZE * 0.85} />
+                  </a>
+                </div>
+              ))}
             </>
           )}
         </div>
