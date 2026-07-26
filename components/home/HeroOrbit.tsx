@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { OrbitStage } from "@/components/home/OrbitStage";
+import { onBootSplashDone } from "@/lib/boot-splash";
 import { cn } from "@/lib/utils";
 
 // ─── The landing hero ────────────────────────────────────────────────────────
@@ -72,9 +73,10 @@ function Wordmark() {
 
     const total = WORD.length * STAGGER_MS + DECODE_MS;
     let raf = 0;
-    const start = performance.now();
+    let start = 0;
 
     const frame = (now: number) => {
+      if (!start) start = now;
       const elapsed = now - start;
 
       for (let i = 0; i < WORD.length; i++) {
@@ -118,8 +120,18 @@ function Wordmark() {
       settle();
     };
 
-    raf = requestAnimationFrame(frame);
-    return () => cancelAnimationFrame(raf);
+    // Wait for the boot splash to lift before starting. The hero mounts
+    // underneath the splash, so the decode used to play out and finish entirely
+    // behind it — by the time the splash faded, the word was already sitting
+    // there fully rendered and the animation was never seen.
+    const cancel = onBootSplashDone(() => {
+      raf = requestAnimationFrame(frame);
+    });
+
+    return () => {
+      cancel();
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
 
   return (
@@ -173,8 +185,9 @@ function useCrtSweep(ref: React.RefObject<HTMLDivElement | null>) {
     }
 
     let raf = 0;
-    const start = performance.now();
+    let start = 0;
     const tick = (now: number) => {
+      if (!start) start = now;
       const t = Math.min(1, (now - start) / SWEEP_MS);
       el.style.transform = `translate3d(0, ${t * 100}vh, 0)`;
       el.style.opacity = String((1 - t) * 0.55);
@@ -184,8 +197,16 @@ function useCrtSweep(ref: React.RefObject<HTMLDivElement | null>) {
       }
       el.style.opacity = "0";
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+
+    // Same reason as the wordmark: this played out behind the splash.
+    const cancel = onBootSplashDone(() => {
+      raf = requestAnimationFrame(tick);
+    });
+
+    return () => {
+      cancel();
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, [ref]);
 }
 

@@ -500,68 +500,6 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
   const orbitCanvasBackRef = useRef<HTMLCanvasElement>(null);
   const orbitCanvasFrontRef = useRef<HTMLCanvasElement>(null);
 
-  // ── Second, counter-rotating ring ──────────────────────────────────────────
-  //
-  // A wider ellipse at a different inclination, giving the orbit real depth
-  // instead of one flat hoop.
-  //
-  // Deliberately its own canvas, painted ONCE on mount and then spun with a CSS
-  // transform. The main ring's draw loop is carefully cached so it only
-  // re-strokes when something actually changed (a shadowBlur'd ellipse every
-  // frame is expensive); a genuinely animated second ring would have thrown
-  // that away. Rotating a already-painted canvas is compositor-only — the
-  // pixels are never re-rasterised.
-  const outerRingRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    if (phase !== "orbiting") return;
-    const canvas = outerRingRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
-
-    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    const cx = CANVAS_SIZE / 2;
-    const cy = CANVAS_SIZE / 2;
-
-    // Wider, flatter, tilted the other way so the two rings cross.
-    ctx.beginPath();
-    ctx.ellipse(
-      cx,
-      cy,
-      ORBIT_RX * 1.16,
-      ORBIT_RY * 0.62,
-      -ORBIT_TILT * 1.5,
-      0,
-      Math.PI * 2,
-    );
-    ctx.strokeStyle = "rgba(34, 197, 94, 0.14)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Chunky dust motes along the path — pixel squares, not a smooth band, so
-    // it reads 8-bit. Deterministic positions (no Math.random) so the ring is
-    // identical on every mount.
-    const MOTES = 46;
-    for (let i = 0; i < MOTES; i++) {
-      const a = (i / MOTES) * Math.PI * 2;
-      const ux = ORBIT_RX * 1.16 * Math.cos(a);
-      const uy = ORBIT_RY * 0.62 * Math.sin(a);
-      const t = -ORBIT_TILT * 1.5;
-      const x = ux * Math.cos(t) - uy * Math.sin(t);
-      const y = ux * Math.sin(t) + uy * Math.cos(t);
-      // Vary size/alpha with a cheap deterministic hash of the index.
-      const jitter = ((i * 2654435761) % 100) / 100;
-      const size = 2 + Math.round(jitter * 2) * 2;
-      ctx.fillStyle = `rgba(34, 197, 94, ${0.1 + jitter * 0.22})`;
-      ctx.fillRect(
-        Math.round((cx + x) / 4) * 4,
-        Math.round((cy + y) / 4) * 4,
-        size,
-        size,
-      );
-    }
-  }, [phase]);
-
   useEffect(() => {
     if (phase !== "orbiting") return;
 
@@ -630,34 +568,23 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
       const bctx = backCanvas.getContext("2d");
       const fctx = frontCanvas.getContext("2d");
 
-      // ── Saturn ring, split front/back around the logo ───────────────────────
-      //
-      // The two halves are drawn onto two canvases that sandwich the logo (back
-      // at z-0, logo at z-10, front at z-20), so the near half genuinely passes
-      // OVER the glyph and the far half behind it. The geometry always did that
-      // — at the logo's horizontal centre the front arc sits ~153 canvas units
-      // down, well inside the glyph's 229 half-height — but it read as "the
-      // ring is entirely behind the logo", because the near half was stroked at
-      // 45% green with a 32% white highlight, and neither is visible against a
-      // pure-white logo.
-      //
-      // The fix is contrast, not geometry:
-      //
-      //   • The near half gets a dark casing stroked underneath a bright core.
-      //     That's what real ring imagery looks like crossing a lit body, and
-      //     it's what separates the ring from BOTH the black background and the
-      //     white glyph. Without the casing the arc simply dissolves on white.
-      //   • The near half is near-opaque; the far half stays dim and thin, so
-      //     the two halves read as different distances rather than one flat
-      //     ellipse.
-      //   • The glow is only applied to the near half. On the far half it just
-      //     bled green over the logo's edges and muddied the silhouette.
-      const strokeArc = (
+      const drawSaturnRing = (
         ctx: CanvasRenderingContext2D,
         isBack: boolean,
-        color: string,
-        width: number,
       ) => {
+        const startAngle = isBack ? Math.PI : 0;
+        const endAngle = isBack ? 2 * Math.PI : Math.PI;
+
+        ctx.save();
+
+        ctx.translate(cx, cy);
+        ctx.scale(ringScale, ringScale);
+        ctx.translate(-cx, -cy);
+
+        ctx.shadowColor = `rgba(34, 197, 94, ${0.85 * ringOpacity})`;
+        ctx.shadowBlur = 18;
+
+        // Slightly thicker ring for more presence.
         ctx.beginPath();
         ctx.ellipse(
           cx,
@@ -665,58 +592,102 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
           ORBIT_RX,
           ORBIT_RY,
           ORBIT_TILT,
-          isBack ? Math.PI : 0,
-          isBack ? 2 * Math.PI : Math.PI,
+          startAngle,
+          endAngle,
         );
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width;
+        ctx.strokeStyle = `rgba(34, 197, 94, ${(isBack ? 0.22 : 0.45) * ringOpacity})`;
+        ctx.lineWidth = 6;
         ctx.stroke();
+
+        ctx.beginPath();
+        ctx.ellipse(
+          cx,
+          cy,
+          ORBIT_RX,
+          ORBIT_RY,
+          ORBIT_TILT,
+          startAngle,
+          endAngle,
+        );
+        ctx.strokeStyle = `rgba(255, 255, 255, ${(isBack ? 0.12 : 0.32) * ringOpacity})`;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.restore();
       };
 
-      const drawSaturnRing = (
+      // ── Second, wider orbital plane ─────────────────────────────────────────
+      //
+      // This used to be painted onto its own canvas behind EVERYTHING and spun
+      // with a CSS transform. Two things were wrong with that. It sat entirely
+      // behind the logo, so it read as flat decoration rather than a second
+      // orbit — which is what was actually being reported. And spinning the
+      // canvas tumbled the whole ellipse rather than moving anything along it;
+      // a ring rotating in its own plane looks static, which is precisely why
+      // it needed the CSS trick to seem alive at all.
+      //
+      // It is now split at the same parametric boundary as the main ring and
+      // stroked onto the two canvases that sandwich the logo, so its near half
+      // crosses in FRONT of the glyph and its far half behind. Static, so the
+      // redraw cache above still holds.
+      const OUTER_RX = ORBIT_RX * 1.16;
+      const OUTER_RY = ORBIT_RY * 0.62;
+      const OUTER_TILT = -ORBIT_TILT * 1.5;
+      const MOTES = 46;
+
+      const drawOuterRing = (
         ctx: CanvasRenderingContext2D,
         isBack: boolean,
       ) => {
         ctx.save();
-
         ctx.translate(cx, cy);
         ctx.scale(ringScale, ringScale);
         ctx.translate(-cx, -cy);
-
-        if (isBack) {
-          // Far half: thin, dim, no glow. It should read as "behind", and
-          // anything brighter competes with the near half.
-          ctx.shadowBlur = 0;
-          strokeArc(ctx, true, `rgba(34, 197, 94, ${0.3 * ringOpacity})`, 3);
-          strokeArc(
-            ctx,
-            true,
-            `rgba(255, 255, 255, ${0.1 * ringOpacity})`,
-            1.25,
-          );
-          ctx.restore();
-          return;
-        }
-
-        // Near half. Casing first — a dark, wider stroke that reads as the
-        // ring's shadowed underside and gives the bright core an edge to sit
-        // against wherever it crosses the logo.
         ctx.shadowBlur = 0;
-        strokeArc(ctx, false, `rgba(4, 12, 8, ${0.72 * ringOpacity})`, 11);
 
-        // Bright core, with the glow applied only here.
-        ctx.shadowColor = `rgba(34, 197, 94, ${0.9 * ringOpacity})`;
-        ctx.shadowBlur = 16;
-        strokeArc(ctx, false, `rgba(34, 197, 94, ${0.95 * ringOpacity})`, 5.5);
-
-        // Specular highlight along the top of the near half.
-        ctx.shadowBlur = 0;
-        strokeArc(
-          ctx,
-          false,
-          `rgba(214, 255, 231, ${0.75 * ringOpacity})`,
-          1.75,
+        // Faint by design: this is the far plane and must not compete with the
+        // inner ring the planets actually travel. The near half is brighter
+        // than the far half purely so the two read as different distances.
+        ctx.beginPath();
+        ctx.ellipse(
+          cx,
+          cy,
+          OUTER_RX,
+          OUTER_RY,
+          OUTER_TILT,
+          isBack ? Math.PI : 0,
+          isBack ? 2 * Math.PI : Math.PI,
         );
+        ctx.strokeStyle = `rgba(34, 197, 94, ${(isBack ? 0.1 : 0.32) * ringOpacity})`;
+        ctx.lineWidth = isBack ? 1.5 : 2.25;
+        ctx.stroke();
+
+        // Chunky dust motes along the path — pixel squares, not a smooth band,
+        // so it reads 8-bit. Deterministic (no Math.random) so the ring is
+        // identical on every draw and can't shimmer between frames.
+        ctx.imageSmoothingEnabled = false;
+        for (let i = 0; i < MOTES; i++) {
+          const a = (i / MOTES) * Math.PI * 2;
+          // Same near/far convention as everything else orbiting here:
+          // sin(a) > 0 is the half that swings toward the viewer.
+          if (Math.sin(a) > 0 === isBack) continue;
+
+          const ux = OUTER_RX * Math.cos(a);
+          const uy = OUTER_RY * Math.sin(a);
+          const x = ux * Math.cos(OUTER_TILT) - uy * Math.sin(OUTER_TILT);
+          const y = ux * Math.sin(OUTER_TILT) + uy * Math.cos(OUTER_TILT);
+
+          const jitter = ((i * 2654435761) % 100) / 100;
+          const size = 2 + Math.round(jitter * 2) * 2;
+          const alpha = (isBack ? 0.14 : 0.4) + jitter * 0.2;
+          ctx.fillStyle = `rgba(34, 197, 94, ${alpha * ringOpacity})`;
+          ctx.fillRect(
+            Math.round((cx + x) / 4) * 4,
+            Math.round((cy + y) / 4) * 4,
+            size,
+            size,
+          );
+        }
 
         ctx.restore();
       };
@@ -747,15 +718,22 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
         ctx.restore();
       };
 
+      // Far plane first on each canvas so the main ring sits over it.
       if (bctx) {
         bctx.clearRect(0, 0, w, h);
-        if (ringOpacity > 0) drawSaturnRing(bctx, true);
+        if (ringOpacity > 0) {
+          drawOuterRing(bctx, true);
+          drawSaturnRing(bctx, true);
+        }
         drawTrails(bctx, true);
       }
 
       if (fctx) {
         fctx.clearRect(0, 0, w, h);
-        if (ringOpacity > 0) drawSaturnRing(fctx, false);
+        if (ringOpacity > 0) {
+          drawOuterRing(fctx, false);
+          drawSaturnRing(fctx, false);
+        }
         drawTrails(fctx, false);
       }
 
@@ -848,15 +826,6 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
           lastGlowRef.current[key] = g;
         }
       }
-    }
-
-    // Counter-rotate the outer ring: opposite direction, much slower, so the two
-    // rings drift against each other. Transform-only.
-    const outer = outerRingRef.current;
-    if (outer) {
-      const deg = -(physics.current.accumulatedTime / 260) % 360;
-      outer.style.transform = `rotate(${deg}deg) scale(${0.94 + 0.06 * reveal})`;
-      outer.style.opacity = String(reveal * 0.9);
     }
   }, []);
 
@@ -1164,19 +1133,6 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
-          {/* Outer counter-rotating ring + dust. Painted once, spun by CSS
-              transform in paintPlanets — sits furthest back. */}
-          {showOrbit && (
-            <canvas
-              ref={outerRingRef}
-              width={CANVAS_SIZE}
-              height={CANVAS_SIZE}
-              aria-hidden
-              className="pointer-events-none absolute inset-0 -z-10 h-full w-full"
-              style={{ opacity: 0, willChange: "transform" }}
-            />
-          )}
-
           {showOrbit && (
             <canvas
               ref={orbitCanvasBackRef}
