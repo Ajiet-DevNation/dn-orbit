@@ -16,8 +16,13 @@ export const HudCardFrame = memo(function HudCardFrame({
   // Brackets sit at 25% opacity off-centre and brighten to full at the centre.
   const bracketOpacity = "calc(0.25 + var(--cf-center, 0) * 0.75)";
   return (
+    // data-hud marks this element as the owner of --cf-depth / --cf-center. The
+    // coverflow engine finds it and writes the vars HERE rather than on the card
+    // root, so the inherited-custom-property invalidation only touches the few
+    // leaves below instead of the card's whole subtree.
     <div
       aria-hidden
+      data-hud
       className="pointer-events-none absolute inset-0 z-30 overflow-hidden"
     >
       <div

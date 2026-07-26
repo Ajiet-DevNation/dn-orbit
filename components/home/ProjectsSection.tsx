@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useRef } from "react";
+import { memo, useMemo, useRef } from "react";
 import { FaExternalLinkAlt, FaGithub } from "react-icons/fa";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
@@ -97,6 +97,11 @@ const ProjectCard = memo(function ProjectCard({
             src={project.imageUrl}
             alt={project.title}
             loading="lazy"
+            // See MembersSection: intrinsic size stops the card reflowing when
+            // the bytes land, async decode keeps it off the main thread.
+            width={680}
+            height={600}
+            decoding="async"
             draggable={false}
             className="pixelated h-full w-full object-cover select-none [-webkit-user-drag:none]"
           />
@@ -222,6 +227,17 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
   const CARD_H = Math.round(CARD_W * CARD_RATIO);
   const SPREAD = Math.round(CARD_W * SPREAD_RATIO);
 
+  // Memoised: a fresh object literal here would give CoverflowControls a new
+  // prop identity on every parent render, defeating its own memo() exactly when
+  // renders are most expensive — mid-drag.
+  const counterStyle = useMemo(
+    () => ({
+      top: `calc(50% + ${Math.round(CARD_H / 2) + 24}px)`,
+      bottom: "auto" as const,
+    }),
+    [CARD_H],
+  );
+
   // Wrapper the scroll-glide drifts horizontally (left for projects).
   const glideRef = useRef<HTMLDivElement>(null);
 
@@ -337,10 +353,7 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
           // Sit the counter just below the card's bottom edge (cards centre at
           // the stage midpoint), so it never overlaps the card chrome.
           counterClassName=""
-          counterStyle={{
-            top: `calc(50% + ${Math.round(CARD_H / 2) + 24}px)`,
-            bottom: "auto",
-          }}
+          counterStyle={counterStyle}
         />
       </div>
 

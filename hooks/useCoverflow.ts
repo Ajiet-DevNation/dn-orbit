@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { accumulateVelocity, flingTarget } from "@/lib/coverflow-fling";
 
 // ─── Looping 3D coverflow controller ──────────────────────────────────────────
 // Drives a focus-based cover-flow: the centred card is full-size, upright, and on
@@ -88,6 +89,20 @@ export function useCoverflow({
   // actually changes, sparing the cards whose distance barely moved this frame.
   const lastDepthRef = useRef<number[]>([]);
   const lastCenterRef = useRef<number[]>([]);
+  // The HUD overlay roots inside each card (elements marked [data-hud]).
+  //
+  // --cf-depth / --cf-center used to be written to the CARD root. A custom
+  // property is inherited, so every write invalidated style for the card's
+  // ENTIRE subtree — and a member card is ~30 nodes (two faces, each with a
+  // frame, four brackets, badges, labels). Fifteen cards × two faces × those
+  // nodes, re-resolved whenever a card's distance crossed a 1/100 boundary
+  // during a drag, was the dominant cost in the "slideshow" jank.
+  //
+  // Writing to the overlay root instead confines the invalidation to the six or
+  // seven leaves that actually read the vars. Resolved once per card element
+  // and cached; re-resolved only when the card's DOM node identity changes.
+  const hudElsRef = useRef<(HTMLElement[] | null)[]>([]);
+  const hudOwnerRef = useRef<(HTMLElement | null)[]>([]);
 
   const focusRef = useRef(0);
   const targetRef = useRef(0);
@@ -102,6 +117,10 @@ export function useCoverflow({
   const rafRef = useRef(0);
   const lastTimeRef = useRef(0);
   const dragAbortRef = useRef<AbortController | null>(null);
+  // Fling state — see onPointerDown.
+  const velocityRef = useRef(0);
+  const lastMoveXRef = useRef(0);
+  const lastMoveTRef = useRef(0);
 
   // Intro: cards fan in (spread + fade + rise) the first time the section is
   // seen. `introRef` eases 0 → `introTargetRef`. Under reduced-motion it snaps
@@ -126,10 +145,31 @@ export function useCoverflow({
     onActivateRef.current = onActivateCenter;
   }, [onActivateCenter]);
 
+  // Last value handed to React, so we can skip the setState entirely when the
+  // centre hasn't actually changed.
+  //
+  // This used to call setActiveIndex unconditionally from setTarget, which runs
+  // on EVERY pointermove. React's Object.is bail-out hid it while a drag stayed
+  // within one card, but the moment the drag crossed a card boundary it kicked
+  // off a full synchronous re-render of the entire section — all fifteen cards,
+  // their controls and every closure — from inside the pointermove handler,
+  // several times per gesture and outside the rAF loop. That is what made the
+  // carousel read as a slideshow.
+  const lastSyncedRef = useRef(-1);
+
   const syncActiveIndex = useCallback(() => {
     const centre = ((Math.round(targetRef.current) % count) + count) % count;
+    if (centre === lastSyncedRef.current) return;
+    lastSyncedRef.current = centre;
     setActiveIndex(centre);
   }, [count]);
+
+  // Read by the rAF loop through a ref so `wake` doesn't depend on it — a new
+  // `wake` identity would tear down and restart the loop mid-drag.
+  const syncActiveIndexRef = useRef(syncActiveIndex);
+  useEffect(() => {
+    syncActiveIndexRef.current = syncActiveIndex;
+  }, [syncActiveIndex]);
 
   // Position every card by its (wrapped) distance from the focused centre.
   const applyCards = useCallback(() => {
@@ -140,6 +180,8 @@ export function useCoverflow({
     const lastPe = lastPeRef.current;
     const lastDepth = lastDepthRef.current;
     const lastCenter = lastCenterRef.current;
+    const hudEls = hudElsRef.current;
+    const hudOwner = hudOwnerRef.current;
     for (let i = 0; i < refs.length; i++) {
       const el = refs[i];
       if (!el) continue;
@@ -163,15 +205,29 @@ export function useCoverflow({
 
       // Depth/emphasis vars consumed by the HUD frame overlays (opacity only, so
       // they stay compositor-cheap). Side cards darken; the centre card glows.
-      // Rounded to 1/100 and written only on change to avoid needless recalcs.
+      // Rounded to 1/100 and written only on change to avoid needless recalcs,
+      // and written to the overlay roots rather than the card (see hudElsRef).
       const depthVar = Math.round(Math.min(ad * 0.3, 0.6) * 100) / 100;
       const centreVar = Math.round(Math.max(0, 1 - ad) * 100) / 100;
-      if (lastDepth[i] !== depthVar) {
-        el.style.setProperty("--cf-depth", String(depthVar));
+      if (lastDepth[i] !== depthVar || lastCenter[i] !== centreVar) {
+        if (hudOwner[i] !== el) {
+          hudEls[i] = Array.from(
+            el.querySelectorAll<HTMLElement>("[data-hud]"),
+          );
+          hudOwner[i] = el;
+        }
+        const targets = hudEls[i];
+        if (targets) {
+          for (let h = 0; h < targets.length; h++) {
+            if (lastDepth[i] !== depthVar) {
+              targets[h].style.setProperty("--cf-depth", String(depthVar));
+            }
+            if (lastCenter[i] !== centreVar) {
+              targets[h].style.setProperty("--cf-center", String(centreVar));
+            }
+          }
+        }
         lastDepth[i] = depthVar;
-      }
-      if (lastCenter[i] !== centreVar) {
-        el.style.setProperty("--cf-center", String(centreVar));
         lastCenter[i] = centreVar;
       }
 
@@ -221,6 +277,8 @@ export function useCoverflow({
       if (draggingRef.current) {
         focusRef.current = targetRef.current;
         applyCards();
+        // Once per frame, not once per pointermove.
+        syncActiveIndexRef.current();
         rafRef.current = requestAnimationFrame(step);
         return;
       }
@@ -230,6 +288,7 @@ export function useCoverflow({
       if (focusSettled && introSettled) {
         focusRef.current = targetRef.current;
         applyCards();
+        syncActiveIndexRef.current();
         runningRef.current = false;
         setCardsWillChange("");
         return;
@@ -238,6 +297,7 @@ export function useCoverflow({
         focusRef.current += diff * (1 - Math.exp(-dt / TAU_MS));
       }
       applyCards();
+      syncActiveIndexRef.current();
       rafRef.current = requestAnimationFrame(step);
     };
     rafRef.current = requestAnimationFrame(step);
@@ -248,9 +308,11 @@ export function useCoverflow({
   // focus (no pinning).
   const setTarget = useCallback(() => {
     targetRef.current = manualRef.current;
-    syncActiveIndex();
+    // Deliberately does NOT sync the React index here — the rAF loop does that
+    // once per frame, so a burst of pointermove events can't schedule several
+    // renders inside a single frame's input handling.
     wake();
-  }, [wake, syncActiveIndex]);
+  }, [wake]);
 
   // Bring a card to the centre via the shortest wrapped path.
   const centreOn = useCallback(
@@ -346,22 +408,29 @@ export function useCoverflow({
   }, [autoAdvanceMs, setTarget]);
 
   // Arrow keys step one card.
+  //
+  // Both the members and projects carousels install this on `window`, so on a
+  // tall viewport where both sections are on screen at once a single ArrowRight
+  // used to advance BOTH. Claiming the press with a per-event marker means the
+  // first in-view carousel to see it handles it and the others stand down.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (disabledRef.current || !inViewRef.current) return;
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        prev();
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        next();
-      }
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+
+      const claimable = e as KeyboardEvent & { __coverflowClaimed?: boolean };
+      if (claimable.__coverflowClaimed) return;
+      claimable.__coverflowClaimed = true;
+
+      e.preventDefault();
+      if (e.key === "ArrowLeft") prev();
+      else next();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [next, prev]);
 
-  // Drag via window listeners (so in-card clicks still fire); snaps on release.
+  // Drag via window listeners (so in-card clicks still fire); flings on release.
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (disabledRef.current) return;
@@ -369,9 +438,14 @@ export function useCoverflow({
       movedRef.current = false;
       downXRef.current = e.clientX;
       startManualRef.current = manualRef.current;
+      velocityRef.current = 0;
+      lastMoveXRef.current = e.clientX;
+      lastMoveTRef.current = performance.now();
+
       const controller = new AbortController();
       dragAbortRef.current = controller;
       const { signal } = controller;
+
       window.addEventListener(
         "pointermove",
         (ev: PointerEvent) => {
@@ -379,16 +453,41 @@ export function useCoverflow({
           const dx = ev.clientX - downXRef.current;
           if (Math.abs(dx) > DRAG_THRESHOLD) movedRef.current = true;
           manualRef.current = startManualRef.current - dx / spread;
+
+          // Velocity in cards/ms, smoothed so one jittery sample can't dominate
+          // the fling. Clock-based rather than per-event so it doesn't scale
+          // with the pointer's report rate.
+          const now = performance.now();
+          velocityRef.current = accumulateVelocity(
+            velocityRef.current,
+            ev.clientX - lastMoveXRef.current,
+            now - lastMoveTRef.current,
+            spread,
+          );
+          lastMoveXRef.current = ev.clientX;
+          lastMoveTRef.current = now;
+
           setTarget();
         },
         { signal },
       );
+
       window.addEventListener(
         "pointerup",
         () => {
           draggingRef.current = false;
           controller.abort();
-          centreOn(Math.round(targetRef.current)); // snap to nearest card
+
+          // Carry the gesture's momentum before snapping. Releasing used to
+          // stop dead on the nearest card, which is most of why the carousel
+          // felt like a slideshow rather than something with weight.
+          centreOn(
+            flingTarget(
+              targetRef.current,
+              velocityRef.current,
+              performance.now() - lastMoveTRef.current,
+            ),
+          );
         },
         { signal },
       );
