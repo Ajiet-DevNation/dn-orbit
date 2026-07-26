@@ -1,7 +1,7 @@
 "use client";
 
-import { PixelLoadingScreen } from "@/components/ui/PixelLoadingScreen";
+import { BootOverlay } from "@/components/ui/BootOverlay";
 
 export default function Loading() {
-  return <PixelLoadingScreen />;
+  return <BootOverlay />;
 }

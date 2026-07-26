@@ -206,15 +206,22 @@ function extractPixelBlocks(imageData: ImageData): PixelBlock[] {
   return blocks;
 }
 
-// ─── Main Component ─────────────────────────────────────────────────────────
+// ─── Orbit stage ─────────────────────────────────────────────────────────────
+//
+// The shared visual: the pixel-drawn DN logo, the Saturn ring canvases, the
+// three orbiting links and the physics that drives them. Two shells sit on top —
+// HeroOrbit (landing page) and BootOverlay (loading splash) — and the ONLY
+// difference between them is `mode`.
+//
+// Keeping one stage rather than two copies is what guarantees the boot → hero
+// hand-off stays pixel-identical: HERO_START_SCALE, LOGO_BASE_OFFSET_Y and
+// HEADER_OFFSET are applied here, once, so the logo cannot drift between them.
 
-interface PixelLoadingScreenProps {
+export interface OrbitStageProps {
   mode?: "loading" | "hero";
 }
 
-export function PixelLoadingScreen({
-  mode = "loading",
-}: PixelLoadingScreenProps) {
+export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [phase, setPhase] = useState<AnimationPhase>("drawing");
   const [drawProgress, setDrawProgress] = useState(mode === "hero" ? 100 : 0);
@@ -493,6 +500,68 @@ export function PixelLoadingScreen({
   const orbitCanvasBackRef = useRef<HTMLCanvasElement>(null);
   const orbitCanvasFrontRef = useRef<HTMLCanvasElement>(null);
 
+  // ── Second, counter-rotating ring ──────────────────────────────────────────
+  //
+  // A wider ellipse at a different inclination, giving the orbit real depth
+  // instead of one flat hoop.
+  //
+  // Deliberately its own canvas, painted ONCE on mount and then spun with a CSS
+  // transform. The main ring's draw loop is carefully cached so it only
+  // re-strokes when something actually changed (a shadowBlur'd ellipse every
+  // frame is expensive); a genuinely animated second ring would have thrown
+  // that away. Rotating a already-painted canvas is compositor-only — the
+  // pixels are never re-rasterised.
+  const outerRingRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (phase !== "orbiting") return;
+    const canvas = outerRingRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    const cx = CANVAS_SIZE / 2;
+    const cy = CANVAS_SIZE / 2;
+
+    // Wider, flatter, tilted the other way so the two rings cross.
+    ctx.beginPath();
+    ctx.ellipse(
+      cx,
+      cy,
+      ORBIT_RX * 1.16,
+      ORBIT_RY * 0.62,
+      -ORBIT_TILT * 1.5,
+      0,
+      Math.PI * 2,
+    );
+    ctx.strokeStyle = "rgba(34, 197, 94, 0.14)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Chunky dust motes along the path — pixel squares, not a smooth band, so
+    // it reads 8-bit. Deterministic positions (no Math.random) so the ring is
+    // identical on every mount.
+    const MOTES = 46;
+    for (let i = 0; i < MOTES; i++) {
+      const a = (i / MOTES) * Math.PI * 2;
+      const ux = ORBIT_RX * 1.16 * Math.cos(a);
+      const uy = ORBIT_RY * 0.62 * Math.sin(a);
+      const t = -ORBIT_TILT * 1.5;
+      const x = ux * Math.cos(t) - uy * Math.sin(t);
+      const y = ux * Math.sin(t) + uy * Math.cos(t);
+      // Vary size/alpha with a cheap deterministic hash of the index.
+      const jitter = ((i * 2654435761) % 100) / 100;
+      const size = 2 + Math.round(jitter * 2) * 2;
+      ctx.fillStyle = `rgba(34, 197, 94, ${0.1 + jitter * 0.22})`;
+      ctx.fillRect(
+        Math.round((cx + x) / 4) * 4,
+        Math.round((cy + y) / 4) * 4,
+        size,
+        size,
+      );
+    }
+  }, [phase]);
+
   useEffect(() => {
     if (phase !== "orbiting") return;
 
@@ -691,6 +760,11 @@ export function PixelLoadingScreen({
     leetcode: -1,
     linkedin: -1,
   });
+  const lastGlowRef = useRef<Record<PlanetKey, number>>({
+    github: -1,
+    leetcode: -1,
+    linkedin: -1,
+  });
   // Read by the paint function; kept in a ref so the physics loop never needs
   // to be torn down and restarted when the reveal tween advances.
   const orbitRevealRef = useRef(mode === "hero" ? 0 : 1);
@@ -718,6 +792,28 @@ export function PixelLoadingScreen({
         el.style.opacity = String(opacity);
         lastOpacityRef.current[key] = opacity;
       }
+
+      // Brand halo that swells as the planet swings to the FRONT of the ring
+      // and fades as it goes behind. A pre-rendered gradient cross-faded by
+      // opacity, so it costs nothing per frame — animating a filter/box-shadow
+      // here would be paint-bound.
+      const glow = el.firstElementChild as HTMLElement | null;
+      if (glow) {
+        const g = Math.round(Math.max(0, p.z) * reveal * 100) / 100;
+        if (lastGlowRef.current[key] !== g) {
+          glow.style.opacity = String(g);
+          lastGlowRef.current[key] = g;
+        }
+      }
+    }
+
+    // Counter-rotate the outer ring: opposite direction, much slower, so the two
+    // rings drift against each other. Transform-only.
+    const outer = outerRingRef.current;
+    if (outer) {
+      const deg = -(physics.current.accumulatedTime / 260) % 360;
+      outer.style.transform = `rotate(${deg}deg) scale(${0.94 + 0.06 * reveal})`;
+      outer.style.opacity = String(reveal * 0.9);
     }
   }, []);
 
@@ -1022,6 +1118,19 @@ export function PixelLoadingScreen({
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
+          {/* Outer counter-rotating ring + dust. Painted once, spun by CSS
+              transform in paintPlanets — sits furthest back. */}
+          {showOrbit && (
+            <canvas
+              ref={outerRingRef}
+              width={CANVAS_SIZE}
+              height={CANVAS_SIZE}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -z-10 h-full w-full"
+              style={{ opacity: 0, willChange: "transform" }}
+            />
+          )}
+
           {showOrbit && (
             <canvas
               ref={orbitCanvasBackRef}
@@ -1100,6 +1209,17 @@ export function PixelLoadingScreen({
                     transition: planetRevealTransition,
                   }}
                 >
+                  {/* Front-swing halo — opacity is driven per frame, the
+                      gradient itself is static. Must stay the FIRST child;
+                      paintPlanets finds it via firstElementChild. */}
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute -inset-6 -z-10"
+                    style={{
+                      opacity: 0,
+                      background: `radial-gradient(circle, rgba(${TRAIL_COLORS[key]},0.45) 0%, transparent 68%)`,
+                    }}
+                  />
                   <a
                     href={href}
                     target="_blank"

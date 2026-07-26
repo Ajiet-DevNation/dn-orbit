@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { PixelLoadingScreen } from "./PixelLoadingScreen";
+import { BootOverlay } from "./BootOverlay";
 
 // Client boot-splash that guarantees the pixel DN-logo draw plays on every full
 // page load, independent of Next's Suspense/streaming timing.
@@ -87,7 +87,7 @@ export function BootSplash() {
       className="fixed inset-0 z-[200]"
       style={{ pointerEvents: interactive ? "auto" : "none" }}
     >
-      <PixelLoadingScreen />
+      <BootOverlay />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   type EventCardData,
   EventsSection,
 } from "@/components/home/EventsSection";
+import { HeroOrbit } from "@/components/home/HeroOrbit";
 import {
   type LeaderboardEntry,
   LeaderboardSection,
@@ -16,7 +17,6 @@ import { ProjectsSection } from "@/components/home/ProjectsSection";
 import { StatsSection } from "@/components/home/StatsSection";
 import { StatsSyncPing } from "@/components/home/StatsSyncPing";
 import { Footer } from "@/components/layout/Footer";
-import { PixelLoadingScreen } from "@/components/ui/PixelLoadingScreen";
 import {
   type ProjectData,
   PROJECTS as scrapedProjects,
@@ -198,12 +198,27 @@ export default async function V2Page() {
   }));
   const projects: ProjectData[] = [...submittedProjects, ...scrapedProjects];
 
+  // Live figures for the hero ticker. Two cheap aggregates rather than loading
+  // rows we'd only count; the events and projects totals reuse what's already
+  // been fetched above, so this adds no round trips for those.
+  const [memberCount, commitTotal] = await Promise.all([
+    db.user.count({ where: LEADERBOARD_VISIBLE_USER_FILTER }),
+    db.githubStats.aggregate({ _sum: { totalCommits: true } }),
+  ]);
+
+  const heroStats = {
+    members: memberCount,
+    projects: projects.length,
+    events: events.length,
+    commits: commitTotal._sum.totalCommits ?? 0,
+  };
+
   return (
     <div className="min-h-screen">
       {/* Kicks off a background stats refresh when the cache is stale — the
           SWR replacement for the old GitHub Actions cron (see lib/sync.ts). */}
       <StatsSyncPing />
-      <PixelLoadingScreen mode="hero" />
+      <HeroOrbit stats={heroStats} isAuthenticated={!!userId} />
       <AnnouncementCarousel announcements={announcements} />
       {/* PLAYER STATS is personal — only rendered for signed-in members. */}
       {userId && (
