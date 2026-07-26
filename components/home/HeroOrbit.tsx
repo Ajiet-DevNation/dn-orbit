@@ -1,35 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { OrbitStage } from "@/components/home/OrbitStage";
-import { Button } from "@/components/ui/8bit-button";
 import { cn } from "@/lib/utils";
 
 // ─── The landing hero ────────────────────────────────────────────────────────
 //
-// A thin shell over the shared OrbitStage that adds everything around the
-// orbit. The page used to render the stage alone: a logo, three orbiting icons,
-// and nothing else — no wordmark, no tagline, no call to action, no indication
-// there was anything below the fold.
+// A thin shell over the shared OrbitStage. The stage owns the logo's position
+// (see HERO_START_SCALE / LOGO_BASE_OFFSET_Y there), so everything here is
+// layered around it and never displaces it — that is what keeps the boot-splash
+// hand-off seamless.
 //
-// The stage owns the logo's position (see HERO_START_SCALE / LOGO_BASE_OFFSET_Y
-// there), so the content here is layered around it and never displaces it —
-// that's what keeps the boot-splash hand-off seamless.
+// Deliberately just the wordmark and a scroll cue. A tagline, a live stat strip
+// and two CTAs were tried here and cut: they crowded the orbit and pulled the
+// eye away from the logo, which is the thing the hero is actually for.
 
-export interface HeroStats {
-  members: number;
-  projects: number;
-  events: number;
-  commits: number;
-}
-
-interface HeroOrbitProps {
-  stats: HeroStats;
-  isAuthenticated: boolean;
-}
-
-const COUNT_UP_MS = 1400;
 const SWEEP_MS = 900;
 
 function prefersReducedMotion(): boolean {
@@ -39,68 +24,144 @@ function prefersReducedMotion(): boolean {
   );
 }
 
-/** Chunky separator between stat cells. */
-function Tick() {
-  return <span aria-hidden className="hidden h-6 w-px bg-white/15 sm:block" />;
-}
+// ─── Pixel decode wordmark ───────────────────────────────────────────────────
+//
+// Letters land one at a time, and each one resolves out of a run of solid
+// block glyphs before settling — a terminal decoding a signal rather than a
+// plain typewriter. The blocks are what make it read as pixel-art; a straight
+// character-by-character reveal in this font just looks like slow text.
 
-/**
- * A single stat that counts up from zero on mount.
- *
- * The value is written to the DOM by a rAF loop rather than held in state — one
- * ticker at 60fps would otherwise re-render this subtree ~84 times, and there
- * are four of them. Also means the count survives the global reduced-motion CSS
- * reset, which only flattens CSS animation; the reduced-motion path here is
- * explicit (render the final number immediately).
- */
-function StatCell({ label, value }: { label: string; value: number }) {
-  const ref = useRef<HTMLSpanElement>(null);
+/** Densest to sparsest, so a character visibly "resolves" as it locks in. */
+const BLOCKS = ["█", "▓", "▒", "░"] as const;
+
+/** Delay between one letter starting and the next. */
+const STAGGER_MS = 110;
+/** How long a letter spends scrambling before it settles. */
+const DECODE_MS = 260;
+/** How often the block glyph swaps while scrambling. */
+const FLICKER_MS = 55;
+
+const WORD = "DEVNATION";
+/** Index at which the colour switches from white to accent green. */
+const SPLIT = 3;
+
+function Wordmark() {
+  const charRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const cursorRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const chars = charRefs.current;
+    const cursor = cursorRef.current;
 
-    const format = (n: number) =>
-      n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+    const settle = () => {
+      chars.forEach((el, i) => {
+        if (el) {
+          el.textContent = WORD[i];
+          el.style.opacity = "1";
+        }
+      });
+      if (cursor) cursor.style.opacity = "0";
+    };
 
-    if (prefersReducedMotion() || value === 0) {
-      el.textContent = format(value);
+    // The global CSS reset in globals.css flattens CSS animation but cannot
+    // touch a rAF loop, so the reduced-motion path has to be explicit.
+    if (prefersReducedMotion()) {
+      settle();
       return;
     }
 
+    const total = WORD.length * STAGGER_MS + DECODE_MS;
     let raf = 0;
     const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / COUNT_UP_MS);
-      // easeOutExpo: sprints then eases into the real figure.
-      const eased = t === 1 ? 1 : 1 - 2 ** (-10 * t);
-      el.textContent = format(Math.round(value * eased));
-      if (t < 1) raf = requestAnimationFrame(tick);
+
+    const frame = (now: number) => {
+      const elapsed = now - start;
+
+      for (let i = 0; i < WORD.length; i++) {
+        const el = chars[i];
+        if (!el) continue;
+        const began = i * STAGGER_MS;
+
+        if (elapsed < began) {
+          el.style.opacity = "0";
+          continue;
+        }
+
+        el.style.opacity = "1";
+
+        if (elapsed >= began + DECODE_MS) {
+          if (el.textContent !== WORD[i]) el.textContent = WORD[i];
+          continue;
+        }
+
+        // Walk the block ramp as the character resolves, with a flicker on top
+        // so it doesn't march predictably from █ to ░.
+        const t = (elapsed - began) / DECODE_MS;
+        const ramp = Math.min(BLOCKS.length - 1, Math.floor(t * BLOCKS.length));
+        const jitter = Math.floor(elapsed / FLICKER_MS + i) % 2;
+        const glyph = BLOCKS[Math.min(BLOCKS.length - 1, ramp + jitter)];
+        if (el.textContent !== glyph) el.textContent = glyph;
+      }
+
+      // Block cursor rides just past the last landed character, then blinks a
+      // couple of times and leaves.
+      if (cursor) {
+        const done = elapsed >= total;
+        const blink = Math.floor(elapsed / 420) % 2 === 0;
+        cursor.style.opacity = done && !blink ? "0" : "1";
+      }
+
+      if (elapsed < total + 1400) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
+      settle();
     };
-    raf = requestAnimationFrame(tick);
+
+    raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [value]);
+  }, []);
 
   return (
-    <div className="flex min-w-[72px] flex-col items-center gap-1.5">
-      <span
-        ref={ref}
-        className="retro text-lg tabular-nums text-[#22c55e] sm:text-xl"
-      >
-        0
+    <h1
+      className="retro text-2xl leading-none tracking-[0.08em] text-white sm:text-4xl"
+      // The animated spans are decorative scaffolding; give assistive tech the
+      // finished word rather than a stream of block characters.
+      aria-label={WORD}
+    >
+      <span aria-hidden className="inline-flex items-baseline">
+        {WORD.split("").map((char, i) => (
+          <span
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length word —
+            // the index IS the identity, and letters repeat.
+            key={i}
+            ref={(el) => {
+              charRefs.current[i] = el;
+            }}
+            className={cn(
+              "inline-block",
+              i >= SPLIT ? "text-[#22c55e]" : "text-white",
+            )}
+            style={{ opacity: 0 }}
+          >
+            {char}
+          </span>
+        ))}
+        <span
+          ref={cursorRef}
+          className="ml-1 inline-block text-[#22c55e]"
+          style={{ opacity: 0 }}
+        >
+          █
+        </span>
       </span>
-      <span className="retro text-[8px] tracking-widest text-muted-foreground">
-        {label}
-      </span>
-    </div>
+    </h1>
   );
 }
 
 /**
  * One-shot CRT power-on: a bright band sweeps down the hero as it mounts, the
- * way a tube warms up. Driven imperatively (transform + opacity only, so it
- * stays on the compositor) because the global prefers-reduced-motion reset
- * would flatten a CSS version to nothing.
+ * way a tube warms up. Transform + opacity only, so it stays on the compositor.
  */
 function useCrtSweep(ref: React.RefObject<HTMLDivElement | null>) {
   useEffect(() => {
@@ -116,7 +177,6 @@ function useCrtSweep(ref: React.RefObject<HTMLDivElement | null>) {
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / SWEEP_MS);
       el.style.transform = `translate3d(0, ${t * 100}vh, 0)`;
-      // Bright at the top, gone by the bottom.
       el.style.opacity = String((1 - t) * 0.55);
       if (t < 1) {
         raf = requestAnimationFrame(tick);
@@ -129,7 +189,7 @@ function useCrtSweep(ref: React.RefObject<HTMLDivElement | null>) {
   }, [ref]);
 }
 
-export function HeroOrbit({ stats, isAuthenticated }: HeroOrbitProps) {
+export function HeroOrbit() {
   const sweepRef = useRef<HTMLDivElement>(null);
   useCrtSweep(sweepRef);
 
@@ -150,42 +210,10 @@ export function HeroOrbit({ stats, isAuthenticated }: HeroOrbitProps) {
         }}
       />
 
-      {/* Content sits below the orbit cluster. pointer-events-none on the
-          wrapper so the whole area above stays draggable; the controls opt back
-          in individually. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex flex-col items-center gap-7 px-6 pb-10 text-center sm:pb-14">
-        <div className="flex flex-col items-center gap-3">
-          <h1 className="retro text-xl leading-tight text-white sm:text-3xl">
-            DEV<span className="text-[#22c55e]">NATION</span>
-          </h1>
-          <p className="max-w-xl text-[11px] leading-relaxed text-muted-foreground sm:text-sm">
-            The student developer community at AJIET. We build real projects,
-            ship open source, and keep score while we do it.
-          </p>
-        </div>
-
-        {/* Live figures, straight from the database. */}
-        <div className="pointer-events-auto flex items-center gap-5 border-2 border-white/10 bg-[#0a0a0a]/70 px-5 py-3 backdrop-blur-sm sm:gap-7 sm:px-7">
-          <StatCell label="MEMBERS" value={stats.members} />
-          <Tick />
-          <StatCell label="PROJECTS" value={stats.projects} />
-          <Tick />
-          <StatCell label="EVENTS" value={stats.events} />
-          <Tick />
-          <StatCell label="COMMITS" value={stats.commits} />
-        </div>
-
-        <div className="pointer-events-auto flex flex-col items-center gap-4 sm:flex-row">
-          {!isAuthenticated && (
-            <Button asChild className="text-[10px]">
-              <Link href="/login">JOIN DEVNATION</Link>
-            </Button>
-          )}
-          <Button asChild variant="outline" className="text-[10px]">
-            <a href="#about">EXPLORE ORBIT</a>
-          </Button>
-        </div>
-
+      {/* pointer-events-none on the wrapper so the whole area above stays
+          draggable; the scroll cue opts back in. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex flex-col items-center gap-8 px-6 pb-12 text-center sm:pb-16">
+        <Wordmark />
         <ScrollCue />
       </div>
     </section>
@@ -194,9 +222,9 @@ export function HeroOrbit({ stats, isAuthenticated }: HeroOrbitProps) {
 
 /**
  * Blinking chevron telling the visitor there is more below. Stepped opacity
- * (not a smooth fade) to match the 8-bit language, and driven by rAF so the
- * reduced-motion CSS reset doesn't silently freeze it mid-blink — under reduced
- * motion it simply renders static.
+ * (not a smooth fade) to match the 8-bit language, and rAF-driven so the
+ * reduced-motion reset can't freeze it mid-blink — under reduced motion it
+ * simply renders static.
  */
 function ScrollCue() {
   const ref = useRef<HTMLSpanElement>(null);

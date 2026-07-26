@@ -630,50 +630,93 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
       const bctx = backCanvas.getContext("2d");
       const fctx = frontCanvas.getContext("2d");
 
+      // ── Saturn ring, split front/back around the logo ───────────────────────
+      //
+      // The two halves are drawn onto two canvases that sandwich the logo (back
+      // at z-0, logo at z-10, front at z-20), so the near half genuinely passes
+      // OVER the glyph and the far half behind it. The geometry always did that
+      // — at the logo's horizontal centre the front arc sits ~153 canvas units
+      // down, well inside the glyph's 229 half-height — but it read as "the
+      // ring is entirely behind the logo", because the near half was stroked at
+      // 45% green with a 32% white highlight, and neither is visible against a
+      // pure-white logo.
+      //
+      // The fix is contrast, not geometry:
+      //
+      //   • The near half gets a dark casing stroked underneath a bright core.
+      //     That's what real ring imagery looks like crossing a lit body, and
+      //     it's what separates the ring from BOTH the black background and the
+      //     white glyph. Without the casing the arc simply dissolves on white.
+      //   • The near half is near-opaque; the far half stays dim and thin, so
+      //     the two halves read as different distances rather than one flat
+      //     ellipse.
+      //   • The glow is only applied to the near half. On the far half it just
+      //     bled green over the logo's edges and muddied the silhouette.
+      const strokeArc = (
+        ctx: CanvasRenderingContext2D,
+        isBack: boolean,
+        color: string,
+        width: number,
+      ) => {
+        ctx.beginPath();
+        ctx.ellipse(
+          cx,
+          cy,
+          ORBIT_RX,
+          ORBIT_RY,
+          ORBIT_TILT,
+          isBack ? Math.PI : 0,
+          isBack ? 2 * Math.PI : Math.PI,
+        );
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.stroke();
+      };
+
       const drawSaturnRing = (
         ctx: CanvasRenderingContext2D,
         isBack: boolean,
       ) => {
-        const startAngle = isBack ? Math.PI : 0;
-        const endAngle = isBack ? 2 * Math.PI : Math.PI;
-
         ctx.save();
 
         ctx.translate(cx, cy);
         ctx.scale(ringScale, ringScale);
         ctx.translate(-cx, -cy);
 
-        ctx.shadowColor = `rgba(34, 197, 94, ${0.85 * ringOpacity})`;
-        ctx.shadowBlur = 18;
+        if (isBack) {
+          // Far half: thin, dim, no glow. It should read as "behind", and
+          // anything brighter competes with the near half.
+          ctx.shadowBlur = 0;
+          strokeArc(ctx, true, `rgba(34, 197, 94, ${0.3 * ringOpacity})`, 3);
+          strokeArc(
+            ctx,
+            true,
+            `rgba(255, 255, 255, ${0.1 * ringOpacity})`,
+            1.25,
+          );
+          ctx.restore();
+          return;
+        }
 
-        // Slightly thicker ring for more presence.
-        ctx.beginPath();
-        ctx.ellipse(
-          cx,
-          cy,
-          ORBIT_RX,
-          ORBIT_RY,
-          ORBIT_TILT,
-          startAngle,
-          endAngle,
-        );
-        ctx.strokeStyle = `rgba(34, 197, 94, ${(isBack ? 0.22 : 0.45) * ringOpacity})`;
-        ctx.lineWidth = 6;
-        ctx.stroke();
+        // Near half. Casing first — a dark, wider stroke that reads as the
+        // ring's shadowed underside and gives the bright core an edge to sit
+        // against wherever it crosses the logo.
+        ctx.shadowBlur = 0;
+        strokeArc(ctx, false, `rgba(4, 12, 8, ${0.72 * ringOpacity})`, 11);
 
-        ctx.beginPath();
-        ctx.ellipse(
-          cx,
-          cy,
-          ORBIT_RX,
-          ORBIT_RY,
-          ORBIT_TILT,
-          startAngle,
-          endAngle,
+        // Bright core, with the glow applied only here.
+        ctx.shadowColor = `rgba(34, 197, 94, ${0.9 * ringOpacity})`;
+        ctx.shadowBlur = 16;
+        strokeArc(ctx, false, `rgba(34, 197, 94, ${0.95 * ringOpacity})`, 5.5);
+
+        // Specular highlight along the top of the near half.
+        ctx.shadowBlur = 0;
+        strokeArc(
+          ctx,
+          false,
+          `rgba(214, 255, 231, ${0.75 * ringOpacity})`,
+          1.75,
         );
-        ctx.strokeStyle = `rgba(255, 255, 255, ${(isBack ? 0.12 : 0.32) * ringOpacity})`;
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
 
         ctx.restore();
       };

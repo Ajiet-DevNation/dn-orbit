@@ -199,28 +199,17 @@ export default async function V2Page() {
   }));
   const projects: ProjectData[] = [...submittedProjects, ...scrapedProjects];
 
-  // Live figures for the hero ticker. Two cheap aggregates rather than loading
-  // rows we'd only count; the events and projects totals reuse what's already
-  // been fetched above, so this adds no round trips for those.
-  const [memberCount, commitTotal, syncedAt] = await Promise.all([
-    db.user.count({ where: LEADERBOARD_VISIBLE_USER_FILTER }),
-    db.githubStats.aggregate({ _sum: { totalCommits: true } }),
-    lastSyncedAt(),
-  ]);
-
-  const heroStats = {
-    members: memberCount,
-    projects: projects.length,
-    events: events.length,
-    commits: commitTotal._sum.totalCommits ?? 0,
-  };
+  // Only the leaderboard's freshness readout needs a extra query now — the hero
+  // stat ticker was removed, and with it the member-count and commit-sum
+  // aggregates it needed.
+  const syncedAt = await lastSyncedAt();
 
   return (
     <div className="min-h-screen">
       {/* Kicks off a background stats refresh when the cache is stale — the
           SWR replacement for the old GitHub Actions cron (see lib/sync.ts). */}
       <StatsSyncPing />
-      <HeroOrbit stats={heroStats} isAuthenticated={!!userId} />
+      <HeroOrbit />
       <AnnouncementCarousel announcements={announcements} />
       {/* PLAYER STATS is personal — only rendered for signed-in members. */}
       {userId && (
