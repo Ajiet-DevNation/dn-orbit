@@ -18,8 +18,8 @@
   --color-border: #333333;
   --color-white: #ffffff;
 
-  /* Fonts */
-  --font-heading: var(--font-bebas-neue);
+  /* Fonts — see app/layout.tsx. `--font-pixel` (Press Start 2P) is applied via
+     the `.retro` class rather than a Tailwind token. */
   --font-mono: var(--font-ibm-plex-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -64,10 +64,6 @@
 
 * {
   border-radius: 0 !important;
-}
-
-.force-rounded-full {
-  border-radius: 9999px !important;
 }
 
 /* Shared easing for hand-rolled transitions across the app. */
@@ -175,60 +171,6 @@ body {
   border-right: 3px solid;
 }
 
-/* ── Stamp Variants ── */
-
-.stamp-verified {
-  color: #22c55e;
-  border-color: #22c55e;
-}
-
-.stamp-confidential {
-  color: #f97316;
-  border-color: #f97316;
-}
-
-.stamp-urgent {
-  color: #ef4444;
-  border-color: #ef4444;
-}
-
-.stamp-restricted {
-  color: #eab308;
-  border-color: #eab308;
-}
-
-.stamp-archived {
-  color: #888888;
-  border-color: #888888;
-}
-
-/* ── Badge Variants ── */
-
-.badge-stable {
-  background-color: #22c55e;
-  color: #0a0a0a;
-}
-
-.badge-experimental {
-  background-color: #f97316;
-  color: #0a0a0a;
-}
-
-.badge-archived {
-  background-color: #888888;
-  color: #0a0a0a;
-}
-
-.badge-restricted {
-  background-color: #eab308;
-  color: #0a0a0a;
-}
-
-.badge-urgent {
-  background-color: #ef4444;
-  color: #ffffff;
-}
-
 /* ── Scrollbar Styling ── */
 
 ::-webkit-scrollbar {
@@ -269,61 +211,6 @@ body {
 
 .cursor-blink {
   animation: blink 1s step-end infinite;
-}
-
-/* ── Orbit Section: Rounded Corner Override ── */
-/* Scoped override — only elements inside .orbit-rounded bypass the global reset */
-
-.orbit-rounded,
-.orbit-rounded *,
-.orbit-rounded *::before,
-.orbit-rounded *::after {
-  border-radius: revert !important;
-}
-
-/* ── Orbit Spin Keyframes ── */
-
-@keyframes orbit-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes orbit-spin-reverse {
-  from {
-    transform: rotate(360deg);
-  }
-  to {
-    transform: rotate(0deg);
-  }
-}
-
-@keyframes glow-pulse {
-  0%,
-  100% {
-    opacity: 0.4;
-    filter: blur(20px);
-  }
-  50% {
-    opacity: 0.7;
-    filter: blur(30px);
-  }
-}
-
-/* ── Grain Texture Overlay ── */
-
-.grain-overlay::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.03;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 128px 128px;
 }
 
 /* ── About Section — card hover glow ── */
@@ -387,30 +274,6 @@ body {
   display: none;
 }
 
-/* ── OrbitIntro — CSS persistence after animation completes ── */
-/* When the intro finishes, the "intro-done" class is added to the section.
-   These rules force animated elements to their final state via CSS specificity,
-   so even if React re-renders and resets inline styles, they stay visible. */
-
-.intro-done .orbit-letter-O,
-.intro-done .orbit-letter {
-  opacity: 1 !important;
-  transform: translateX(0) !important;
-  filter: blur(0px) !important;
-}
-
-.intro-done .orbital-ring-path {
-  opacity: 1 !important;
-}
-
-.intro-done .orbit-join-cta {
-  opacity: 1 !important;
-  transform: translateY(0) !important;
-}
-
-.intro-done .orbit-tagline {
-  opacity: 0.25 !important;
-}
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -542,18 +405,10 @@ input[type="radio"]:not(:disabled),
 }
 
 /*
-  Several 8bit components (input, select, drawer) use border-y-6 / border-x-6 /
-  border-y-3 — not real Tailwind v4 utilities, so the pixel frame breaks.
-  Define them globally (portaled content escapes [data-v2]); 8bit-only classes.
+  The 8bit command/select components use `border-y-3` — not a real Tailwind v4
+  utility, so without this the pixel frame breaks. Defined globally because
+  portaled content escapes [data-v2].
 */
-.border-y-6 {
-  border-top-width: 6px;
-  border-bottom-width: 6px;
-}
-.border-x-6 {
-  border-left-width: 6px;
-  border-right-width: 6px;
-}
 .border-y-3 {
   border-top-width: 3px;
   border-bottom-width: 3px;

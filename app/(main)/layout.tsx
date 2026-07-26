@@ -1,4 +1,3 @@
-import { Press_Start_2P } from "next/font/google";
 import { redirect } from "next/navigation";
 import { AsciiBackground } from "@/components/home/AsciiBackground";
 import { PendingBanner } from "@/components/home/PendingBanner";
@@ -8,12 +7,6 @@ import { BootSplash } from "@/components/ui/BootSplash";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
-
-const pixelFont = Press_Start_2P({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-pixel",
-});
 
 export default async function V2Layout({
   children,
@@ -62,10 +55,9 @@ export default async function V2Layout({
   };
 
   return (
-    <div
-      data-v2
-      className={`${pixelFont.variable} dark relative bg-[#0a0a0a] min-h-screen`}
-    >
+    // `--font-pixel` is already defined on <html> by the root layout, so this
+    // tree inherits it — no second Press_Start_2P load needed here.
+    <div data-v2 className="dark relative bg-[#0a0a0a] min-h-screen">
       {/* Boot-splash overlay: paints with the initial shell and guarantees the
           pixel DN-logo draw plays before fading (see BootSplash). */}
       <BootSplash />

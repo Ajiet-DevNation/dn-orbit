@@ -1,11 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Bebas_Neue,
-  Geist,
-  IBM_Plex_Mono,
-  Inter_Tight,
-  Press_Start_2P,
-} from "next/font/google";
+import { IBM_Plex_Mono, Press_Start_2P } from "next/font/google";
 import { DotGridBackground } from "@/components/ui/DotGridBackground";
 import "./globals.css";
 import { Toaster } from "@/components/ui/8bit-toast";
@@ -13,15 +7,11 @@ import { auth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
-
-const bebasNeue = Bebas_Neue({
-  weight: "400",
-  variable: "--font-bebas-neue",
-  subsets: ["latin"],
-  display: "swap",
-});
-
+// Two families, deliberately. The 8-bit identity is carried entirely by Press
+// Start 2P (`--font-pixel`, the `.retro` class) with IBM Plex Mono
+// (`--font-mono`) for body copy that needs to stay readable at small sizes.
+// Geist, Inter Tight and Bebas Neue used to be loaded here too — all three had
+// zero consumers and were pure critical-path weight.
 const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500", "600", "700"],
   variable: "--font-ibm-plex-mono",
@@ -29,16 +19,9 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-const interTight = Inter_Tight({
-  weight: ["800", "900"],
-  variable: "--font-inter-tight",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-// Loaded at root (not just /v2) so --font-pixel is defined on <html> and is
-// therefore inherited by body-level portals (drawer, select dropdowns, toasts).
-// Harmless to v1, which never references --font-pixel or .retro.
+// Loaded once, at the root, so `--font-pixel` is defined on <html> and is
+// therefore inherited by body-level portals (drawer, select dropdowns, toasts)
+// as well as by the landing tree.
 const pressStart = Press_Start_2P({
   weight: "400",
   variable: "--font-pixel",
@@ -121,15 +104,7 @@ export default async function RootLayout({
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className={cn(
-        "h-full",
-        bebasNeue.variable,
-        ibmPlexMono.variable,
-        interTight.variable,
-        pressStart.variable,
-        "font-sans",
-        geist.variable,
-      )}
+      className={cn("h-full", ibmPlexMono.variable, pressStart.variable)}
     >
       <body className="min-h-full flex flex-col bg-bg text-text">
         <DotGridBackground />
