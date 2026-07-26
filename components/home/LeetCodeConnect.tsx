@@ -86,7 +86,7 @@ export function LeetCodeConnect({
 
   return (
     <div className="grid gap-3">
-      <div className="flex items-stretch gap-3 [&>div]:min-w-0">
+      <div className="flex items-stretch gap-4 [&>div]:min-w-0">
         <Input
           id={id}
           value={value}
@@ -98,14 +98,21 @@ export function LeetCodeConnect({
           }}
           className={`flex-1 ${invalid ? "border-destructive focus-visible:ring-destructive" : ""} ${inputClassName ?? ""}`}
         />
-        <Button
-          type="button"
-          onClick={connect}
-          disabled={disabled || loading || !value.trim()}
-          className="shrink-0 text-[9px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
-        >
-          {loading ? "…" : "CONNECT"}
-        </Button>
+        {/* The 8-bit Button paints its pixel border 6px OUTSIDE its box, top and
+            bottom, while the Input's frame is inside its own. Stretching both to
+            the row height therefore made the button overhang by 12px and read as
+            floating above the field. Insetting the button by exactly that 6px
+            lands its painted edges flush with the input's. */}
+        <div className="flex shrink-0 py-1.5">
+          <Button
+            type="button"
+            onClick={connect}
+            disabled={disabled || loading || !value.trim()}
+            className="h-full text-[9px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+          >
+            {loading ? "…" : "CONNECT"}
+          </Button>
+        </div>
       </div>
 
       {preview && (

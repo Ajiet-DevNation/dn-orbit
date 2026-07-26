@@ -17,7 +17,7 @@ import {
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
-import { useModalBehavior } from "@/hooks/useModalBehavior";
+import { PixelModal } from "@/components/ui/PixelModal";
 import {
   AUDIENCE_OPTIONS,
   type EventAudience,
@@ -56,8 +56,6 @@ function SectionHeading({ children }: { children: ReactNode }) {
 }
 
 export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
-  useModalBehavior(open, onOpenChange);
-
   const router = useRouter();
 
   const [title, setTitle] = useState("");
@@ -158,222 +156,206 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
     }
   }
 
-  if (!open) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4"
-      onClick={() => onOpenChange(false)}
+    <PixelModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="NEW EVENT"
+      size="lg"
+      footer={
+        <Button
+          className="w-full text-[10px]"
+          disabled={saving}
+          onClick={handleCreate}
+        >
+          {saving
+            ? "SUBMITTING"
+            : isAdmin
+              ? "CREATE EVENT"
+              : "SUBMIT FOR REVIEW"}
+        </Button>
+      }
     >
-      <div
-        className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto border-4 border-white/80 bg-[#0a0a0a] p-6 sm:p-10"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-8 flex items-center justify-between">
-          <h2 className="retro text-lg tracking-wider text-white">NEW EVENT</h2>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="retro text-lg text-muted-foreground hover:text-white"
-            aria-label="Close"
-          >
-            X
-          </button>
+      {!isAdmin && (
+        <p className="retro mb-7 border-2 border-[#22c55e]/40 bg-[#22c55e]/[0.05] p-3 text-[10px] leading-relaxed text-muted-foreground">
+          Heads up — your event goes to an admin for review before it&apos;s
+          published.
+        </p>
+      )}
+
+      <div className="grid gap-5">
+        {/* ── 01 · DETAILS ── */}
+        <SectionHeading>01 · DETAILS</SectionHeading>
+
+        <div className="grid gap-2">
+          <Label htmlFor="ev-title" className="text-[10px]">
+            TITLE *
+          </Label>
+          <Input
+            id="ev-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Hackathon 2026"
+          />
         </div>
 
-        {!isAdmin && (
-          <p className="retro mb-8 border-2 border-[#22c55e]/40 p-3 text-[10px] leading-relaxed text-muted-foreground">
-            Heads up — your event goes to an admin for review before it&apos;s
-            published.
-          </p>
-        )}
-
-        <div className="grid gap-5">
-          {/* ── 01 · DETAILS ── */}
-          <SectionHeading>01 · DETAILS</SectionHeading>
-
-          <div className="grid gap-2">
-            <Label htmlFor="ev-title" className="text-[10px]">
-              TITLE *
-            </Label>
-            <Input
-              id="ev-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Hackathon 2026"
-            />
-          </div>
-
-          {/* [&>div]:min-w-0 lets each cell shrink to its track so the native
+        {/* [&>div]:min-w-0 lets each cell shrink to its track so the native
               datetime/number inputs (which have a wide intrinsic min-width)
               clip instead of overflowing the modal. */}
-          <div className="grid grid-cols-2 gap-5 [&>div]:min-w-0">
-            <div className="grid gap-2">
-              <Label className="text-[10px]">TYPE</Label>
-              <Select value={eventType} onValueChange={setEventType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="SELECT" />
-                </SelectTrigger>
-                <SelectContent className="z-[200] dark">
-                  {EVENT_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="ev-date" className="text-[10px]">
-                DATE &amp; TIME *
-              </Label>
-              <Input
-                id="ev-date"
-                type="datetime-local"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                className="text-[10px]"
-                style={{ colorScheme: "dark" }}
-              />
-            </div>
-          </div>
-
+        <div className="grid grid-cols-2 gap-5 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label htmlFor="ev-loc" className="text-[10px]">
-              LOCATION
+            <Label className="text-[10px]">TYPE</Label>
+            <Select value={eventType} onValueChange={setEventType}>
+              <SelectTrigger>
+                <SelectValue placeholder="SELECT" />
+              </SelectTrigger>
+              <SelectContent className="z-[200] dark">
+                {EVENT_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="ev-date" className="text-[10px]">
+              DATE &amp; TIME *
             </Label>
             <Input
-              id="ev-loc"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Main Auditorium"
+              id="ev-date"
+              type="datetime-local"
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+              className="text-[10px]"
+              style={{ colorScheme: "dark" }}
             />
           </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="ev-desc" className="text-[10px]">
-              DESCRIPTION
-            </Label>
-            {/* Multiline — same pixel-border frame as the 8bit Input, but a
-                textarea so text wraps onto new lines instead of scrolling. */}
-            <div className="relative flex border-y-[4px] border-foreground dark:border-ring">
-              <textarea
-                id="ev-desc"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What's it about?"
-                rows={4}
-                className="retro w-full resize-none rounded-none bg-transparent px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
-              />
-              <div
-                className="pointer-events-none absolute inset-0 -mx-1 border-x-[4px] border-foreground dark:border-ring"
-                aria-hidden="true"
-              />
-            </div>
-          </div>
-
-          {/* ── 02 · AUDIENCE & CAPACITY ── */}
-          <SectionHeading>02 · AUDIENCE &amp; CAPACITY</SectionHeading>
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 [&>div]:min-w-0">
-            <div className="grid gap-2">
-              <Label className="text-[10px]">WHO CAN REGISTER</Label>
-              <Select value={audience} onValueChange={setAudience}>
-                <SelectTrigger>
-                  <SelectValue placeholder="SELECT" />
-                </SelectTrigger>
-                <SelectContent className="z-[200] dark">
-                  {AUDIENCE_OPTIONS.map((a) => (
-                    <SelectItem key={a.value} value={a.value}>
-                      {a.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="ev-cap" className="text-[10px]">
-                CAPACITY (INF IF BLANK)
-              </Label>
-              <Input
-                id="ev-cap"
-                type="number"
-                min={1}
-                value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-                placeholder="Unlimited"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="ev-deadline" className="text-[10px]">
-                REG. DEADLINE
-              </Label>
-              <Input
-                id="ev-deadline"
-                type="datetime-local"
-                value={registrationDeadline}
-                onChange={(e) => setRegistrationDeadline(e.target.value)}
-                className="text-[10px]"
-                style={{ colorScheme: "dark" }}
-              />
-            </div>
-          </div>
-
-          {/* ── 03 · BANNER ── */}
-          <SectionHeading>03 · BANNER (16:9)</SectionHeading>
-          <ImageCropUpload
-            aspect={16 / 9}
-            kind="event"
-            value={bannerUrl}
-            onChange={setBannerUrl}
-          />
-
-          {/* ── 04 · REGISTRATION FORM (Google-Forms-style builder) ── */}
-          <SectionHeading>04 · REGISTRATION FORM</SectionHeading>
-          <p className="retro -mt-1 text-[9px] leading-relaxed text-muted-foreground">
-            Name &amp; email are always collected. Add your own questions below
-            — registrants see them in order.
-          </p>
-          <FormBuilder
-            value={schema}
-            onChange={setSchema}
-            audience={audience as EventAudience}
-          />
-
-          {/* ── 05 · DEPLOYMENT ── */}
-          {isAdmin && (
-            <>
-              <SectionHeading>05 · DEPLOYMENT</SectionHeading>
-              <div className="flex w-fit items-center gap-3">
-                <PixelCheckbox
-                  checked={publishNow}
-                  onChange={setPublishNow}
-                  aria-label="Publish immediately"
-                />
-                <button
-                  type="button"
-                  onClick={() => setPublishNow(!publishNow)}
-                  className="retro cursor-pointer text-[10px] tracking-wider text-muted-foreground hover:text-white"
-                >
-                  PUBLISH IMMEDIATELY
-                </button>
-              </div>
-            </>
-          )}
-
-          <Button
-            className="mt-2 w-full text-[10px]"
-            disabled={saving}
-            onClick={handleCreate}
-          >
-            {saving
-              ? "SUBMITTING"
-              : isAdmin
-                ? "CREATE EVENT"
-                : "SUBMIT FOR REVIEW"}
-          </Button>
         </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="ev-loc" className="text-[10px]">
+            LOCATION
+          </Label>
+          <Input
+            id="ev-loc"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Main Auditorium"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="ev-desc" className="text-[10px]">
+            DESCRIPTION
+          </Label>
+          {/* Multiline — same pixel-border frame as the 8bit Input, but a
+                textarea so text wraps onto new lines instead of scrolling. */}
+          <div className="relative flex border-y-[4px] border-foreground dark:border-ring">
+            <textarea
+              id="ev-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What's it about?"
+              rows={4}
+              className="retro w-full resize-none rounded-none bg-transparent px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
+            />
+            <div
+              className="pointer-events-none absolute inset-0 -mx-1 border-x-[4px] border-foreground dark:border-ring"
+              aria-hidden="true"
+            />
+          </div>
+        </div>
+
+        {/* ── 02 · AUDIENCE & CAPACITY ── */}
+        <SectionHeading>02 · AUDIENCE &amp; CAPACITY</SectionHeading>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 [&>div]:min-w-0">
+          <div className="grid gap-2">
+            <Label className="text-[10px]">WHO CAN REGISTER</Label>
+            <Select value={audience} onValueChange={setAudience}>
+              <SelectTrigger>
+                <SelectValue placeholder="SELECT" />
+              </SelectTrigger>
+              <SelectContent className="z-[200] dark">
+                {AUDIENCE_OPTIONS.map((a) => (
+                  <SelectItem key={a.value} value={a.value}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="ev-cap" className="text-[10px]">
+              CAPACITY (INF IF BLANK)
+            </Label>
+            <Input
+              id="ev-cap"
+              type="number"
+              min={1}
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value)}
+              placeholder="Unlimited"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="ev-deadline" className="text-[10px]">
+              REG. DEADLINE
+            </Label>
+            <Input
+              id="ev-deadline"
+              type="datetime-local"
+              value={registrationDeadline}
+              onChange={(e) => setRegistrationDeadline(e.target.value)}
+              className="text-[10px]"
+              style={{ colorScheme: "dark" }}
+            />
+          </div>
+        </div>
+
+        {/* ── 03 · BANNER ── */}
+        <SectionHeading>03 · BANNER (16:9)</SectionHeading>
+        <ImageCropUpload
+          aspect={16 / 9}
+          kind="event"
+          value={bannerUrl}
+          onChange={setBannerUrl}
+        />
+
+        {/* ── 04 · REGISTRATION FORM (Google-Forms-style builder) ── */}
+        <SectionHeading>04 · REGISTRATION FORM</SectionHeading>
+        <p className="retro -mt-1 text-[9px] leading-relaxed text-muted-foreground">
+          Name &amp; email are always collected. Add your own questions below —
+          registrants see them in order.
+        </p>
+        <FormBuilder
+          value={schema}
+          onChange={setSchema}
+          audience={audience as EventAudience}
+        />
+
+        {/* ── 05 · DEPLOYMENT ── */}
+        {isAdmin && (
+          <>
+            <SectionHeading>05 · DEPLOYMENT</SectionHeading>
+            <div className="flex w-fit items-center gap-3">
+              <PixelCheckbox
+                checked={publishNow}
+                onChange={setPublishNow}
+                aria-label="Publish immediately"
+              />
+              <button
+                type="button"
+                onClick={() => setPublishNow(!publishNow)}
+                className="retro cursor-pointer text-[10px] tracking-wider text-muted-foreground hover:text-white"
+              >
+                PUBLISH IMMEDIATELY
+              </button>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </PixelModal>
   );
 }

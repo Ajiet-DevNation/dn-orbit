@@ -5,7 +5,10 @@ import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Command, CommandInput } from "@/components/ui/8bit-command";
-import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
+import {
+  DetailOverlay,
+  DetailOverlayContent,
+} from "@/components/ui/DetailOverlay";
 import { useFlipDetail } from "@/hooks/useFlipDetail";
 import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
 import { cn } from "@/lib/utils";
@@ -386,34 +389,25 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
         </>
       )}
 
-      {active && (
-        // Clicking the backdrop (anywhere outside the card/detail) closes; the
-        // card and detail stop propagation so interacting with them doesn't.
-        <div
-          className="fixed inset-0 z-[60] overflow-y-auto bg-[#0a0a0a]"
-          onClick={close}
-        >
-          {/* Full-screen modal (above the sticky header) so the close button can
-              live at the true viewport corner and stay reachable. */}
-          <div className="relative mx-auto flex min-h-full w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 py-24 lg:flex-row lg:gap-16">
-            <OverlayCloseButton
-              onClick={close}
-              label="Close event details"
-              className="fixed right-4 top-4 z-[70]"
-            />
-            <div
+      <DetailOverlay
+        open={!!active}
+        onClose={close}
+        closeLabel="Close event details"
+      >
+        {active && (
+          <>
+            <DetailOverlayContent
               ref={flipRef}
               className="w-full max-w-sm shrink-0"
-              onClick={(e) => e.stopPropagation()}
             >
               <EventCard data={active} />
-            </div>
-            <div onClick={(e) => e.stopPropagation()}>
+            </DetailOverlayContent>
+            <DetailOverlayContent>
               <EventDetail data={active} open={detailOpen} />
-            </div>
-          </div>
-        </div>
-      )}
+            </DetailOverlayContent>
+          </>
+        )}
+      </DetailOverlay>
     </section>
   );
 }

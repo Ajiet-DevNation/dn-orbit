@@ -1,13 +1,17 @@
 "use client";
 
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useRef } from "react";
 import { FaExternalLinkAlt, FaGithub } from "react-icons/fa";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
-import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
+import {
+  DetailOverlay,
+  DetailOverlayContent,
+} from "@/components/ui/DetailOverlay";
 import type { ProjectData } from "@/constants/projects";
 import { useCardPowerOn } from "@/hooks/useCardPowerOn";
 import { useCoverflow } from "@/hooks/useCoverflow";
+import { useFlipDetail } from "@/hooks/useFlipDetail";
 import { useScrollGlide } from "@/hooks/useScrollGlide";
 import { cn } from "@/lib/utils";
 import { HudCardFrame } from "./HudCardFrame";
@@ -206,8 +210,10 @@ function ProjectDetail({
 }
 
 export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
-  const [selected, setSelected] = useState<number | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
+  // FLIP shared-element transition: the centre card flies from its on-screen
+  // rect into the detail slot. Keyed by carousel index.
+  const { selected, detailOpen, flipRef, open, close } =
+    useFlipDetail<number>();
 
   // Responsive sizing: cap at the desktop width, otherwise scale to the viewport
   // so the centre card always fits a phone screen.
@@ -216,17 +222,8 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
   const CARD_H = Math.round(CARD_W * CARD_RATIO);
   const SPREAD = Math.round(CARD_W * SPREAD_RATIO);
 
-  // Rect of the centre card at the moment it was opened, so the *same* card can
-  // fly from there into the detail view (a FLIP shared-element transition).
-  const clickedRectRef = useRef<DOMRect | null>(null);
-  const flipRef = useRef<HTMLDivElement>(null);
   // Wrapper the scroll-glide drifts horizontally (left for projects).
   const glideRef = useRef<HTMLDivElement>(null);
-
-  const open = (index: number, el: HTMLElement) => {
-    clickedRectRef.current = el.getBoundingClientRect();
-    setSelected(index);
-  };
 
   const {
     sectionRef,
@@ -257,65 +254,6 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
 
   // GSAP power-on (bracket pop + scanline sweep) on the newly-centred card.
   useCardPowerOn(glideRef, activeIndex);
-
-  // FLIP: place the detail card over the clicked card, then play it to its slot.
-  useLayoutEffect(() => {
-    const el = flipRef.current;
-    const from = clickedRectRef.current;
-    if (selected === null || !el || !from) return;
-    const to = el.getBoundingClientRect();
-    const dx = from.left - to.left;
-    const dy = from.top - to.top;
-    const sx = to.width ? from.width / to.width : 1;
-    const sy = to.height ? from.height / to.height : 1;
-    el.style.transition = "none";
-    el.style.transformOrigin = "top left";
-    el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
-    void el.offsetWidth;
-    requestAnimationFrame(() => {
-      el.style.transition = "transform 480ms var(--ease-out-quart)";
-      el.style.transform = "translate(0px, 0px) scale(1, 1)";
-      setDetailOpen(true);
-    });
-  }, [selected]);
-
-  const close = () => {
-    const el = flipRef.current;
-    const from = clickedRectRef.current;
-    setDetailOpen(false);
-    if (!el || !from) {
-      setSelected(null);
-      return;
-    }
-    const to = el.getBoundingClientRect();
-    const dx = from.left - to.left;
-    const dy = from.top - to.top;
-    const sx = to.width ? from.width / to.width : 1;
-    const sy = to.height ? from.height / to.height : 1;
-    el.style.transition = "transform 420ms var(--ease-out-quart)";
-    el.style.transformOrigin = "top left";
-    el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
-    const done = () => {
-      el.removeEventListener("transitionend", done);
-      setSelected(null);
-    };
-    el.addEventListener("transitionend", done);
-  };
-
-  // Keep a ref to the latest close() so the Escape listener depends only on
-  // `selected` (close is a fresh closure each render under React Compiler).
-  const closeRef = useRef(close);
-  useEffect(() => {
-    closeRef.current = close;
-  });
-  useEffect(() => {
-    if (selected === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeRef.current();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selected]);
 
   const activeProject = selected !== null ? projects[selected] : null;
 
@@ -409,37 +347,26 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
       {/* Detail overlay — the card flies here (FLIP) from the centre. Solid
             backdrop so it cleanly covers the title + carousel; padded down so it
             sits clear of the sticky nav and reads as centred. */}
-      {activeProject && (
-        // Clicking the backdrop (anywhere outside the card/detail) closes; the
-        // card and detail stop propagation so interacting with them doesn't.
-        <div
-          className="fixed inset-0 z-[60] overflow-y-auto bg-[#0a0a0a]"
-          onClick={close}
-        >
-          {/* Full-screen modal (above the sticky header), matching the events
-                overlay — one consistent, always-reachable close button. */}
-          <div className="relative mx-auto flex min-h-full w-full max-w-6xl flex-col items-center justify-center gap-8 px-6 py-24 lg:flex-row lg:gap-16">
-            <OverlayCloseButton
-              onClick={close}
-              label="Close project details"
-              className="fixed right-4 top-4 z-[70]"
-            />
-
-            <div
+      <DetailOverlay
+        open={!!activeProject}
+        onClose={close}
+        closeLabel="Close project details"
+      >
+        {activeProject && (
+          <>
+            <DetailOverlayContent
               ref={flipRef}
               className="shrink-0"
               style={{ width: CARD_W, height: CARD_H }}
-              onClick={(e) => e.stopPropagation()}
             >
               <ProjectCard project={activeProject} className="h-full w-full" />
-            </div>
-
-            <div onClick={(e) => e.stopPropagation()}>
+            </DetailOverlayContent>
+            <DetailOverlayContent>
               <ProjectDetail project={activeProject} open={detailOpen} />
-            </div>
-          </div>
-        </div>
-      )}
+            </DetailOverlayContent>
+          </>
+        )}
+      </DetailOverlay>
     </section>
   );
 }

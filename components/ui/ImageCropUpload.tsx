@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
+import { Button } from "@/components/ui/8bit-button";
+import { PixelModal } from "@/components/ui/PixelModal";
 import { cn } from "@/lib/utils";
 
 // Reusable "pick → crop to a locked ratio → upload to Supabase → get URL" field.
@@ -201,25 +203,43 @@ export function ImageCropUpload({
 
       {error && <p className="text-[10px] text-red-500">{error}</p>}
 
-      {/* Cropper modal — above the parent form modal (z-[100]). */}
-      {src && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 p-4">
-          <div className="flex w-full max-w-2xl flex-col gap-4 border-4 border-white/80 bg-[#0a0a0a] p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="retro text-sm tracking-wider text-white">
-                CROP IMAGE
-              </h3>
-              <button
-                type="button"
-                onClick={closeCropper}
-                className="retro text-sm text-muted-foreground hover:text-white"
-                aria-label="Cancel"
-              >
-                X
-              </button>
-            </div>
-
-            <div className="relative h-[55vh] w-full bg-[#0d0d0d]">
+      {/* Cropper — opens from inside a form modal, so it sits on the `nested`
+          tier. Previously a bare fixed overlay with NO Escape handling and no
+          scroll lock of its own; it relied entirely on the parent modal's. */}
+      <PixelModal
+        open={!!src}
+        onOpenChange={(next) => {
+          if (!next && !busy) closeCropper();
+        }}
+        title="CROP IMAGE"
+        layer="nested"
+        size="md"
+        // Cropping is a drag interaction: a click that starts on the image and
+        // ends on the backdrop must not throw the crop away.
+        closeOnBackdrop={false}
+        footer={
+          <>
+            <Button
+              variant="outline"
+              className="flex-1 text-[10px]"
+              onClick={closeCropper}
+              disabled={busy}
+            >
+              CANCEL
+            </Button>
+            <Button
+              className="flex-1 text-[10px] !bg-[#22c55e] !text-black hover:!bg-[#16a34a]"
+              onClick={confirmCrop}
+              disabled={busy}
+            >
+              {busy ? "UPLOADING…" : "USE IMAGE"}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <div className="relative h-[52vh] w-full bg-[#0d0d0d]">
+            {src && (
               <Cropper
                 image={src}
                 crop={crop}
@@ -237,52 +257,29 @@ export function ImageCropUpload({
                   (areaRef.current = areaPixels)
                 }
               />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="retro text-[8px] text-muted-foreground">
-                FIT
-              </span>
-              <input
-                type="range"
-                min={minZoom}
-                max={3}
-                step={0.01}
-                value={zoom}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                className="h-1 flex-1 cursor-pointer accent-[#22c55e]"
-                aria-label="Zoom"
-              />
-              <span className="retro text-[8px] text-muted-foreground">
-                ZOOM
-              </span>
-            </div>
-
-            <p className="retro text-[8px] leading-relaxed text-muted-foreground">
-              Drag to reposition · zoom out fully to keep the whole image.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={closeCropper}
-                disabled={busy}
-                className="retro border-2 border-white/20 px-4 py-2 text-[9px] text-white/70 transition-colors hover:border-white/40 disabled:opacity-50"
-              >
-                CANCEL
-              </button>
-              <button
-                type="button"
-                onClick={confirmCrop}
-                disabled={busy}
-                className="retro border-2 border-[#22c55e] bg-[#22c55e] px-4 py-2 text-[9px] text-[#0a0a0a] transition-colors hover:bg-[#1ea34d] disabled:opacity-50"
-              >
-                {busy ? "UPLOADING…" : "USE IMAGE"}
-              </button>
-            </div>
+            )}
           </div>
+
+          <div className="flex items-center gap-3">
+            <span className="retro text-[8px] text-muted-foreground">FIT</span>
+            <input
+              type="range"
+              min={minZoom}
+              max={3}
+              step={0.01}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="h-1 flex-1 cursor-pointer accent-[#22c55e]"
+              aria-label="Zoom"
+            />
+            <span className="retro text-[8px] text-muted-foreground">ZOOM</span>
+          </div>
+
+          <p className="retro text-[8px] leading-relaxed text-muted-foreground">
+            Drag to reposition · zoom out fully to keep the whole image.
+          </p>
         </div>
-      )}
+      </PixelModal>
     </div>
   );
 }
