@@ -2,7 +2,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-export const progressVariants = cva("", {
+const progressVariants = cva("", {
   variants: {
     variant: {
       default: "",

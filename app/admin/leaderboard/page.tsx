@@ -7,6 +7,10 @@ import { canAccessAdmin } from "@/lib/roles";
 import { LeaderboardPreview } from "./LeaderboardPreview";
 import { WeightForm } from "./WeightForm";
 
+export const metadata = {
+  title: "LEADERBOARD // ORBIT ADMIN",
+};
+
 export default async function AdminLeaderboardPage() {
   const session = await auth();
   if (!canAccessAdmin(session?.user?.role)) {
@@ -17,6 +21,8 @@ export default async function AdminLeaderboardPage() {
   // Pull the full score-sorted roster so the preview's name search can reach
   // past the top 10; the client component slices to the top 10 by default.
   const scores = await db.leaderboardScore.findMany({
+    // Bounded: one page view must never become an unbounded transfer.
+    take: 500,
     select: {
       id: true,
       totalScore: true,
@@ -34,7 +40,7 @@ export default async function AdminLeaderboardPage() {
   });
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8 p-6 md:p-8">
       <PixelPageHeader
         title="LEADERBOARD CONFIGURATION"
         subtitle="SCORING ENGINE"

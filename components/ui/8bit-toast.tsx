@@ -1488,5 +1488,4 @@ export {
   buttonVariants2 as buttonVariants,
   toast2 as toast
 };
-export { Toast };
 export default Toast;

@@ -47,15 +47,19 @@ export default function EventRosterClient({
         router.refresh();
       } catch (err) {
         toast.error(
-          "Attendance update failed: " +
-            (err instanceof Error ? err.message : "unknown"),
+          `Attendance update failed: ${err instanceof Error ? err.message : "unknown"}`,
         );
       }
     });
   };
 
-  const fmtValue = (v: unknown) =>
-    Array.isArray(v) ? v.join(", ") : v == null ? "—" : String(v);
+  // Mirrors formatAnswer() on the organizer-facing roster so the same
+  // registration renders identically in both places.
+  const fmtValue = (v: unknown) => {
+    if (Array.isArray(v)) return v.length ? v.map(String).join(", ") : "—";
+    if (v == null || v === "") return "—";
+    return String(v);
+  };
 
   const columns: PixelColumn<RosterEntry>[] = [
     {

@@ -2,10 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import {
+  type PixelColumn,
+  PixelDataTable,
+} from "@/components/admin/PixelDataTable";
 import { PixelPanel } from "@/components/admin/PixelPanel";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { toast } from "@/components/ui/8bit-toast";
+import { useConfirm } from "@/components/ui/PixelConfirm";
 
 interface AllowlistEntry {
   id: string;
@@ -29,6 +34,7 @@ function formatStamp(iso: string): string {
 export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { confirm, dialog } = useConfirm();
   const [githubUsername, setGithubUsername] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
@@ -56,16 +62,27 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
         toast.success("Added to allowlist");
       } catch (err) {
         toast.error(
-          `Failed: ${err instanceof Error ? err.message : "UNKNOWN"}`,
+          `Failed: ${err instanceof Error ? err.message : "unknown"}`,
         );
       }
     });
   };
 
-  const handleRemove = async (id: string) => {
+  // Revoking removes someone's ability to sign in at all, so it confirms first
+  // — the same treatment the events and projects tables give their deletes. It
+  // previously fired straight from the click.
+  const handleRemove = async (entry: AllowlistEntry) => {
+    const who = entry.githubUsername ?? entry.email ?? "this entry";
+    const ok = await confirm({
+      title: "REVOKE ACCESS",
+      message: `Revoke sign-in access for ${who}? They will be locked out until re-added.`,
+      confirmLabel: "REVOKE",
+    });
+    if (!ok) return;
+
     startTransition(async () => {
       try {
-        const res = await fetch(`/api/admin/allowlist/${id}`, {
+        const res = await fetch(`/api/admin/allowlist/${entry.id}`, {
           method: "DELETE",
         });
         if (!res.ok) throw new Error(await res.text());
@@ -73,11 +90,64 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
         toast.success("Removed from allowlist");
       } catch (err) {
         toast.error(
-          `Failed: ${err instanceof Error ? err.message : "UNKNOWN"}`,
+          `Failed: ${err instanceof Error ? err.message : "unknown"}`,
         );
       }
     });
   };
+
+  // Rendered through the shared PixelDataTable like every other admin list.
+  // The bespoke CSS grid this replaces had no horizontal scroll, so on a phone
+  // the columns simply crushed into each other.
+  const columns: PixelColumn<AllowlistEntry>[] = [
+    {
+      key: "github",
+      header: "GITHUB",
+      render: (e) => (
+        <span className="retro text-[11px] text-white">
+          {e.githubUsername ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "email",
+      header: "EMAIL",
+      render: (e) => (
+        <span className="text-[11px] text-zinc-500">{e.email ?? "—"}</span>
+      ),
+    },
+    {
+      key: "note",
+      header: "NOTE",
+      render: (e) => (
+        <span className="text-[11px] text-zinc-500">{e.note || "—"}</span>
+      ),
+    },
+    {
+      key: "added",
+      header: "ADDED",
+      render: (e) => (
+        <span className="retro text-[9px] whitespace-nowrap text-zinc-600">
+          {formatStamp(e.createdAt)}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "ACTIONS",
+      align: "right",
+      render: (e) => (
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() => handleRemove(e)}
+          className="retro border-2 border-red-500/40 px-3 py-1 text-[8px] text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+        >
+          REVOKE
+        </button>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -154,58 +224,14 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
             </div>
           </div>
 
-          {/* Entry list */}
-          <div className="border-2 border-white/10">
-            <div className="grid grid-cols-[1.2fr_1.5fr_1fr_auto] gap-4 border-b-2 border-white/10 bg-zinc-950/50 px-4 py-2">
-              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600">
-                GitHub
-              </span>
-              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600">
-                Email
-              </span>
-              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600">
-                Added
-              </span>
-              <span className="retro text-[8px] uppercase tracking-widest text-zinc-600 text-right">
-                Action
-              </span>
-            </div>
-
-            {initialEntries.length === 0 ? (
-              <div className="px-4 py-6 text-center retro text-[10px] text-zinc-700 uppercase tracking-widest">
-                No entries yet · only env-bootstrap admins can sign in
-              </div>
-            ) : (
-              initialEntries.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="grid grid-cols-[1.2fr_1.5fr_1fr_auto] items-center gap-4 border-b-2 border-white/10 px-4 py-3 last:border-b-0"
-                >
-                  <span className="retro truncate text-[11px] text-white">
-                    {entry.githubUsername ?? "—"}
-                  </span>
-                  <span className="truncate text-[11px] text-zinc-500">
-                    {entry.email ?? "—"}
-                  </span>
-                  <span className="retro text-[9px] text-zinc-600 tracking-tighter">
-                    {formatStamp(entry.createdAt)}
-                  </span>
-                  <div className="text-right">
-                    <button
-                      type="button"
-                      disabled={isPending}
-                      onClick={() => handleRemove(entry.id)}
-                      className="retro border-2 border-red-500/40 px-3 py-1 text-[8px] text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
-                    >
-                      REVOKE
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          <PixelDataTable
+            data={initialEntries}
+            columns={columns}
+            empty="NO ENTRIES YET · ONLY ENV-BOOTSTRAP ADMINS CAN SIGN IN"
+          />
         </div>
       </PixelPanel>
+      {dialog}
     </div>
   );
 }

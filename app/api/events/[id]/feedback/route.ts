@@ -70,6 +70,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const { id: eventId } = await params;
 
   const feedback = await db.feedback.findMany({
+    // Bounded: one page view must never become an unbounded transfer.
+    take: 500,
     where: { eventId },
     include: {
       user: { select: { id: true, name: true } },

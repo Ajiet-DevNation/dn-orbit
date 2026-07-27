@@ -39,7 +39,7 @@ export default async function AdminEventRosterPage({
   }));
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8 p-6 md:p-8">
       <PixelPageHeader
         title="EVENT ROSTER"
         subtitle={event.title.toUpperCase()}

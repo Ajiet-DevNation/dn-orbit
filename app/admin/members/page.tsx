@@ -7,6 +7,10 @@ import { canAccessAdmin } from "@/lib/roles";
 import { AllowlistManager } from "./AllowlistManager";
 import { MemberTable } from "./MemberTable";
 
+export const metadata = {
+  title: "MEMBERS // ORBIT ADMIN",
+};
+
 export default async function AdminMembersPage() {
   const session = await auth();
   if (!canAccessAdmin(session?.user?.role)) {
@@ -15,6 +19,8 @@ export default async function AdminMembersPage() {
 
   const [users, allowlist] = await Promise.all([
     db.user.findMany({
+      // Bounded: one page view must never become an unbounded transfer.
+      take: 500,
       select: {
         id: true,
         name: true,
@@ -28,7 +34,11 @@ export default async function AdminMembersPage() {
         createdAt: "desc",
       },
     }),
-    db.allowlist.findMany({ orderBy: { createdAt: "desc" } }),
+    db.allowlist.findMany({
+      // Bounded: one page view must never become an unbounded transfer.
+      take: 500,
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   const adminCount = users.filter((u) => canAccessAdmin(u.role)).length;
@@ -36,7 +46,7 @@ export default async function AdminMembersPage() {
   const ajietCount = users.filter((u) => u.role === "ajiet_student").length;
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8 p-6 md:p-8">
       <PixelPageHeader
         title="MEMBER DIRECTORY"
         subtitle="ORBIT_USER_REGISTRY_v4.5"

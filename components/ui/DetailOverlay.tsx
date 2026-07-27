@@ -43,9 +43,9 @@ export function DetailOverlay({
   if (!open) return null;
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismissal;
     // Escape is wired through useModalBehavior and the close button is always
-    // visible, so this is a convenience, not the only way out.
+    // visible, so backdrop dismissal is a convenience, not the only way out.
+    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismissal with a keyboard path
     <div
       ref={panelRef}
       className="fixed inset-0 overflow-y-auto bg-[#0a0a0a]"
@@ -92,8 +92,7 @@ export function DetailOverlayContent({
   ref?: React.Ref<HTMLDivElement>;
 }) {
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: purely stops the
-    // backdrop's dismiss handler; adds no behaviour of its own.
+    // biome-ignore lint/a11y/noStaticElementInteractions: only stops the backdrop's dismiss handler; adds no behaviour
     <div
       ref={ref}
       className={className}

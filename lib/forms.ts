@@ -23,6 +23,46 @@ export const AUDIENCE_BADGE_LABELS: Record<EventAudience, string> = {
   public: "OPEN",
 };
 
+// Canonical event-type vocabulary.
+//
+// This used to be three separate lists: the public "new event" modal offered
+// WORKSHOP / HACKATHON / TECH_TALK / CODEATHON / MEETUP / OTHER, the admin
+// builder offered GENERAL_ASSEMBLY / HACKATHON / WORKSHOP / TECHNICAL_SEMINAR,
+// and the edit page defaulted to a bare "WORKSHOP". The same event therefore
+// had a different set of types available depending on which screen created it,
+// and an event made in one place could show a type the other could not select.
+//
+// The legacy admin-only values are kept at the end so events already stored
+// with them still round-trip through the edit form rather than being silently
+// rewritten on the next save.
+export const EVENT_TYPES = [
+  "WORKSHOP",
+  "HACKATHON",
+  "TECH_TALK",
+  "CODEATHON",
+  "MEETUP",
+  "GENERAL_ASSEMBLY",
+  "TECHNICAL_SEMINAR",
+  "OTHER",
+] as const;
+
+/** Human-facing form of a stored event type, e.g. "TECH_TALK" → "TECH TALK". */
+export function eventTypeLabel(type: string): string {
+  return type.replace(/_/g, " ");
+}
+
+/**
+ * The options a type picker should show for a given current value. An event
+ * carrying a type outside the canonical list (hand-edited, or from an older
+ * vocabulary) keeps its value as a selectable option instead of the select
+ * silently rendering blank and rewriting the field on save.
+ */
+export function eventTypeOptions(current?: string | null): string[] {
+  const list: string[] = [...EVENT_TYPES];
+  if (current && !list.includes(current)) list.unshift(current);
+  return list;
+}
+
 export type FieldType =
   | "short_text"
   | "paragraph"

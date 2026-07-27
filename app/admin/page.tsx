@@ -8,6 +8,10 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
 
+export const metadata = {
+  title: "DASHBOARD // ORBIT ADMIN",
+};
+
 export default async function AdminDashboardPage() {
   const session = await auth();
 
@@ -70,7 +74,7 @@ export default async function AdminDashboardPage() {
   }));
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8 p-6 md:p-8">
       <PixelPageHeader title="DASHBOARD" subtitle="SYSTEM OVERVIEW" />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">

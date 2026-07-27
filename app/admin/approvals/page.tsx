@@ -1,9 +1,13 @@
 import { redirect } from "next/navigation";
-import { AdminHeading } from "@/components/ui/AdminHeading";
+import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
 import { ApprovalsQueue } from "./ApprovalsQueue";
+
+export const metadata = {
+  title: "APPROVALS // ORBIT ADMIN",
+};
 
 // Unified moderation queue: every project/event that hasn't been actioned yet.
 // Approving/rejecting happens here; the per-section list pages show status too.
@@ -13,6 +17,8 @@ export default async function AdminApprovalsPage() {
 
   const [projects, events] = await Promise.all([
     db.project.findMany({
+      // Bounded: one page view must never become an unbounded transfer.
+      take: 500,
       where: { reviewStatus: "pending" },
       select: {
         id: true,
@@ -24,6 +30,8 @@ export default async function AdminApprovalsPage() {
       orderBy: { submittedAt: "desc" },
     }),
     db.event.findMany({
+      // Bounded: one page view must never become an unbounded transfer.
+      take: 500,
       where: { reviewStatus: "pending" },
       select: {
         id: true,
@@ -57,10 +65,10 @@ export default async function AdminApprovalsPage() {
   }));
 
   return (
-    <div className="space-y-12 p-8">
-      <AdminHeading
+    <div className="space-y-8 p-6 md:p-8">
+      <PixelPageHeader
         title="APPROVALS"
-        sub="CONTENT_MODERATION_QUEUE"
+        subtitle="CONTENT MODERATION QUEUE"
         code={`${projectRows.length + eventRows.length} PENDING`}
       />
       <ApprovalsQueue projects={projectRows} events={eventRows} />

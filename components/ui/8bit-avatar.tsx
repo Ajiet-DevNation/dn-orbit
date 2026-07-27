@@ -9,7 +9,7 @@ import {
 
 import { cn } from "@/lib/utils";
 
-export const avatarVariants = cva("", {
+const avatarVariants = cva("", {
   variants: {
     font: {
       normal: "",

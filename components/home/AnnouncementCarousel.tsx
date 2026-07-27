@@ -316,6 +316,10 @@ export function AnnouncementCarousel({
         Right-click context menu is suppressed so right-drag works too.
         cursor-grab / active:cursor-grabbing signals it's draggable.
       */}
+      {/* Pointer drag only enhances an already-readable strip: the cards are
+          links/text that keyboard users reach directly, so there is nothing
+          here to expose as a separate interactive control. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-to-scrub enhancement over independently reachable content */}
       <div
         ref={containerRef}
         className="relative cursor-grab touch-pan-y select-none overflow-hidden active:cursor-grabbing"

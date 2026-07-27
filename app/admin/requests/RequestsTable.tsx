@@ -7,6 +7,7 @@ import {
   PixelDataTable,
 } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
+import { useConfirm } from "@/components/ui/PixelConfirm";
 import { type ApprovalStatus, STATUS_LABELS } from "@/lib/status";
 
 interface Req {
@@ -23,8 +24,9 @@ interface Req {
 export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { confirm, dialog } = useConfirm();
 
-  const setStatus = (userId: string, status: ApprovalStatus) =>
+  const submit = (userId: string, status: ApprovalStatus) =>
     startTransition(async () => {
       try {
         const res = await fetch(`/api/admin/members/${userId}`, {
@@ -34,13 +36,33 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
         });
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
-        toast.success(`MEMBER_${status.toUpperCase()}`);
+        toast.success(
+          status === "approved" ? "Member approved" : "Member rejected",
+        );
       } catch (err) {
         toast.error(
-          `ACTION_FAILED: ${err instanceof Error ? err.message : "UNKNOWN"}`,
+          `Update failed: ${err instanceof Error ? err.message : "unknown"}`,
         );
       }
     });
+
+  // Rejecting denies someone access to the platform — confirmed, like every
+  // other destructive action in the panel. Approving is not.
+  const setStatus = async (
+    userId: string,
+    status: ApprovalStatus,
+    name: string,
+  ) => {
+    if (status === "rejected") {
+      const ok = await confirm({
+        title: "REJECT REQUEST",
+        message: `Reject ${name}'s access request? They will not be able to sign in.`,
+        confirmLabel: "REJECT",
+      });
+      if (!ok) return;
+    }
+    submit(userId, status);
+  };
 
   const btn =
     "retro border-2 px-3 py-1 text-[8px] transition-colors disabled:opacity-50";
@@ -51,7 +73,7 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
       header: "NAME",
       render: (r) => (
         <div className="flex flex-col">
-          <span className="text-white font-black">{r.name || "UNNAMED"}</span>
+          <span className="font-black text-white">{r.name || "—"}</span>
           <span className="text-[9px] text-zinc-600 tracking-tighter">
             {r.email}
           </span>
@@ -61,14 +83,14 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
     {
       key: "usn",
       header: "USN",
-      render: (r) => <span className="text-white/70">{r.usn || "N_A"}</span>,
+      render: (r) => <span className="text-white/70">{r.usn || "—"}</span>,
     },
     {
       key: "branch",
       header: "BRANCH/YEAR",
       render: (r) => (
         <span className="text-white/70">
-          {r.branch ? `${r.branch} (${r.year}Y)` : "N/A"}
+          {r.branch ? `${r.branch} (${r.year}Y)` : "—"}
         </span>
       ),
     },
@@ -99,7 +121,7 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
           <button
             type="button"
             disabled={isPending || r.status === "approved"}
-            onClick={() => setStatus(r.id, "approved")}
+            onClick={() => setStatus(r.id, "approved", r.name || "this member")}
             className={`${btn} border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black`}
           >
             APPROVE
@@ -107,7 +129,7 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
           <button
             type="button"
             disabled={isPending || r.status === "rejected"}
-            onClick={() => setStatus(r.id, "rejected")}
+            onClick={() => setStatus(r.id, "rejected", r.name || "this member")}
             className={`${btn} border-red-500/40 text-red-400 hover:bg-red-500/10`}
           >
             REJECT
@@ -118,10 +140,13 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
   ];
 
   return (
-    <PixelDataTable
-      data={initialRequests}
-      columns={columns}
-      empty="NO PENDING REQUESTS"
-    />
+    <>
+      <PixelDataTable
+        data={initialRequests}
+        columns={columns}
+        empty="NO PENDING REQUESTS"
+      />
+      {dialog}
+    </>
   );
 }

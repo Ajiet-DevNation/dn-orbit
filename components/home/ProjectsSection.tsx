@@ -4,6 +4,7 @@ import { memo, useMemo, useRef } from "react";
 import { FaExternalLinkAlt, FaGithub } from "react-icons/fa";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
+import { Progress } from "@/components/ui/8bit-progress";
 import {
   DetailOverlay,
   DetailOverlayContent,
@@ -49,6 +50,22 @@ function statusColor(status: string): string {
       return "#f59e0b";
     default:
       return "#888888";
+  }
+}
+
+// Progress meter fill, as a Tailwind class rather than a hex value, because the
+// shared 8-bit `Progress` takes a className for its filled squares. Kept beside
+// statusColor so the two can't drift apart.
+function statusFillClass(status: string): string {
+  switch (status) {
+    case "ACTIVE":
+      return "bg-[#22c55e]";
+    case "SHIPPED":
+      return "bg-[#3b82f6]";
+    case "WIP":
+      return "bg-[#f59e0b]";
+    default:
+      return "bg-[#888888]";
   }
 }
 
@@ -136,6 +153,26 @@ const ProjectCard = memo(function ProjectCard({
             <FaGithub className="z-10 size-5 text-white/20" />
           </div>
         )}
+
+        {/* Completion strip — the lead sets this in the "new project" modal and
+            admins maintain it, but it had no public surface at all. Overlaid on
+            the artwork so adding it costs the card no height (every card in the
+            coverflow is a fixed size). Omitted for scraped projects, which have
+            no progress figure. */}
+        {project.progressPct != null && (
+          <div
+            className="absolute inset-x-0 bottom-0 h-1.5 bg-black/60"
+            aria-hidden
+          >
+            <div
+              className="h-full transition-[width] duration-500 ease-out"
+              style={{
+                width: `${Math.max(0, Math.min(100, project.progressPct))}%`,
+                backgroundColor: color,
+              }}
+            />
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -169,6 +206,28 @@ function ProjectDetail({
       <p className="text-sm leading-relaxed text-muted-foreground">
         {project.description}
       </p>
+
+      {/* Completion meter — reuses the shared 8-bit Progress primitive so the
+          segmented pixel look matches the rest of the site rather than being a
+          one-off bar. Fill colour tracks the project status. */}
+      {project.progressPct != null && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="retro text-[10px] tracking-wider text-[#22c55e]">
+              PROGRESS
+            </span>
+            <span className="retro text-[10px] text-muted-foreground">
+              {project.progressPct}%
+            </span>
+          </div>
+          <Progress
+            variant="retro"
+            value={project.progressPct}
+            progressBg={statusFillClass(project.status)}
+            className="h-3"
+          />
+        </div>
+      )}
 
       <div className="flex flex-col gap-3">
         <span className="retro text-[10px] tracking-wider text-[#22c55e]">

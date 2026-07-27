@@ -20,17 +20,22 @@ export default async function EditEventPage({
   const e = await db.event.findUnique({ where: { id } });
   if (!e) notFound();
 
+  // Prefill for a `datetime-local` input. `toISOString()` yields UTC, which is
+  // exactly the zone lib/validation.ts pins zone-less submissions to and
+  // lib/event-format.ts renders in — so an edit round-trips losslessly. (Before
+  // those two were pinned, this UTC string was re-parsed as server-local, which
+  // shifted every event by the machine's offset on each save outside Vercel.)
   const toLocal = (d: Date | null) =>
     d ? new Date(d).toISOString().slice(0, 16) : "";
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8 p-6 md:p-8">
       <PixelPageHeader title="EDIT EVENT" subtitle={e.title.toUpperCase()} />
       <EventCreationForm
         eventId={e.id}
         initial={{
           title: e.title,
-          eventType: e.eventType ?? "WORKSHOP",
+          eventType: e.eventType ?? "",
           description: e.description ?? "",
           eventDate: toLocal(e.eventDate),
           location: e.location ?? "",

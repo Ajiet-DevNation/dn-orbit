@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { SidebarBrand } from "@/components/layout/SidebarBrand";
 import { Button } from "@/components/ui/8bit-button";
@@ -39,6 +39,25 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
+  // Escape closes the mobile drawer, matching PixelModal/DetailOverlay. Without
+  // it the only dismissal was clicking the backdrop — not reachable by keyboard,
+  // so a keyboard user who opened the menu was stuck behind it.
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
+  // Navigating closes the drawer — otherwise it stays open over the page the
+  // user just picked.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on pathname changes, not on `open`
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
   return (
     <>
       {/* Mobile hamburger */}
@@ -53,7 +72,11 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
 
       {/* Backdrop (mobile, when open) */}
       {open && (
+        // Decorative dismiss target. Keyboard users get Escape (above) and the
+        // in-drawer close button, so this carries no role and is hidden from
+        // assistive tech rather than being announced as an interactive element.
         <div
+          aria-hidden="true"
           className="fixed inset-0 z-50 bg-black/70 md:hidden"
           onClick={() => setOpen(false)}
         />

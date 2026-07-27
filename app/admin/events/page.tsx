@@ -8,6 +8,10 @@ import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
 import { EventTable } from "./EventTable";
 
+export const metadata = {
+  title: "EVENTS // ORBIT ADMIN",
+};
+
 export default async function AdminEventsPage() {
   const session = await auth();
   if (!canAccessAdmin(session?.user?.role)) redirect("/");
@@ -24,6 +28,7 @@ export default async function AdminEventsPage() {
       reviewStatus: true,
     },
     orderBy: { eventDate: "desc" },
+    take: 500,
   });
   const total = events.length;
   const published = events.filter((e) => e.isPublished).length;
@@ -32,10 +37,10 @@ export default async function AdminEventsPage() {
   ).length;
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8 p-6 md:p-8">
       <PixelPageHeader
         title="EVENT MANAGEMENT"
-        subtitle="CS_EVENT_ARCHIVE"
+        subtitle="EVENT ARCHIVE"
         actions={
           <Button
             asChild
@@ -49,7 +54,7 @@ export default async function AdminEventsPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <PixelStatTile label="TOTAL" value={total} />
         <PixelStatTile label="PUBLISHED" value={published} />
-        <PixelStatTile label="PENDING_REVIEW" value={pendingReview} />
+        <PixelStatTile label="PENDING REVIEW" value={pendingReview} />
       </div>
       <EventTable initialEvents={events} />
     </div>

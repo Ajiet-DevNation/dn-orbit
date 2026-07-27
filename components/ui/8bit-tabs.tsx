@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
-export const tabsVariants = cva("", {
+const tabsVariants = cva("", {
   variants: {
     variant: {
       default: "bg-primary",
@@ -90,6 +90,6 @@ function TabsContent({
   return <ShadcnTabsContent className={cn("", className)} {...props} />;
 }
 
-export { Tabs, TabsContent, TabsList, TabsTrigger };
+export { Tabs, TabsList, TabsTrigger };
 
 export default Tabs;

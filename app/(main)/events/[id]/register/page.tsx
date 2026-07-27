@@ -1,19 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  formatEventDateLong,
+  formatEventDateTime,
+  formatEventTime,
+} from "@/lib/event-format";
 import { type EventAudience, parseFormSchema } from "@/lib/forms";
 import { RegistrationForm } from "./RegistrationForm";
-
-// Matches the events grid format, e.g. "AUG 18, 2026".
-function formatEventDateLong(date: Date): string {
-  return date
-    .toLocaleDateString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-    })
-    .toUpperCase();
-}
 
 export default async function RegisterPage({
   params,
@@ -57,11 +51,17 @@ export default async function RegisterPage({
       closed={closed}
       schema={parseFormSchema(event.formSchema)}
       dateLabel={formatEventDateLong(event.eventDate)}
+      timeLabel={formatEventTime(event.eventDate)}
       location={event.location}
       description={event.description}
       capacityLabel={
         event.capacity != null
           ? `${event._count.registrations} / ${event.capacity} REGISTERED`
+          : `${event._count.registrations} REGISTERED`
+      }
+      deadlineLabel={
+        event.registrationDeadline
+          ? formatEventDateTime(event.registrationDeadline)
           : null
       }
       prefill={
