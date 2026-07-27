@@ -4,10 +4,9 @@ import { memo } from "react";
 // (depth darken, edge bloom, bracket brightness, scanlines) is driven by the
 // engine's per-frame --cf-center / --cf-depth vars via opacity (compositor
 // cheap). The bracket "pop" is animated imperatively by GSAP (useCardPowerOn),
-// which targets .hud-bracket inside the card; the power-on pixel-scan lives in a
-// separate PixelScanOverlay the consumer mounts only on the active card. "full"
-// (Projects) adds the steady scanlines texture; "depth" (Members) keeps the
-// frame readable over the flipped bio.
+// which targets .hud-bracket inside the card. "full" (Projects) adds the steady
+// scanlines texture; "depth" (Members) keeps the frame readable over the
+// flipped bio.
 export const HudCardFrame = memo(function HudCardFrame({
   variant = "full",
 }: {

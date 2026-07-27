@@ -257,6 +257,7 @@ export function MembersSection() {
     next,
     prev,
     activeIndex,
+    settledIndex,
     count,
     stageHandlers,
   } = useCoverflow({
@@ -284,8 +285,10 @@ export function MembersSection() {
     distancePx: Math.round(vw * 0.16),
   });
 
-  // GSAP power-on (bracket pop) on the newly-centred member card.
-  useCardPowerOn(glideRef, activeIndex);
+  // GSAP power-on (bracket pop) on the card the row came to rest on — keyed off
+  // the SETTLED index, not the live one, so a drag sweeping past ten cards
+  // doesn't fire ten bracket animations mid-gesture.
+  useCardPowerOn(glideRef, settledIndex);
 
   return (
     <section

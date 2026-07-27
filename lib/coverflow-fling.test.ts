@@ -4,7 +4,9 @@ import {
   flingTarget,
   INERTIA_MS,
   MAX_FLING_CARDS,
+  MAX_RELEASE_VELOCITY,
   projectFling,
+  releaseVelocity,
   STALE_MOVE_MS,
 } from "./coverflow-fling";
 
@@ -46,6 +48,27 @@ describe("accumulateVelocity", () => {
 
   test("a zero spread keeps the previous estimate", () => {
     expect(accumulateVelocity(0.5, -40, 16, 0)).toBe(0.5);
+  });
+});
+
+describe("releaseVelocity", () => {
+  test("passes an ordinary release through untouched", () => {
+    expect(releaseVelocity(0.005, 0)).toBe(0.005);
+    expect(releaseVelocity(-0.005, 10)).toBe(-0.005);
+  });
+
+  test("a stale pointer releases at rest", () => {
+    expect(releaseVelocity(0.05, STALE_MOVE_MS + 1)).toBe(0);
+  });
+
+  test("bounds a spike in both directions", () => {
+    expect(releaseVelocity(99, 0)).toBe(MAX_RELEASE_VELOCITY);
+    expect(releaseVelocity(-99, 0)).toBe(-MAX_RELEASE_VELOCITY);
+  });
+
+  test("a non-finite estimate releases at rest", () => {
+    expect(releaseVelocity(Number.NaN, 0)).toBe(0);
+    expect(releaseVelocity(Number.POSITIVE_INFINITY, 0)).toBe(0);
   });
 });
 

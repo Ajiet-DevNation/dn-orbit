@@ -5,13 +5,17 @@
 /** How far ahead a release velocity is projected, in ms. */
 export const INERTIA_MS = 190;
 /** Share of each new sample folded into the smoothed velocity. */
-export const VELOCITY_SMOOTHING = 0.32;
+const VELOCITY_SMOOTHING = 0.32;
 /** Ceiling on a single throw, in cards. Keeps a violent swipe from spinning the
  *  row halfway around. */
 export const MAX_FLING_CARDS = 3;
 /** A pointer that hasn't moved for this long is treated as stationary, so
  *  pressing, dragging, pausing, then releasing does not fling. */
 export const STALE_MOVE_MS = 120;
+/** Ceiling on the release velocity handed to the settle spring, in cards/ms.
+ *  20 cards/second is already a hard flick; beyond that a spike (or a pointer
+ *  reporting two samples in the same millisecond) would launch the row. */
+export const MAX_RELEASE_VELOCITY = 0.02;
 
 function clamp(n: number, lo: number, hi: number): number {
   return n < lo ? lo : n > hi ? hi : n;
@@ -41,6 +45,22 @@ export function accumulateVelocity(
 }
 
 /**
+ * The velocity a release actually carries: zero if the pointer had already
+ * stopped, otherwise the smoothed estimate, bounded.
+ *
+ * Both the landing target and the settle spring's initial velocity are derived
+ * from this one function, so where the row aims and how fast it leaves the
+ * fingertip can never disagree.
+ *
+ * @param velocity    Smoothed velocity in cards/ms.
+ * @param sinceMoveMs Time since the last pointer movement.
+ */
+export function releaseVelocity(velocity: number, sinceMoveMs: number): number {
+  if (!Number.isFinite(velocity) || sinceMoveMs > STALE_MOVE_MS) return 0;
+  return clamp(velocity, -MAX_RELEASE_VELOCITY, MAX_RELEASE_VELOCITY);
+}
+
+/**
  * Where a release should land, before snapping to the nearest whole card.
  *
  * @param target    Current (fractional) focus position, in cards.
@@ -52,7 +72,7 @@ export function projectFling(
   velocity: number,
   sinceMoveMs: number,
 ): number {
-  const v = sinceMoveMs > STALE_MOVE_MS ? 0 : velocity;
+  const v = releaseVelocity(velocity, sinceMoveMs);
   return target + clamp(v * INERTIA_MS, -MAX_FLING_CARDS, MAX_FLING_CARDS);
 }
 

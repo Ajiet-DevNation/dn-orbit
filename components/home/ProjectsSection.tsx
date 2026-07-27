@@ -15,7 +15,6 @@ import { useFlipDetail } from "@/hooks/useFlipDetail";
 import { useScrollGlide } from "@/hooks/useScrollGlide";
 import { cn } from "@/lib/utils";
 import { HudCardFrame } from "./HudCardFrame";
-import { PixelScanOverlay } from "./PixelScanOverlay";
 import { SectionHeading } from "./SectionHeading";
 import { TECH_BY_NAME } from "./techStack";
 
@@ -248,6 +247,7 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
     next,
     prev,
     activeIndex,
+    settledIndex,
     count,
     stageHandlers,
   } = useCoverflow({
@@ -268,8 +268,10 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
     distancePx: Math.round(vw * 0.16),
   });
 
-  // GSAP power-on (bracket pop + scanline sweep) on the newly-centred card.
-  useCardPowerOn(glideRef, activeIndex);
+  // GSAP power-on (bracket pop) on the card the row came to rest on — keyed off
+  // the SETTLED index, not the live one, so a drag sweeping past ten cards
+  // doesn't fire ten bracket animations mid-gesture.
+  useCardPowerOn(glideRef, settledIndex);
 
   const activeProject = selected !== null ? projects[selected] : null;
 
@@ -337,10 +339,6 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
                 project={project}
                 className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
               />
-              {/* Radial pixel power-on: mounted only on the centred card and
-                    keyed by activeIndex so it remounts (and replays) each time a
-                    new card settles in the middle. */}
-              {i === activeIndex && <PixelScanOverlay key={activeIndex} />}
               <HudCardFrame variant="full" />
             </div>
           ))}
