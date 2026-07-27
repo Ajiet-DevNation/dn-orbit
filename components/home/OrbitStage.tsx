@@ -254,7 +254,6 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
   const isMountedRef = useRef(true);
   const animFrameRef = useRef<number>(0);
   const isPausedRef = useRef(false);
-  const hasShatteredRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -281,7 +280,6 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
   });
 
   const [shattered, setShattered] = useState(false);
-  const [flashActive, setFlashActive] = useState(false);
 
   // Trail state lives in refs — the physics rAF writes it, the ring-canvas rAF
   // reads it, and React never needs to re-render for a particle.
@@ -298,55 +296,6 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
   useEffect(() => {
     reducedMotionRef.current =
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-  }, []);
-
-  // ── Synthetic Audio Generator (Web Audio API) ─────────────────────────────
-
-  const playFlashSound = useCallback(() => {
-    if (typeof window === "undefined") return;
-    // Respect reduced-motion: skip the synthesized audio "flash".
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    try {
-      const AudioContext =
-        window.AudioContext ||
-        (
-          window as typeof window & {
-            webkitAudioContext?: typeof window.AudioContext;
-          }
-        ).webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-
-      // 1. High energy sweep (The "Flash")
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = "sine";
-      osc1.frequency.setValueAtTime(1200, ctx.currentTime);
-      osc1.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.8);
-      gain1.gain.setValueAtTime(0, ctx.currentTime);
-      gain1.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
-      gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start();
-      osc1.stop(ctx.currentTime + 1);
-
-      // 2. Deep bass impact (The "Lock")
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = "square"; // Adds that retro 8-bit grit!
-      osc2.frequency.setValueAtTime(150, ctx.currentTime);
-      osc2.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.6);
-      gain2.gain.setValueAtTime(0, ctx.currentTime);
-      gain2.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
-      gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start();
-      osc2.stop(ctx.currentTime + 1);
-    } catch {
-      // Silently fail if browser blocks autoplay (no unused 'e' parameter)
-    }
   }, []);
 
   // ── JS-driven tween (immune to reduced-motion CSS) ─────────────────────────
@@ -921,13 +870,12 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
         const stage = shatterPhaseAt(elapsed);
 
         if (stage === "done") {
+          // The planets simply resume their orbit. There is deliberately no
+          // audio and no flash burst on re-lock — the motion itself reads as
+          // the resolution.
           phys.isShattered = false;
           setShattered(false);
           planetPositionsRef.current = targetPositions;
-
-          setFlashActive(true);
-          playFlashSound();
-          setTimeout(() => setFlashActive(false), 50);
         } else {
           const reform = reformProgressAt(elapsed);
           PLANET_KEYS.forEach((k, index) => {
@@ -980,7 +928,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
 
     frame = requestAnimationFrame(updatePositions);
     return () => cancelAnimationFrame(frame);
-  }, [phase, playFlashSound, paintPlanets]);
+  }, [phase, paintPlanets]);
 
   // ── Drag & Shatter Interaction Handlers ─────────────────────────────────────
 
@@ -988,7 +936,6 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
     const phys = physics.current;
     phys.isShattered = true;
     phys.shatterStartTime = performance.now();
-    hasShatteredRef.current = true;
     setShattered(true);
 
     for (const k of PLANET_KEYS) {
@@ -1129,32 +1076,6 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
             "radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 60%)",
         }}
       />
-
-      {/* ── Reforming Flash Effect ── */}
-      <div
-        className="pointer-events-none absolute inset-0 z-[80] flex items-center justify-center"
-        style={{
-          transform: `translateY(${contentOffsetY}px)`,
-          opacity: flashActive ? 1 : 0,
-          transition: flashActive
-            ? "none"
-            : "opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1)",
-        }}
-      >
-        <div
-          className="w-[800px] h-[300px] rounded-[100%]"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, rgba(255,255,255,1) 0%, rgba(34,197,94,0.6) 30%, transparent 70%)",
-            transform: `rotate(${ORBIT_TILT}rad) scale(${flashActive ? 0.5 : 1.2})`,
-            transition: flashActive
-              ? "none"
-              : "transform 1.5s cubic-bezier(0.16, 1, 0.3, 1)",
-            filter: "blur(20px)",
-            mixBlendMode: "screen",
-          }}
-        />
-      </div>
 
       <div
         className="relative z-10 flex w-full max-w-[700px] flex-col items-center"
