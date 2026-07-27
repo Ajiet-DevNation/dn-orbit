@@ -1,11 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { Button } from "@/components/ui/8bit-button";
+import { PixelModal } from "@/components/ui/PixelModal";
 
 // A themed, promise-based replacement for the browser's native confirm(). The
 // unstyled OS dialog breaks the 8-bit panel, so destructive admin actions use
-// this pixel modal instead. Mirrors the dialog idiom used by ContactModal:
-// Escape-to-cancel, body-scroll lock, backdrop click = cancel, role="dialog".
+// this instead.
+//
+// Built on PixelModal like every other dialog on the site. It used to hand-roll
+// its own overlay, its own Escape handler and its own scroll lock (a duplicate
+// of useModalBehavior), and its two actions were raw <button>s with border-2 —
+// an approximation of the pixel button that had neither the corner chrome nor
+// the active:translate-y-1 press.
 
 export interface ConfirmOptions {
   title?: string;
@@ -25,74 +32,45 @@ function PixelConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmOptions & { onConfirm: () => void; onCancel: () => void }) {
-  const cancelRef = useRef<HTMLButtonElement>(null);
-
-  // Escape-to-cancel + lock body scroll while open. Focus the non-destructive
-  // Cancel action by default so a stray Enter never deletes anything.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    cancelRef.current?.focus();
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [onCancel]);
-
   return (
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4"
-      onClick={onCancel}
-    >
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="pixel-confirm-title"
-        aria-describedby="pixel-confirm-message"
-        className="retro dark relative w-full max-w-md border-4 border-white/80 bg-[#0a0a0a] p-6 sm:p-7"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2
-          id="pixel-confirm-title"
-          className={`retro text-sm tracking-wider sm:text-base ${
-            danger ? "text-red-400" : "text-[#22c55e]"
-          }`}
-        >
-          {title}
-        </h2>
-        <p
-          id="pixel-confirm-message"
-          className="mt-4 text-xs leading-relaxed text-zinc-300 sm:text-sm"
-        >
-          {message}
-        </p>
-        <div className="mt-7 flex justify-end gap-3">
-          <button
-            ref={cancelRef}
-            type="button"
+    <PixelModal
+      open
+      onOpenChange={(next) => {
+        if (!next) onCancel();
+      }}
+      title={title}
+      layer="confirm"
+      size="sm"
+      tone={danger ? "danger" : "accent"}
+      hideClose
+      footer={
+        <>
+          {/* Cancel first in DOM order so the focus trap lands on it — a stray
+              Enter must never be the destructive action. */}
+          <Button
+            variant="outline"
+            className="flex-1 text-[10px]"
             onClick={onCancel}
-            className="retro border-2 border-white/25 px-4 py-2 text-[9px] text-white/70 transition-colors hover:border-white hover:text-white"
           >
             {cancelLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
+          </Button>
+          <Button
             className={
               danger
-                ? "retro border-2 border-red-500 px-4 py-2 text-[9px] text-red-400 transition-colors hover:bg-red-500 hover:text-black"
-                : "retro border-2 border-[#22c55e] px-4 py-2 text-[9px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black"
+                ? "flex-1 text-[10px] !bg-red-600 !text-white hover:!bg-red-500"
+                : "flex-1 text-[10px]"
             }
+            onClick={onConfirm}
           >
             {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </>
+      }
+    >
+      <p className="text-xs leading-relaxed text-zinc-300 sm:text-sm">
+        {message}
+      </p>
+    </PixelModal>
   );
 }
 

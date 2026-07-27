@@ -7,6 +7,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { fetchLeetCodeProfile } from "@/lib/lc-fetcher";
+import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
 
 const LC_USERNAME_RE = /^[a-zA-Z0-9_.-]+$/;
 
@@ -16,6 +17,17 @@ export async function POST(req: NextRequest) {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Every call here becomes an outbound request to LeetCode's unofficial
+  // GraphQL API from our single egress IP. A member holding down the Connect
+  // button could get the whole deployment throttled or blocked upstream, so
+  // this is limited per user rather than per IP.
+  const limit = rateLimit(
+    rateLimitKey(req, "lc-verify", session.user.id),
+    15,
+    60_000,
+  );
+  if (!limit.ok) return tooManyRequests(limit);
 
   const body = await req.json().catch(() => ({}));
   const username =

@@ -21,7 +21,7 @@ export type Role = (typeof ROLES)[number];
 
 // The three tiers allowed into the admin panel. `member` and `ajiet_student`
 // are excluded.
-export const ADMIN_ROLES: readonly Role[] = [
+const ADMIN_ROLES: readonly Role[] = [
   "president",
   "vice_president",
   "core_member",

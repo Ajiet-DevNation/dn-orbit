@@ -10,13 +10,18 @@ import {
 
 // Shared FLIP shared-element transition: an originating card element animates
 // from its on-screen rect into a detail slot, and back on close.
-export function useFlipDetail() {
-  const [selected, setSelected] = useState<string | null>(null);
+//
+// Generic over the key so both consumers can use it — EventsSection identifies
+// the open card by event id (string), ProjectsSection by carousel index
+// (number). ProjectsSection previously carried a line-for-line copy of all of
+// this because the hook was string-only.
+export function useFlipDetail<K extends string | number = string>() {
+  const [selected, setSelected] = useState<K | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const fromRectRef = useRef<DOMRect | null>(null);
   const flipRef = useRef<HTMLDivElement>(null);
 
-  const open = useCallback((id: string, el: HTMLElement) => {
+  const open = useCallback((id: K, el: HTMLElement) => {
     fromRectRef.current = el.getBoundingClientRect();
     setSelected(id);
   }, []);

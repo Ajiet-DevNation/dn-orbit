@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
+import { parseBody, updateProjectSchema } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -30,9 +31,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const parsed = await parseBody(req, updateProjectSchema);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
     const { techStack, milestones, githubRepoUrl, status, description, title } =
-      body;
+      parsed.data;
 
     const dataToUpdate: Prisma.ProjectUpdateInput = {};
     if (title !== undefined) dataToUpdate.title = title;
@@ -44,18 +48,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (milestones !== undefined) {
       dataToUpdate.milestones = milestones;
 
-      // Compute progressPct
-      // format: { label: string, done: boolean }[]
-      if (Array.isArray(milestones) && milestones.length > 0) {
-        const completed = milestones.filter(
-          (m: { done?: boolean }) => m.done,
-        ).length;
-        dataToUpdate.progressPct = Math.round(
-          (completed / milestones.length) * 100,
-        );
-      } else if (Array.isArray(milestones) && milestones.length === 0) {
-        dataToUpdate.progressPct = 0;
-      }
+      // progressPct is always derived from the milestones, never taken from the
+      // client. Schema guarantees the { label, done } shape by this point.
+      const completed = milestones.filter((m) => m.done).length;
+      dataToUpdate.progressPct =
+        milestones.length > 0
+          ? Math.round((completed / milestones.length) * 100)
+          : 0;
     }
 
     const updatedProject = await db.project.update({
@@ -76,8 +75,20 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 export async function GET(_req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
-    const project = await db.project.findUnique({
-      where: { id },
+    const session = await auth();
+
+    // Unapproved submissions are only visible to their lead and to admins —
+    // this route previously served anything in the moderation queue to anyone
+    // holding the id.
+    const visibility: Prisma.ProjectWhereInput =
+      session && canAccessAdmin(session.user.role)
+        ? {}
+        : session
+          ? { OR: [{ reviewStatus: "approved" }, { leadId: session.user.id }] }
+          : { reviewStatus: "approved" };
+
+    const project = await db.project.findFirst({
+      where: { id, ...visibility },
       include: {
         lead: {
           select: { id: true, name: true, githubUsername: true, image: true },

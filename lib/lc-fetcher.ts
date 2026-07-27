@@ -4,6 +4,12 @@
 // `alfa.leetcode.com` proxy, which is now dead — no DNS record.)
 const LEETCODE_GRAPHQL_ENDPOINT = "https://leetcode.com/graphql";
 
+// LeetCode is an unofficial, unsupported dependency — it can and does hang.
+// Both calls below are bounded so a stalled connection can't hold a serverless
+// request open: the profile preview blocks a member's "Connect" click, and the
+// stats fetch runs inside the drip queue's shared wall-clock budget.
+const REQUEST_TIMEOUT_MS = 10_000;
+
 export interface LcStatsResult {
   totalSolved: number;
   easySolved: number;
@@ -80,6 +86,7 @@ export async function fetchLeetCodeProfile(
     },
     body: JSON.stringify({ query: profileQuery, variables: { username } }),
     cache: "no-store",
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {
@@ -126,6 +133,7 @@ export async function fetchLeetCodeStats(
       variables: { username },
     }),
     cache: "no-store",
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 
   if (!response.ok) {

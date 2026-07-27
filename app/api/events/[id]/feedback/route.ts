@@ -2,7 +2,9 @@ import { type NextRequest, NextResponse } from "next/server";
 import { isApproved } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
 import { canAccessAdmin } from "@/lib/roles";
+import { feedbackSchema, parseBody } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -13,15 +15,21 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (!(await isApproved(session.user.id)))
     return NextResponse.json({ error: "Pending approval" }, { status: 403 });
 
-  const { id: eventId } = await params;
-  const { rating, comments } = await req.json();
+  const limit = rateLimit(
+    rateLimitKey(req, "event-feedback", session.user.id),
+    20,
+    60_000,
+  );
+  if (!limit.ok) return tooManyRequests(limit);
 
-  if (!rating || rating < 1 || rating > 5) {
-    return NextResponse.json(
-      { error: "rating must be between 1 and 5" },
-      { status: 400 },
-    );
+  const { id: eventId } = await params;
+  // A malformed body used to reach `await req.json()` unguarded and surface as
+  // a 500; it's a client error, so answer 400.
+  const parsed = await parseBody(req, feedbackSchema);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
+  const { rating, comments } = parsed.data;
 
   const event = await db.event.findUnique({ where: { id: eventId } });
   if (!event)

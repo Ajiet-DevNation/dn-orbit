@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { PixelLoadingScreen } from "./PixelLoadingScreen";
+import { markBootSplashDone } from "@/lib/boot-splash";
+import { BootOverlay } from "./BootOverlay";
 
 // Client boot-splash that guarantees the pixel DN-logo draw plays on every full
 // page load, independent of Next's Suspense/streaming timing.
@@ -47,6 +48,7 @@ export function BootSplash() {
         setInteractive(false);
         if (reduce) {
           setRemoved(true);
+          markBootSplashDone();
           return;
         }
         const el = overlayRef.current;
@@ -63,8 +65,13 @@ export function BootSplash() {
             el.style.filter = `blur(${e * 10}px)`;
             el.style.transform = `scale(${1 + e * 0.04})`;
           }
-          if (p < 1) raf = requestAnimationFrame(tick);
-          else setRemoved(true);
+          if (p < 1) {
+            raf = requestAnimationFrame(tick);
+            return;
+          }
+          setRemoved(true);
+          // Let the hero start its entrance now that nothing is covering it.
+          markBootSplashDone();
         };
         raf = requestAnimationFrame(tick);
       }, wait);
@@ -87,7 +94,7 @@ export function BootSplash() {
       className="fixed inset-0 z-[200]"
       style={{ pointerEvents: interactive ? "auto" : "none" }}
     >
-      <PixelLoadingScreen />
+      <BootOverlay />
     </div>
   );
 }

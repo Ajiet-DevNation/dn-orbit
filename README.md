@@ -9,7 +9,7 @@ Official platform for **DevNation**, a university developer club. **dn-orbit** i
 | 1 | Auth & Onboarding | GitHub OAuth, session management, and onboarding profile setup |
 | 2 | GitHub Stats      | GitHub API integration and statistic caching                   |
 | 3 | LeetCode Stats    | LeetCode public GraphQL API integration and caching            |
-| 4 | Leaderboard       | Scoring engine, nightly computation cron, and UI               |
+| 4 | Leaderboard       | Scoring engine, on-visit drip queue + GitHub webhook, and UI   |
 | 5 | CMS — Events     | Event management (CRUD), registration, and feedback            |
 | 6 | Members Section   | Public member directory, bios, and visibility controls         |
 | 7 | Admin Panel       | Role-Based Access Control (RBAC) and administrative dashboards |
@@ -30,7 +30,7 @@ Official platform for **DevNation**, a university developer club. **dn-orbit** i
 | **Auth**            | NextAuth.js (GitHub OAuth only) |
 | **Deployment**      | Vercel                          |
 | **Package Manager** | Bun                             |
-| **Linting**         | ESLint 9                        |
+| **Linting**         | Biome 2 (lint + format)         |
 
 ---
 
@@ -38,26 +38,38 @@ Official platform for **DevNation**, a university developer club. **dn-orbit** i
 
 ```text
 app/
-  (auth)/             # login page, OAuth callback
-  (dashboard)/        # protected member-facing pages (leaderboard, projects, etc.)
+  (main)/             # public + member-facing pages, shares the landing layout
+  login/              # sign-in page
+  onboarding/         # first-run profile form
   admin/              # admin-only pages (RBAC enforced)
   api/                # Route Handlers only (no page.tsx files)
   layout.tsx          # root layout
+  error.tsx           # route-level error boundary
+  not-found.tsx       # 404
   globals.css
 
 components/
-  ui/                 # primitive UI components
-  layout/             # shell components (Navbar, Sidebar)
-  features/           # module-specific components
+  ui/                 # primitives — `8bit-*.tsx` are the themed ones actually used
+  layout/             # header, footer, sidebar
+  home/               # landing-page sections, modals and the orbit hero
+  admin/              # admin-panel building blocks
+
+hooks/                # shared client hooks (coverflow, modals, scroll)
 
 lib/
   db.ts               # Prisma client singleton (import from here)
   auth.ts             # Auth and session helpers (session, role checks)
+  sync.ts             # stats drip queue
+  validation.ts       # zod schemas shared by the Route Handlers
   utils.ts            # shared utilities
 
 prisma/
   schema.prisma       # database schema source of truth
 ```
+
+Routing note: this project uses `proxy.ts` (Next.js 16's replacement for
+`middleware.ts`), and it guards only `/onboarding` and `/admin`. Every route
+under `app/api/**` performs its own auth and role checks.
 
 ---
 
@@ -96,14 +108,24 @@ prisma/
 ### Auth & Roles
 
 - **Provider**: GitHub OAuth is the only supported method.
-- **Roles**: `admin` and `member` (stored in `users.role`).
-- **Middleware**: Authentication and RBAC are enforced for `/admin/*` and protected routes.
+- **Roles**: `president`, `vice_president`, `core_member`, `member`, `alumni`,
+  `ajiet_student` (stored in `users.role`; see `lib/roles.ts`).
+- **Proxy**: `proxy.ts` enforces auth on `/onboarding` and `/admin/*` only. API
+  routes check for themselves.
 - **Onboarding**: Users with no `usn` are redirected to `/onboarding`.
 
 ### Stats & Leaderboard
 
-- **Cache Pattern**: Stats are cached for 24 hours. Check `fetched_at` before refetching from external APIs.
-- **Leaderboard Formula**: Computed nightly via cron.
+- **Refresh**: There is no cron. `POST /api/sync` drains a small batch of the
+  stalest members per page visit (`lib/sync.ts`), with per-member TTLs — GitHub
+  30 min, LeetCode 60 min — and exponential backoff on failure. An optional
+  GitHub org webhook (`/api/webhooks/github`, see `.env.example`) marks a member
+  for priority refresh the moment they push, so the board tracks real activity
+  within seconds.
+- **Leaderboard Formula**: Recomputed whenever a drain actually changes
+  something. GH and LC are scores *relative to the cohort leader*, not raw
+  counts — a square-root compression keeps one prolific member from flattening
+  everyone else.
   - `LC Score = (easy×1 + medium×3 + hard×5)` (normalised 0–100)
   - `GitHub Score = (commits + PRs×2 + stars)` (normalised 0–100)
   - `Event Score = (attended / total_events) × 100`

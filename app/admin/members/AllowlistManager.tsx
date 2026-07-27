@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { PixelPanel } from "@/components/admin/PixelPanel";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { toast } from "@/components/ui/8bit-toast";
 
-export interface AllowlistEntry {
+interface AllowlistEntry {
   id: string;
   githubUsername: string | null;
   email: string | null;
@@ -56,7 +56,7 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
         toast.success("Added to allowlist");
       } catch (err) {
         toast.error(
-          "Failed: " + (err instanceof Error ? err.message : "UNKNOWN"),
+          `Failed: ${err instanceof Error ? err.message : "UNKNOWN"}`,
         );
       }
     });
@@ -73,7 +73,7 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
         toast.success("Removed from allowlist");
       } catch (err) {
         toast.error(
-          "Failed: " + (err instanceof Error ? err.message : "UNKNOWN"),
+          `Failed: ${err instanceof Error ? err.message : "UNKNOWN"}`,
         );
       }
     });

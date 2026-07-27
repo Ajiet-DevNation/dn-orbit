@@ -9,10 +9,10 @@ type SyncResult = {
   detail: string;
 };
 
-async function syncGitHubStatsForUser(
+export async function syncGitHubStatsForUser(
   userId: string,
   openSourceMinStars: number,
-) {
+): Promise<SyncResult> {
   const account = await db.account.findFirst({
     where: {
       userId,
@@ -102,7 +102,9 @@ async function syncGitHubStatsForUser(
   }
 }
 
-async function syncLeetCodeStatsForUser(userId: string) {
+export async function syncLeetCodeStatsForUser(
+  userId: string,
+): Promise<SyncResult> {
   const user = await db.user.findUnique({
     where: { id: userId },
     select: { lcUsername: true },
@@ -160,62 +162,4 @@ async function syncLeetCodeStatsForUser(userId: string) {
       detail: "LEETCODE_REFRESH_FAILED",
     };
   }
-}
-
-export async function syncAllStats() {
-  // Open-source PR bar is admin-tunable; read once and reuse for every user.
-  const weightConfig = await db.scoreWeight.findFirst({
-    select: { ghOpenSourceMinStars: true },
-  });
-  const openSourceMinStars = weightConfig?.ghOpenSourceMinStars ?? 10;
-
-  const users = await db.user.findMany({
-    select: {
-      id: true,
-      lcUsername: true,
-      accounts: {
-        where: {
-          provider: "github",
-          access_token: {
-            not: null,
-          },
-        },
-        select: {
-          id: true,
-        },
-      },
-    },
-  });
-
-  const results: SyncResult[] = [];
-
-  // Small bounded fan-out: each member syncs with their OWN tokens, so
-  // parallelism across members doesn't stack against any one rate limit, while
-  // the bound protects the external APIs and our DB pool. The old serial loop
-  // took 40s+ for a modest cohort — well on its way to the 60s serverless
-  // ceiling.
-  const CONCURRENCY = 4;
-  for (let i = 0; i < users.length; i += CONCURRENCY) {
-    const batch = users.slice(i, i + CONCURRENCY);
-    const batchResults = await Promise.all(
-      batch.map(async (user) => {
-        const userResults: SyncResult[] = [];
-        if (user.accounts.length > 0) {
-          userResults.push(
-            await syncGitHubStatsForUser(user.id, openSourceMinStars),
-          );
-        }
-        if (user.lcUsername) {
-          userResults.push(await syncLeetCodeStatsForUser(user.id));
-        }
-        return userResults;
-      }),
-    );
-    results.push(...batchResults.flat());
-  }
-
-  return {
-    totalUsers: users.length,
-    results,
-  };
 }

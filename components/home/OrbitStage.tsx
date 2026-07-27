@@ -3,6 +3,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Progress } from "@/components/ui/8bit-progress";
 import {
+  CANVAS_SIZE,
+  easeOutCubic,
+  FLING_THRESHOLD,
+  ORBIT_RX,
+  ORBIT_RY,
+  ORBIT_TILT,
+  type OrbitPosition,
+  orbitPositions,
+  PLANET_ICON_SIZE,
+  PLANET_KEYS,
+  type PlanetKey,
+  reformProgressAt,
+  reformSpinBoost,
+  ringRevealAt,
+  settleSpin,
+  shatterPhaseAt,
+  shatterVelocity,
+  stepReform,
+  stepScatter,
+} from "@/lib/orbit-engine";
+import {
   shouldEmit,
   snapToGrid,
   TRAIL_MAX_AGE_MS,
@@ -14,11 +35,23 @@ import {
 import { cn } from "@/lib/utils";
 
 // ─── Configuration ───────────────────────────────────────────────────────────
+// Geometry, orbit timing and the shatter physics live in lib/orbit-engine so
+// they can be unit-tested without a DOM. What's left here is presentation.
 
 const BLOCK_SIZE = 18;
 const BLOCKS_PER_FRAME = 20;
-const CANVAS_SIZE = 900;
 const ORBIT_FADE_IN_MS = 800;
+
+// Tumble of the whole ring system, in radians per ms at the resting spin (1x).
+// ~90s for a full turn: present enough to read as alive, slow enough that it
+// never competes with the planets travelling the ring.
+const RING_SPIN_RATE = (Math.PI * 2) / 90_000;
+// The outer plane counter-rotates at a fraction of that, so the two cross at a
+// changing angle rather than moving as one rigid object.
+const OUTER_SPIN_RATIO = 0.55;
+// A fling can drive spinVelocity very high; bound its contribution so the rings
+// accelerate noticeably without whipping round.
+const MAX_SPIN_FACTOR = 6;
 
 // Resting scale of the freshly-drawn logo. The loading screen draws and holds
 // the logo at this size; the landing-page hero then picks it up from exactly
@@ -39,26 +72,11 @@ const LOGO_BASE_OFFSET_Y = -80;
 // logo ≈ 100px).
 const HEADER_OFFSET = 100;
 
-// Slower base speed for a more relaxed, stable feel
-const ORBIT_PERIODS = {
-  github: 12000,
-  leetcode: 12000,
-  linkedin: 12000,
-} as const;
-
-const ORBIT_RX = 410;
-const ORBIT_RY = 135;
-const PLANET_ICON_SIZE = 55;
-const ORBIT_TILT = -Math.PI / 6;
-
 // ── 8-bit ghost trail ────────────────────────────────────────────────────────
 // Chunky grid-snapped squares left behind whenever a planet moves meaningfully
 // faster than its calm orbit — drag-flings, the shatter scatter, and the reform
 // pull-in (see lib/orbit-trail.ts for the emission/decay math). Colors match
 // each planet's brand glow.
-
-const PLANET_KEYS = ["github", "leetcode", "linkedin"] as const;
-type PlanetKey = (typeof PLANET_KEYS)[number];
 
 const TRAIL_CELL = 8;
 const TRAIL_COLORS: Record<PlanetKey, string> = {
@@ -117,6 +135,38 @@ function LinkedInIcon({ size }: { size: number }) {
   );
 }
 
+// The three orbiting links, in one place — the markup for these used to be
+// three near-identical 30-line blocks differing only by icon, href and label.
+const PLANETS: {
+  key: PlanetKey;
+  href: string;
+  label: string;
+  Icon: (props: { size: number }) => React.ReactElement;
+  hoverScale: number;
+}[] = [
+  {
+    key: "github",
+    href: "https://github.com/Ajiet-DevNation",
+    label: "DevNation on GitHub",
+    Icon: GitHubIcon,
+    hoverScale: 1.45,
+  },
+  {
+    key: "leetcode",
+    href: "https://leetcode.com/",
+    label: "LeetCode",
+    Icon: LeetCodeIcon,
+    hoverScale: 1.45,
+  },
+  {
+    key: "linkedin",
+    href: "https://www.linkedin.com/company/devnationajiet/",
+    label: "DevNation on LinkedIn",
+    Icon: LinkedInIcon,
+    hoverScale: 1.7,
+  },
+];
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface PixelBlock {
@@ -131,12 +181,6 @@ interface PixelBlock {
 type AnimationPhase = "drawing" | "orbiting";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-// Gentle deceleration — fast start, soft landing. Used for the JS-driven hero
-// reveal so it reads as a smooth fade-and-settle rather than a linear ramp.
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3;
-}
 
 function extractPixelBlocks(imageData: ImageData): PixelBlock[] {
   const blocks: PixelBlock[] = [];
@@ -173,15 +217,22 @@ function extractPixelBlocks(imageData: ImageData): PixelBlock[] {
   return blocks;
 }
 
-// ─── Main Component ─────────────────────────────────────────────────────────
+// ─── Orbit stage ─────────────────────────────────────────────────────────────
+//
+// The shared visual: the pixel-drawn DN logo, the Saturn ring canvases, the
+// three orbiting links and the physics that drives them. Two shells sit on top —
+// HeroOrbit (landing page) and BootOverlay (loading splash) — and the ONLY
+// difference between them is `mode`.
+//
+// Keeping one stage rather than two copies is what guarantees the boot → hero
+// hand-off stays pixel-identical: HERO_START_SCALE, LOGO_BASE_OFFSET_Y and
+// HEADER_OFFSET are applied here, once, so the logo cannot drift between them.
 
-interface PixelLoadingScreenProps {
+export interface OrbitStageProps {
   mode?: "loading" | "hero";
 }
 
-export function PixelLoadingScreen({
-  mode = "loading",
-}: PixelLoadingScreenProps) {
+export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [phase, setPhase] = useState<AnimationPhase>("drawing");
   const [drawProgress, setDrawProgress] = useState(mode === "hero" ? 100 : 0);
@@ -203,7 +254,6 @@ export function PixelLoadingScreen({
   const isMountedRef = useRef(true);
   const animFrameRef = useRef<number>(0);
   const isPausedRef = useRef(false);
-  const hasShatteredRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -230,7 +280,6 @@ export function PixelLoadingScreen({
   });
 
   const [shattered, setShattered] = useState(false);
-  const [flashActive, setFlashActive] = useState(false);
 
   // Trail state lives in refs — the physics rAF writes it, the ring-canvas rAF
   // reads it, and React never needs to re-render for a particle.
@@ -247,55 +296,6 @@ export function PixelLoadingScreen({
   useEffect(() => {
     reducedMotionRef.current =
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-  }, []);
-
-  // ── Synthetic Audio Generator (Web Audio API) ─────────────────────────────
-
-  const playFlashSound = useCallback(() => {
-    if (typeof window === "undefined") return;
-    // Respect reduced-motion: skip the synthesized audio "flash".
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    try {
-      const AudioContext =
-        window.AudioContext ||
-        (
-          window as typeof window & {
-            webkitAudioContext?: typeof window.AudioContext;
-          }
-        ).webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-
-      // 1. High energy sweep (The "Flash")
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = "sine";
-      osc1.frequency.setValueAtTime(1200, ctx.currentTime);
-      osc1.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.8);
-      gain1.gain.setValueAtTime(0, ctx.currentTime);
-      gain1.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
-      gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start();
-      osc1.stop(ctx.currentTime + 1);
-
-      // 2. Deep bass impact (The "Lock")
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = "square"; // Adds that retro 8-bit grit!
-      osc2.frequency.setValueAtTime(150, ctx.currentTime);
-      osc2.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.6);
-      gain2.gain.setValueAtTime(0, ctx.currentTime);
-      gain2.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
-      gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start();
-      osc2.stop(ctx.currentTime + 1);
-    } catch {
-      // Silently fail if browser blocks autoplay (no unused 'e' parameter)
-    }
   }, []);
 
   // ── JS-driven tween (immune to reduced-motion CSS) ─────────────────────────
@@ -460,6 +460,93 @@ export function PixelLoadingScreen({
   const orbitCanvasBackRef = useRef<HTMLCanvasElement>(null);
   const orbitCanvasFrontRef = useRef<HTMLCanvasElement>(null);
 
+  // The second, wider orbital plane gets its OWN pair of canvases rather than
+  // sharing the main ring's, so the two planes can rotate at different rates.
+  // Both pairs sandwich the logo the same way (far half behind, near half in
+  // front), which is what makes each read as an orbit rather than a decoration.
+  const outerCanvasBackRef = useRef<HTMLCanvasElement>(null);
+  const outerCanvasFrontRef = useRef<HTMLCanvasElement>(null);
+
+  // Rotation wrappers. The rings spin by rotating already-painted canvases on
+  // the compositor — NOT by re-stroking the ellipses every frame. That matters:
+  // the ring is a static shape, and the draw loop below is deliberately cached
+  // so it only re-strokes when something actually changed, because a
+  // shadowBlur'd ellipse per frame is expensive. Rotating about the view axis
+  // also leaves depth untouched, so the near/far split baked into which canvas
+  // each arc lives on stays correct at every angle.
+  // A plane's far and near halves live on separate canvases either side of the
+  // logo, so BOTH wrappers of a plane must carry the same angle — otherwise the
+  // two halves shear apart and the ring visibly breaks where it crosses.
+  const mainSpinRef = useRef<HTMLDivElement>(null);
+  const mainSpinFrontRef = useRef<HTMLDivElement | null>(null);
+  const outerSpinRef = useRef<HTMLDivElement>(null);
+  const outerSpinFrontRef = useRef<HTMLDivElement | null>(null);
+  const ringAngleRef = useRef(0);
+
+  // Paint the outer ring once per phase change; it never changes afterwards.
+  useEffect(() => {
+    if (phase !== "orbiting") return;
+    const back = outerCanvasBackRef.current?.getContext("2d");
+    const front = outerCanvasFrontRef.current?.getContext("2d");
+    if (!back || !front) return;
+
+    const cx = CANVAS_SIZE / 2;
+    const cy = CANVAS_SIZE / 2;
+    const RX = ORBIT_RX * 1.16;
+    const RY = ORBIT_RY * 0.62;
+    const TILT = -ORBIT_TILT * 1.5;
+    const MOTES = 46;
+
+    const paint = (ctx: CanvasRenderingContext2D, isBack: boolean) => {
+      ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+      // Faint by design: this is the far plane and must not compete with the
+      // inner ring the planets travel. The near half is a touch brighter and
+      // thicker purely so the two halves read as different distances.
+      ctx.beginPath();
+      ctx.ellipse(
+        cx,
+        cy,
+        RX,
+        RY,
+        TILT,
+        isBack ? Math.PI : 0,
+        isBack ? 2 * Math.PI : Math.PI,
+      );
+      ctx.strokeStyle = `rgba(34, 197, 94, ${isBack ? 0.1 : 0.32})`;
+      ctx.lineWidth = isBack ? 1.5 : 2.25;
+      ctx.stroke();
+
+      // Chunky dust motes along the path — pixel squares, not a smooth band, so
+      // it reads 8-bit. Deterministic (no Math.random) so it can't shimmer.
+      ctx.imageSmoothingEnabled = false;
+      for (let i = 0; i < MOTES; i++) {
+        const a = (i / MOTES) * Math.PI * 2;
+        // Same near/far convention as everything else orbiting here:
+        // sin(a) > 0 is the half that swings toward the viewer.
+        if (Math.sin(a) > 0 === isBack) continue;
+
+        const ux = RX * Math.cos(a);
+        const uy = RY * Math.sin(a);
+        const x = ux * Math.cos(TILT) - uy * Math.sin(TILT);
+        const y = ux * Math.sin(TILT) + uy * Math.cos(TILT);
+
+        const jitter = ((i * 2654435761) % 100) / 100;
+        const size = 2 + Math.round(jitter * 2) * 2;
+        ctx.fillStyle = `rgba(34, 197, 94, ${(isBack ? 0.14 : 0.4) + jitter * 0.2})`;
+        ctx.fillRect(
+          Math.round((cx + x) / 4) * 4,
+          Math.round((cy + y) / 4) * 4,
+          size,
+          size,
+        );
+      }
+    };
+
+    paint(back, true);
+    paint(front, false);
+  }, [phase]);
+
   useEffect(() => {
     if (phase !== "orbiting") return;
 
@@ -492,15 +579,9 @@ export function PixelLoadingScreen({
       let ringScale = 1;
 
       if (phys.isShattered) {
-        const timeSinceShatter = now - phys.shatterStartTime;
-        if (timeSinceShatter < 6000) {
-          ringOpacity = 0;
-        } else {
-          const progress = Math.min((timeSinceShatter - 6000) / 11000, 1);
-          const easeOut = 1 - (1 - progress) ** 3;
-          ringOpacity = progress;
-          ringScale = 0.8 + 0.2 * easeOut;
-        }
+        const reveal = ringRevealAt(now - phys.shatterStartTime);
+        ringOpacity = reveal.opacity;
+        ringScale = reveal.scale;
       }
 
       // Drop expired trail particles once per frame (buffers are append-only,
@@ -629,10 +710,137 @@ export function PixelLoadingScreen({
 
   // ── Physics Position Calculator ────────────────────────────────────────────
 
-  const [planetPositions, setPlanetPositions] = useState({
+  // Planet positions live in a ref and are written straight to the DOM.
+  //
+  // They used to be React state updated on EVERY rAF tick, which re-rendered
+  // this entire component ~60x/second for as long as the hero was mounted — and
+  // each planet was positioned with `left`/`top` as calc() strings, which are
+  // layout-triggering properties, so every one of those frames also forced a
+  // reflow. Now the elements are statically centred with margins and only their
+  // `transform` (compositor-only) changes per frame. Zero renders while
+  // orbiting.
+  const planetPositionsRef = useRef<Record<PlanetKey, OrbitPosition>>({
     github: { x: 0, y: 0, scale: 1, z: 0 },
     leetcode: { x: 0, y: 0, scale: 1, z: 0 },
     linkedin: { x: 0, y: 0, scale: 1, z: 0 },
+  });
+  const planetElsRef = useRef<Record<PlanetKey, HTMLDivElement | null>>({
+    github: null,
+    leetcode: null,
+    linkedin: null,
+  });
+  // Canvas units → CSS px. The stage is square and scales with the viewport, so
+  // this is remeasured on resize rather than assumed.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const scaleFactorRef = useRef(1);
+  // Last written z-index / opacity per planet — both force a style recalc, so
+  // they're only touched when the rounded value actually changes.
+  const lastZIndexRef = useRef<Record<PlanetKey, number>>({
+    github: 0,
+    leetcode: 0,
+    linkedin: 0,
+  });
+  const lastOpacityRef = useRef<Record<PlanetKey, number>>({
+    github: -1,
+    leetcode: -1,
+    linkedin: -1,
+  });
+  const lastGlowRef = useRef<Record<PlanetKey, number>>({
+    github: -1,
+    leetcode: -1,
+    linkedin: -1,
+  });
+  // Read by the paint function; kept in a ref so the physics loop never needs
+  // to be torn down and restarted when the reveal tween advances.
+  const orbitRevealRef = useRef(mode === "hero" ? 0 : 1);
+
+  const paintPlanets = useCallback(() => {
+    const k = scaleFactorRef.current;
+    const reveal = orbitRevealRef.current;
+
+    // The whole ring system tumbles about the view axis. Rotating about the
+    // axis pointing at the viewer changes x and y but leaves DEPTH alone, which
+    // is why the planets can be spun here while their z — and therefore their
+    // front/behind ordering against the logo — stays exactly as the physics
+    // computed it. Spin the ring canvases by the same angle and the planets
+    // stay locked to their ring at every orientation.
+    const angle = ringAngleRef.current;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+
+    const mainTransform = `rotate(${angle}rad)`;
+    // Opposite direction and slower, so the two planes drift against each other
+    // instead of moving as one rigid object.
+    const outerTransform = `rotate(${angle * -OUTER_SPIN_RATIO}rad)`;
+
+    if (mainSpinRef.current)
+      mainSpinRef.current.style.transform = mainTransform;
+    if (mainSpinFrontRef.current) {
+      mainSpinFrontRef.current.style.transform = mainTransform;
+    }
+    if (outerSpinRef.current) {
+      outerSpinRef.current.style.transform = outerTransform;
+    }
+    if (outerSpinFrontRef.current) {
+      outerSpinFrontRef.current.style.transform = outerTransform;
+    }
+
+    for (const key of PLANET_KEYS) {
+      const el = planetElsRef.current[key];
+      if (!el) continue;
+      const p = planetPositionsRef.current[key];
+      const rx = p.x * cos - p.y * sin;
+      const ry = p.x * sin + p.y * cos;
+
+      el.style.transform = `translate3d(${rx * k}px, ${ry * k}px, 0) scale(${p.scale})`;
+
+      const z = p.z > 0 ? 30 : 5;
+      if (lastZIndexRef.current[key] !== z) {
+        el.style.zIndex = String(z);
+        lastZIndexRef.current[key] = z;
+      }
+
+      // Depth-faded: planets on the far side of the ring dim.
+      const opacity =
+        Math.round(reveal * (0.6 + 0.4 * ((p.z + 1) / 2)) * 100) / 100;
+      if (lastOpacityRef.current[key] !== opacity) {
+        el.style.opacity = String(opacity);
+        lastOpacityRef.current[key] = opacity;
+      }
+
+      // Brand halo that swells as the planet swings to the FRONT of the ring
+      // and fades as it goes behind. A pre-rendered gradient cross-faded by
+      // opacity, so it costs nothing per frame — animating a filter/box-shadow
+      // here would be paint-bound.
+      const glow = el.firstElementChild as HTMLElement | null;
+      if (glow) {
+        const g = Math.round(Math.max(0, p.z) * reveal * 100) / 100;
+        if (lastGlowRef.current[key] !== g) {
+          glow.style.opacity = String(g);
+          lastGlowRef.current[key] = g;
+        }
+      }
+    }
+  }, []);
+
+  // Keep the canvas-unit → px factor correct across resizes.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const measure = () => {
+      scaleFactorRef.current = stage.clientWidth / CANVAS_SIZE;
+      paintPlanets();
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(stage);
+    return () => ro.disconnect();
+  }, [paintPlanets]);
+
+  // Repaint when the entrance tween advances the reveal, so the planets fade in
+  // even before the physics loop starts writing every frame.
+  useEffect(() => {
+    paintPlanets();
   });
 
   useEffect(() => {
@@ -647,126 +855,53 @@ export function PixelLoadingScreen({
       const phys = physics.current;
 
       if (!phys.isDragging && (!isPausedRef.current || phys.isShattered)) {
-        // Frame-rate-independent return to the resting spin (1×). Normalising the
-        // old fixed 0.05-per-frame factor to the real frame delta keeps the
-        // settle identical on 60Hz and 120Hz displays instead of twice as fast.
-        const returnK = 1 - (1 - 0.05) ** (Math.min(delta, 50) / (1000 / 60));
-        phys.spinVelocity += (1 - phys.spinVelocity) * returnK;
-
+        phys.spinVelocity = settleSpin(phys.spinVelocity, delta);
         let currentSpin = phys.spinVelocity;
-
         if (phys.isShattered) {
-          const timeSinceShatter = now - phys.shatterStartTime;
-          if (timeSinceShatter > 6000 && timeSinceShatter < 17000) {
-            const reformProgress = (timeSinceShatter - 6000) / 11000;
-            const extraSpin = (1 - reformProgress) ** 2 * 12;
-            currentSpin += extraSpin;
-          }
+          currentSpin += reformSpinBoost(now - phys.shatterStartTime);
         }
-
         phys.accumulatedTime += delta * currentSpin;
       }
 
-      const calcPos = (period: number, offset: number) => {
-        const angle =
-          ((phys.accumulatedTime / period) * Math.PI * 2 + offset) %
-          (Math.PI * 2);
-        const unX = ORBIT_RX * Math.cos(angle);
-        const unY = ORBIT_RY * Math.sin(angle);
-        const x = unX * Math.cos(ORBIT_TILT) - unY * Math.sin(ORBIT_TILT);
-        const y = unX * Math.sin(ORBIT_TILT) + unY * Math.cos(ORBIT_TILT);
-        const z = Math.sin(angle);
-        const scale = 0.7 + 0.3 * ((z + 1) / 2);
-        return { x, y, scale, z };
-      };
-
-      const targetPositions = {
-        github: calcPos(ORBIT_PERIODS.github, 0),
-        leetcode: calcPos(ORBIT_PERIODS.leetcode, (Math.PI * 2) / 3),
-        linkedin: calcPos(ORBIT_PERIODS.linkedin, (Math.PI * 4) / 3),
-      };
+      const targetPositions = orbitPositions(phys.accumulatedTime);
 
       if (phys.isShattered) {
-        const timeSinceShatter = now - phys.shatterStartTime;
+        const elapsed = now - phys.shatterStartTime;
+        const stage = shatterPhaseAt(elapsed);
 
-        if (timeSinceShatter >= 17000) {
+        if (stage === "done") {
+          // The planets simply resume their orbit. There is deliberately no
+          // audio and no flash burst on re-lock — the motion itself reads as
+          // the resolution.
           phys.isShattered = false;
           setShattered(false);
-          setPlanetPositions(targetPositions);
-
-          setFlashActive(true);
-          playFlashSound();
-          setTimeout(() => setFlashActive(false), 50);
+          planetPositionsRef.current = targetPositions;
         } else {
-          const isReforming = timeSinceShatter > 6000;
-          const reformProgress = isReforming
-            ? (timeSinceShatter - 6000) / 11000
-            : 0;
-
-          Object.keys(phys.particles).forEach((key, index) => {
-            const k = key as keyof typeof phys.particles;
+          const reform = reformProgressAt(elapsed);
+          PLANET_KEYS.forEach((k, index) => {
             const p = phys.particles[k];
-            const t = targetPositions[k];
-
-            if (!isReforming) {
-              p.x += p.vx;
-              p.y += p.vy;
-
-              const dist = Math.sqrt(p.x * p.x + p.y * p.y) || 1;
-
-              const pushStrength = 0.04 * (1 - timeSinceShatter / 6000);
-              p.vx += (p.x / dist) * pushStrength;
-              p.vy += (p.y / dist) * pushStrength;
-
-              p.x += Math.sin(now / 500 + index) * 0.8;
-              p.y += Math.cos(now / 400 + index) * 0.8;
-
-              const LOGO_HALF_W = 330;
-              const LOGO_HALF_H = 150;
-
-              if (Math.abs(p.x) < LOGO_HALF_W && Math.abs(p.y) < LOGO_HALF_H) {
-                const distToXEdge = LOGO_HALF_W - Math.abs(p.x);
-                const distToYEdge = LOGO_HALF_H - Math.abs(p.y);
-
-                if (distToXEdge < distToYEdge) {
-                  p.x = Math.sign(p.x) * LOGO_HALF_W;
-                  p.vx *= -0.9;
-                } else {
-                  p.y = Math.sign(p.y) * LOGO_HALF_H;
-                  p.vy *= -0.9;
-                }
-              }
-
-              const OUTER_BOUNDS = 400;
-              if (dist > OUTER_BOUNDS) {
-                p.vx -= (p.x / dist) * 0.3;
-                p.vy -= (p.y / dist) * 0.3;
-              }
-
-              p.vx *= 0.98;
-              p.vy *= 0.98;
-
-              p.scale += (1 - p.scale) * 0.02;
-              p.z += (0 - p.z) * 0.02;
+            if (stage === "scatter") {
+              stepScatter(p, elapsed, now, index);
             } else {
-              p.vx *= 0.85;
-              p.vy *= 0.85;
-              p.x += p.vx;
-              p.y += p.vy;
-
-              const pullStrength = 0.005 + reformProgress ** 2 * 0.2;
-              p.x += (t.x - p.x) * pullStrength;
-              p.y += (t.y - p.y) * pullStrength;
-              p.z += (t.z - p.z) * pullStrength;
-              p.scale += (t.scale - p.scale) * pullStrength;
+              stepReform(p, targetPositions[k], reform);
             }
           });
-
-          setPlanetPositions({ ...phys.particles });
+          planetPositionsRef.current = phys.particles;
         }
       } else {
-        setPlanetPositions(targetPositions);
+        planetPositionsRef.current = targetPositions;
       }
+
+      // Advance the system's tumble. Tied to the current spin (bounded) so a
+      // drag or fling visibly accelerates the rings, not just the planets.
+      const spinFactor = Math.max(
+        -MAX_SPIN_FACTOR,
+        Math.min(MAX_SPIN_FACTOR, phys.spinVelocity),
+      );
+      ringAngleRef.current += delta * RING_SPIN_RATE * spinFactor;
+
+      // Compositor-only DOM write — no React render.
+      paintPlanets();
 
       // Trail emission — a planet leaves ghost blocks only while moving
       // meaningfully faster than the calm orbit, which naturally covers the
@@ -793,7 +928,7 @@ export function PixelLoadingScreen({
 
     frame = requestAnimationFrame(updatePositions);
     return () => cancelAnimationFrame(frame);
-  }, [phase, playFlashSound]);
+  }, [phase, paintPlanets]);
 
   // ── Drag & Shatter Interaction Handlers ─────────────────────────────────────
 
@@ -801,41 +936,37 @@ export function PixelLoadingScreen({
     const phys = physics.current;
     phys.isShattered = true;
     phys.shatterStartTime = performance.now();
-    hasShatteredRef.current = true;
     setShattered(true);
 
-    const speed = Math.min(Math.abs(phys.spinVelocity), 40);
-    const dir = Math.sign(phys.spinVelocity) || 1;
-
-    setPlanetPositions((prev) => {
-      const keys: (keyof typeof prev)[] = ["github", "leetcode", "linkedin"];
-      keys.forEach((k) => {
-        const pos = prev[k];
-        const angle = Math.atan2(pos.y, pos.x);
-
-        const tangent = angle + (dir * Math.PI) / 2;
-
-        phys.particles[k] = {
-          x: pos.x,
-          y: pos.y,
-          vx: (Math.cos(tangent) * 0.5 + Math.cos(angle) * 1.5) * speed * 0.4,
-          vy: (Math.sin(tangent) * 0.5 + Math.sin(angle) * 1.5) * speed * 0.4,
-          scale: pos.scale,
-          z: pos.z,
-        };
-      });
-      return { ...phys.particles };
-    });
+    for (const k of PLANET_KEYS) {
+      const pos = planetPositionsRef.current[k];
+      phys.particles[k] = {
+        x: pos.x,
+        y: pos.y,
+        scale: pos.scale,
+        z: pos.z,
+        ...shatterVelocity(pos, phys.spinVelocity),
+      };
+    }
+    planetPositionsRef.current = phys.particles;
   }, []);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // ── Pointer (not mouse) events ─────────────────────────────────────────────
+  // These were onMouseDown/Move/Up, which fire only for a real mouse. The
+  // drag-to-spin and fling-to-shatter interaction — the whole reason the hero is
+  // interactive — was therefore completely dead on phones and tablets. Pointer
+  // events cover mouse, touch and pen with one path.
+
+  const handlePointerDown = (e: React.PointerEvent) => {
     if (physics.current.isShattered || phase !== "orbiting") return;
     physics.current.isDragging = true;
     physics.current.lastMouseY = e.clientY;
     physics.current.spinVelocity = 0;
+    // Capture so the gesture keeps tracking if the finger leaves the element.
+    e.currentTarget.setPointerCapture?.(e.pointerId);
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handlePointerMove = (e: React.PointerEvent) => {
     if (
       !physics.current.isDragging ||
       physics.current.isShattered ||
@@ -846,23 +977,21 @@ export function PixelLoadingScreen({
     const deltaY = e.clientY - physics.current.lastMouseY;
     physics.current.lastMouseY = e.clientY;
 
-    // The orbit follows the cursor 1:1 (responsive), but the fling velocity is a
-    // low-pass average of the recent motion rather than the last jittery frame —
-    // so releasing reflects the gesture's true speed and the fling feels smooth
-    // instead of snapping to whatever the final mouse event happened to be.
+    // The orbit follows the pointer 1:1 (responsive), but the fling velocity is
+    // a low-pass average of the recent motion rather than the last jittery frame
+    // — so releasing reflects the gesture's true speed and the fling feels
+    // smooth instead of snapping to whatever the final event happened to be.
     physics.current.accumulatedTime -= deltaY * 30;
     physics.current.spinVelocity =
       physics.current.spinVelocity * 0.6 + -deltaY * 0.4;
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = (e?: React.PointerEvent) => {
     if (!physics.current.isDragging || physics.current.isShattered) return;
     physics.current.isDragging = false;
+    if (e) e.currentTarget.releasePointerCapture?.(e.pointerId);
 
-    // Threshold lowered from 20 → 16 to match the smoothed (averaged, so
-    // lower-peak) release velocity, keeping the fling as easy to trigger as
-    // before while the motion itself is gentler.
-    if (Math.abs(physics.current.spinVelocity) > 16) {
+    if (Math.abs(physics.current.spinVelocity) > FLING_THRESHOLD) {
       triggerShatter();
     } else {
       physics.current.spinVelocity *= 0.8;
@@ -885,6 +1014,9 @@ export function PixelLoadingScreen({
   // original CSS-transition behaviour keyed off `orbitVisible`.
   const isHero = mode === "hero";
   const orbitReveal = isHero ? orbitProgress : orbitVisible ? 1 : 0;
+  // The planets' opacity is written by the rAF loop (not React), so hand the
+  // current reveal value across through a ref and repaint on change.
+  orbitRevealRef.current = orbitReveal;
   const orbitRingScale = isHero
     ? 0.86 + 0.14 * orbitProgress
     : orbitVisible
@@ -945,66 +1077,78 @@ export function PixelLoadingScreen({
         }}
       />
 
-      {/* ── Reforming Flash Effect ── */}
-      <div
-        className="pointer-events-none absolute inset-0 z-[80] flex items-center justify-center"
-        style={{
-          transform: `translateY(${contentOffsetY}px)`,
-          opacity: flashActive ? 1 : 0,
-          transition: flashActive
-            ? "none"
-            : "opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1)",
-        }}
-      >
-        <div
-          className="w-[800px] h-[300px] rounded-[100%]"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, rgba(255,255,255,1) 0%, rgba(34,197,94,0.6) 30%, transparent 70%)",
-            transform: `rotate(${ORBIT_TILT}rad) scale(${flashActive ? 0.5 : 1.2})`,
-            transition: flashActive
-              ? "none"
-              : "transform 1.5s cubic-bezier(0.16, 1, 0.3, 1)",
-            filter: "blur(20px)",
-            mixBlendMode: "screen",
-          }}
-        />
-      </div>
-
       <div
         className="relative z-10 flex w-full max-w-[700px] flex-col items-center"
         style={{ transform: `translateY(${contentOffsetY}px)` }}
       >
         <div
-          role="application"
-          aria-label="Interactive Orbit Physics Canvas"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") e.preventDefault();
-          }}
+          ref={stageRef}
+          // A plain container, deliberately. It carried role="application" plus
+          // a tabIndex and a keydown handler that only called preventDefault() —
+          // so it took a tab stop, told screen readers to route every keystroke
+          // into it, and then did nothing with them.
+          //
+          // Not aria-hidden either: the three planets inside are real links and
+          // must stay in the accessibility tree. They are keyboard-reachable on
+          // their own, which is the whole of the useful interaction here; the
+          // drag-to-spin is a pointer enhancement on top of that.
           className={cn(
-            "relative w-full aspect-square flex items-center justify-center focus:outline-none",
+            "relative w-full aspect-square flex items-center justify-center",
+            // touch-pan-y: keep vertical page scrolling working on phones while
+            // the horizontal/vertical drag spins the orbit.
+            "touch-pan-y",
             !shattered &&
               phase === "orbiting" &&
               "cursor-grab active:cursor-grabbing",
           )}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onPointerLeave={handlePointerUp}
         >
+          {/* Far halves. Both planes' wrappers are rotated imperatively; the
+              canvases keep their React-owned entrance scale/opacity. */}
           {showOrbit && (
-            <canvas
-              ref={orbitCanvasBackRef}
-              width={CANVAS_SIZE}
-              height={CANVAS_SIZE}
-              className="absolute inset-0 z-0 w-full h-full pointer-events-none"
-              style={{
-                opacity: orbitReveal,
-                transform: `scale(${orbitRingScale})`,
-                transition: orbitRevealTransition,
-              }}
-            />
+            <div
+              ref={outerSpinRef}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-0"
+              style={{ willChange: "transform" }}
+            >
+              <canvas
+                ref={outerCanvasBackRef}
+                width={CANVAS_SIZE}
+                height={CANVAS_SIZE}
+                className="absolute inset-0 h-full w-full"
+                style={{
+                  opacity: orbitReveal,
+                  transform: `scale(${orbitRingScale})`,
+                  transition: orbitRevealTransition,
+                }}
+              />
+            </div>
+          )}
+
+          {showOrbit && (
+            <div
+              ref={mainSpinRef}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-[1]"
+              style={{ willChange: "transform" }}
+            >
+              <canvas
+                ref={orbitCanvasBackRef}
+                width={CANVAS_SIZE}
+                height={CANVAS_SIZE}
+                className="absolute inset-0 h-full w-full"
+                style={{
+                  opacity: orbitReveal,
+                  transform: `scale(${orbitRingScale})`,
+                  transition: orbitRevealTransition,
+                }}
+              />
+            </div>
           )}
 
           <div
@@ -1033,116 +1177,109 @@ export function PixelLoadingScreen({
             />
           </div>
 
+          {/* Near halves — above the logo, so both planes visibly cross in
+              front of it. Each is rotated by its own wrapper, mirroring the far
+              halves above so a plane never shears apart across the logo. */}
           {showOrbit && (
-            <canvas
-              ref={orbitCanvasFrontRef}
-              width={CANVAS_SIZE}
-              height={CANVAS_SIZE}
-              className="absolute inset-0 z-20 w-full h-full pointer-events-none"
-              style={{
-                opacity: orbitReveal,
-                transform: `scale(${orbitRingScale})`,
-                transition: orbitRevealTransition,
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-20"
+              style={{ willChange: "transform" }}
+              ref={(el) => {
+                outerSpinFrontRef.current = el;
               }}
-            />
+            >
+              <canvas
+                ref={outerCanvasFrontRef}
+                width={CANVAS_SIZE}
+                height={CANVAS_SIZE}
+                className="absolute inset-0 h-full w-full"
+                style={{
+                  opacity: orbitReveal,
+                  transform: `scale(${orbitRingScale})`,
+                  transition: orbitRevealTransition,
+                }}
+              />
+            </div>
           )}
 
           {showOrbit && (
-            <>
-              {/* GitHub */}
-              <div
-                className="absolute pointer-events-auto flex items-center justify-center"
-                onMouseEnter={() => (isPausedRef.current = true)}
-                onMouseLeave={() => (isPausedRef.current = false)}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-[21]"
+              style={{ willChange: "transform" }}
+              ref={(el) => {
+                mainSpinFrontRef.current = el;
+              }}
+            >
+              <canvas
+                ref={orbitCanvasFrontRef}
+                width={CANVAS_SIZE}
+                height={CANVAS_SIZE}
+                className="absolute inset-0 h-full w-full"
                 style={{
-                  width: PLANET_ICON_SIZE,
-                  height: PLANET_ICON_SIZE,
-                  left: `calc(50% + ${(planetPositions.github.x / CANVAS_SIZE) * 100}%)`,
-                  top: `calc(50% + ${(planetPositions.github.y / CANVAS_SIZE) * 100}%)`,
-                  transform: `translate(-50%, -50%) scale(${planetPositions.github.scale})`,
-                  zIndex: planetPositions.github.z > 0 ? 30 : 5,
-                  opacity:
-                    orbitReveal *
-                    (0.6 + 0.4 * ((planetPositions.github.z + 1) / 2)),
-                  transition: planetRevealTransition,
+                  opacity: orbitReveal,
+                  transform: `scale(${orbitRingScale})`,
+                  transition: orbitRevealTransition,
                 }}
-              >
-                <a
-                  href="https://github.com/Ajiet-DevNation"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="DevNation on GitHub"
-                  draggable={false}
-                  onDragStart={(e) => e.preventDefault()}
-                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out hover:scale-[1.45]"
-                >
-                  <GitHubIcon size={PLANET_ICON_SIZE * 0.85} />
-                </a>
-              </div>
-
-              {/* LeetCode */}
-              <div
-                className="absolute pointer-events-auto flex items-center justify-center"
-                onMouseEnter={() => (isPausedRef.current = true)}
-                onMouseLeave={() => (isPausedRef.current = false)}
-                style={{
-                  width: PLANET_ICON_SIZE,
-                  height: PLANET_ICON_SIZE,
-                  left: `calc(50% + ${(planetPositions.leetcode.x / CANVAS_SIZE) * 100}%)`,
-                  top: `calc(50% + ${(planetPositions.leetcode.y / CANVAS_SIZE) * 100}%)`,
-                  transform: `translate(-50%, -50%) scale(${planetPositions.leetcode.scale})`,
-                  zIndex: planetPositions.leetcode.z > 0 ? 30 : 5,
-                  opacity:
-                    orbitReveal *
-                    (0.6 + 0.4 * ((planetPositions.leetcode.z + 1) / 2)),
-                  transition: planetRevealTransition,
-                }}
-              >
-                <a
-                  href="https://leetcode.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="LeetCode"
-                  draggable={false}
-                  onDragStart={(e) => e.preventDefault()}
-                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out hover:scale-[1.45]"
-                >
-                  <LeetCodeIcon size={PLANET_ICON_SIZE * 0.85} />
-                </a>
-              </div>
-
-              {/* LinkedIn */}
-              <div
-                className="absolute pointer-events-auto flex items-center justify-center"
-                onMouseEnter={() => (isPausedRef.current = true)}
-                onMouseLeave={() => (isPausedRef.current = false)}
-                style={{
-                  width: PLANET_ICON_SIZE,
-                  height: PLANET_ICON_SIZE,
-                  left: `calc(50% + ${(planetPositions.linkedin.x / CANVAS_SIZE) * 100}%)`,
-                  top: `calc(50% + ${(planetPositions.linkedin.y / CANVAS_SIZE) * 100}%)`,
-                  transform: `translate(-50%, -50%) scale(${planetPositions.linkedin.scale})`,
-                  zIndex: planetPositions.linkedin.z > 0 ? 30 : 5,
-                  opacity:
-                    orbitReveal *
-                    (0.6 + 0.4 * ((planetPositions.linkedin.z + 1) / 2)),
-                  transition: planetRevealTransition,
-                }}
-              >
-                <a
-                  href="https://www.linkedin.com/company/devnationajiet/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="DevNation on LinkedIn"
-                  draggable={false}
-                  onDragStart={(e) => e.preventDefault()}
-                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 hover:scale-[1.7]"
-                >
-                  <LinkedInIcon size={PLANET_ICON_SIZE * 0.85} />
-                </a>
-              </div>
-            </>
+              />
+            </div>
           )}
+
+          {showOrbit &&
+            PLANETS.map(({ key, href, label, Icon, hoverScale }) => (
+              <div
+                key={key}
+                ref={(el) => {
+                  planetElsRef.current[key] = el;
+                }}
+                className="absolute left-1/2 top-1/2 pointer-events-auto flex items-center justify-center"
+                onPointerEnter={() => (isPausedRef.current = true)}
+                onPointerLeave={() => (isPausedRef.current = false)}
+                style={{
+                  width: PLANET_ICON_SIZE,
+                  height: PLANET_ICON_SIZE,
+                  // Statically centred with margins so the per-frame write is
+                  // a pure transform. `left`/`top` used to carry the position
+                  // as calc() strings — layout-triggering, every frame.
+                  marginLeft: -PLANET_ICON_SIZE / 2,
+                  marginTop: -PLANET_ICON_SIZE / 2,
+                  opacity: 0,
+                  willChange: "transform",
+                  transition: planetRevealTransition,
+                }}
+              >
+                {/* Front-swing halo — opacity is driven per frame, the
+                      gradient itself is static. Must stay the FIRST child;
+                      paintPlanets finds it via firstElementChild. */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -inset-6 -z-10"
+                  style={{
+                    opacity: 0,
+                    background: `radial-gradient(circle, rgba(${TRAIL_COLORS[key]},0.45) 0%, transparent 68%)`,
+                  }}
+                />
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  className="flex h-full w-full cursor-pointer items-center justify-center transition-transform duration-300 ease-out"
+                  style={{ ["--hover-scale" as string]: hoverScale }}
+                  onPointerEnter={(e) => {
+                    e.currentTarget.style.transform = `scale(${hoverScale})`;
+                  }}
+                  onPointerLeave={(e) => {
+                    e.currentTarget.style.transform = "";
+                  }}
+                >
+                  <Icon size={PLANET_ICON_SIZE * 0.85} />
+                </a>
+              </div>
+            ))}
         </div>
 
         <div

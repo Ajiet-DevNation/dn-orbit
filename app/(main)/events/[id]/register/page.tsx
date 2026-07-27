@@ -25,8 +25,7 @@ export default async function RegisterPage({
     where: { id },
     include: { _count: { select: { registrations: true } } },
   });
-  if (!event || event.reviewStatus !== "approved" || !event.isPublished)
-    notFound();
+  if (event?.reviewStatus !== "approved" || !event.isPublished) notFound();
 
   const audience = event.audience as EventAudience;
   const session = await auth();

@@ -95,7 +95,7 @@ function snippet(text: string, max = 160): string {
   if (clean.length <= max) return clean;
   const cut = clean.slice(0, max);
   const lastSpace = cut.lastIndexOf(" ");
-  return cut.slice(0, lastSpace > 0 ? lastSpace : max).trimEnd() + "…";
+  return `${cut.slice(0, lastSpace > 0 ? lastSpace : max).trimEnd()}…`;
 }
 
 /**
@@ -204,7 +204,7 @@ async function main() {
   // 2-space indent + trailing newline so the git diff is minimal and stable
   // when nothing actually changed.
   const outFile = fileURLToPath(OUT_PATH);
-  writeFileSync(outFile, JSON.stringify(top, null, 2) + "\n");
+  writeFileSync(outFile, `${JSON.stringify(top, null, 2)}\n`);
   console.log(`Wrote ${top.length} announcements to ${outFile}`);
 }
 

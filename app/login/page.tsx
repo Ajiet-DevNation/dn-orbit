@@ -16,7 +16,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { error } = await searchParams;
   const errorMessage = error
-    ? (ERROR_MESSAGES[error] ?? ERROR_MESSAGES["Default"])
+    ? (ERROR_MESSAGES[error] ?? ERROR_MESSAGES.Default)
     : null;
 
   return (

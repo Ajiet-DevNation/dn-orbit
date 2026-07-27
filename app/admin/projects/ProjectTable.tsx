@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useOptimistic, useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import {
   type PixelColumn,
   PixelDataTable,
@@ -141,7 +141,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         toast.success("STATUS_UPDATED");
       } catch (err) {
         toast.error(
-          "STATUS_FAILURE: " + (err instanceof Error ? err.message : "UNKNOWN"),
+          `STATUS_FAILURE: ${err instanceof Error ? err.message : "UNKNOWN"}`,
         );
       }
     });

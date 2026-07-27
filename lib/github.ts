@@ -6,6 +6,16 @@
 const GITHUB_API = "https://api.github.com";
 const GITHUB_GRAPHQL = "https://api.github.com/graphql";
 
+// Every call out to GitHub is bounded. Without this a single hung connection
+// holds the whole request open: the drip queue runs inside a 60s serverless
+// ceiling and checks its wall-clock budget only BETWEEN members, so one stalled
+// fetch could burn the entire budget and starve everyone behind it.
+const REQUEST_TIMEOUT_MS = 10_000;
+
+/** Owned-repo pages to walk. 100 per page — a very generous ceiling that still
+ *  can't let one account paginate the request unbounded. */
+const REPO_MAX_PAGES = 10;
+
 export interface GitHubStats {
   reposCount: number;
   totalCommits: number;
@@ -39,19 +49,19 @@ async function fetchUserRepos(
   const buildUrl = (page: number) =>
     includePrivate
       ? `${GITHUB_API}/user/repos?per_page=100&page=${page}&affiliation=owner&visibility=all`
-      : `${GITHUB_API}/users/${username}/repos?per_page=100&page=${page}&type=owner`;
+      : `${GITHUB_API}/users/${encodeURIComponent(username)}/repos?per_page=100&page=${page}&type=owner`;
 
-  // Fetch all repos (paginate up to 100 per page)
-  let page = 1;
+  // Fetch all repos (paginate up to 100 per page, REPO_MAX_PAGES deep)
   let allRepos: Array<{ stargazers_count: number; language: string | null }> =
     [];
 
-  while (true) {
+  for (let page = 1; page <= REPO_MAX_PAGES; page++) {
     const res = await fetch(buildUrl(page), {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
       },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -64,7 +74,6 @@ async function fetchUserRepos(
     if (repos.length === 0) break;
 
     allRepos = allRepos.concat(repos);
-    page++;
     if (repos.length < 100) break; // last page
   }
 
@@ -104,12 +113,13 @@ async function fetchMergedPRs(
   token: string,
 ): Promise<number> {
   const res = await fetch(
-    `${GITHUB_API}/search/issues?q=author:${username}+type:pr+is:merged&per_page=1`,
+    `${GITHUB_API}/search/issues?q=author:${encodeURIComponent(username)}+type:pr+is:merged&per_page=1`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
       },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     },
   );
 
@@ -149,6 +159,7 @@ async function fetchTotalCommits(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ query, variables: { username } }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 
   if (!res.ok) {
@@ -235,6 +246,7 @@ async function fetchOpenSourcePrs(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ query, variables: { q, after } }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!res.ok) {

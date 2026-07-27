@@ -1,5 +1,4 @@
 import { Activity, Cpu, Database, Server, Shield, Wifi } from "lucide-react";
-import React from "react";
 import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { PixelPanel } from "@/components/admin/PixelPanel";
 

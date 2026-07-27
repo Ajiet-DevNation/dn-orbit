@@ -1,0 +1,5 @@
+{
+  "$schema": "https://docs.fallow.tools/schema/config.json",
+  "entry": ["lib/**/*.test.ts"],
+  "ignoreDependencies": ["tailwindcss", "dotenv"]
+}

@@ -7,6 +7,7 @@ import {
   type EventCardData,
   EventsSection,
 } from "@/components/home/EventsSection";
+import { HeroOrbit } from "@/components/home/HeroOrbit";
 import {
   type LeaderboardEntry,
   LeaderboardSection,
@@ -16,7 +17,6 @@ import { ProjectsSection } from "@/components/home/ProjectsSection";
 import { StatsSection } from "@/components/home/StatsSection";
 import { StatsSyncPing } from "@/components/home/StatsSyncPing";
 import { Footer } from "@/components/layout/Footer";
-import { PixelLoadingScreen } from "@/components/ui/PixelLoadingScreen";
 import {
   type ProjectData,
   PROJECTS as scrapedProjects,
@@ -27,6 +27,7 @@ import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
 import { canAccessAdmin } from "@/lib/roles";
 import { languagesFromRecord } from "@/lib/stats-utils";
+import { lastSyncedAt } from "@/lib/sync";
 
 export const metadata = {
   // Absolute title so the home page reads cleanly (no "%s — ORBIT" template).
@@ -198,12 +199,17 @@ export default async function V2Page() {
   }));
   const projects: ProjectData[] = [...submittedProjects, ...scrapedProjects];
 
+  // Only the leaderboard's freshness readout needs a extra query now — the hero
+  // stat ticker was removed, and with it the member-count and commit-sum
+  // aggregates it needed.
+  const syncedAt = await lastSyncedAt();
+
   return (
     <div className="min-h-screen">
       {/* Kicks off a background stats refresh when the cache is stale — the
           SWR replacement for the old GitHub Actions cron (see lib/sync.ts). */}
       <StatsSyncPing />
-      <PixelLoadingScreen mode="hero" />
+      <HeroOrbit />
       <AnnouncementCarousel announcements={announcements} />
       {/* PLAYER STATS is personal — only rendered for signed-in members. */}
       {userId && (
@@ -253,7 +259,10 @@ export default async function V2Page() {
       )}
       <AboutSection />
       <EventsSection events={eventCards} />
-      <LeaderboardSection entries={leaderboard} />
+      <LeaderboardSection
+        entries={leaderboard}
+        syncedAt={syncedAt?.toISOString() ?? null}
+      />
       <ProjectsSection projects={projects} />
       <MembersSection />
       <Footer />

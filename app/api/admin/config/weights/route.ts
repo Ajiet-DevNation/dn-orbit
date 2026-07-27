@@ -3,6 +3,7 @@ import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
+import { parseBody, scoreWeightsSchema } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -40,50 +41,20 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json();
+    // Bounds each weight to 0–1 and requires the three to total 1.00 — the same
+    // rule the admin WeightForm enforces client-side, which the server used to
+    // skip entirely ("we will just blindly save them as numbers").
+    const parsed = await parseBody(req, scoreWeightsSchema);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
     const {
       githubWeight,
       lcWeight,
       eventWeight,
       ghOpenSourceMinStars,
       ghOpenSourcePerPrPoints,
-    } = body;
-
-    if (
-      typeof githubWeight !== "number" ||
-      typeof lcWeight !== "number" ||
-      typeof eventWeight !== "number"
-    ) {
-      return NextResponse.json(
-        { error: "githubWeight, lcWeight, and eventWeight must be numbers" },
-        { status: 400 },
-      );
-    }
-
-    // Open-source knobs are optional in the payload; when present they must be
-    // sane (non-negative; min-stars a whole number). They live alongside the
-    // weights because they tune the GitHub component, not a separate axis.
-    if (
-      ghOpenSourceMinStars !== undefined &&
-      (typeof ghOpenSourceMinStars !== "number" ||
-        !Number.isInteger(ghOpenSourceMinStars) ||
-        ghOpenSourceMinStars < 0)
-    ) {
-      return NextResponse.json(
-        { error: "ghOpenSourceMinStars must be a non-negative integer" },
-        { status: 400 },
-      );
-    }
-    if (
-      ghOpenSourcePerPrPoints !== undefined &&
-      (typeof ghOpenSourcePerPrPoints !== "number" ||
-        ghOpenSourcePerPrPoints < 0)
-    ) {
-      return NextResponse.json(
-        { error: "ghOpenSourcePerPrPoints must be a non-negative number" },
-        { status: 400 },
-      );
-    }
+    } = parsed.data;
 
     const openSourceData = {
       ...(ghOpenSourceMinStars !== undefined ? { ghOpenSourceMinStars } : {}),
@@ -92,8 +63,6 @@ export async function PATCH(req: NextRequest) {
         : {}),
     };
 
-    // Ensure weights sum approximately to 1 or 100% depending on the formula,
-    // but we will just blindly save them as numbers as per CMS spec.
     const existingWeights = await db.scoreWeight.findFirst();
 
     void logAudit({

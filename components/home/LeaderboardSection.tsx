@@ -27,6 +27,8 @@ export interface LeaderboardEntry {
 
 interface LeaderboardSectionProps {
   entries: LeaderboardEntry[];
+  /** ISO timestamp of the last board recompute, for the freshness readout. */
+  syncedAt?: string | null;
 }
 
 // ─── tuning ──────────────────────────────────────────────────────────────────
@@ -291,15 +293,44 @@ function PodiumColumn({
   );
 }
 
+/**
+ * "SYNCED 2m AGO" readout. Recomputed on a timer so it stays honest without a
+ * re-fetch, and rendered from an ISO string so the server/client markup agree.
+ */
+function SyncedAgo({ iso }: { iso: string }) {
+  const [label, setLabel] = useState(() => relativeAge(iso));
+  useEffect(() => {
+    const id = setInterval(() => setLabel(relativeAge(iso)), 30_000);
+    return () => clearInterval(id);
+  }, [iso]);
+  return (
+    <span className="retro text-[8px] tracking-widest text-muted-foreground/70">
+      SYNCED {label}
+    </span>
+  );
+}
+
+function relativeAge(iso: string): string {
+  const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (seconds < 60) return "JUST NOW";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m AGO`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h AGO`;
+  return `${Math.floor(hours / 24)}d AGO`;
+}
+
 // ─── Ranked list (arrives in phase B) — paginated 10 per page ─────────────────
 const PAGE_SIZE = 10;
 
 function LeaderboardList({
   entries,
   phaseB,
+  syncedAt,
 }: {
   entries: LeaderboardEntry[];
   phaseB: number;
+  syncedAt?: string | null;
 }) {
   const [page, setPage] = useState(0);
   const pageCount = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
@@ -316,9 +347,14 @@ function LeaderboardList({
       {/* Single wrapper so the Card's flex gap doesn't open a gulf between the
           header and the rows; spacing is controlled here instead. */}
       <div className="px-4">
-        <p className="retro mb-3 text-xs tracking-wider text-[#22c55e]">
-          RANK {rangeStart}–{rangeEnd}
-        </p>
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="retro text-xs tracking-wider text-[#22c55e]">
+            RANK {rangeStart}–{rangeEnd}
+          </p>
+          {/* How fresh the numbers are. Stats refresh continuously as members
+              visit, so saying so beats leaving visitors to guess. */}
+          {syncedAt && <SyncedAgo iso={syncedAt} />}
+        </div>
 
         {/* Column headers — aligned to the row grid below (pos · avatar · name ·
             GH · LC · EVT · TOTAL). The numeric columns are fixed-width and
@@ -481,7 +517,10 @@ function EmptyState() {
   );
 }
 
-export function LeaderboardSection({ entries }: LeaderboardSectionProps) {
+export function LeaderboardSection({
+  entries,
+  syncedAt,
+}: LeaderboardSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // Start the cinematic while the section is still rising into view (~halfway
@@ -610,7 +649,11 @@ export function LeaderboardSection({ entries }: LeaderboardSectionProps) {
               willChange: "transform, opacity",
             }}
           >
-            <LeaderboardList entries={entries} phaseB={phaseB} />
+            <LeaderboardList
+              entries={entries}
+              phaseB={phaseB}
+              syncedAt={syncedAt}
+            />
           </div>
         </div>
       </div>

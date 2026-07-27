@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
@@ -58,6 +58,14 @@ const MemberFront = memo(function MemberFront({
             src={member.imageUrl}
             alt={member.name}
             loading="lazy"
+            // Intrinsic size + async decode: without these the browser has no
+            // dimensions until the bytes land (so the card reflows) and decodes
+            // on the main thread, which lands as a dropped frame mid-drag. The
+            // numbers are the card's display size, not the file's — they only
+            // need to give the right aspect ratio and a sensible layout box.
+            width={520}
+            height={420}
+            decoding="async"
             draggable={false}
             // object-top keeps faces in frame — most headshots sit in the upper
             // portion, and the card crops to a near-square portrait window.
@@ -167,6 +175,15 @@ const MemberCard = memo(function MemberCard({
   flipped: boolean;
   onActivate: (index: number) => void;
 }) {
+  // The back face is only built once the card has been flipped at least once.
+  // Every card used to mount BOTH faces up front — each with its own Card, HUD
+  // frame, four brackets, bloom and depth overlays — so a 15-member row carried
+  // 30 full card trees inside the 3D context from first paint, all of them
+  // composited on every drag frame. `everFlipped` (not `flipped`) keeps it
+  // mounted afterwards so the flip-back animation still has something to show.
+  const [everFlipped, setEverFlipped] = useState(flipped);
+  if (flipped && !everFlipped) setEverFlipped(true);
+
   return (
     <div
       onClick={() => onActivate(index)}
@@ -195,16 +212,18 @@ const MemberCard = memo(function MemberCard({
       >
         <MemberFront member={member} />
       </div>
-      <div
-        className="absolute inset-0"
-        style={{
-          backfaceVisibility: "hidden",
-          transform: "rotateY(180deg)",
-          pointerEvents: flipped ? "auto" : "none",
-        }}
-      >
-        <MemberBack member={member} />
-      </div>
+      {everFlipped && (
+        <div
+          className="absolute inset-0"
+          style={{
+            backfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+            pointerEvents: flipped ? "auto" : "none",
+          }}
+        >
+          <MemberBack member={member} />
+        </div>
+      )}
     </div>
   );
 });
@@ -220,6 +239,17 @@ export function MembersSection() {
   const CARD_H = Math.round(CARD_W * CARD_RATIO);
   const SPREAD = Math.round(CARD_W * SPREAD_RATIO);
 
+  // Memoised: a fresh object literal here would give CoverflowControls a new
+  // prop identity on every parent render, defeating its own memo() exactly when
+  // renders are most expensive — mid-drag.
+  const counterStyle = useMemo(
+    () => ({
+      top: `calc(50% + ${Math.round(CARD_H / 2) + 24}px)`,
+      bottom: "auto" as const,
+    }),
+    [CARD_H],
+  );
+
   const {
     sectionRef,
     registerCard,
@@ -227,6 +257,7 @@ export function MembersSection() {
     next,
     prev,
     activeIndex,
+    settledIndex,
     count,
     stageHandlers,
   } = useCoverflow({
@@ -254,8 +285,10 @@ export function MembersSection() {
     distancePx: Math.round(vw * 0.16),
   });
 
-  // GSAP power-on (bracket pop) on the newly-centred member card.
-  useCardPowerOn(glideRef, activeIndex);
+  // GSAP power-on (bracket pop) on the card the row came to rest on — keyed off
+  // the SETTLED index, not the live one, so a drag sweeping past ten cards
+  // doesn't fire ten bracket animations mid-gesture.
+  useCardPowerOn(glideRef, settledIndex);
 
   return (
     <section
@@ -317,10 +350,7 @@ export function MembersSection() {
           // Sit the counter just below the card's bottom edge (cards centre at
           // the stage midpoint), so it never overlaps the name plate.
           counterClassName=""
-          counterStyle={{
-            top: `calc(50% + ${Math.round(CARD_H / 2) + 24}px)`,
-            bottom: "auto",
-          }}
+          counterStyle={counterStyle}
         />
       </div>
     </section>

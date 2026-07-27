@@ -11,14 +11,6 @@ import {
   AvatarImage,
 } from "@/components/ui/8bit-avatar";
 import { Button } from "@/components/ui/8bit-button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/8bit-drawer";
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
 import {
@@ -29,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
-import { useModalBehavior } from "@/hooks/useModalBehavior";
+import { PixelModal } from "@/components/ui/PixelModal";
 import { isRole, ROLE_LABELS } from "@/lib/roles";
 import { LeetCodeConnect } from "./LeetCodeConnect";
 
@@ -79,7 +71,6 @@ export function ProfileModal({
   role = null,
   isAdmin = false,
 }: ProfileModalProps) {
-  useModalBehavior(open, onOpenChange);
   const router = useRouter();
 
   const roleLabel = isRole(role) ? ROLE_LABELS[role] : null;
@@ -125,257 +116,246 @@ export function ProfileModal({
     router.refresh();
   }
 
-  if (!open) return null;
-
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4"
-        onClick={() => onOpenChange(false)}
-      >
-        {/* Modal card */}
-        <div
-          className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto border-4 border-white/80 bg-[#0a0a0a] p-6 md:p-12 retro dark"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="mb-12 flex items-center justify-between">
-            <h2 className="retro text-lg tracking-wider text-white">
-              EDIT PROFILE
-            </h2>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="retro text-lg text-muted-foreground hover:text-white"
-              aria-label="Close"
+      <PixelModal
+        open={open}
+        onOpenChange={onOpenChange}
+        title="EDIT PROFILE"
+        size="xl"
+        footer={
+          <>
+            <Button
+              className="flex-1 text-[10px]"
+              onClick={() => setConfirmOpen(true)}
             >
-              X
-            </button>
-          </div>
-
-          <div className="grid gap-14 md:grid-cols-[260px_1fr]">
-            {/* ── Left: avatar + edit photo ── */}
-            <div className="flex flex-col items-center gap-6">
-              <Avatar className="size-44">
-                {userImage ? (
-                  <AvatarImage
-                    src={userImage}
-                    alt={name}
-                    className="object-cover"
-                  />
-                ) : (
-                  <AvatarFallback>{initials}</AvatarFallback>
-                )}
-              </Avatar>
-
-              {roleLabel && (
-                <span
-                  className={`retro inline-block border-2 px-3 py-1.5 text-[9px] tracking-widest uppercase ${
-                    isAdmin
-                      ? "border-[#22c55e] bg-[#22c55e]/[0.08] text-[#22c55e]"
-                      : "border-white/25 bg-white/[0.04] text-zinc-300"
-                  }`}
-                >
-                  {roleLabel}
-                </span>
+              SAVE CHANGES
+            </Button>
+            {/* Destructive action separated from the primary one — previously
+                they sat side by side in the same row with the same weight. */}
+            <div
+              aria-hidden
+              className="hidden h-8 w-px shrink-0 bg-white/15 sm:block"
+            />
+            <Button
+              variant="outline"
+              className="text-[10px] !border-red-500/70 !text-red-400 hover:!bg-red-500/10 sm:w-auto sm:min-w-[140px]"
+              onClick={() => signOut({ callbackUrl: "/" })}
+            >
+              LOG OUT
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-10 md:grid-cols-[240px_1fr] md:gap-12">
+          {/* ── Left: avatar + edit photo ── */}
+          <div className="flex flex-col items-center gap-6">
+            <Avatar className="size-44">
+              {userImage ? (
+                <AvatarImage
+                  src={userImage}
+                  alt={name}
+                  className="object-cover"
+                />
+              ) : (
+                <AvatarFallback>{initials}</AvatarFallback>
               )}
+            </Avatar>
 
-              {/* Equal-width action buttons — full-width within the avatar column
+            {roleLabel && (
+              <span
+                className={`retro inline-block border-2 px-3 py-1.5 text-[9px] tracking-widest uppercase ${
+                  isAdmin
+                    ? "border-[#22c55e] bg-[#22c55e]/[0.08] text-[#22c55e]"
+                    : "border-white/25 bg-white/[0.04] text-zinc-300"
+                }`}
+              >
+                {roleLabel}
+              </span>
+            )}
+
+            {/* Equal-width action buttons — full-width within the avatar column
                   so EDIT PHOTO and ADMIN line up identically regardless of label
                   length. mt-auto keeps them grouped under the badge. */}
-              <div className="flex w-full max-w-[220px] flex-col gap-4">
-                <Button
-                  className="w-full text-[10px]"
-                  onClick={() => setPhotoPopup(true)}
-                >
-                  EDIT PHOTO
-                </Button>
+            <div className="flex w-full max-w-[220px] flex-col gap-4">
+              <Button
+                className="w-full text-[10px]"
+                onClick={() => setPhotoPopup(true)}
+              >
+                EDIT PHOTO
+              </Button>
 
-                {/* Open to every signed-in member — their own created events +
+              {/* Open to every signed-in member — their own created events +
                     registration rosters live behind this, not just admins'. */}
+              <Button
+                className="w-full text-[10px]"
+                onClick={() => {
+                  onOpenChange(false);
+                  router.push("/my-events");
+                }}
+              >
+                YOUR EVENTS
+              </Button>
+
+              {isAdmin && (
                 <Button
-                  className="w-full text-[10px]"
+                  className="w-full text-[10px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
                   onClick={() => {
                     onOpenChange(false);
-                    router.push("/my-events");
+                    router.push("/admin");
                   }}
                 >
-                  YOUR EVENTS
+                  ADMIN
                 </Button>
+              )}
+            </div>
+          </div>
 
-                {isAdmin && (
-                  <Button
-                    className="w-full text-[10px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
-                    onClick={() => {
-                      onOpenChange(false);
-                      router.push("/admin");
-                    }}
-                  >
-                    ADMIN
-                  </Button>
-                )}
+          {/* ── Right: editable details ── */}
+          <div className="grid gap-5">
+            <div className="grid gap-2">
+              <Label htmlFor="pm-name" className="text-[10px]">
+                NAME
+              </Label>
+              <Input
+                id="pm-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="pm-usn" className="text-[10px]">
+                USN
+              </Label>
+              <Input
+                id="pm-usn"
+                value={usn}
+                onChange={(e) => setUsn(e.target.value)}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="pm-lc" className="text-[10px]">
+                LEETCODE
+              </Label>
+              <LeetCodeConnect
+                id="pm-lc"
+                value={lcUsername}
+                onChange={setLcUsername}
+                placeholder="your_lc_handle"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="grid gap-2">
+                <Label className="text-[10px]">BRANCH</Label>
+                <Select value={branch} onValueChange={setBranch}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="SELECT" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[200] dark">
+                    {BRANCHES.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label className="text-[10px]">YEAR</Label>
+                <Select value={year} onValueChange={setYear}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="SELECT" />
+                  </SelectTrigger>
+                  <SelectContent className="z-[200] dark">
+                    {YEARS.map((y) => (
+                      <SelectItem key={y} value={y}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            {/* ── Right: editable details ── */}
-            <div className="grid gap-5">
-              <div className="grid gap-2">
-                <Label htmlFor="pm-name" className="text-[10px]">
-                  NAME
-                </Label>
-                <Input
-                  id="pm-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="pm-usn" className="text-[10px]">
-                  USN
-                </Label>
-                <Input
-                  id="pm-usn"
-                  value={usn}
-                  onChange={(e) => setUsn(e.target.value)}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="pm-lc" className="text-[10px]">
-                  LEETCODE
-                </Label>
-                <LeetCodeConnect
-                  id="pm-lc"
-                  value={lcUsername}
-                  onChange={setLcUsername}
-                  placeholder="your_lc_handle"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="grid gap-2">
-                  <Label className="text-[10px]">BRANCH</Label>
-                  <Select value={branch} onValueChange={setBranch}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="SELECT" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[200] dark">
-                      {BRANCHES.map((b) => (
-                        <SelectItem key={b} value={b}>
-                          {b}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label className="text-[10px]">YEAR</Label>
-                  <Select value={year} onValueChange={setYear}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="SELECT" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[200] dark">
-                      {YEARS.map((y) => (
-                        <SelectItem key={y} value={y}>
-                          {y}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="pm-bio" className="text-[10px]">
-                  BIO
-                </Label>
-                <Input
-                  id="pm-bio"
-                  value={bio}
-                  maxLength={160}
-                  placeholder="160 chars max"
-                  onChange={(e) => setBio(e.target.value)}
-                />
-              </div>
-
-              <div className="mt-2 flex gap-4 w-full">
-                <Button
-                  className="flex-[2] text-[10px]"
-                  onClick={() => setConfirmOpen(true)}
-                >
-                  SAVE CHANGES
-                </Button>
-                <Button
-                  className="flex-[1] text-[10px] !bg-red-600 hover:!bg-red-500 !text-white"
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                >
-                  LOG OUT
-                </Button>
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="pm-bio" className="text-[10px]">
+                BIO
+              </Label>
+              <Input
+                id="pm-bio"
+                value={bio}
+                maxLength={160}
+                placeholder="160 chars max"
+                onChange={(e) => setBio(e.target.value)}
+              />
             </div>
           </div>
         </div>
-      </div>
+      </PixelModal>
 
-      {/* ── "Edit photo" popup — centered over the whole screen ── */}
-      {photoPopup && (
-        <div
-          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4"
-          onClick={() => setPhotoPopup(false)}
-        >
-          <div
-            className="w-full max-w-md border-4 border-[#22c55e] bg-[#0a0a0a] p-10 text-center"
-            onClick={(e) => e.stopPropagation()}
+      {/* ── "Edit photo" popup ── */}
+      <PixelModal
+        open={photoPopup}
+        onOpenChange={setPhotoPopup}
+        title="PROFILE PHOTO"
+        layer="nested"
+        size="sm"
+        footer={
+          <Button
+            className="w-full text-[10px]"
+            onClick={() => setPhotoPopup(false)}
           >
-            <p className="text-base leading-relaxed text-white">
-              We&apos;re too broke to store your photos
-            </p>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Change it on GitHub and it&apos;ll sync on your next sign-in.
-            </p>
-            <Button
-              className="mt-8 text-[10px]"
-              onClick={() => setPhotoPopup(false)}
-            >
-              OK
-            </Button>
-          </div>
+            GOT IT
+          </Button>
+        }
+      >
+        <div className="space-y-4 text-center">
+          <p className="text-sm leading-relaxed text-white">
+            We&apos;re too broke to store your photos
+          </p>
+          <p className="text-[12px] leading-relaxed text-muted-foreground">
+            Change it on GitHub and it&apos;ll sync on your next sign-in.
+          </p>
         </div>
-      )}
+      </PixelModal>
 
-      {/* ── Confirm drawer ── */}
-      <Drawer open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DrawerContent className="z-[200] dark border-white/80">
-          <div className="mx-auto w-full max-w-md">
-            <DrawerHeader>
-              <DrawerTitle className="text-sm text-white">
-                SAVE CHANGES?
-              </DrawerTitle>
-              <DrawerDescription className="text-[10px]">
-                Update your profile with the new details.
-              </DrawerDescription>
-            </DrawerHeader>
-            <DrawerFooter className="flex-row gap-4">
-              <Button
-                className="flex-1 text-[10px]"
-                disabled={saving}
-                onClick={handleSave}
-              >
-                {saving ? "SAVING" : "CONFIRM"}
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 text-[10px]"
-                disabled={saving}
-                onClick={() => setConfirmOpen(false)}
-              >
-                CANCEL
-              </Button>
-            </DrawerFooter>
-          </div>
-        </DrawerContent>
-      </Drawer>
+      {/* ── Save confirmation ── */}
+      <PixelModal
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="SAVE CHANGES?"
+        description="Update your profile with the new details."
+        layer="confirm"
+        size="sm"
+        tone="accent"
+        hideClose
+        footer={
+          <>
+            <Button
+              className="flex-1 text-[10px]"
+              disabled={saving}
+              onClick={handleSave}
+            >
+              {saving ? "SAVING" : "CONFIRM"}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 text-[10px]"
+              disabled={saving}
+              onClick={() => setConfirmOpen(false)}
+            >
+              CANCEL
+            </Button>
+          </>
+        }
+      >
+        <p className="text-[12px] leading-relaxed text-muted-foreground">
+          Your name, USN, branch, year, LeetCode handle and bio will be updated.
+        </p>
+      </PixelModal>
     </>
   );
 }

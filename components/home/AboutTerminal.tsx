@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -66,6 +66,33 @@ function lineClass(type: TerminalLine["type"]): string {
 function linePrefix(type: TerminalLine["type"]): string {
   return type === "input" ? "> " : "";
 }
+
+// One transcript line. Memoised on its revealed-character count, so a line that
+// has finished typing stops re-rendering while the ones below it fill in —
+// without it, every character reconciled all ~24 lines.
+const TerminalLineView = memo(function TerminalLineView({
+  type,
+  full,
+  revealed,
+  typing,
+}: {
+  type: TerminalLine["type"];
+  full: string;
+  revealed: number;
+  typing: boolean;
+}) {
+  const shown = full.slice(0, revealed);
+  return (
+    <p className={cn("retro text-sm leading-relaxed", lineClass(type))}>
+      {shown.length ? shown : " "}
+      {typing && (
+        <span className="cursor-blink ml-0.5 inline-block text-emerald-300">
+          ▋
+        </span>
+      )}
+    </p>
+  );
+});
 
 export function AboutTerminal({
   title = "Terminal",
@@ -152,7 +179,15 @@ export function AboutTerminal({
   // then nudge the easing loop awake. Target is purely a function of scroll
   // offset, so reduced-motion never disables it.
   useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
     let frame = 0;
+    // getBoundingClientRect() on every scroll event costs a layout flush even
+    // when the terminal is nowhere near the viewport. An IntersectionObserver
+    // gates the whole handler so scrolling the rest of the page — including the
+    // two coverflow carousels — doesn't pay for this section.
+    let inView = false;
 
     const update = () => {
       frame = 0;
@@ -170,14 +205,28 @@ export function AboutTerminal({
     };
 
     const onScroll = () => {
-      if (frame) return;
+      if (frame || !inView) return;
       frame = requestAnimationFrame(update);
     };
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        inView = entry.isIntersecting;
+        // Resync on entry so a jump-scroll (anchor link, refresh mid-page)
+        // lands on the right character instead of waiting for the next event.
+        if (inView) update();
+      },
+      // rootMargin keeps it live slightly beyond the viewport, so the state is
+      // already correct by the time the card is actually visible.
+      { rootMargin: "20% 0px" },
+    );
+    io.observe(section);
 
     update();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
     return () => {
+      io.disconnect();
       if (frame) cancelAnimationFrame(frame);
       if (loopRef.current) cancelAnimationFrame(loopRef.current);
       runningRef.current = false;
@@ -188,10 +237,15 @@ export function AboutTerminal({
 
   // Keep the freshly-typed line in view: the transcript is taller than the fixed
   // screen, so follow the cursor by pinning the scroll to the bottom as it types.
+  //
+  // Writing a huge scrollTop lets the browser clamp it to the maximum instead of
+  // us reading el.scrollHeight — reading it forced a synchronous layout on every
+  // single character (~70 per second at the steady cadence), which is the main
+  // thing that made the typing feel steppy rather than smooth.
   // biome-ignore lint/correctness/useExhaustiveDependencies: `typed` is the intentional trigger — the effect re-pins the scroll each time a character lands
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el) el.scrollTop = 1e7;
   }, [typed]);
 
   const allDone = typed >= totalChars;
@@ -203,6 +257,8 @@ export function AboutTerminal({
       : 0;
 
   // Walk the lines and slice each by how far the global cursor has advanced.
+  // Unreached lines render nothing at all (not hidden) — the transcript has to
+  // GROW downward for the follow-the-cursor scroll below to sit at the bottom.
   const renderedLines = lines.map((line, idx) => {
     const full = fullLines[idx];
     const start = startOffsets[idx];
@@ -211,21 +267,15 @@ export function AboutTerminal({
     if (!reached) return null;
 
     const revealed = Math.min(full.length, Math.max(0, typed - start));
-    const isTypingThisLine = !allDone && revealed < full.length;
-    const shown = full.slice(0, revealed);
 
     return (
-      <p
-        className={cn("retro text-sm leading-relaxed", lineClass(line.type))}
+      <TerminalLineView
         key={`${line.text}-${idx}`}
-      >
-        {shown.length ? shown : " "}
-        {isTypingThisLine && (
-          <span className="cursor-blink ml-0.5 inline-block text-emerald-300">
-            ▋
-          </span>
-        )}
-      </p>
+        type={line.type}
+        full={full}
+        revealed={revealed}
+        typing={!allDone && revealed < full.length}
+      />
     );
   });
 

@@ -91,9 +91,9 @@ describe("computeLeaderboard", () => {
       { lcWeight: 0, githubWeight: 1, eventWeight: 0 },
       0,
     );
-    expect(result.find((r) => r.userId === "whale")!.githubScore).toBe(100);
+    expect(result.find((r) => r.userId === "whale")?.githubScore).toBe(100);
     // Linear normalisation would give the mid user 1; sqrt gives a fair 10.
-    expect(result.find((r) => r.userId === "mid")!.githubScore).toBeCloseTo(
+    expect(result.find((r) => r.userId === "mid")?.githubScore).toBeCloseTo(
       10,
       5,
     );
@@ -181,7 +181,7 @@ describe("computeLeaderboard", () => {
     );
     expect(result[0].userId).toBe("withOss");
     expect(result[0].githubScore).toBe(100);
-    expect(result.find((r) => r.userId === "noOss")!.githubScore).toBeLessThan(
+    expect(result.find((r) => r.userId === "noOss")?.githubScore).toBeLessThan(
       100,
     );
   });

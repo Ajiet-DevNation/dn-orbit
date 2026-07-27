@@ -38,7 +38,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
         router.refresh();
       } catch (err) {
         toast.error(
-          "Publish failed: " + (err instanceof Error ? err.message : "unknown"),
+          `Publish failed: ${err instanceof Error ? err.message : "unknown"}`,
         );
       }
     });
@@ -59,7 +59,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
         router.refresh();
       } catch (err) {
         toast.error(
-          "Delete failed: " + (err instanceof Error ? err.message : "unknown"),
+          `Delete failed: ${err instanceof Error ? err.message : "unknown"}`,
         );
       }
     });

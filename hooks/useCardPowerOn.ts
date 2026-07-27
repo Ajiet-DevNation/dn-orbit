@@ -6,10 +6,8 @@ import { gsap } from "@/lib/gsap";
 // Pops the corner brackets on whichever card just became centred (a quick
 // scale-in "power-on"). Targets the card by data-cf-index inside `containerRef`
 // and animates only the bracket chrome — never the card's own transform, which
-// the coverflow engine owns — so the two can't fight. The radial pixel-scan that
-// plays alongside lives in its own canvas (PixelScanOverlay), mounted on the
-// active card by the consumer. Skipped under reduced motion; GSAP context
-// reverts on change/unmount.
+// the coverflow engine owns — so the two can't fight. Skipped under reduced
+// motion; GSAP context reverts on change/unmount.
 export function useCardPowerOn(
   containerRef: React.RefObject<HTMLElement | null>,
   activeIndex: number,

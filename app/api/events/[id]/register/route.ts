@@ -9,11 +9,17 @@ import {
   parseFormSchema,
   validateSubmission,
 } from "@/lib/forms";
+import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(req: NextRequest, { params }: Params) {
   const { id: eventId } = await params;
+
+  // Public-audience events accept registrations from anonymous callers, so this
+  // is the app's most exposed write. Throttle before touching the database.
+  const limit = rateLimit(rateLimitKey(req, "event-register"), 10, 60_000);
+  if (!limit.ok) return tooManyRequests(limit);
 
   const event = await db.event.findUnique({ where: { id: eventId } });
   if (!event)

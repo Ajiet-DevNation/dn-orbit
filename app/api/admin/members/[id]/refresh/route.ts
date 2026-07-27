@@ -5,7 +5,7 @@ import { canAccessAdmin } from "@/lib/roles";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function POST(req: NextRequest, { params }: Params) {
+export async function POST(_req: NextRequest, { params }: Params) {
   try {
     const session = await auth();
     if (!session || !canAccessAdmin(session.user.role)) {

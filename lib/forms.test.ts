@@ -107,7 +107,7 @@ describe("validateSubmission", () => {
       input: { name: "A", email: "a@b.com", responses: {} },
     });
     expect(r.ok).toBe(false);
-    expect(r.errors["x"]).toBeTruthy();
+    expect(r.errors.x).toBeTruthy();
   });
 
   test("single_choice value must be one of options", () => {
@@ -124,7 +124,7 @@ describe("validateSubmission", () => {
       input: { name: "N", email: "a@b.com", responses: { x: "C" } },
     });
     expect(r.ok).toBe(false);
-    expect(r.errors["x"]).toBeTruthy();
+    expect(r.errors.x).toBeTruthy();
   });
 
   test("multi_choice values must all be in options", () => {
