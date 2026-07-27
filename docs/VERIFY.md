@@ -1,9 +1,14 @@
 # Verification checklist — `feat/orbit-finale`
 
 Everything below was written without browser tooling, so **nothing visual has
-been confirmed**. Automated checks all pass (`tsc --noEmit`, 202 unit tests,
+been confirmed**. Automated checks all pass (`tsc --noEmit`, 227 unit tests,
 `biome ci`, `next build`, live HTTP probes); what follows is the part only you
 can do.
+
+The later carousel/hero pass (§3b, §3c) *was* exercised in headless Chrome
+against the dev server — DOM state, frame timings and screenshots — but a
+headless render is not a real GPU, so the "does it feel smooth" judgement is
+still yours.
 
 ## Before you start
 
@@ -49,6 +54,27 @@ Take a Neon branch first if you want a trivial rollback.
 - [ ] Card counter (`04 / 14`) tracks correctly.
 - [ ] Flip a member card → back face appears (it now mounts on first flip).
 - [ ] With both sections on screen, ArrowRight advances **only one** carousel.
+
+### 3b · Carousel motion pass (spring settle)
+
+Verified in headless Chrome: a flick lands exactly on a card boundary, no
+console errors, half the cards skipped per frame. What is left is how it *feels*
+on a real display.
+
+- [ ] Idle auto-advance eases **in and out** — no jerk at the start of a step.
+- [ ] Flick hard: the row carries several cards and decelerates without
+      overshooting past the card it lands on.
+- [ ] The bracket "power-on" now fires **once**, when the row settles — not for
+      every card a drag sweeps past.
+- [ ] Scroll a phone so the URL bar hides/shows mid-carousel: no stutter (the
+      viewport hook now ignores height-only resizes).
+- [ ] With OS "reduce motion" on: no entrance, row just present, nothing frozen.
+- [ ] Project cards: the green pixel scan-in over the photo is **gone**.
+
+### 3c · Hero re-lock
+
+- [ ] Fling the hero → planets scatter and reform, with **no sound** and **no
+      white/green flash burst** at the moment they re-lock.
 
 ## 4 · Modals
 
