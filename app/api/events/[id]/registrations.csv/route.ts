@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { canManageEventRoster } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { parseFormSchema } from "@/lib/forms";
-import { canAccessAdmin } from "@/lib/roles";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -16,11 +16,18 @@ function csvCell(v: unknown): string {
 }
 
 export async function GET(_req: NextRequest, { params }: Params) {
-  const session = await auth();
-  if (!session || !canAccessAdmin(session.user.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
   const { id } = await params;
+  const session = await auth();
+
+  // Admins export any event's roster; an organizer exports only their own.
+  const access = await canManageEventRoster(id, session?.user);
+  if (!access.ok) {
+    return NextResponse.json(
+      { error: access.status === 404 ? "Not found" : "Forbidden" },
+      { status: access.status },
+    );
+  }
+
   const event = await db.event.findUnique({
     where: { id },
     include: { registrations: { orderBy: { registeredAt: "asc" } } },

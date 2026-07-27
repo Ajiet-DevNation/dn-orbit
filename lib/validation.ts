@@ -47,8 +47,30 @@ const optionalHttpUrl = (max = 500) =>
     .optional()
     .transform((v) => (v ? v : undefined));
 
-/** Accepts an ISO string or epoch millis; rejects anything unparseable. */
-const dateish = z.coerce.date();
+// A bare `datetime-local` value — "2026-07-15T18:30" — carries no zone, so
+// `new Date(...)` resolves it against whatever zone the *server* happens to run
+// in (UTC on Vercel, the developer's zone under `bun dev`). The same organizer
+// input would then land in the database as two different instants depending on
+// where the request was handled.
+const NAIVE_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/;
+
+/**
+ * Accepts an ISO string or epoch millis; rejects anything unparseable.
+ *
+ * Zone-less `datetime-local` input is pinned to UTC before parsing so an event
+ * time means the same thing in every environment. lib/event-format.ts formats
+ * in UTC to match, making the wall-clock time the organizer typed the wall-clock
+ * time every visitor reads. Values that already carry a zone (a real ISO string
+ * with `Z`/offset, or epoch millis) are untouched.
+ */
+const dateish = z
+  .union([z.string(), z.number(), z.date()])
+  .transform((v) =>
+    typeof v === "string" && NAIVE_DATETIME_RE.test(v) ? `${v}Z` : v,
+  )
+  // Piping into the original coercion keeps unparseable input rejected exactly
+  // as before; the transform above only disambiguates the zone-less form.
+  .pipe(z.coerce.date());
 
 // ── Events ───────────────────────────────────────────────────────────────────
 
@@ -154,10 +176,14 @@ export type ParsedBody<T> =
  * throughout the API, and so a malformed JSON payload produces a 400 rather
  * than an unhandled 500.
  */
-export async function parseBody<T>(
+// Generic over the schema (not over its output) so the result is always
+// `z.infer<S>` — the *output* type. Constraining to `z.ZodType<T>` forced TS to
+// unify T against the schema's input type as well, which silently widened the
+// result for any schema whose input and output differ (e.g. a coerced date).
+export async function parseBody<S extends z.ZodTypeAny>(
   req: Request,
-  schema: z.ZodType<T>,
-): Promise<ParsedBody<T>> {
+  schema: S,
+): Promise<ParsedBody<z.infer<S>>> {
   let raw: unknown;
   try {
     raw = await req.json();

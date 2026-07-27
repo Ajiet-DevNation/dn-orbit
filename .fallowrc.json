@@ -1,5 +1,63 @@
 {
   "$schema": "https://docs.fallow.tools/schema/config.json",
   "entry": ["lib/**/*.test.ts"],
-  "ignoreDependencies": ["tailwindcss", "dotenv"]
+  "ignoreDependencies": ["tailwindcss", "dotenv"],
+  "ignoreExports": [
+    {
+      "file": "components/ui/8bit-avatar.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/avatar.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/8bit-button.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/8bit-toast.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/8bit-command.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/command.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/8bit-input.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/input.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/8bit-label.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/label.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/8bit-select.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/select.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/8bit-tabs.tsx",
+      "exports": ["*"]
+    },
+    {
+      "file": "components/ui/tabs.tsx",
+      "exports": ["*"]
+    }
+  ]
 }

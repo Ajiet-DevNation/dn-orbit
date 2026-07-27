@@ -18,16 +18,11 @@ import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import {
   AUDIENCE_OPTIONS,
   type EventAudience,
+  eventTypeLabel,
+  eventTypeOptions,
   type FormFieldDef,
 } from "@/lib/forms";
 import { FormBuilder } from "../_form/FormBuilder";
-
-const EVENT_TYPES = [
-  "GENERAL_ASSEMBLY",
-  "HACKATHON",
-  "WORKSHOP",
-  "TECHNICAL_SEMINAR",
-];
 
 interface EventFormState {
   title: string;
@@ -44,7 +39,7 @@ interface EventFormState {
 
 const DEFAULTS: EventFormState = {
   title: "",
-  eventType: "WORKSHOP",
+  eventType: "",
   description: "",
   eventDate: "",
   location: "",
@@ -144,9 +139,11 @@ export default function EventCreationForm({
                 <SelectValue placeholder="SELECT" />
               </SelectTrigger>
               <SelectContent className="z-[200] dark">
-                {EVENT_TYPES.map((t) => (
+                {/* Includes the event's own stored type when it predates the
+                    canonical list, so editing never silently rewrites it. */}
+                {eventTypeOptions(f.eventType).map((t) => (
                   <SelectItem key={t} value={t}>
-                    {t}
+                    {eventTypeLabel(t)}
                   </SelectItem>
                 ))}
               </SelectContent>

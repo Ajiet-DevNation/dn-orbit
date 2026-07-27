@@ -25,9 +25,11 @@ export function RegistrationForm({
   closed,
   schema,
   dateLabel,
+  timeLabel,
   location,
   description,
   capacityLabel,
+  deadlineLabel,
   prefill,
 }: {
   eventId: string;
@@ -37,17 +39,21 @@ export function RegistrationForm({
   closed: boolean;
   schema: FormFieldDef[];
   dateLabel: string;
+  timeLabel: string;
   location: string | null;
   description: string | null;
   capacityLabel: string | null;
+  deadlineLabel: string | null;
   prefill: { name: string; email: string; usn?: string } | null;
 }) {
   const meta: EventMeta = {
     audience,
     dateLabel,
+    timeLabel,
     location,
     description,
     capacityLabel,
+    deadlineLabel,
   };
   const [name, setName] = useState(prefill?.name ?? "");
   const [email, setEmail] = useState(prefill?.email ?? "");
@@ -211,9 +217,11 @@ export function RegistrationForm({
 type EventMeta = {
   audience: EventAudience;
   dateLabel: string;
+  timeLabel: string;
   location: string | null;
   description: string | null;
   capacityLabel: string | null;
+  deadlineLabel: string | null;
 };
 
 function Shell({
@@ -225,7 +233,9 @@ function Shell({
   meta: EventMeta;
   children: React.ReactNode;
 }) {
-  const when = [meta.dateLabel, meta.location].filter(Boolean).join(" · ");
+  const when = [meta.dateLabel, meta.timeLabel, meta.location]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 px-5 py-24 sm:gap-8 sm:px-6 sm:py-28">
       <Back />
@@ -245,6 +255,13 @@ function Shell({
         {meta.capacityLabel && (
           <p className="retro text-[9px] text-muted-foreground">
             {meta.capacityLabel}
+          </p>
+        )}
+        {/* Mirrors the REGISTER BY row on the home-page detail panel, so the
+            deadline the organizer set is visible on the page where it binds. */}
+        {meta.deadlineLabel && (
+          <p className="retro text-[9px] text-muted-foreground">
+            REGISTER BY {meta.deadlineLabel}
           </p>
         )}
         {meta.description && (

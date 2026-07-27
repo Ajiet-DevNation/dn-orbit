@@ -9,7 +9,7 @@ import {
 import { signIn } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
-export function LoginForm({
+function LoginForm({
   errorMessage,
   className,
   ...props

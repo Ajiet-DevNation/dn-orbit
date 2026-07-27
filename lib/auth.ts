@@ -129,8 +129,13 @@ export const { handlers, auth, signIn } = NextAuth({
   },
   providers: [
     GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      // Asserting these non-null claimed a guarantee the environment does not
+      // make. They are genuinely optional at the type level; when unset,
+      // NextAuth fails the OAuth handshake either way, and Admin → Settings now
+      // reports exactly which variable is missing instead of leaving an
+      // operator to infer it from a provider error.
+      clientId: process.env.GITHUB_CLIENT_ID ?? "",
+      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? "",
       authorization: {
         params: {
           // `repo` is required so the leaderboard can count a member's PRIVATE

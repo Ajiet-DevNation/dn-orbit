@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { auth } from "@/lib/auth";
 import { canAccessAdmin } from "@/lib/roles";
 import EventCreationForm from "./EventCreationForm";
@@ -16,18 +17,8 @@ export default async function AdminNewEventPage() {
   }
 
   return (
-    <div className="p-8 space-y-12">
-      <header className="border-b border-white/10 pb-12">
-        <h1 className="retro text-2xl uppercase tracking-wider leading-relaxed text-white">
-          INJECT_EVENT
-        </h1>
-        <div className="flex items-center gap-4 mt-4">
-          <span className="text-[10px] text-zinc-600 tracking-[0.4em] uppercase font-bold">
-            SECURE_GENERATOR_V1
-          </span>
-          <div className="h-px flex-1 bg-zinc-900" />
-        </div>
-      </header>
+    <div className="space-y-8 p-6 md:p-8">
+      <PixelPageHeader title="NEW EVENT" subtitle="EVENT BUILDER" />
 
       <EventCreationForm />
     </div>

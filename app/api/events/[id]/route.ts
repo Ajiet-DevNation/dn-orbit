@@ -1,7 +1,7 @@
-import type { Prisma } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { eventUpdateData } from "@/lib/event-payload";
 import { canAccessAdmin } from "@/lib/roles";
 import { parseBody, updateEventSchema } from "@/lib/validation";
 
@@ -76,37 +76,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!parsed.ok) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
-  const {
-    title,
-    description,
-    bannerUrl,
-    eventType,
-    eventDate,
-    location,
-    isPublished,
-    audience,
-    capacity,
-    registrationDeadline,
-    formSchema,
-  } = parsed.data;
-
   const updated = await db.event.update({
     where: { id },
-    data: {
-      ...(title !== undefined && { title }),
-      ...(description !== undefined && { description }),
-      ...(bannerUrl !== undefined && { bannerUrl }),
-      ...(eventType !== undefined && { eventType }),
-      ...(eventDate !== undefined && { eventDate }),
-      ...(location !== undefined && { location }),
-      ...(isPublished !== undefined && { isPublished }),
-      ...(audience !== undefined && { audience }),
-      ...(capacity !== undefined && { capacity }),
-      ...(registrationDeadline !== undefined && { registrationDeadline }),
-      ...(formSchema !== undefined && {
-        formSchema: formSchema as Prisma.InputJsonValue,
-      }),
-    },
+    data: eventUpdateData(parsed.data),
   });
 
   return NextResponse.json(updated);

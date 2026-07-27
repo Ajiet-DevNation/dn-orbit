@@ -1,8 +1,8 @@
-import type { Prisma } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { eventCreateData } from "@/lib/event-payload";
 import { canAccessAdmin } from "@/lib/roles";
 import { createEventSchema, parseBody } from "@/lib/validation";
 
@@ -61,42 +61,13 @@ export async function POST(req: NextRequest) {
   if (!parsed.ok) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
-  const {
-    title,
-    description,
-    bannerUrl,
-    eventType,
-    eventDate,
-    location,
-    isPublished,
-    audience,
-    capacity,
-    registrationDeadline,
-    formSchema,
-  } = parsed.data;
-
+  // Moderation and self-publish rules live in eventCreateData so they apply to
+  // every caller, not just this route.
   const event = await db.event.create({
-    data: {
-      title,
-      description,
-      bannerUrl,
-      eventType,
-      eventDate,
-      location,
-      audience: audience ?? "public",
-      capacity: capacity ?? null,
-      registrationDeadline: registrationDeadline ?? null,
-      formSchema: (formSchema ?? undefined) as
-        | Prisma.InputJsonValue
-        | undefined,
-      // Every new event enters the moderation queue regardless of who submits it.
-      reviewStatus: "pending",
-      // isPublished is the author's draft/live choice (separate from moderation);
-      // non-admins still can't self-publish. Public visibility needs approved +
-      // published, so this never bypasses review.
-      isPublished: isAdmin ? (isPublished ?? false) : false,
-      createdBy: session.user.id,
-    },
+    data: eventCreateData(parsed.data, {
+      userId: session.user.id,
+      isAdmin,
+    }),
   });
 
   void logAudit({

@@ -18,6 +18,12 @@ export interface ProjectData {
   demoUrl?: string | null;
   /** Short status tag, e.g. "ACTIVE" / "SHIPPED" / "WIP". */
   status: string;
+  /**
+   * Completion 0–100, as set by the project lead in the "new project" modal and
+   * maintained by admins. Null for GitHub-scraped projects, which have no such
+   * figure — the UI omits the meter entirely rather than implying 0%.
+   */
+  progressPct?: number | null;
 }
 
 export const PROJECTS: ProjectData[] = githubProjects;

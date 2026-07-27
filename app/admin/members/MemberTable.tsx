@@ -84,7 +84,7 @@ export function MemberTable({
 
   const handleRoleChange = async (userId: string, newRole: Role) => {
     if (userId === currentUserId && newRole !== "president") {
-      toast.error("SECURITY_BLOCK: YOU_CANNOT_DEMOTE_YOURSELF_FROM_PRESIDENT");
+      toast.error("You cannot demote yourself from President");
       return;
     }
 
@@ -98,13 +98,10 @@ export function MemberTable({
         if (!res.ok) throw new Error(await res.text());
 
         router.refresh();
-        toast.success(
-          `CLEARANCE_UPDATED: ${ROLE_LABELS[newRole].toUpperCase()}`,
-        );
+        toast.success(`Role updated to ${ROLE_LABELS[newRole]}`);
       } catch (err) {
         toast.error(
-          "CLEARANCE_FAILURE: " +
-            (err instanceof Error ? err.message : "UNKNOWN"),
+          `Role update failed: ${err instanceof Error ? err.message : "unknown"}`,
         );
       }
     });
@@ -117,7 +114,7 @@ export function MemberTable({
       render: (m) => (
         <div className="flex flex-col">
           <span className="text-white font-black">
-            {m.name ? toTitleCase(m.name) : "UNNAMED_NODE"}
+            {m.name ? toTitleCase(m.name) : "—"}
           </span>
           <span className="text-[9px] text-zinc-600 tracking-tighter">
             {m.email}
@@ -128,7 +125,7 @@ export function MemberTable({
     {
       key: "usn",
       header: "USN",
-      render: (m) => <span className="text-white/70">{m.usn || "N_A"}</span>,
+      render: (m) => <span className="text-white/70">{m.usn || "—"}</span>,
     },
     {
       key: "role",
@@ -150,7 +147,7 @@ export function MemberTable({
       header: "BRANCH/YEAR",
       render: (m) => (
         <span className="text-white/70">
-          {m.branch ? `${m.branch} (${m.year}Y)` : "N/A"}
+          {m.branch ? `${m.branch} (${m.year}Y)` : "—"}
         </span>
       ),
     },
@@ -204,7 +201,7 @@ export function MemberTable({
         </div>
         <span className="retro px-1.5 text-[8px] tracking-widest text-zinc-600">
           {filtered.length === initialMembers.length
-            ? `${initialMembers.length} NODES`
+            ? `${initialMembers.length} MEMBERS`
             : `${filtered.length} / ${initialMembers.length} MATCH`}
         </span>
       </div>

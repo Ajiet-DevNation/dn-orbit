@@ -193,6 +193,9 @@ export function PixelModal({
   const toneStyle = TONE[tone];
 
   return (
+    // Escape (useModalBehavior) and the close button are the keyboard paths out;
+    // clicking the backdrop is an extra affordance, not the only dismissal.
+    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismissal with a keyboard path
     <div
       ref={backdropRef}
       className="fixed inset-0 flex items-center justify-center bg-black/80 p-4"
@@ -205,8 +208,7 @@ export function PixelModal({
           onOpenChange(false);
       }}
     >
-      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: the dialog
-          panel stops backdrop clicks; it is not itself an interactive control. */}
+      {/* The dialog panel stops backdrop clicks; it is not itself a control. */}
       <div
         ref={panelRef}
         role="dialog"

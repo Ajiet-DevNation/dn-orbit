@@ -20,7 +20,9 @@ import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
 import { PixelModal } from "@/components/ui/PixelModal";
 import {
   AUDIENCE_OPTIONS,
+  EVENT_TYPES,
   type EventAudience,
+  eventTypeLabel,
   type FormFieldDef,
 } from "@/lib/forms";
 
@@ -29,15 +31,6 @@ function notify(kind: "success" | "error", message: string) {
   const color = kind === "success" ? "text-green-500" : "text-red-500";
   toast(<span className={color}>{message}</span>);
 }
-
-const EVENT_TYPES = [
-  "WORKSHOP",
-  "HACKATHON",
-  "TECH_TALK",
-  "CODEATHON",
-  "MEETUP",
-  "OTHER",
-];
 
 interface EventModalProps {
   open: boolean;
@@ -212,7 +205,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
               <SelectContent className="z-[200] dark">
                 {EVENT_TYPES.map((t) => (
                   <SelectItem key={t} value={t}>
-                    {t}
+                    {eventTypeLabel(t)}
                   </SelectItem>
                 ))}
               </SelectContent>

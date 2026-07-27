@@ -71,6 +71,54 @@ describe("createEventSchema", () => {
     expect(result.ok).toBe(false);
   });
 
+  // The create-event modal posts a `datetime-local` value, which has no zone.
+  // Pinning it to UTC keeps one organizer input from becoming two different
+  // instants depending on the server's timezone.
+  test("parses a zone-less datetime-local value as UTC", async () => {
+    const result = await parseBody(
+      jsonReq({ title: "X", eventDate: "2026-08-01T18:30" }),
+      createEventSchema,
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.eventDate.toISOString()).toBe(
+        "2026-08-01T18:30:00.000Z",
+      );
+    }
+  });
+
+  test("pins a zone-less registrationDeadline to UTC too", async () => {
+    const result = await parseBody(
+      jsonReq({
+        title: "X",
+        eventDate: "2026-08-01T18:30",
+        registrationDeadline: "2026-07-31T23:59",
+      }),
+      createEventSchema,
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.registrationDeadline?.toISOString()).toBe(
+        "2026-07-31T23:59:00.000Z",
+      );
+    }
+  });
+
+  // A value that already carries a zone must survive untouched — only the
+  // ambiguous, zone-less form gets the UTC suffix.
+  test("leaves an explicit-offset datetime alone", async () => {
+    const result = await parseBody(
+      jsonReq({ title: "X", eventDate: "2026-08-01T18:30:00+05:30" }),
+      createEventSchema,
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.eventDate.toISOString()).toBe(
+        "2026-08-01T13:00:00.000Z",
+      );
+    }
+  });
+
   test("rejects an unparseable eventDate", async () => {
     const result = await parseBody(
       jsonReq({ title: "X", eventDate: "not-a-date" }),
@@ -108,12 +156,11 @@ describe("createEventSchema", () => {
 
   test("rejects a javascript: bannerUrl", async () => {
     const result = await parseBody(
-      // biome-ignore lint/suspicious/noExplicitAny: deliberately hostile input
       jsonReq({
         title: "X",
         eventDate: "2026-08-01T00:00:00Z",
         bannerUrl: "javascript:alert(1)",
-      } as any),
+      }),
       createEventSchema,
     );
     expect(result.ok).toBe(false);

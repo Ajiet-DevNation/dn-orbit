@@ -2,7 +2,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-export const cardVariants = cva("", {
+const cardVariants = cva("", {
   variants: {
     font: {
       normal: "",

@@ -35,6 +35,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
           body: JSON.stringify({ isPublished: !current }),
         });
         if (!res.ok) throw new Error(await res.text());
+        toast.success(current ? "Event unpublished" : "Event published");
         router.refresh();
       } catch (err) {
         toast.error(
@@ -76,7 +77,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
         <div className="flex max-w-[18rem] flex-col sm:max-w-[26rem]">
           <span className="truncate text-white">{e.title}</span>
           <span className="retro truncate text-[8px] text-zinc-500">
-            {e.eventType ?? "GENERAL_ASSEMBLY"}
+            {e.eventType ?? "—"}
           </span>
         </div>
       ),
@@ -103,9 +104,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
     {
       key: "location",
       header: "LOCATION",
-      render: (e) => (
-        <span className="text-white/70">{e.location || "VIRTUAL"}</span>
-      ),
+      render: (e) => <span className="text-white/70">{e.location || "—"}</span>,
     },
     {
       key: "review",

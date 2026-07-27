@@ -20,16 +20,28 @@ const PAGE_SIZE = 6;
 
 // Plain, serializable shape — mapped from the DB Event in the server page so no
 // Date objects cross the client boundary.
+//
+// Every field an organizer can fill in the "NEW EVENT" modal is represented
+// here, so the public card/detail can surface all of it. Anything the organizer
+// left blank arrives as null and its row is simply not rendered.
 export interface EventCardData {
   id: string;
   type: string; // e.g. "WORKSHOP" / "HACKATHON" — uppercased upstream
   title: string;
   description: string | null;
   dateLabel: string; // pre-formatted, e.g. "JUL 15, 2026"
+  timeLabel: string | null; // e.g. "6:30 PM" — the modal collects a datetime
   location: string | null;
   bannerUrl: string | null;
   audience: EventAudience;
-  capacityLabel: string | null;
+  /** Seats taken. Always known — shown even when capacity is unlimited. */
+  registeredCount: number;
+  /** Organizer-set seat cap, or null for unlimited. */
+  capacity: number | null;
+  /** Pre-formatted registration deadline, or null when none was set. */
+  deadlineLabel: string | null;
+  /** Capacity reached — distinct from a passed deadline, so copy can differ. */
+  isFull: boolean;
   registrationClosed: boolean;
 }
 
@@ -78,6 +90,19 @@ function EventCard({ data }: { data: EventCardData }) {
             <span className="retro absolute left-3 top-3 inline-block border-2 border-[#22c55e] bg-[#0a0a0a]/80 px-2 py-1 text-[8px] text-[#22c55e] transition-colors duration-300 group-hover:bg-[#22c55e] group-hover:text-[#0a0a0a]">
               {data.type}
             </span>
+            {/* Who may register — set in the modal but previously only visible
+                after opening the detail panel. Mirrored here so the grid is
+                scannable for members vs. AJIET-only vs. open events. */}
+            <span className="retro absolute right-3 top-3 inline-block border-2 border-white/25 bg-[#0a0a0a]/80 px-2 py-1 text-[8px] text-white/70">
+              {AUDIENCE_BADGE_LABELS[data.audience]}
+            </span>
+            {/* Registration state ribbon — a card in the grid should say it's
+                unavailable without the visitor having to open it first. */}
+            {data.registrationClosed && (
+              <span className="retro absolute bottom-3 left-3 inline-block border-2 border-white/25 bg-[#0a0a0a]/85 px-2 py-1 text-[8px] text-white/60">
+                {data.isFull ? "FULL" : "CLOSED"}
+              </span>
+            )}
           </div>
 
           {/* Fixed line reservations (2-line title, 3-line description) keep every
@@ -90,11 +115,21 @@ function EventCard({ data }: { data: EventCardData }) {
             </h3>
 
             <p className="retro truncate text-[9px] text-muted-foreground">
-              {[data.dateLabel, data.location].filter(Boolean).join(" · ")}
+              {[data.dateLabel, data.timeLabel, data.location]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
 
             <p className="line-clamp-3 min-h-[3lh] text-sm leading-relaxed text-muted-foreground">
               {data.description}
+            </p>
+
+            {/* Seats — reserved as a fixed row so cards stay the same height
+                whether or not the organizer capped attendance. */}
+            <p className="retro mt-auto truncate text-[8px] tracking-wider text-zinc-500">
+              {data.capacity != null
+                ? `${data.registeredCount} / ${data.capacity} SEATS`
+                : `${data.registeredCount} REGISTERED`}
             </p>
           </div>
         </Card>
@@ -126,6 +161,21 @@ function AudienceBadge({ audience }: { audience: EventCardData["audience"] }) {
   );
 }
 
+// One labelled row in the detail panel's field list. Fixed label column so the
+// values line up regardless of label length.
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[7rem_1fr] gap-3">
+      <dt className="retro text-[9px] tracking-widest text-zinc-500">
+        {label}
+      </dt>
+      <dd className="retro min-w-0 text-[9px] break-words text-muted-foreground">
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
   return (
     <div
@@ -139,26 +189,46 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
     >
       <div className="flex flex-wrap items-center gap-3">
         <AudienceBadge audience={data.audience} />
+        {/* Event type also lives on the card's banner chip, but the card is
+            scaled down beside this panel — repeating it keeps the detail view
+            self-describing. */}
+        <span className="retro border-2 border-white/25 px-2 py-1 text-[8px] text-white/70">
+          {data.type}
+        </span>
         <h3 className="retro min-w-0 break-words text-2xl text-white">
           {data.title}
         </h3>
       </div>
       <p className="retro text-[10px] text-[#22c55e]">
-        {[data.dateLabel, data.location].filter(Boolean).join(" · ")}
+        {[data.dateLabel, data.timeLabel, data.location]
+          .filter(Boolean)
+          .join(" · ")}
       </p>
       {data.description && (
         <p className="text-sm leading-relaxed text-muted-foreground">
           {data.description}
         </p>
       )}
-      {data.capacityLabel && (
-        <p className="retro text-[9px] text-muted-foreground">
-          {data.capacityLabel}
-        </p>
-      )}
+
+      {/* Every remaining organizer-set field, as a labelled list. Rows are
+          omitted individually when the organizer left the field blank. */}
+      <dl className="flex flex-col gap-2">
+        <DetailRow
+          label="SEATS"
+          value={
+            data.capacity != null
+              ? `${data.registeredCount} / ${data.capacity} registered`
+              : `${data.registeredCount} registered · unlimited`
+          }
+        />
+        {data.deadlineLabel && (
+          <DetailRow label="REGISTER BY" value={data.deadlineLabel} />
+        )}
+      </dl>
+
       {data.registrationClosed ? (
         <span className="retro w-fit border-2 border-white/20 px-4 py-3 text-[9px] text-white/50">
-          REGISTRATION CLOSED
+          {data.isFull ? "EVENT FULL" : "REGISTRATION CLOSED"}
         </span>
       ) : (
         <Button
@@ -273,6 +343,15 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
     currentPage * PAGE_SIZE,
   );
 
+  // Opening the detail overlay needs the card's DOM node for the FLIP
+  // transition. The ref can legitimately be null — between render and ref
+  // attachment, or after the row unmounts mid-interaction — so a missing node
+  // skips the animation instead of throwing on a non-null assertion.
+  function openCard(id: string) {
+    const el = cardRefs.current[id];
+    if (el) open(id, el);
+  }
+
   function handleSearch(value: string) {
     setQuery(value);
     setPage(1);
@@ -318,19 +397,21 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
               <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
                 {pageEvents.map((event, i) => (
                   <PixelReveal key={event.id} delayMs={i * 70}>
+                    {/* A real <button> would inherit UA button styling and
+                        nest interactive content; role+tabIndex+key handling is
+                        the standard equivalent for a card-sized target. */}
+                    {/* biome-ignore lint/a11y/useSemanticElements: card-sized target with full keyboard handling */}
                     <div
                       ref={(el) => {
                         cardRefs.current[event.id] = el;
                       }}
                       role="button"
                       tabIndex={0}
-                      onClick={() =>
-                        open(event.id, cardRefs.current[event.id]!)
-                      }
+                      onClick={() => openCard(event.id)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          open(event.id, cardRefs.current[event.id]!);
+                          openCard(event.id);
                         }
                       }}
                       className="cursor-pointer"

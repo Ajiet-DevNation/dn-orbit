@@ -138,7 +138,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       addOptimisticAction({ type: "status", id, status });
       try {
         await updateProjectStatus(id, status);
-        toast.success("STATUS_UPDATED");
+        toast.success("Status updated");
       } catch (err) {
         toast.error(
           `STATUS_FAILURE: ${err instanceof Error ? err.message : "UNKNOWN"}`,
@@ -152,7 +152,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       addOptimisticAction({ type: "progress", id, progressPct });
       try {
         await updateProjectProgress(id, progressPct);
-        toast.success("PROGRESS_UPDATED");
+        toast.success("Progress updated");
       } catch (err) {
         toast.error(
           "PROGRESS_FAILURE: " +
@@ -174,7 +174,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
         toast.success(
-          action === "approve" ? "PROJECT_APPROVED" : "PROJECT_REJECTED",
+          action === "approve" ? "Project approved" : "Project rejected",
         );
       } catch (err) {
         toast.error(
@@ -197,7 +197,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       addOptimisticAction({ type: "delete", id });
       try {
         await deleteProject(id);
-        toast.success("PROJECT_RECORD_ERASED");
+        toast.success("Project deleted");
       } catch (err) {
         toast.error(
           "DELETION_FAILURE: " +
@@ -218,21 +218,21 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         <div className="flex max-w-[18rem] flex-col sm:max-w-[26rem]">
           <span className="truncate text-white font-black">{p.title}</span>
           <span className="text-[9px] text-zinc-600 tracking-tighter uppercase line-clamp-1 break-all">
-            {p.description || "NO_DESCRIPTION_PROVIDED"}
+            {p.description || "NO DESCRIPTION"}
           </span>
         </div>
       ),
     },
     {
       key: "lead",
-      header: "COMMAND_LEAD",
+      header: "PROJECT LEAD",
       render: (p) => (
         <div className="flex flex-col">
           <span className="text-white font-black">
             {p.leadName.toUpperCase()}
           </span>
           <span className="text-[9px] text-zinc-700 tracking-widest">
-            {p.leadGithub ? `@${p.leadGithub}` : "NO_GITHUB"}
+            {p.leadGithub ? `@${p.leadGithub}` : "—"}
           </span>
         </div>
       ),

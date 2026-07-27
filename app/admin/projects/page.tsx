@@ -6,6 +6,10 @@ import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
 import { ProjectTable } from "./ProjectTable";
 
+export const metadata = {
+  title: "PROJECTS // ORBIT ADMIN",
+};
+
 export default async function AdminProjectsPage() {
   const session = await auth();
   if (!canAccessAdmin(session?.user?.role)) {
@@ -13,6 +17,8 @@ export default async function AdminProjectsPage() {
   }
 
   const projects = await db.project.findMany({
+    // Bounded: one page view must never become an unbounded transfer.
+    take: 500,
     select: {
       id: true,
       title: true,
@@ -41,7 +47,7 @@ export default async function AdminProjectsPage() {
   ).length;
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8 p-6 md:p-8">
       <PixelPageHeader
         title="PROJECT MANAGEMENT"
         subtitle="PROJECT_DIRECTORY_V1.1"
@@ -61,7 +67,7 @@ export default async function AdminProjectsPage() {
       <ProjectTable
         initialProjects={projects.map((p) => ({
           ...p,
-          leadName: p.lead?.name || "UNNAMED_LEAD",
+          leadName: p.lead?.name || "—",
           leadGithub: p.lead?.githubUsername || null,
         }))}
       />

@@ -7,6 +7,7 @@ import {
   PixelDataTable,
 } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
+import { useConfirm } from "@/components/ui/PixelConfirm";
 
 interface ProjectRow {
   id: string;
@@ -37,7 +38,7 @@ function Author({ name, github }: { name: string; github: string | null }) {
     <div className="flex flex-col">
       <span className="font-black text-white">{name.toUpperCase()}</span>
       <span className="text-[9px] tracking-widest text-zinc-700">
-        {github ? `@${github}` : "NO_GITHUB"}
+        {github ? `@${github}` : "—"}
       </span>
     </div>
   );
@@ -55,8 +56,9 @@ export function ApprovalsQueue({
   );
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { confirm, dialog } = useConfirm();
 
-  const review = (
+  const submit = (
     kind: Tab,
     id: string,
     action: "approve" | "reject",
@@ -72,14 +74,36 @@ export function ApprovalsQueue({
         if (!res.ok) throw new Error(await res.text());
         router.refresh();
         toast.success(
-          `${action === "approve" ? "APPROVED" : "REJECTED"}: ${title}`,
+          `${action === "approve" ? "Approved" : "Rejected"} "${title}"`,
         );
       } catch (err) {
         toast.error(
-          `ACTION_FAILED: ${err instanceof Error ? err.message : "UNKNOWN"}`,
+          `${action === "approve" ? "Approve" : "Reject"} failed: ${
+            err instanceof Error ? err.message : "unknown"
+          }`,
         );
       }
     });
+
+  // Rejecting hides a member's submission from the site and is not something
+  // they can undo themselves, so it asks first — matching the delete flows on
+  // the events and projects tables. Approving is additive and does not.
+  const review = async (
+    kind: Tab,
+    id: string,
+    action: "approve" | "reject",
+    title: string,
+  ) => {
+    if (action === "reject") {
+      const ok = await confirm({
+        title: kind === "projects" ? "REJECT PROJECT" : "REJECT EVENT",
+        message: `Reject "${title}"? The submitter will need to resubmit.`,
+        confirmLabel: "REJECT",
+      });
+      if (!ok) return;
+    }
+    submit(kind, id, action, title);
+  };
 
   const actionCell = (kind: Tab, id: string, title: string) => (
     <div className="flex justify-end gap-2">
@@ -110,14 +134,14 @@ export function ApprovalsQueue({
         <div className="flex max-w-[18rem] flex-col sm:max-w-[26rem]">
           <span className="truncate font-black text-white">{p.title}</span>
           <span className="line-clamp-1 break-all text-[9px] uppercase tracking-tighter text-zinc-600">
-            {p.description || "NO_DESCRIPTION_PROVIDED"}
+            {p.description || "NO DESCRIPTION"}
           </span>
         </div>
       ),
     },
     {
       key: "author",
-      header: "SUBMITTED_BY",
+      header: "SUBMITTED BY",
       render: (p) => <Author name={p.authorName} github={p.authorGithub} />,
     },
     {
@@ -145,19 +169,19 @@ export function ApprovalsQueue({
         <div className="flex max-w-[18rem] flex-col sm:max-w-[26rem]">
           <span className="truncate font-black text-white">{e.title}</span>
           <span className="line-clamp-1 break-all text-[9px] uppercase tracking-tighter text-zinc-600">
-            {e.description || "NO_DESCRIPTION_PROVIDED"}
+            {e.description || "NO DESCRIPTION"}
           </span>
         </div>
       ),
     },
     {
       key: "author",
-      header: "SUBMITTED_BY",
+      header: "SUBMITTED BY",
       render: (e) => <Author name={e.authorName} github={e.authorGithub} />,
     },
     {
       key: "when",
-      header: "EVENT_DATE",
+      header: "EVENT DATE",
       render: (e) => (
         <span className="text-[9px] text-zinc-500">
           {new Date(e.eventDate).toLocaleDateString()}
@@ -171,7 +195,7 @@ export function ApprovalsQueue({
         <span
           className={`retro text-[8px] ${e.isPublished ? "text-[#22c55e]" : "text-amber-400"}`}
         >
-          {e.isPublished ? "WILL_GO_LIVE" : "DRAFT"}
+          {e.isPublished ? "WILL GO LIVE" : "DRAFT"}
         </span>
       ),
     },
@@ -203,6 +227,8 @@ export function ApprovalsQueue({
         {tabBtn("projects", "PROJECTS", projects.length)}
         {tabBtn("events", "EVENTS", events.length)}
       </div>
+
+      {dialog}
 
       {tab === "projects" ? (
         <PixelDataTable

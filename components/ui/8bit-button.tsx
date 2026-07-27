@@ -101,6 +101,6 @@ function Button({
   );
 }
 
-export { Button, buttonVariants };
+export { Button };
 
 export default Button;

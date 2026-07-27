@@ -23,6 +23,12 @@ import {
 } from "@/constants/projects";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  formatEventDateLong,
+  formatEventDateShort,
+  formatEventDateTime,
+  formatEventTime,
+} from "@/lib/event-format";
 import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
 import { canAccessAdmin } from "@/lib/roles";
@@ -35,23 +41,6 @@ export const metadata = {
     absolute: "ORBIT · DevNation · Leaderboard, Events, Projects & Members",
   },
 };
-
-function formatDate(date: Date): string {
-  return date
-    .toLocaleDateString("en-US", { month: "short", day: "2-digit" })
-    .toUpperCase();
-}
-
-// Fuller date for the events grid cards, e.g. "JUL 15, 2026".
-function formatEventDateLong(date: Date): string {
-  return date
-    .toLocaleDateString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-    })
-    .toUpperCase();
-}
 
 // Server Component: fetch all page data here, map into client-ready shapes.
 export default async function V2Page() {
@@ -107,7 +96,9 @@ export default async function V2Page() {
     tag: (e.eventType ?? "EVENT").toUpperCase(),
     title: e.title,
     body: e.description,
-    meta: [formatDate(e.eventDate), e.location].filter(Boolean).join(" · "),
+    meta: [formatEventDateShort(e.eventDate), e.location]
+      .filter(Boolean)
+      .join(" · "),
   }));
 
   const eventCards: EventCardData[] = events.map((e) => {
@@ -119,13 +110,19 @@ export default async function V2Page() {
       title: e.title,
       description: e.description,
       dateLabel: formatEventDateLong(e.eventDate),
+      timeLabel: formatEventTime(e.eventDate),
       location: e.location,
       bannerUrl: e.bannerUrl,
       audience: e.audience as EventCardData["audience"],
-      capacityLabel:
-        e.capacity != null
-          ? `${e._count.registrations} / ${e.capacity} registered`
-          : null,
+      registeredCount: e._count.registrations,
+      capacity: e.capacity,
+      // Only surface an explicitly-set deadline. Falling back to the event date
+      // (as the closed-check does) would show every event a "register by" line
+      // the organizer never wrote.
+      deadlineLabel: e.registrationDeadline
+        ? formatEventDateTime(e.registrationDeadline)
+        : null,
+      isFull: full,
       registrationClosed: full || (deadline ? new Date() > deadline : false),
     };
   });
@@ -180,6 +177,9 @@ export default async function V2Page() {
   const dbProjects = await db.project.findMany({
     where: { reviewStatus: "approved" },
     orderBy: { submittedAt: "desc" },
+    // Bounded like the events and leaderboard queries above — this page is the
+    // most-requested route in the app and must not grow an unbounded payload.
+    take: 100,
   });
   const PROJECT_STATUS_LABEL: Record<string, string> = {
     planning: "WIP",
@@ -196,6 +196,7 @@ export default async function V2Page() {
     githubUrl: p.githubRepoUrl,
     demoUrl: p.demoUrl,
     status: PROJECT_STATUS_LABEL[p.status] ?? "ACTIVE",
+    progressPct: p.progressPct,
   }));
   const projects: ProjectData[] = [...submittedProjects, ...scrapedProjects];
 

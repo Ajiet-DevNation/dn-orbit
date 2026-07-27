@@ -16,6 +16,8 @@ export async function GET() {
   }
 
   const entries = await db.allowlist.findMany({
+    // Bounded: one page view must never become an unbounded transfer.
+    take: 500,
     orderBy: { createdAt: "desc" },
   });
   return NextResponse.json({ entries });

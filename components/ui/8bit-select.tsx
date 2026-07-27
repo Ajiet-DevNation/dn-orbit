@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-export const inputVariants = cva("", {
+const inputVariants = cva("", {
   variants: {
     font: {
       normal: "",
