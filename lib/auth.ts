@@ -115,7 +115,7 @@ const customAdapter: Adapter = {
   },
 };
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn } = NextAuth({
   adapter: customAdapter,
   session: {
     strategy: "jwt",

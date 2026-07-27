@@ -115,7 +115,7 @@ export const feedbackSchema = z.object({
 // ── Leaderboard weights ──────────────────────────────────────────────────────
 
 /** Matches the tolerance the admin WeightForm already enforces client-side. */
-export const WEIGHT_SUM_TOLERANCE = 0.01;
+const WEIGHT_SUM_TOLERANCE = 0.01;
 
 const weight = z.number().min(0).max(1);
 

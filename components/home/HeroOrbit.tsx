@@ -176,8 +176,7 @@ function Wordmark() {
       <span aria-hidden className="inline-flex items-baseline">
         {WORD.split("").map((char, i) => (
           <span
-            // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length word —
-            // the index IS the identity, and letters repeat.
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length word — the index IS the identity, and letters repeat.
             key={i}
             ref={(el) => {
               charRefs.current[i] = el;

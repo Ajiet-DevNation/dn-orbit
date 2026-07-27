@@ -121,8 +121,9 @@ const MAX_EMAIL_LEN = 254; // RFC 5321 practical limit
 const MAX_USN_LEN = 32;
 const MAX_TEXT_LEN = 2000;
 
-// Default USN pattern (RIT-style) used as a hint; admins may override per event.
-export const DEFAULT_USN_PATTERN = "^1MS\\d{2}[A-Z]{2}\\d{3}$";
+// USN format is deliberately NOT validated unless an admin sets `usnPattern`
+// on the event: college ID formats vary by cohort, and a hard-coded default
+// would reject legitimate registrations for the sake of a hint.
 
 export interface SubmissionInput {
   name?: string;

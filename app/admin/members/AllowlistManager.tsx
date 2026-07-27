@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { toast } from "@/components/ui/8bit-toast";
 
-export interface AllowlistEntry {
+interface AllowlistEntry {
   id: string;
   githubUsername: string | null;
   email: string | null;

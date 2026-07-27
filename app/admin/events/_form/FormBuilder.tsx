@@ -361,12 +361,12 @@ export function FormBuilder({
                       value={f.visibleWhen.equals}
                       onValueChange={(equals) =>
                         update(f.id, {
-                          // biome-ignore lint/style/noNonNullAssertion: the
-                          // `f.visibleWhen &&` guard on this branch proves it is
-                          // set; TypeScript can't carry that narrowing into a
-                          // callback. An optional chain here would widen
-                          // fieldId to `string | undefined` and break the rule.
+                          // The `f.visibleWhen &&` guard on this branch proves
+                          // it is set; TypeScript can't carry that narrowing
+                          // into a callback, and an optional chain would widen
+                          // fieldId to `string | undefined`.
                           visibleWhen: {
+                            // biome-ignore lint/style/noNonNullAssertion: guarded by the `f.visibleWhen &&` branch above; see the comment.
                             fieldId: f.visibleWhen!.fieldId,
                             equals,
                           },

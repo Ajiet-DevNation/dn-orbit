@@ -23,7 +23,7 @@ export const PLANET_KEYS = ["github", "leetcode", "linkedin"] as const;
 export type PlanetKey = (typeof PLANET_KEYS)[number];
 
 /** Even thirds around the ellipse. */
-export const PLANET_PHASE: Record<PlanetKey, number> = {
+const PLANET_PHASE: Record<PlanetKey, number> = {
   github: 0,
   leetcode: (Math.PI * 2) / 3,
   linkedin: (Math.PI * 4) / 3,

@@ -185,21 +185,12 @@ export async function runStatsSyncIfStale(): Promise<DrainResult> {
   return { outcome: "drained", refreshed, recomputed: changed };
 }
 
-/**
- * Ensure every member has a queue row.
+/** Flag a member for priority refresh — called by the GitHub webhook.
  *
- * Called after sign-in and by the webhook; cheap and idempotent, so it can also
- * be run opportunistically to backfill members created before this existed.
- */
-export async function ensureSyncState(userId: string): Promise<void> {
-  await db.statsSyncState.upsert({
-    where: { userId },
-    create: { userId },
-    update: {},
-  });
-}
-
-/** Flag a member for priority refresh — called by the GitHub webhook. */
+ * Upserts rather than updates: this doubles as the backfill for a member whose
+ * queue row is missing. New members get one at sign-up (see the adapter's
+ * `createUser` in lib/auth.ts), so in practice that is only ever a member who
+ * predates the queue. */
 export async function markGithubDirty(userId: string): Promise<void> {
   await db.statsSyncState.upsert({
     where: { userId },

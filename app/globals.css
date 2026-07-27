@@ -67,10 +67,8 @@
    Auto-"fixing" them silently breaks the sharp-corner reset and, worse, the
    reduced-motion policy. */
 
-/* biome-ignore lint/complexity/noImportantStyles: a `*` selector loses to every
-   component's `rounded-*` utility on specificity; !important is what makes the
-   site-wide sharp-corner reset actually win. */
 * {
+  /* biome-ignore lint/complexity/noImportantStyles: a `*` selector loses to every component's `rounded-*` utility on specificity; !important is what makes the site-wide sharp-corner reset actually win. */
   border-radius: 0 !important;
 }
 
@@ -101,15 +99,17 @@ body {
   html {
     scroll-behavior: auto;
   }
-  /* biome-ignore lint/complexity/noImportantStyles: without !important any
-     component-level animation/transition wins on specificity and the
-     reduced-motion preference is silently ignored. This is an accessibility
-     guarantee, not a style choice. */
+  /* The three !importants below are an accessibility guarantee, not a style
+     choice: without them any component-level animation/transition wins on
+     specificity and the reduced-motion preference is silently ignored. */
   *,
   *::before,
   *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: see above — the reduced-motion reset must beat component-level animations on specificity. */
     animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: see above — the reduced-motion reset must beat component-level animations on specificity. */
     animation-iteration-count: 1 !important;
+    /* biome-ignore lint/complexity/noImportantStyles: see above — the reduced-motion reset must beat component-level transitions on specificity. */
     transition-duration: 0.01ms !important;
   }
 }
@@ -124,9 +124,9 @@ body {
 /* ── HUD cartridge card frame ──────────────────────────────────────────────
    A clean retro-HUD chrome layered over the 8-bit coverflow cards. Static
    textures whose OPACITY is driven by the engine's per-frame --cf-center /
-   --cf-depth vars (compositor-cheap); the corner-bracket "pop" and the
-   power-on scanline sweep are animated imperatively by GSAP (see
-   useCardPowerOn) so they survive the global reduced-motion CSS reset. */
+   --cf-depth vars (compositor-cheap); the corner-bracket "pop" is animated
+   imperatively by GSAP (see useCardPowerOn) so it survives the global
+   reduced-motion CSS reset. */
 
 /* Centre-card edge bloom: a green ring + inner glow that fades up as a card
    reaches the centre of the flow. */
@@ -356,9 +356,8 @@ body {
 }
 
 /* v2: undo the global border-radius reset so 8-bit components render correctly */
-/* biome-ignore lint/complexity/noImportantStyles: must beat the `*` reset above,
-   which is itself !important. */
 [data-v2] * {
+  /* biome-ignore lint/complexity/noImportantStyles: must beat the `*` reset above, which is itself !important. */
   border-radius: revert !important;
 }
 
@@ -414,9 +413,8 @@ input[type="radio"]:not(:disabled),
   that out, leaving a square photo — restore the circular clip here.
   Higher specificity (two attribute selectors) + !important beats `[data-v2] *`.
 */
-/* biome-ignore lint/complexity/noImportantStyles: same — avatars must stay round
-   despite the !important sharp-corner reset. */
 [data-v2] [data-slot="avatar"] {
+  /* biome-ignore lint/complexity/noImportantStyles: avatars must stay round despite the !important sharp-corner reset above. */
   border-radius: 9999px !important;
 }
 
