@@ -356,14 +356,6 @@ function LeaderboardList({
           {syncedAt && <SyncedAgo iso={syncedAt} />}
         </div>
 
-        {/* GH and LC are scores relative to the strongest member in each axis,
-            not raw counts — without this the top row reading "GH 100 / LC 98"
-            next to "TOTAL 89" looks like a bug. */}
-        <p className="mb-3 text-[9px] leading-relaxed text-muted-foreground/70">
-          GH / LC are 0–100 scores relative to the cohort leader. TOTAL applies
-          the admin-configured weights.
-        </p>
-
         {/* Column headers — aligned to the row grid below (pos · avatar · name ·
             GH · LC · EVT · TOTAL). The numeric columns are fixed-width and
             right-aligned so the digits line up into clean columns. */}
