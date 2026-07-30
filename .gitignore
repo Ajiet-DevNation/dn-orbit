@@ -65,3 +65,7 @@ next-env.d.ts
 
 # logs
 *.log
+
+# pre-flight row snapshots written by `bun run seed:demo` before it deletes
+# anything. Local recovery material, never committed.
+/.backups/
