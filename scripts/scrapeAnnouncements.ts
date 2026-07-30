@@ -25,6 +25,25 @@ const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 const MAX_ITEMS = 8;
 
+// Cloudflare blocks datacenter IPs (GitHub Actions runners) unless the request
+// looks like a real browser. These headers mirror what Chrome 120 actually sends.
+const HEADERS: Record<string, string> = {
+  "User-Agent": UA,
+  Accept:
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br",
+  "Sec-Ch-Ua":
+    '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+  "Sec-Ch-Ua-Mobile": "?0",
+  "Sec-Ch-Ua-Platform": '"Windows"',
+  "Sec-Fetch-Dest": "document",
+  "Sec-Fetch-Mode": "navigate",
+  "Sec-Fetch-Site": "none",
+  "Sec-Fetch-User": "?1",
+  "Upgrade-Insecure-Requests": "1",
+};
+
 const OUT_PATH = new URL(
   "../constants/campusAnnouncements.json",
   import.meta.url,
@@ -108,7 +127,7 @@ function snippet(text: string, max = 160): string {
 async function fetchBody(url: string, attempts = 3): Promise<string | null> {
   for (let i = 0; i < attempts; i++) {
     try {
-      const res = await fetch(url, { headers: { "User-Agent": UA } });
+      const res = await fetch(url, { headers: HEADERS });
       if (res.ok) {
         const html = (await res.text()).replace(
           /<(script|style)[\s\S]*?<\/\1>/gi,
@@ -129,7 +148,7 @@ async function fetchBody(url: string, attempts = 3): Promise<string | null> {
 }
 
 async function main() {
-  const res = await fetch(SOURCE, { headers: { "User-Agent": UA } });
+  const res = await fetch(SOURCE, { headers: HEADERS });
   if (!res.ok) {
     throw new Error(`Failed to fetch ${SOURCE}: HTTP ${res.status}`);
   }
