@@ -29,6 +29,7 @@ import {
   formatEventDateTime,
   formatEventTime,
 } from "@/lib/event-format";
+import { orderForDisplay } from "@/lib/event-order";
 import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
 import { canAccessAdmin } from "@/lib/roles";
@@ -54,12 +55,18 @@ export default async function V2Page() {
   // searchable client-side. Fetched once, mapped twice. Capped at 100 — a
   // generous bound (mirroring the leaderboard cap) that keeps the payload small
   // while comfortably covering realistic event volumes.
-  const events = await db.event.findMany({
+  //
+  // The query orders ascending so the 100-row window keeps the *earliest*
+  // events; display order is then upcoming-first (see lib/event-order.ts),
+  // because a strip headed ANNOUNCEMENTS must not lead with last semester's
+  // workshops once the club has a back catalogue.
+  const eventRows = await db.event.findMany({
     where: { reviewStatus: "approved", isPublished: true },
     orderBy: { eventDate: "asc" },
     take: 100,
     include: { _count: { select: { registrations: true } } },
   });
+  const events = orderForDisplay(eventRows);
 
   // Latest cached stats + leaderboard standing for the signed-in user.
   // leaderboardScore.userId is @unique → findUnique.

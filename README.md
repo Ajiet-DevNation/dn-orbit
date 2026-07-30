@@ -131,6 +131,41 @@ under `app/api/**` performs its own auth and role checks.
   - `Event Score = (attended / total_events) × 100`
   - `Total = (lcScore × lcWeight) + (githubScore × githubWeight) + (eventScore × eventWeight)`
 
+### Demo / Showcase Content
+
+`bun run seed:demo` is the source of truth for the club's presentable event and
+project dataset (`scripts/seedDemoContent.ts`). It exists because that content
+has to be reviewable in a pull request and restorable after someone edits a
+record in the admin panel — so the file is authoritative and the database is its
+projection.
+
+It does three things, in order: purges a hardcoded list of joke/test rows, then
+upserts the curated events, projects, rosters, attendance, feedback and audit
+trail, then recomputes the leaderboard (attendance feeds the event component).
+
+- **Idempotent.** Seeded rows carry deterministic UUIDv5 ids derived from a slug,
+  and every write is an upsert. Running it twice equals running it once.
+- **Reversible.** Before deleting anything it snapshots the affected rows to
+  `.backups/seed-demo-<timestamp>.json` (gitignored).
+- **Bounded.** Events and projects are purged by explicit id, never by a
+  predicate. Only audit-log cleanup matches on text, and it prints every line it
+  is about to remove.
+- **Non-invasive.** Member accounts, GitHub/LeetCode stats, `stats_sync_state`
+  and the allowlist are never touched.
+
+```bash
+bun run seed:demo -- --dry-run       # print the whole plan, write nothing
+bun run seed:demo                    # purge + seed + recompute
+bun run seed:demo -- --purge-only    # remove junk, seed nothing
+bun run seed:demo -- --seed-only     # skip the purge and storage cleanup
+bun run seed:demo -- --skip-storage  # leave the Supabase media bucket alone
+```
+
+Storage cleanup removes media-bucket objects orphaned by the purge. It needs
+`NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_PRIVATE_KEY` (it also accepts the older
+`SUPABASE_SERVICE_ROLE_KEY`, and falls back to the bucket origin recorded on
+existing rows). Without credentials it logs a skip rather than failing the run.
+
 ### Code Conventions
 
 - **Exports**: Use named exports (except for `page.tsx` and `layout.tsx`).

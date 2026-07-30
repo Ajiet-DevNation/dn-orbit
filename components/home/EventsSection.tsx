@@ -204,8 +204,13 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
           .filter(Boolean)
           .join(" · ")}
       </p>
+      {/* whitespace-pre-line, because organizers write these in a textarea and
+          use blank lines and bullet lists. Collapsing them ran an agenda into
+          one paragraph ("• Health • FinTech • Agriculture"). The card above
+          deliberately keeps the default collapsing so its 3-line clamp still
+          shows three lines of prose rather than three list bullets. */}
       {data.description && (
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
           {data.description}
         </p>
       )}

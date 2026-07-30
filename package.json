@@ -12,6 +12,7 @@
     "scrape:announcements": "bun run scripts/scrapeAnnouncements.ts",
     "scrape:projects": "bun run scripts/scrapeProjects.ts",
     "setup:supabase": "bun run scripts/setupSupabaseBucket.ts",
+    "seed:demo": "bun run scripts/seedDemoContent.ts",
     "test": "bun test lib",
     "test:api": "node scripts/test-api.mjs",
     "test:api:auth": "node scripts/test-api.mjs",

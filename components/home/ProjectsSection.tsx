@@ -203,7 +203,10 @@ function ProjectDetail({
         {project.title}
       </h3>
 
-      <p className="text-sm leading-relaxed text-muted-foreground">
+      {/* whitespace-pre-line for the same reason as the event detail panel:
+          submitters write multi-paragraph descriptions and collapsing the blank
+          lines turned them into a wall of text. */}
+      <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
         {project.description}
       </p>
 
