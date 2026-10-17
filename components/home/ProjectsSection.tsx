@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useRef } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import { FaExternalLinkAlt, FaGithub } from "react-icons/fa";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
@@ -9,11 +9,11 @@ import {
   DetailOverlay,
   DetailOverlayContent,
 } from "@/components/ui/DetailOverlay";
-import type { ProjectData } from "@/constants/projects";
 import { useCardPowerOn } from "@/hooks/useCardPowerOn";
 import { useCoverflow } from "@/hooks/useCoverflow";
 import { useFlipDetail } from "@/hooks/useFlipDetail";
 import { useScrollGlide } from "@/hooks/useScrollGlide";
+import type { ProjectData } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 import { HudCardFrame } from "./HudCardFrame";
 import { SectionHeading } from "./SectionHeading";
@@ -80,6 +80,15 @@ const ProjectCard = memo(function ProjectCard({
   style?: React.CSSProperties;
 }) {
   const color = statusColor(project.status);
+  // Remembers WHICH src failed, by URL rather than a boolean, so a later fix
+  // (admin pastes a working URL) retries on its own. A dead cover — a deleted
+  // legacy upload, or a repo GitHub has no preview for — degrades to the
+  // cartridge placeholder instead of the browser's broken-image glyph.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const cover =
+    project.imageUrl && project.imageUrl !== failedSrc
+      ? project.imageUrl
+      : null;
   // Up to two alphanumerics for the cartridge monogram, e.g. "CERT GEN" → "CE".
   const monogram =
     project.title
@@ -107,10 +116,10 @@ const ProjectCard = memo(function ProjectCard({
       {/* Picture — fills the rest. Plain <img> (pixelated) or, when a project has
           no cover, a composed "cartridge" fallback so the card never reads empty. */}
       <div className="relative flex-1 overflow-hidden bg-[#0d0d0d]">
-        {project.imageUrl ? (
+        {cover ? (
           // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
           <img
-            src={project.imageUrl}
+            src={cover}
             alt={project.title}
             loading="lazy"
             // See MembersSection: intrinsic size stops the card reflowing when
@@ -119,6 +128,7 @@ const ProjectCard = memo(function ProjectCard({
             height={600}
             decoding="async"
             draggable={false}
+            onError={() => setFailedSrc(cover)}
             className="pixelated h-full w-full object-cover select-none [-webkit-user-drag:none]"
           />
         ) : (

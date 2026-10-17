@@ -57,6 +57,7 @@ next-env.d.ts
 # AI assistant local dirs
 .claude/
 .codex/
+.playwright-mcp/
 
 # editors
 .vscode/

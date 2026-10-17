@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import {
   type PixelColumn,
   PixelDataTable,
@@ -17,9 +17,11 @@ import { toast } from "@/components/ui/8bit-toast";
 import { useConfirm } from "@/components/ui/PixelConfirm";
 import {
   deleteProject,
+  updateProjectImage,
   updateProjectProgress,
   updateProjectStatus,
 } from "./actions";
+import { CoverImageDialog } from "./CoverImageDialog";
 
 type ReviewStatus = "pending" | "approved" | "rejected";
 
@@ -37,9 +39,15 @@ interface Project {
   id: string;
   title: string;
   description: string | null;
+  /** Admin-pasted cover; null means "fall back" (auto cover / placeholder). */
+  imageUrl: string | null;
   status: string;
-  progressPct: number;
+  /** Null for GitHub imports — the meter has no figure to show. */
+  progressPct: number | null;
   githubRepoUrl: string | null;
+  /** "owner/name" for GitHub imports; null for member submissions. */
+  githubRepoFullName: string | null;
+  source: "manual" | "github";
   reviewStatus: ReviewStatus;
   submittedAt: Date;
   leadName: string;
@@ -96,6 +104,8 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
+  // Row whose cover is open in the editor dialog; null = dialog closed.
+  const [coverEdit, setCoverEdit] = useState<Project | null>(null);
 
   const [optimisticProjects, addOptimisticAction] = useOptimistic(
     initialProjects,
@@ -104,7 +114,8 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       action:
         | { type: "approve" | "reject" | "delete"; id: string }
         | { type: "status"; id: string; status: ProjectStatus }
-        | { type: "progress"; id: string; progressPct: number },
+        | { type: "progress"; id: string; progressPct: number }
+        | { type: "image"; id: string; imageUrl: string | null },
     ) => {
       if (action.type === "approve") {
         return state.map((p) =>
@@ -124,6 +135,11 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
       if (action.type === "progress") {
         return state.map((p) =>
           p.id === action.id ? { ...p, progressPct: action.progressPct } : p,
+        );
+      }
+      if (action.type === "image") {
+        return state.map((p) =>
+          p.id === action.id ? { ...p, imageUrl: action.imageUrl } : p,
         );
       }
       if (action.type === "delete") {
@@ -157,6 +173,24 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         toast.error(
           "PROGRESS_FAILURE: " +
             (err instanceof Error ? err.message : "UNKNOWN"),
+        );
+      }
+    });
+  };
+
+  // Paste-URL cover save. The dialog stays open on failure so the admin can
+  // see the error and retry; on success it closes and the optimistic row (the
+  // thumbnail) already shows the new image.
+  const handleImageSave = (id: string, imageUrl: string | null) => {
+    startTransition(async () => {
+      addOptimisticAction({ type: "image", id, imageUrl });
+      try {
+        await updateProjectImage(id, imageUrl);
+        setCoverEdit(null);
+        toast.success("Cover image updated");
+      } catch (err) {
+        toast.error(
+          `IMAGE_FAILURE: ${err instanceof Error ? err.message : "UNKNOWN"}`,
         );
       }
     });
@@ -212,6 +246,42 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
 
   const columns: PixelColumn<Project>[] = [
     {
+      key: "cover",
+      header: "COVER",
+      render: (p) => {
+        // The pasted image, or null — the public card then renders its
+        // placeholder cartridge.
+        const cover = p.imageUrl;
+        return (
+          <div className="flex flex-col items-start gap-1.5">
+            <div className="aspect-[5/4] h-14 overflow-hidden border-2 border-white/15 bg-[#0d0d0d]">
+              {cover ? (
+                // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
+                <img
+                  src={cover}
+                  alt=""
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="retro flex h-full items-center justify-center text-[8px] text-zinc-700">
+                  —
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => setCoverEdit(p)}
+              className={`${btn} border-white/25 text-zinc-300 hover:bg-white/10`}
+            >
+              IMAGE
+            </button>
+          </div>
+        );
+      },
+    },
+    {
       key: "title",
       header: "PROJECT",
       render: (p) => (
@@ -226,16 +296,26 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
     {
       key: "lead",
       header: "PROJECT LEAD",
-      render: (p) => (
-        <div className="flex flex-col">
-          <span className="text-white font-black">
-            {p.leadName.toUpperCase()}
-          </span>
-          <span className="text-[9px] text-zinc-700 tracking-widest">
-            {p.leadGithub ? `@${p.leadGithub}` : "—"}
-          </span>
-        </div>
-      ),
+      render: (p) =>
+        p.source === "github" ? (
+          // Org imports have no member lead — name the source instead of an
+          // empty cell, and show the repo as the identifying detail.
+          <div className="flex flex-col">
+            <span className="text-white font-black">GITHUB IMPORT</span>
+            <span className="text-[9px] text-zinc-700 tracking-widest">
+              {p.githubRepoFullName ?? "—"}
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            <span className="text-white font-black">
+              {p.leadName.toUpperCase()}
+            </span>
+            <span className="text-[9px] text-zinc-700 tracking-widest">
+              {p.leadGithub ? `@${p.leadGithub}` : "—"}
+            </span>
+          </div>
+        ),
     },
     {
       key: "status",
@@ -263,7 +343,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
             </SelectContent>
           </Select>
           <ProgressInput
-            value={p.progressPct}
+            value={p.progressPct ?? 0}
             disabled={isPending}
             onCommit={(n) => handleProgress(p.id, n)}
           />
@@ -333,6 +413,18 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         columns={columns}
         empty="NO PROJECTS"
       />
+      {/* key remounts the dialog per project so its local URL input resets. */}
+      {coverEdit && (
+        <CoverImageDialog
+          key={coverEdit.id}
+          project={coverEdit}
+          busy={isPending}
+          onOpenChange={(open) => {
+            if (!open) setCoverEdit(null);
+          }}
+          onSave={(url) => handleImageSave(coverEdit.id, url)}
+        />
+      )}
       {dialog}
     </>
   );
