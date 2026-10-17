@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/8bit-card";
-import campusAnnouncements from "@/constants/campusAnnouncements.json";
+import clubEvents from "@/constants/clubEvents.json";
+import { dropDuplicateTitles } from "@/lib/club-events";
 import { cn } from "@/lib/utils";
 
 // Generic announcement — NOT tied to events. Any source (events, club news,
@@ -38,11 +39,12 @@ function cardDims(vw: number): { w: number; gap: number } {
   return { w, gap };
 }
 
-// Real campus news scraped from the college site (ajiet.edu.in → "News &
-// Events") into constants/campusAnnouncements.json by scripts/scrapeAnnouncements.ts,
-// refreshed weekly via .github/workflows/scrape-announcements.yml. Each card
-// links out to its source page. All carry the "AJIET" tag so the source is clear.
-const CAMPUS_ANNOUNCEMENTS: Announcement[] = campusAnnouncements;
+// DevNation's own event history, scraped from the college site's student-clubs
+// page (ajiet.edu.in/student-clubs.php → the "DEVNATION CLUB AJIET" tab) into
+// constants/clubEvents.json by scripts/scrapeClubEvents.ts, refreshed weekly
+// via .github/workflows/scrape-club-events.yml. Each card links out to the
+// source page and carries the "DEVNATION" tag.
+const CLUB_EVENTS: Announcement[] = clubEvents;
 
 // Always-on generic announcements blended in alongside live data (events, etc).
 // These give the strip variety so it never looks like one card on repeat when
@@ -156,11 +158,16 @@ function AnnouncementSlide({
 export function AnnouncementCarousel({
   announcements,
 }: AnnouncementCarouselProps) {
-  // Live announcements first, then real campus news, then the always-on
-  // baseline cards for variety.
+  // Live announcements first, then the club's scraped event history, then the
+  // always-on baseline cards for variety. A club card is dropped when a
+  // published event already carries the same title — an event can exist in
+  // both sources once organizers enter it in the CMS.
   const items = [
     ...announcements,
-    ...CAMPUS_ANNOUNCEMENTS,
+    ...dropDuplicateTitles(
+      CLUB_EVENTS,
+      announcements.map((a) => a.title),
+    ),
     ...BASELINE_ANNOUNCEMENTS,
   ];
 
