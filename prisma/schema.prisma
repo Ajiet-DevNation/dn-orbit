@@ -41,6 +41,14 @@ enum ProjectStatus {
   stalled
 }
 
+// Where a project row came from: a member submission (manual) or an admin-run
+// sync of the DevNation GitHub org (github). GitHub imports have no member lead
+// and re-sync by `github_repo_full_name`, never by id.
+enum ProjectSource {
+  manual
+  github
+}
+
 enum EventAudience {
   members
   college
@@ -401,23 +409,31 @@ model AuditLog {
 
 model Project {
   id            String         @id @default(uuid())
-  leadId        String         @map("lead_id")
+  // Nullable: GitHub-imported projects have no member lead. Member submissions
+  // always set it (POST /api/projects).
+  leadId        String?        @map("lead_id")
   title         String
   description   String?
   imageUrl      String?        @map("image_url")
   status        ProjectStatus  @default(planning)
-  progressPct   Int            @default(0) @map("progress_pct") // 0–100
+  // Nullable: imports have no completion figure; the UI omits the meter instead
+  // of implying 0%. Member submissions default to 0.
+  progressPct   Int?           @default(0) @map("progress_pct") // 0–100
   githubRepoUrl String?        @map("github_repo_url")
+  // "owner/name" for GitHub imports — the idempotent sync key, so re-running the
+  // sync updates the same row instead of creating duplicates.
+  githubRepoFullName String?   @unique @map("github_repo_full_name")
   demoUrl       String?        @map("demo_url")
   techStack     Json           @default("[]") @map("tech_stack") // string[]
   milestones    Json           @default("[]") // { label: string, done: boolean }[]
+  source        ProjectSource  @default(manual)
   reviewStatus  ApprovalStatus @default(pending) @map("review_status")
   reviewedById  String?        @map("reviewed_by")
   reviewedAt    DateTime?      @map("reviewed_at")
   submittedAt   DateTime       @default(now()) @map("submitted_at")
   updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at")
 
-  lead       User            @relation("ProjectLead", fields: [leadId], references: [id])
+  lead       User?           @relation("ProjectLead", fields: [leadId], references: [id])
   reviewedBy User?           @relation("ProjectReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   members    ProjectMember[]
 

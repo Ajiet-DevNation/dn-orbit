@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
 import { ProjectTable } from "./ProjectTable";
+import { SyncGithubButton } from "./SyncGithubButton";
 
 export const metadata = {
   title: "PROJECTS // ORBIT ADMIN",
@@ -23,9 +24,12 @@ export default async function AdminProjectsPage() {
       id: true,
       title: true,
       description: true,
+      imageUrl: true,
       status: true,
       progressPct: true,
       githubRepoUrl: true,
+      githubRepoFullName: true,
+      source: true,
       reviewStatus: true,
       submittedAt: true,
       lead: {
@@ -51,6 +55,7 @@ export default async function AdminProjectsPage() {
       <PixelPageHeader
         title="PROJECT MANAGEMENT"
         subtitle="PROJECT_DIRECTORY_V1.1"
+        actions={<SyncGithubButton />}
       />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

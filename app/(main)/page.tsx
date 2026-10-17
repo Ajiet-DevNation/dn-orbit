@@ -17,10 +17,6 @@ import { ProjectsSection } from "@/components/home/ProjectsSection";
 import { StatsSection } from "@/components/home/StatsSection";
 import { StatsSyncPing } from "@/components/home/StatsSyncPing";
 import { Footer } from "@/components/layout/Footer";
-import {
-  type ProjectData,
-  PROJECTS as scrapedProjects,
-} from "@/constants/projects";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
@@ -32,6 +28,7 @@ import {
 import { orderForDisplay } from "@/lib/event-order";
 import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
+import type { ProjectData } from "@/lib/projects";
 import { canAccessAdmin } from "@/lib/roles";
 import { languagesFromRecord } from "@/lib/stats-utils";
 import { lastSyncedAt } from "@/lib/sync";
@@ -179,8 +176,9 @@ export default async function V2Page() {
         })) + 1
       : null;
 
-  // Member-submitted, admin-approved projects (with uploaded cover images) shown
-  // in the public carousel alongside the GitHub-org scraped projects.
+  // Only admin-approved projects reach the carousel — member submissions and
+  // GitHub-org imports (synced from /admin/projects, pending until approved)
+  // share this table, so nothing awaiting review shows up publicly.
   const dbProjects = await db.project.findMany({
     where: { reviewStatus: "approved" },
     orderBy: { submittedAt: "desc" },
@@ -194,9 +192,10 @@ export default async function V2Page() {
     completed: "SHIPPED",
     stalled: "STALLED",
   };
-  const submittedProjects: ProjectData[] = dbProjects.map((p) => ({
+  const projects: ProjectData[] = dbProjects.map((p) => ({
     id: p.id,
     title: p.title.toUpperCase(),
+    // Admin-pasted cover; null renders the placeholder cartridge.
     imageUrl: p.imageUrl,
     description: p.description ?? "",
     techStack: Array.isArray(p.techStack) ? (p.techStack as string[]) : [],
@@ -205,7 +204,6 @@ export default async function V2Page() {
     status: PROJECT_STATUS_LABEL[p.status] ?? "ACTIVE",
     progressPct: p.progressPct,
   }));
-  const projects: ProjectData[] = [...submittedProjects, ...scrapedProjects];
 
   // Only the leaderboard's freshness readout needs a extra query now — the hero
   // stat ticker was removed, and with it the member-count and commit-sum
