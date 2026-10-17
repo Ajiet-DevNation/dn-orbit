@@ -1,0 +1,85 @@
+name: Scrape club events
+
+# Refreshes constants/clubEvents.json from the "DEVNATION CLUB AJIET" tab of
+# AJIET's student-clubs page once a week. Opens a PR only when the scraped
+# output actually changes, so new club events reach ORBIT without a manual
+# edit. Also runnable on demand (Actions → Run workflow).
+#
+# Why Python fetches the page instead of the script itself: Cloudflare blocks
+# datacenter IPs — every scheduled run of the old news-scrape job failed, and
+# browser headers alone (the earlier fix) were not enough. curl_cffi presents
+# Chrome's TLS/HTTP2 fingerprint, which passes; the saved HTML is then handed
+# to scripts/scrapeClubEvents.ts via its --html mode.
+on:
+  schedule:
+    - cron: "0 6 * * 1" # every Monday 06:00 UTC
+  workflow_dispatch:
+
+# Needed for the action to push a branch and open the PR.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # TLS-impersonating fetch: a plain fetch from a runner IP gets a
+      # Cloudflare 403 no matter how browser-like the headers are.
+      - name: Fetch student-clubs page
+        env:
+          OUT: ${{ runner.temp }}/student-clubs.html
+        run: |
+          python3 -m pip install --quiet curl_cffi
+          python3 - "$OUT" <<'PY'
+          import sys
+
+          from curl_cffi import requests
+
+          res = requests.get(
+              "https://www.ajiet.edu.in/student-clubs.php",
+              impersonate="chrome",
+              timeout=30,
+          )
+          res.raise_for_status()
+          with open(sys.argv[1], "w", encoding="utf-8") as handle:
+              handle.write(res.text)
+          PY
+
+      # Fail loudly on a challenge/error page rather than scraping garbage.
+      - name: Sanity-check the fetched page
+        env:
+          OUT: ${{ runner.temp }}/student-clubs.html
+        run: grep -q 'id="pills-devnation"' "$OUT"
+
+      - name: Scrape DevNation club events
+        env:
+          OUT: ${{ runner.temp }}/student-clubs.html
+        run: bun run scripts/scrapeClubEvents.ts --html "$OUT"
+
+      # No-op when the file is unchanged; otherwise creates/updates one PR on a
+      # fixed branch (so reruns amend the same PR instead of piling up new ones).
+      - name: Open PR if club events changed
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: constants/clubEvents.json
+          branch: chore/refresh-club-events
+          delete-branch: true
+          commit-message: "chore: refresh club events"
+          title: "chore: refresh club events"
+          body: |
+            Automated weekly scrape of DevNation's event tab on
+            student-clubs.php (`scripts/scrapeClubEvents.ts`).
+
+            Updates `constants/clubEvents.json` with the latest club
+            events. Review the diff and merge to publish.
