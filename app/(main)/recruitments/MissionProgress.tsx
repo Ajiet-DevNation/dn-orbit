@@ -1,17 +1,19 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef } from "react";
-import { Progress } from "@/components/ui/8bit-progress";
 import { PixelBubble } from "@/components/ui/PixelBubble";
+import { PixelFrame } from "@/components/ui/PixelFrame";
 import { framePosition, loopFrame } from "@/lib/sprite";
 import { cn } from "@/lib/utils";
+import { SignalBars } from "./RecruitHeaderCard";
 
 // Flag-Pluton sheets (PixelLab animate_image, input frame + 8, 64px frames).
 const SHEETS = {
   walk: { url: "url(/assets/pluton/pluton-flag-walk.png)", frames: 9 },
   jump: { url: "url(/assets/pluton/pluton-flag-jump.png)", frames: 9 },
 };
-const PLUTON_PX = 44; // keep in sync with size-[44px] below
+const PLUTON_PX = 64; // keep in sync with size-[64px] below
 const WALK_SPEED = 0.28; // bar widths per second
 const STEP_MS = 90;
 
@@ -29,7 +31,8 @@ function bubbleText(filled: number, total: number): string {
 }
 
 /**
- * The original PROGRESS panel, plus Pluton walking along underneath the bar:
+ * MISSION PROGRESS: a segmented bar in the green pixel frame, with Pluton
+ * walking along underneath it:
  * he stands under the fill's leading edge, walks there whenever a required
  * field is filled (or back when one is cleared), and jumps for joy at 100%.
  * His speech bubble rides beside him and pops when its text changes.
@@ -149,52 +152,78 @@ export function MissionProgress({
   }, []);
 
   return (
-    <div className="flex flex-col gap-3 border-2 border-white/10 bg-[#0a0a0a] p-6">
-      <div className="flex items-center justify-between">
-        <span className="retro text-[9px] tracking-widest text-white/80">
-          PROGRESS
-        </span>
-        <span className="retro text-[9px] text-[#22c55e]">
-          {filled} / {total} REQUIRED
-        </span>
-      </div>
-      <Progress
-        value={Math.round((filled / total) * 100)}
-        variant="retro"
-        progressBg="bg-[#22c55e]"
-        className="h-4"
-      />
+    <PixelFrame>
+      <div className="flex flex-col gap-4 px-1 py-1">
+        <div className="flex items-center justify-between gap-3">
+          <span className="retro flex items-center gap-2.5 whitespace-nowrap text-[9px] tracking-widest text-white">
+            <SignalBars />
+            MISSION PROGRESS
+          </span>
+          <span className="retro whitespace-nowrap text-[9px] text-[#22c55e]">
+            {filled} / {total} REQUIRED
+          </span>
+        </div>
 
-      {/* Pluton's walkway, under the bar. */}
-      <div ref={trackRef} className="relative mt-1 h-[58px]">
-        <div ref={plutonRef} className="absolute bottom-0 left-0 size-[44px]">
-          <div
-            ref={spriteRef}
-            aria-hidden
-            className="pixelated size-full bg-no-repeat"
-          />
-          <div
-            className={cn(
-              "absolute top-1/2 -translate-y-1/2",
-              bubbleOnLeft
-                ? "right-[calc(100%+12px)]"
-                : "left-[calc(100%+12px)]",
-            )}
-          >
+        {/* Segmented bar: one cell per required field. */}
+        <div
+          role="progressbar"
+          aria-label="Required fields completed"
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={filled}
+          className="flex gap-[3px] border-[3px] border-[#22c55e] bg-[#22c55e] p-[3px]"
+        >
+          {Array.from({ length: total }, (_, i) => (
+            <span
+              // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length segment row
+              key={i}
+              className={cn(
+                "h-4 flex-1",
+                i < filled ? "bg-[#4ade80]" : "bg-[#1a1838]",
+              )}
+            />
+          ))}
+        </div>
+
+        {/* Pluton's walkway, under the bar. */}
+        <div ref={trackRef} className="relative h-[76px]">
+          <div ref={plutonRef} className="absolute bottom-0 left-0 size-[64px]">
             <div
-              ref={popRef}
-              className={bubbleOnLeft ? "origin-right" : "origin-left"}
+              ref={spriteRef}
+              aria-hidden
+              className="pixelated size-full bg-no-repeat"
+            />
+            <div
+              className={cn(
+                "absolute top-1/2 -translate-y-1/2",
+                bubbleOnLeft
+                  ? "right-[calc(100%+20px)]"
+                  : "left-[calc(100%+20px)]",
+              )}
             >
-              <PixelBubble
-                tail={bubbleOnLeft ? "right" : "left"}
-                className="whitespace-nowrap text-[10px]"
+              <div
+                ref={popRef}
+                className={bubbleOnLeft ? "origin-right" : "origin-left"}
               >
-                <span aria-live="polite">{text}</span>
-              </PixelBubble>
+                <PixelBubble
+                  tail={bubbleOnLeft ? "right" : "left"}
+                  className="whitespace-nowrap text-xs"
+                >
+                  <span aria-live="polite">{text}</span>
+                </PixelBubble>
+              </div>
             </div>
           </div>
+          <Image
+            src="/assets/pluton/sparkle4.png"
+            alt=""
+            aria-hidden
+            width={22}
+            height={22}
+            className="pixelated absolute right-1 top-2"
+          />
         </div>
       </div>
-    </div>
+    </PixelFrame>
   );
 }
