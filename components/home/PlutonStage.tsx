@@ -35,10 +35,22 @@ const RING = { cx: 50, cy: 60, rx: 47, ry: 13 };
 const TILT = -14; // deg
 const ORBIT_MS = 7000;
 const FLOAT_MS = 3200;
+// Wave: ping-pong through the 9 frames (0→8→0, no snap back), then rest.
+const WAVE_FRAMES = 9;
+const WAVE_STEP_MS = 90;
+const WAVE_CYCLE_MS = 4200;
+
+function waveFrame(t: number): number {
+  const k = Math.floor((t % WAVE_CYCLE_MS) / WAVE_STEP_MS);
+  const last = WAVE_FRAMES - 1;
+  if (k > last * 2) return 0;
+  return k <= last ? k : last * 2 - k;
+}
 
 export function PlutonStage({ className }: { className?: string }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const plutonRef = useRef<HTMLDivElement>(null);
+  const waveRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const asteroidLayerRef = useRef<HTMLDivElement>(null);
   const asteroidRef = useRef<HTMLDivElement>(null);
@@ -114,6 +126,12 @@ export function PlutonStage({ className }: { className?: string }) {
       }
 
       placeAsteroid(Math.PI / 4 + (t / ORBIT_MS) * Math.PI * 2);
+
+      const wave = waveRef.current;
+      if (wave) {
+        const f = waveFrame(t);
+        wave.style.backgroundPosition = `${(f / (WAVE_FRAMES - 1)) * 100}% 0`;
+      }
 
       sparkleRefs.current.forEach((el, i) => {
         if (!el) return;
@@ -197,13 +215,11 @@ export function PlutonStage({ className }: { className?: string }) {
         ref={plutonRef}
         className="absolute inset-[14%] z-20 flex items-center justify-center"
       >
-        <Image
-          src="/assets/pluton/pluton.png"
-          alt=""
-          width={160}
-          height={160}
-          priority
-          className="pixelated h-full w-full object-contain drop-shadow-[0_0_24px_rgba(139,92,246,0.45)]"
+        {/* 9-frame wave sprite sheet (PixelLab animate_image); the loop below
+            steps backgroundPosition. Frame 0 is the resting smile. */}
+        <div
+          ref={waveRef}
+          className="pixelated aspect-square h-full bg-[url(/assets/pluton/pluton-wave.png)] bg-[length:900%_100%] bg-no-repeat drop-shadow-[0_0_24px_rgba(139,92,246,0.45)]"
         />
       </div>
 
