@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
+import { PixelBubble } from "@/components/ui/PixelBubble";
 import { framePosition, pingPongFrame } from "@/lib/sprite";
 import { cn } from "@/lib/utils";
 
@@ -237,18 +238,18 @@ export function PlutonStage({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* Speech bubble. */}
+      {/* Speech bubble (PixelLab sprite, see PixelBubble). */}
       <div
         ref={bubbleRef}
-        className="absolute -top-2 right-0 z-40 origin-bottom-left border-4 border-[#a78bfa] bg-[#0a0a0a] px-3 py-2 sm:right-2"
+        className="absolute -top-2 right-0 z-40 origin-bottom-left sm:right-2"
       >
-        <p className="retro text-[8px] leading-relaxed text-white sm:text-[10px]">
-          LET&apos;S BUILD
-          <br />
-          TOGETHER!
-        </p>
-        {/* Pixel tail. */}
-        <span className="absolute -bottom-[10px] left-4 size-3 rotate-45 border-b-4 border-r-4 border-[#a78bfa] bg-[#0a0a0a]" />
+        <PixelBubble tail="bottom-left">
+          <span className="retro block text-[8px] leading-relaxed sm:text-[10px]">
+            LET&apos;S BUILD
+            <br />
+            TOGETHER!
+          </span>
+        </PixelBubble>
       </div>
     </div>
   );
