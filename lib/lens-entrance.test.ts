@@ -55,12 +55,14 @@ describe("segment", () => {
 });
 
 describe("entranceFrame", () => {
-  test("pin start: built viewfinder, scroll hint, nothing else yet", () => {
+  test("pin start: built viewfinder, nothing else yet", () => {
     const f = entranceFrame(0, 1);
     expect(f.dissolve).toBe(1);
     expect(f.open).toBe(0);
     expect(f.blur).toBe(0);
     expect(f.reticle).toBe(1);
+    expect(f.veil).toBe(1);
+    expect(f.solid).toBe(0);
     expect(f.giantOpacity).toBe(0);
     expect(f.heading).toBe(0);
     expect(f.thumbs).toBe(0);
@@ -73,13 +75,16 @@ describe("entranceFrame", () => {
     expect(entranceFrame(0, 0.6).dissolve).toBeLessThan(1);
   });
 
-  test("end: full lens, sharp, title in place, strips and controls out", () => {
+  test("end: solid sharp lens, title landed, strips and controls out", () => {
     expect(entranceFrame(1)).toMatchObject({
       open: 1,
       fly: 1,
       giantOpacity: 0,
+      glow: 0,
       heading: 1,
       reticle: 0,
+      veil: 1,
+      solid: 1,
       dissolve: 1,
       thumbs: 1,
       chrome: 1,
@@ -87,22 +92,30 @@ describe("entranceFrame", () => {
     expect(entranceFrame(1).blur).toBeCloseTo(0, 10);
   });
 
-  test("the giant title is solid (never a muddy half-fade) while it crosses", () => {
-    for (const p of [0.15, 0.25, 0.4, 0.6, 0.75]) {
+  test("the giant title is solid (never a muddy half-fade) while it moves", () => {
+    for (const p of [0.15, 0.3, 0.5, 0.7, 0.85]) {
       expect(entranceFrame(p).giantOpacity).toBe(1);
     }
   });
 
-  test("focus pull peaks mid-open", () => {
-    const mid = entranceFrame(0.45).blur;
-    expect(mid).toBeGreaterThan(entranceFrame(0.32).blur);
-    expect(mid).toBeGreaterThan(entranceFrame(0.58).blur);
+  test("while the lens opens it is see-through frosted glass", () => {
+    const f = entranceFrame(0.5);
+    expect(f.veil).toBeLessThan(1);
+    expect(f.solid).toBe(0);
+    expect(f.glow).toBe(1);
   });
 
-  test("the lens is open before the title lands and the thumbs unfold", () => {
-    const f = entranceFrame(0.7);
-    expect(f.open).toBe(1);
+  test("the lens fills in before the title shrinks out from behind it", () => {
+    const flyStart = entranceFrame(0.6);
+    expect(flyStart.fly).toBe(0);
+    expect(entranceFrame(0.7).veil).toBe(1);
+  });
+
+  test("the thumbs only arrive once the title has landed (like oryzo)", () => {
+    const f = entranceFrame(0.88);
+    expect(f.fly).toBe(1);
     expect(f.thumbs).toBe(0);
+    expect(f.solid).toBe(1);
   });
 
   test("open, fly and thumbs move monotonically through the pin", () => {

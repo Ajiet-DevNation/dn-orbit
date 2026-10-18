@@ -21,6 +21,8 @@ export const ITEM_PIN_SVH = 60;
 const DWELL = 0.2;
 /** Viewfinder side before it opens, as a share of the lens height. */
 export const VIEWFINDER_SHARE = 0.5;
+/** Frosted-glass blur the lens applies to whatever sits behind it. */
+export const LENS_FROST = "blur(14px) saturate(130%)";
 /** Peak defocus while the viewfinder opens (px). */
 export const MAX_BLUR_PX = 6;
 
@@ -56,11 +58,15 @@ export function arrivalProgress(rectTop: number, viewportHeight: number) {
 }
 
 export interface EntranceFrame {
-  /** Giant title slide-in from the right (0 = off to the side, 1 = centred). */
+  /** Giant title slide-in from the right (0 = off to the side, 1 = parked
+   *  with its left edge on the label's left edge). */
   giantIn: number;
   /** Giant title opacity. */
   giantOpacity: number;
-  /** Giant title flight into the label slot (0 = centre, 1 = label). */
+  /** Extra glow on the giant title while the lens opens (0–1). */
+  glow: number;
+  /** Giant title shrinking into the label (0 = giant, 1 = label). It scales
+   *  from its left edge and stays behind the lens the whole way. */
   fly: number;
   /** Real section title opacity (takes over from the giant title). */
   heading: number;
@@ -68,6 +74,12 @@ export interface EntranceFrame {
   reticle: number;
   /** Viewfinder → full lens (0 = small square, 1 = full lens). */
   open: number;
+  /** Lens content opacity: dips while the lens opens so the giant title shows
+   *  through the frosted glass, then turns solid before the title leaves. */
+  veil: number;
+  /** Lens fill: 0 = frosted glass (blurs what is behind), 1 = solid (hides the
+   *  thumbs that slide under it once the gallery starts). */
+  solid: number;
   /** Share of the pixel cover cleared. */
   dissolve: number;
   /** Lens content blur, px. */
@@ -78,22 +90,28 @@ export interface EntranceFrame {
   chrome: number;
 }
 
+// Timed against oryzo.ai's own reveal, frame by frame: title slides in behind
+// the viewfinder → glows as the viewfinder opens into a frosted lens → the lens
+// fills in and sharpens → the title shrinks into its label behind the lens →
+// only then do the thumb strips arrive.
 export function entranceFrame(p: number, arrival = 1): EntranceFrame {
-  const giantIn = easeOutCubic(segment(p, 0.04, 0.34));
-  const open = easeInOutCubic(segment(p, 0.3, 0.6));
+  const open = easeInOutCubic(segment(p, 0.3, 0.58));
   return {
-    giantIn,
+    giantIn: easeOutCubic(segment(p, 0.02, 0.32)),
     // Full strength almost at once: a half-faded white reads as muddy grey.
-    giantOpacity: segment(p, 0.04, 0.12) * (1 - segment(p, 0.8, 0.86)),
-    fly: easeInOutCubic(segment(p, 0.56, 0.84)),
-    heading: segment(p, 0.8, 0.86),
+    giantOpacity: segment(p, 0.02, 0.1) * (1 - segment(p, 0.86, 0.9)),
+    glow: segment(p, 0.28, 0.42) * (1 - segment(p, 0.6, 0.76)),
+    fly: easeInOutCubic(segment(p, 0.6, 0.88)),
+    heading: segment(p, 0.85, 0.89),
     reticle: 1 - segment(p, 0.3, 0.42),
     open,
+    veil: 1 - 0.5 * segment(p, 0.3, 0.42) * (1 - segment(p, 0.56, 0.7)),
+    solid: segment(p, 0.8, 0.86),
     dissolve: segment(arrival, 0.3, 0.95),
     // A camera-style focus pull: soft mid-open, sharp at both ends.
     blur: MAX_BLUR_PX * Math.sin(Math.PI * open),
-    thumbs: segment(p, 0.72, 0.94),
-    chrome: segment(p, 0.86, 0.97),
+    thumbs: segment(p, 0.88, 0.98),
+    chrome: segment(p, 0.92, 1),
   };
 }
 

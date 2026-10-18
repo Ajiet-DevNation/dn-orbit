@@ -8,6 +8,7 @@ import {
   entranceFrame,
   entranceProgress,
   hintOpacity,
+  LENS_FROST,
   progressForCard,
   splitPin,
   viewfinderSize,
@@ -31,7 +32,7 @@ const SMOOTH_TAU_MS = 140;
 const MAX_DT_MS = 50;
 const DONE_EPS = 0.0005;
 /** Giant title starts this share of the viewport width to the right. */
-const GIANT_SLIDE_SHARE = 0.6;
+const GIANT_SLIDE_SHARE = 0.7;
 
 interface LensScrollOptions {
   sectionRef: React.RefObject<HTMLElement | null>;
@@ -65,6 +66,8 @@ export function useLensScroll({
   const reticleRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
   const giantRef = useRef<HTMLDivElement>(null);
+  const giantLineRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLSpanElement>(null);
   const headingRef = useRef<HTMLDivElement>(null);
   const chromeRef = useRef<HTMLDivElement>(null);
   const floorRef = useRef<HTMLDivElement>(null);
@@ -85,14 +88,26 @@ export function useLensScroll({
     const frame = frameRef.current;
     const content = contentRef.current;
     const giant = giantRef.current;
+    const giantLine = giantLineRef.current;
     const heading = headingRef.current;
-    if (!section || !stage || !frame || !content || !giant || !heading) return;
+    if (
+      !section ||
+      !stage ||
+      !frame ||
+      !content ||
+      !giant ||
+      !giantLine ||
+      !heading
+    )
+      return;
 
     const cells = Array.from(coverRef.current?.children ?? []) as HTMLElement[];
     const cellHidden: boolean[] = [];
     let lastT = Number.NaN;
     let lastBlur = -1;
     let lastGiantOn = false;
+    let lastVeil = -1;
+    let lastSolid = -1;
 
     // One scalar timeline: t in [-1, 0) is the arrival (section rising into
     // view), [0, 1] the whole pin (entrance, then gallery). Smoothing a single
@@ -110,11 +125,15 @@ export function useLensScroll({
       let dy = 0;
       let flyScale = 1;
       if (f.fly > 0) {
+        // The title scales from its left-centre (transform-origin), so the
+        // flight is: move its left edge onto the label's, its centre line onto
+        // the label's, and scale to the label's width. Rest box = the line
+        // wrapper (stage centre) plus the title's untransformed offset.
         const title = heading.querySelector("h2") ?? heading;
         const target = title.getBoundingClientRect();
-        const origin = stage.getBoundingClientRect();
-        dx = target.left + target.width / 2 - (origin.left + origin.width / 2);
-        dy = target.top + target.height / 2 - (origin.top + origin.height / 2);
+        const line = giantLine.getBoundingClientRect();
+        dx = target.left - (line.left + giant.offsetLeft);
+        dy = target.top + target.height / 2 - line.top;
         flyScale = target.width / Math.max(1, giant.offsetWidth);
       }
 
@@ -139,8 +158,27 @@ export function useLensScroll({
       const slide = (1 - f.giantIn) * window.innerWidth * GIANT_SLIDE_SHARE;
       const scale = 1 + (flyScale - 1) * f.fly;
       giant.style.transform =
-        `translate(-50%, -50%) translate3d(${slide + dx * f.fly}px, ` +
-        `${dy * f.fly}px, 0) scale(${scale})`;
+        `translate3d(${slide + dx * f.fly}px, ${dy * f.fly}px, 0) ` +
+        `scale(${scale})`;
+      if (glowRef.current) glowRef.current.style.opacity = String(f.glow);
+
+      // Frosted lens: see-through + blurring while the title sits behind it,
+      // solid once the gallery needs it to hide the thumbs sliding under. The
+      // backdrop blur is dropped entirely once solid — it would otherwise be
+      // re-computed every frame the thumbs move.
+      const veil = Math.round(f.veil * 100) / 100;
+      if (veil !== lastVeil) {
+        content.style.opacity = String(veil);
+        lastVeil = veil;
+      }
+      const solid = Math.round(f.solid * 100) / 100;
+      if (solid !== lastSolid) {
+        frame.style.backgroundColor = `rgba(10, 10, 10, ${0.3 + 0.7 * solid})`;
+        const frost = solid < 1 ? LENS_FROST : "none";
+        frame.style.backdropFilter = frost;
+        frame.style.setProperty("-webkit-backdrop-filter", frost);
+        lastSolid = solid;
+      }
       giant.style.opacity = String(f.giantOpacity);
       const giantOn = f.giantOpacity > 0;
       if (giantOn !== lastGiantOn) {
@@ -252,6 +290,8 @@ export function useLensScroll({
     reticleRef,
     hintRef,
     giantRef,
+    giantLineRef,
+    glowRef,
     headingRef,
     chromeRef,
     floorRef,

@@ -3,6 +3,7 @@
 import { useLensScroll } from "@/hooks/useLensScroll";
 import {
   ENTRANCE_PIN_SVH,
+  LENS_FROST,
   pinLengthSvh,
   viewfinderSide,
 } from "@/lib/lens-entrance";
@@ -19,6 +20,9 @@ import { CoverflowFloor } from "./CoverflowControls";
 export const LENS_PAD = 6;
 /** Pixel cover columns; rows follow the lens aspect so cells stay square. */
 const COVER_COLS = 12;
+
+const GIANT_BLOOM =
+  "0 0 24px rgba(255,255,255,0.55), 0 0 60px rgba(34,197,94,0.5), 0 0 120px rgba(34,197,94,0.3)";
 
 const GIANT_GLOW =
   "0 0 18px rgba(34,197,94,0.55), 0 0 48px rgba(34,197,94,0.28), 0 0 2px rgba(255,255,255,0.8)";
@@ -114,7 +118,7 @@ export function LensSection({
             className="flex flex-col items-center gap-4 md:items-start"
             style={{ opacity: 0 }}
           >
-            <h2 className="retro lens-glass text-xl tracking-wider text-white md:text-[clamp(20px,1.8vw,32px)]">
+            <h2 className="retro text-xl tracking-wider text-white md:text-[clamp(20px,1.8vw,32px)]">
               {title}
             </h2>
             <span aria-hidden className="block h-[3px] w-16 bg-[#22c55e]" />
@@ -142,8 +146,15 @@ export function LensSection({
               content stays full size and centred, clipped by the frame. */}
           <div
             ref={entrance.frameRef}
-            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 overflow-hidden border-2 border-dashed border-[#22c55e]/40 bg-[#0a0a0a] shadow-[0_0_40px_rgba(0,0,0,0.6)]"
-            style={{ width: side + LENS_PAD * 2, height: side + LENS_PAD * 2 }}
+            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 overflow-hidden border-2 border-dashed border-[#22c55e]/40 shadow-[0_0_40px_rgba(0,0,0,0.6)]"
+            // Frosted glass until the entrance ends (the hook turns it solid).
+            style={{
+              width: side + LENS_PAD * 2,
+              height: side + LENS_PAD * 2,
+              backgroundColor: "rgba(10, 10, 10, 0.3)",
+              backdropFilter: LENS_FROST,
+              WebkitBackdropFilter: LENS_FROST,
+            }}
           >
             <div
               ref={entrance.contentRef}
@@ -198,19 +209,37 @@ export function LensSection({
             </div>
           </div>
 
+          {/* Giant title, BEHIND the lens like oryzo's: the frosted lens blurs
+              whatever part of it passes underneath. Parked with its left edge
+              on the label's left edge, it later shrinks from that edge into
+              the label. The line wrapper is a zero-height row on the stage's
+              vertical centre, so the title's rest box is easy to measure. */}
           <div
-            ref={entrance.giantRef}
+            ref={entrance.giantLineRef}
             aria-hidden
-            className="retro lens-glass pointer-events-none absolute left-1/2 top-1/2 z-20 whitespace-nowrap tracking-wider text-white"
-            style={{
-              fontSize: "clamp(32px, 9vw, 170px)",
-              textShadow: GIANT_GLOW,
-              opacity: 0,
-              visibility: "hidden",
-              transform: "translate(-50%, -50%)",
-            }}
+            className="pointer-events-none absolute inset-x-0 top-1/2 z-[5] flex h-0 items-center justify-center md:justify-start md:pl-[max(24px,3.5vw)]"
           >
-            {title}
+            <div
+              ref={entrance.giantRef}
+              className="retro relative whitespace-nowrap tracking-wider text-white"
+              style={{
+                fontSize: "clamp(32px, 9vw, 170px)",
+                textShadow: GIANT_GLOW,
+                transformOrigin: "left center",
+                opacity: 0,
+                visibility: "hidden",
+              }}
+            >
+              {title}
+              {/* Bloom that swells while the lens opens (opacity only). */}
+              <span
+                ref={entrance.glowRef}
+                className="absolute inset-0"
+                style={{ textShadow: GIANT_BLOOM, opacity: 0 }}
+              >
+                {title}
+              </span>
+            </div>
           </div>
 
           <div
