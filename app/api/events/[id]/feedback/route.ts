@@ -31,9 +31,27 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
   const { rating, comments } = parsed.data;
 
-  const event = await db.event.findUnique({ where: { id: eventId } });
+  // Only publicly visible events take feedback; drafts and events still in
+  // moderation 404 like they do everywhere else.
+  const event = await db.event.findFirst({
+    where: { id: eventId, isPublished: true, reviewStatus: "approved" },
+    select: { eventDate: true },
+  });
   if (!event)
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
+
+  // Only people who registered may rate an event — otherwise any approved
+  // member could rate (and skew) events they never signed up for.
+  const registered = await db.registration.findFirst({
+    where: { eventId, userId: session.user.id },
+    select: { id: true },
+  });
+  if (!registered) {
+    return NextResponse.json(
+      { error: "Only registered members can leave feedback" },
+      { status: 403 },
+    );
+  }
   if (event.eventDate > new Date()) {
     return NextResponse.json(
       { error: "Cannot submit feedback before event ends" },
