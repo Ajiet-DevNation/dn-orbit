@@ -146,6 +146,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
   @@map("accounts")
 }
 
@@ -192,6 +193,7 @@ model GithubStats {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("github_stats")
 }
 
@@ -212,6 +214,7 @@ model LcStats {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("lc_stats")
 }
 
@@ -243,6 +246,8 @@ model Event {
   registrations Registration[]
   feedback      Feedback[]
 
+  @@index([createdBy])
+  @@index([reviewStatus, isPublished, eventDate])
   @@map("events")
 }
 
@@ -265,6 +270,7 @@ model Registration {
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, email])
+  @@index([userId])
   @@map("registrations")
 }
 
@@ -284,6 +290,7 @@ model Feedback {
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId]) // one feedback per user per event
+  @@index([eventId])
   @@map("feedback")
 }
 
@@ -303,6 +310,7 @@ model LeaderboardScore {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([totalScore])
   @@map("leaderboard_scores")
 }
 
@@ -437,6 +445,8 @@ model Project {
   reviewedBy User?           @relation("ProjectReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   members    ProjectMember[]
 
+  @@index([leadId])
+  @@index([reviewStatus, submittedAt])
   @@map("projects")
 }
 
@@ -455,5 +465,6 @@ model ProjectMember {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId]) // one membership per user per project
+  @@index([userId])
   @@map("project_members")
 }
