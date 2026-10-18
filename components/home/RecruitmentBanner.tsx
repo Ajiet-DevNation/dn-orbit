@@ -2,11 +2,12 @@ import Link from "next/link";
 
 // Thin "we're hiring" strip floated over the top of the hero. Rendered by the
 // landing page only while an admin has recruitment switched on. Absolute so it
-// doesn't push the full-height orbit down; the header is hidden at the top of
-// the landing page, so nothing else lives here.
+// doesn't push the full-height orbit down. top-28 clears the sticky header row
+// (logo + avatar, ~100px): that row stays in place even while its nav tabs are
+// hidden, so anything under it can't be clicked.
 export function RecruitmentBanner() {
   return (
-    <div className="absolute inset-x-0 top-4 z-40 px-4 sm:top-6 sm:px-10">
+    <div className="absolute inset-x-0 top-28 z-40 px-4 sm:px-10">
       <Link
         href="/recruitments"
         className="group mx-auto flex max-w-5xl items-center justify-center gap-3 border-2 border-[#22c55e]/30 bg-black/70 px-4 py-3 backdrop-blur-sm transition-colors hover:border-[#22c55e]/70 sm:gap-5"
