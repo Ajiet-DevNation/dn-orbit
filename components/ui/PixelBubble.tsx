@@ -2,11 +2,10 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-// Pluton's speech bubble. The frame is a PixelLab sprite (bubble.png) used as a
-// 9-slice border-image — 8px source corners drawn at 2× (16px) — so one asset
-// fits any text length and stays crisp. The tail is a separate sprite drawn in
-// the same colours; its first 4 source rows overlap the bubble's 4-row border
-// (8px at 2×) to open a gap in the outline where it joins.
+// Pluton's speech bubble, from a PixelLab sprite recoloured to the site green.
+// The body (bubble.png) is a 9-slice border-image — 6px source corners at 3×
+// (18px) — so one asset fits any text. The tail is the bubble's own generated
+// tail; its first source row (3px) sits on the body's outline and opens it.
 
 type Tail = "bottom-left" | "bottom-right" | "left" | "right";
 
@@ -16,27 +15,27 @@ const TAIL: Record<
 > = {
   "bottom-left": {
     src: "/assets/pluton/bubble-tail-down.png",
-    w: 24,
-    h: 18,
-    className: "-bottom-[10px] left-3",
+    w: 42,
+    h: 24,
+    className: "-bottom-[21px] left-6",
   },
   "bottom-right": {
     src: "/assets/pluton/bubble-tail-down.png",
-    w: 24,
-    h: 18,
-    className: "-bottom-[10px] right-3 -scale-x-100",
+    w: 42,
+    h: 24,
+    className: "-bottom-[21px] right-6 -scale-x-100",
   },
   left: {
     src: "/assets/pluton/bubble-tail-left.png",
-    w: 18,
-    h: 24,
-    className: "-left-[10px] top-1/2 -translate-y-1/2",
+    w: 24,
+    h: 42,
+    className: "-left-[21px] top-1/2 -translate-y-1/2",
   },
   right: {
     src: "/assets/pluton/bubble-tail-left.png",
-    w: 18,
-    h: 24,
-    className: "-right-[10px] top-1/2 -translate-y-1/2 -scale-x-100",
+    w: 24,
+    h: 42,
+    className: "-right-[21px] top-1/2 -translate-y-1/2 -scale-x-100",
   },
 };
 
@@ -53,11 +52,11 @@ export function PixelBubble({
   return (
     <div
       className={cn(
-        "pixelated relative border-[16px] border-solid font-mono leading-snug text-white [border-image:url(/assets/pluton/bubble.png)_8_fill/16px_stretch]",
+        "pixelated relative border-[18px] border-solid font-mono leading-snug text-white [border-image:url(/assets/pluton/bubble.png)_6_fill/18px_stretch]",
         className,
       )}
     >
-      <span className="relative -m-1 block">{children}</span>
+      <span className="relative block">{children}</span>
       <Image
         src={t.src}
         alt=""
