@@ -9,6 +9,7 @@ import {
 import { toast } from "@/components/ui/8bit-toast";
 import { useConfirm } from "@/components/ui/PixelConfirm";
 import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
+import { errorMessage } from "@/lib/utils";
 
 interface EventRow {
   id: string;
@@ -34,7 +35,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ isPublished: !current }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         toast.success(current ? "Event unpublished" : "Event published");
         router.refresh();
       } catch (err) {
@@ -55,7 +56,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
     startTransition(async () => {
       try {
         const res = await fetch(`/api/events/${id}`, { method: "DELETE" });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         toast.success("Event deleted");
         router.refresh();
       } catch (err) {

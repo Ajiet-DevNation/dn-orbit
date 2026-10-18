@@ -22,6 +22,7 @@ import {
   eventTypeOptions,
   type FormFieldDef,
 } from "@/lib/forms";
+import { errorMessage } from "@/lib/utils";
 import { FormBuilder } from "../_form/FormBuilder";
 
 interface EventFormState {
@@ -110,7 +111,7 @@ export default function EventCreationForm({
             body: JSON.stringify(payload),
           },
         );
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         toast.success(isEdit ? "Event updated" : "Event created");
         router.push("/admin/events");
         router.refresh();

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/8bit-select";
 import { toast } from "@/components/ui/8bit-toast";
 import { useConfirm } from "@/components/ui/PixelConfirm";
+import { errorMessage } from "@/lib/utils";
 import {
   deleteProject,
   updateProjectImage,
@@ -205,7 +206,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         router.refresh();
         toast.success(
           action === "approve" ? "Project approved" : "Project rejected",

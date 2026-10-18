@@ -8,6 +8,7 @@ import {
 } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
 import { useConfirm } from "@/components/ui/PixelConfirm";
+import { errorMessage } from "@/lib/utils";
 
 interface ProjectRow {
   id: string;
@@ -71,7 +72,7 @@ export function ApprovalsQueue({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         router.refresh();
         toast.success(
           `${action === "approve" ? "Approved" : "Rejected"} "${title}"`,

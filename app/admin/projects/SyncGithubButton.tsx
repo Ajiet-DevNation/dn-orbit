@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "@/components/ui/8bit-toast";
+import { errorMessage } from "@/lib/utils";
 
 interface SyncSummary {
   created: number;
@@ -23,7 +24,7 @@ export function SyncGithubButton() {
         const res = await fetch("/api/admin/projects/sync-github", {
           method: "POST",
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         const s = (await res.json()) as SyncSummary;
         router.refresh();
         toast.success(

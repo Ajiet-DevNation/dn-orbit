@@ -7,6 +7,7 @@ import {
   PixelDataTable,
 } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
+import { errorMessage } from "@/lib/utils";
 
 interface RosterEntry {
   id: string;
@@ -43,7 +44,7 @@ export default function EventRosterClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ registrationId, attended: !current }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         router.refresh();
       } catch (err) {
         toast.error(
