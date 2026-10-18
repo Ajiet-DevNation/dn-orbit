@@ -19,6 +19,14 @@ export const YEARS = [1, 2, 3, 4] as const;
 
 export const ABOUT_MAX_WORDS = 150;
 
+export const CV_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+
+/** True when the bytes start with the `%PDF-` header every PDF carries. */
+export function looksLikePdf(bytes: Uint8Array): boolean {
+  const magic = [0x25, 0x50, 0x44, 0x46, 0x2d]; // %PDF-
+  return magic.every((b, i) => bytes[i] === b);
+}
+
 export function countWords(text: string): number {
   const trimmed = text.trim();
   return trimmed ? trimmed.split(/\s+/).length : 0;

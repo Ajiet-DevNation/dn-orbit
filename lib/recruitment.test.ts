@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   countWords,
   fieldErrors,
+  looksLikePdf,
   recruitmentApplicationSchema,
 } from "./recruitment";
 
@@ -77,4 +78,11 @@ describe("recruitmentApplicationSchema", () => {
 test("countWords ignores surrounding and repeated whitespace", () => {
   expect(countWords("")).toBe(0);
   expect(countWords("  a  b\n c ")).toBe(3);
+});
+
+test("looksLikePdf checks the %PDF- header, not the file name", () => {
+  const enc = new TextEncoder();
+  expect(looksLikePdf(enc.encode("%PDF-1.7\n..."))).toBe(true);
+  expect(looksLikePdf(enc.encode("\x89PNG...."))).toBe(false);
+  expect(looksLikePdf(new Uint8Array())).toBe(false);
 });
