@@ -9,6 +9,8 @@ import {
   MAX_TILT_DEG,
   MAX_ZOOM,
   MIN_LENS_HEIGHT,
+  THUMB_REVEAL_SHIFT,
+  thumbReveal,
   thumbX,
 } from "./lens-layout";
 
@@ -110,5 +112,37 @@ describe("lensSize", () => {
     const { cardH, thumbW, thumbH } = lensSize(1600, 1000, projects);
     expect(thumbH / cardH).toBeCloseTo(0.36, 2);
     expect(thumbH / thumbW).toBeCloseTo(projects.ratio, 1);
+  });
+});
+
+describe("thumbReveal", () => {
+  test("hidden and pushed out before the strips start", () => {
+    expect(thumbReveal(0, 1)).toEqual({
+      opacity: 0,
+      shift: THUMB_REVEAL_SHIFT,
+    });
+  });
+
+  test("fully in place once the intro completes, at any distance", () => {
+    for (const d of [1, 2, 3, 6]) {
+      expect(thumbReveal(1, d)).toEqual({ opacity: 1, shift: 0 });
+    }
+  });
+
+  test("nearest thumb leads, farther ones follow (stagger, not a pop)", () => {
+    const near = thumbReveal(0.3, 1).opacity;
+    const next = thumbReveal(0.3, 2).opacity;
+    const far = thumbReveal(0.3, 4).opacity;
+    expect(near).toBeGreaterThan(next);
+    expect(next).toBeGreaterThan(far);
+  });
+
+  test("fades in gradually rather than jumping", () => {
+    let prev = thumbReveal(0, 1).opacity;
+    for (let t = 0.02; t <= 1; t += 0.02) {
+      const o = thumbReveal(t, 1).opacity;
+      expect(o - prev).toBeLessThan(0.12);
+      prev = o;
+    }
   });
 });

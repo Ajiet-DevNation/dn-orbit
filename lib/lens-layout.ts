@@ -92,3 +92,22 @@ export function lensSize(
   const thumbW = Math.round(thumbH / s.ratio);
   return { cardW, cardH, thumbW, thumbH };
 }
+
+/** Thumbs slide in from this far out (px) as they fade in. */
+export const THUMB_REVEAL_SHIFT = 56;
+/** Each thumb further from the lens starts this much later (share of intro). */
+const THUMB_REVEAL_STAGGER = 0.14;
+
+// entrance reveal for a thumb |d| steps from the lens: nearest first, each one
+// fading in while easing the last few px into place (no pop, no unfold)
+export function thumbReveal(
+  intro: number,
+  distance: number,
+): { opacity: number; shift: number } {
+  // Capped at 3 so even far (off-screen) thumbs land as the intro completes.
+  const rank = Math.min(3, Math.max(0, Math.ceil(distance) - 1));
+  const span = 1 - THUMB_REVEAL_STAGGER * 3;
+  const local = clamp((intro - THUMB_REVEAL_STAGGER * rank) / span, 0, 1);
+  const eased = 1 - (1 - local) ** 3;
+  return { opacity: eased, shift: (1 - eased) * THUMB_REVEAL_SHIFT };
+}

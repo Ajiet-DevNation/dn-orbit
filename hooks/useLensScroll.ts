@@ -100,7 +100,6 @@ export function useLensScroll({
       return;
 
     let lastT = Number.NaN;
-    let lastBlur = -1;
     let lastGiantOn = false;
     let lastVeil = -1;
     let lastSolid = -1;
@@ -135,14 +134,6 @@ export function useLensScroll({
       const box = viewfinderSize(f.open, lensWidth, lensHeight);
       frame.style.width = `${box.width + pad * 2}px`;
       frame.style.height = `${box.height + pad * 2}px`;
-
-      // Blur-in: the card appears soft and sharpens. A filter holds its own
-      // compositing layer, so it is dropped entirely once sharp.
-      const blur = Math.round(f.blur * 10) / 10;
-      if (blur !== lastBlur) {
-        content.style.filter = blur > 0 ? `blur(${blur}px)` : "";
-        lastBlur = blur;
-      }
 
       const slide = (1 - f.giantIn) * window.innerWidth * GIANT_SLIDE_SHARE;
       const scale = 1 + (flyScale - 1) * f.fly;

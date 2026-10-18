@@ -4,11 +4,12 @@
 //
 // Modelled on oryzo.ai's lens reveal, re-skinned for the 8-bit HUD theme:
 //   pin     — the section pins with an EMPTY viewfinder: a dashed, frosted
-//             box with a HUD reticle and no picture. A giant glowing title
-//             slides across behind it; the box opens into the full lens and
-//             the card blurs in (faint and soft → solid and sharp), like
-//             oryzo's photo; the title shrinks behind the lens into its label
-//             on the left; then the thumb strips unfold from under the lens;
+//             box with a HUD reticle and no picture. From there the card fades
+//             in steadily (0 → 100% opacity, no blur) across the whole
+//             entrance, so the title sliding behind the glass always shows
+//             through it, softened — as in oryzo's lens. The box opens into
+//             the full lens, the title shrinks behind it into its label on the
+//             left, and the thumbs fade in beside the lens, nearest first;
 //   gallery — still pinned, scrolling walks the lens through the cards one by
 //             one (no loop, like oryzo), each card holding centre for a beat.
 
@@ -22,8 +23,6 @@ const DWELL = 0.2;
 export const VIEWFINDER_SHARE = 0.5;
 /** Frosted-glass blur the lens applies to whatever sits behind it. */
 export const LENS_FROST = "blur(14px) saturate(130%)";
-/** Blur the card starts from as it fades into the opened lens (px). */
-export const MAX_BLUR_PX = 18;
 
 function clamp01(n: number): number {
   // `<=` also folds -0 (from -rectTop at exactly 0) into a plain 0.
@@ -36,6 +35,7 @@ export function segment(p: number, a: number, b: number): number {
 }
 
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
+const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
 
@@ -67,13 +67,10 @@ export interface EntranceFrame {
   reticle: number;
   /** Viewfinder → full lens (0 = small square, 1 = full lens). */
   open: number;
-  /** Card opacity in the lens: 0 while the viewfinder is an empty box, rising
-   *  as the box opens (together with `blur`, a soft blur-in). While it is
-   *  below 1 the frosted glass shows the title behind it, blurred — the same
-   *  look in every phase the title is under the lens. */
+  /** Card opacity in the lens: 0 at the start (an empty box), rising steadily
+   *  to 1 by the end of the entrance. While it is below 1 the frosted glass
+   *  shows the title behind it, blurred — the same look in every phase. */
   veil: number;
-  /** Card blur in the lens, px: strong as it starts to appear, 0 once sharp. */
-  blur: number;
   /** Lens fill: 0 = frosted glass (blurs what is behind), 1 = solid (hides the
    *  thumbs that slide under it once the gallery starts). */
   solid: number;
@@ -84,9 +81,9 @@ export interface EntranceFrame {
 }
 
 // Timed against oryzo.ai's own reveal, frame by frame: an empty viewfinder →
-// title slides in behind it → glows as the box opens into a frosted lens → the
-// picture blurs in and sharpens → the title shrinks into its label behind the
-// lens → only then do the thumb strips arrive.
+// title slides in behind it while the picture fades in → glows as the box
+// opens into a frosted lens → the title shrinks into its label behind the
+// (by then solid) lens → the thumbs fade in beside it.
 export function entranceFrame(p: number): EntranceFrame {
   const open = easeInOutCubic(segment(p, 0.3, 0.58));
   return {
@@ -99,11 +96,11 @@ export function entranceFrame(p: number): EntranceFrame {
     heading: segment(p, 0.85, 0.89),
     reticle: 1 - segment(p, 0.3, 0.42),
     open,
-    veil: easeOutCubic(segment(p, 0.48, 0.72)),
-    blur: MAX_BLUR_PX * (1 - easeOutCubic(segment(p, 0.48, 0.8))),
-    solid: segment(p, 0.8, 0.86),
-    thumbs: segment(p, 0.88, 0.98),
-    chrome: segment(p, 0.92, 1),
+    veil: smoothstep(segment(p, 0, 0.8)),
+    solid: segment(p, 0.76, 0.82),
+    // A long, staggered window (see thumbReveal) — a short one read as a pop.
+    thumbs: segment(p, 0.82, 1),
+    chrome: segment(p, 0.9, 1),
   };
 }
 

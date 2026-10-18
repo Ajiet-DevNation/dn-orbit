@@ -7,7 +7,6 @@ import {
   entranceShare,
   hintOpacity,
   ITEM_PIN_SVH,
-  MAX_BLUR_PX,
   pinLengthSvh,
   progressForCard,
   segment,
@@ -56,29 +55,26 @@ describe("entranceFrame", () => {
     expect(f.chrome).toBe(0);
   });
 
-  test("the box stays pictureless while the title slides in behind it", () => {
-    for (const p of [0.1, 0.2, 0.3, 0.45]) {
-      expect(entranceFrame(p).veil).toBe(0);
+  test("the picture fades in steadily from 0 to 100% across the entrance", () => {
+    expect(entranceFrame(0).veil).toBe(0);
+    expect(entranceFrame(0.2).veil).toBeGreaterThan(0);
+    expect(entranceFrame(0.2).veil).toBeLessThan(entranceFrame(0.5).veil);
+    expect(entranceFrame(0.5).veil).toBeLessThan(1);
+    expect(entranceFrame(0.8).veil).toBe(1);
+    // No sudden jumps: a gentle ramp the whole way.
+    let prev = 0;
+    for (let p = 0.01; p <= 1; p += 0.01) {
+      const v = entranceFrame(p).veil;
+      expect(v - prev).toBeLessThan(0.03);
+      prev = v;
+    }
+  });
+
+  test("while the picture is still fading, the lens stays frosted glass", () => {
+    for (const p of [0.2, 0.4, 0.6]) {
+      expect(entranceFrame(p).veil).toBeLessThan(1);
       expect(entranceFrame(p).solid).toBe(0);
     }
-    expect(entranceFrame(0.2).giantOpacity).toBe(1);
-  });
-
-  test("the picture blurs in as the box opens: faint+soft, then solid+sharp", () => {
-    const early = entranceFrame(0.55);
-    const later = entranceFrame(0.68);
-    expect(early.veil).toBeGreaterThan(0);
-    expect(early.veil).toBeLessThan(later.veil);
-    expect(early.blur).toBeGreaterThan(later.blur);
-    expect(early.blur).toBeLessThan(MAX_BLUR_PX);
-    expect(entranceFrame(0.8).veil).toBe(1);
-    expect(entranceFrame(0.8).blur).toBe(0);
-  });
-
-  test("the picture only starts once the box is mostly open (like oryzo)", () => {
-    const f = entranceFrame(0.48);
-    expect(f.open).toBeGreaterThan(0.8);
-    expect(f.veil).toBe(0);
   });
 
   test("end: solid sharp lens, title landed, strips and controls out", () => {
@@ -90,7 +86,6 @@ describe("entranceFrame", () => {
       heading: 1,
       reticle: 0,
       veil: 1,
-      blur: 0,
       solid: 1,
       thumbs: 1,
       chrome: 1,
@@ -103,11 +98,10 @@ describe("entranceFrame", () => {
     }
   });
 
-  test("the thumbs only arrive once the title has landed (like oryzo)", () => {
-    const f = entranceFrame(0.88);
-    expect(f.fly).toBe(1);
-    expect(f.thumbs).toBe(0);
+  test("the lens is solid before any thumb starts to fade in beside it", () => {
+    const f = entranceFrame(0.82);
     expect(f.solid).toBe(1);
+    expect(f.thumbs).toBe(0);
   });
 
   test("open, veil, fly and thumbs move monotonically through the pin", () => {
@@ -116,7 +110,6 @@ describe("entranceFrame", () => {
       const f = entranceFrame(p);
       expect(f.open).toBeGreaterThanOrEqual(prev.open);
       expect(f.veil).toBeGreaterThanOrEqual(prev.veil);
-      expect(f.blur).toBeLessThanOrEqual(prev.blur);
       expect(f.fly).toBeGreaterThanOrEqual(prev.fly);
       expect(f.thumbs).toBeGreaterThanOrEqual(prev.thumbs);
       prev = f;

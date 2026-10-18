@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { lensTilt, lensX, thumbX } from "@/lib/lens-layout";
+import { lensTilt, lensX, thumbReveal, thumbX } from "@/lib/lens-layout";
 
 // ─── Lens carousel renderer ───────────────────────────────────────────────────
 // Renders the oryzo-style lens carousel: a fixed centre "lens" shows one card at
@@ -188,10 +188,13 @@ export function useCoverflow({
       const el = thumbs[i];
       if (!el) continue;
       const d = i - f;
-      // Intro unfolds both strips outward from under the lens.
-      const x = thumbX(d, dims) * intro;
+      // Intro: each thumb fades in where it belongs, easing the last few px
+      // inward, nearest the lens first — rather than the whole strip
+      // springing out from under the lens at once.
+      const reveal = thumbReveal(intro, Math.abs(d));
+      const x = thumbX(d, dims) + Math.sign(d) * reveal.shift;
       const offStage =
-        intro <= 0 ||
+        reveal.opacity <= 0 ||
         Math.abs(x) - thumbWidth / 2 > viewHalf ||
         // Wholly tucked under the lens.
         Math.abs(x) + thumbWidth / 2 <= lensWidth / 2;
@@ -215,7 +218,7 @@ export function useCoverflow({
       }
 
       el.style.transform = `translate3d(${x}px, 0, 0)`;
-      const opacity = Math.round(intro * 100) / 100;
+      const opacity = Math.round(reveal.opacity * 100) / 100;
       if (lastThumbOpacity[i] !== opacity) {
         el.style.opacity = String(opacity);
         lastThumbOpacity[i] = opacity;
