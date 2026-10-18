@@ -292,6 +292,10 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
     Record<PlanetKey, { x: number; y: number } | null>
   >({ github: null, leetcode: null, linkedin: null });
   // Decorative motion: honor prefers-reduced-motion by simply never emitting.
+  // The orbit's physics and ring loops pause while the stage is off screen —
+  // they used to run every frame for the page's whole life, competing with the
+  // lens sections' scroll animation far below.
+  const [onScreen, setOnScreen] = useState(true);
   const reducedMotionRef = useRef(false);
   useEffect(() => {
     reducedMotionRef.current =
@@ -548,7 +552,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
   }, [phase]);
 
   useEffect(() => {
-    if (phase !== "orbiting") return;
+    if (phase !== "orbiting" || !onScreen) return;
 
     const backCanvas = orbitCanvasBackRef.current;
     const frontCanvas = orbitCanvasFrontRef.current;
@@ -706,7 +710,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
 
     frame = requestAnimationFrame(drawOrbitRing);
     return () => cancelAnimationFrame(frame);
-  }, [phase]);
+  }, [phase, onScreen]);
 
   // ── Physics Position Calculator ────────────────────────────────────────────
 
@@ -732,6 +736,15 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
   // Canvas units → CSS px. The stage is square and scales with the viewport, so
   // this is remeasured on resize rather than assumed.
   const stageRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) =>
+      setOnScreen(entry.isIntersecting),
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const scaleFactorRef = useRef(1);
   // Last written z-index / opacity per planet — both force a style recalc, so
   // they're only touched when the rounded value actually changes.
@@ -844,7 +857,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
   });
 
   useEffect(() => {
-    if (phase !== "orbiting") return;
+    if (phase !== "orbiting" || !onScreen) return;
 
     let lastTime = performance.now();
     let frame: number;
@@ -928,7 +941,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
 
     frame = requestAnimationFrame(updatePositions);
     return () => cancelAnimationFrame(frame);
-  }, [phase, paintPlanets]);
+  }, [phase, paintPlanets, onScreen]);
 
   // ── Drag & Shatter Interaction Handlers ─────────────────────────────────────
 

@@ -230,14 +230,32 @@ function ScrollCue() {
     const el = ref.current;
     if (!el || prefersReducedMotion()) return;
     let raf = 0;
+    let lit: boolean | null = null;
     const start = performance.now();
     const tick = (now: number) => {
-      // 1.2s period, hard on/off — a blink, not a pulse.
-      el.style.opacity = ((now - start) % 1200 < 700 ? 1 : 0.25).toString();
+      // 1.2s period, hard on/off — a blink, not a pulse. Written only when it
+      // flips: a style write every frame for the page's whole life was pure
+      // waste.
+      const on = (now - start) % 1200 < 700;
+      if (on !== lit) {
+        el.style.opacity = on ? "1" : "0.25";
+        lit = on;
+      }
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // Only blink while the cue is on screen.
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !raf) raf = requestAnimationFrame(tick);
+      if (!entry.isIntersecting && raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    });
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
   return (
