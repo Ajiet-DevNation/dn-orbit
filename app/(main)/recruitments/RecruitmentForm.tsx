@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
-import { Progress } from "@/components/ui/8bit-progress";
 import {
   Select,
   SelectContent,
@@ -26,10 +25,11 @@ import {
   YEARS,
 } from "@/lib/recruitment";
 import { cn } from "@/lib/utils";
+import { MissionProgress } from "./MissionProgress";
+import { RecruitHeaderCard, type Step } from "./RecruitHeaderCard";
 
 type Key = keyof RecruitmentApplicationInput;
 type Values = Record<Key, string>;
-type Step = "form" | "review" | "done";
 
 const EMPTY: Values = {
   name: "",
@@ -425,20 +425,14 @@ function Layout({
       </Link>
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-10">
         <aside className="flex flex-col gap-6 lg:sticky lg:top-28 lg:col-span-2 lg:self-start">
-          <div className="flex flex-col gap-3 border-2 border-white/10 border-t-[6px] border-t-[#22c55e] bg-[#0a0a0a] p-6 sm:p-8">
-            <span className="retro text-[9px] tracking-widest text-[#22c55e]">
-              RECRUITMENT
-            </span>
-            <h1 className="retro text-lg leading-relaxed text-white sm:text-xl">
-              JOIN DEVNATION
-            </h1>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Think you could be part of DevNation? Tell us who you are and what
-              you build. Open to AJIET students.
-            </p>
-            {step && <Steps current={step} />}
-          </div>
+          <RecruitHeaderCard current={step} />
 
+          {filled !== undefined && (
+            // Desktop only, like before: on phones the form should start fast.
+            <div className="hidden lg:block">
+              <MissionProgress filled={filled} total={REQUIRED.length} />
+            </div>
+          )}
           <div className="hidden flex-col gap-4 border-2 border-white/10 bg-[#0a0a0a] p-6 lg:flex">
             <span className="retro text-[9px] tracking-widest text-white/80">
               HOW IT WORKS
@@ -460,57 +454,11 @@ function Layout({
               ))}
             </ol>
           </div>
-
-          {filled !== undefined && (
-            <div className="hidden flex-col gap-3 border-2 border-white/10 bg-[#0a0a0a] p-6 lg:flex">
-              <div className="flex items-center justify-between">
-                <span className="retro text-[9px] tracking-widest text-white/80">
-                  PROGRESS
-                </span>
-                <span className="retro text-[9px] text-[#22c55e]">
-                  {filled} / {REQUIRED.length} REQUIRED
-                </span>
-              </div>
-              <Progress
-                value={Math.round((filled / REQUIRED.length) * 100)}
-                variant="retro"
-                progressBg="bg-[#22c55e]"
-                className="h-4"
-              />
-            </div>
-          )}
         </aside>
 
         <div className="flex flex-col gap-6 lg:col-span-3">{children}</div>
       </div>
     </div>
-  );
-}
-
-const STEPS: Step[] = ["form", "review", "done"];
-
-function Steps({ current }: { current: Step }) {
-  const at = STEPS.indexOf(current);
-  return (
-    <ol className="mt-2 flex items-center gap-2 border-t-2 border-white/10 pt-4">
-      {STEPS.map((s, i) => (
-        <li
-          key={s}
-          aria-current={i === at ? "step" : undefined}
-          className={cn(
-            "retro text-[8px] tracking-widest",
-            i === at
-              ? "text-[#22c55e]"
-              : i < at
-                ? "text-white/60"
-                : "text-white/25",
-          )}
-        >
-          {i > 0 && <span className="mr-2 text-white/25">▸</span>}
-          {s.toUpperCase()}
-        </li>
-      ))}
-    </ol>
   );
 }
 
