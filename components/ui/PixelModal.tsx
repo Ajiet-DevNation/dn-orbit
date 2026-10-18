@@ -88,7 +88,7 @@ interface PixelModalProps {
   hideClose?: boolean;
   className?: string;
   /** Accent the frame — used by confirms to read as destructive. */
-  tone?: "default" | "danger" | "accent";
+  tone?: keyof typeof TONE;
 }
 
 const SIZE_CLASS = {
@@ -102,6 +102,8 @@ const TONE = {
   default: { border: "border-white/80", bar: "bg-white/[0.06]" },
   danger: { border: "border-red-500/80", bar: "bg-red-500/[0.08]" },
   accent: { border: "border-[#22c55e]/80", bar: "bg-[#22c55e]/[0.08]" },
+  // Pluton's palette — the recruitment popup.
+  violet: { border: "border-[#8b5cf6]/80", bar: "bg-[#8b5cf6]/[0.08]" },
 } as const;
 
 export function PixelModal({
