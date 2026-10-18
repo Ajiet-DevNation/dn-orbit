@@ -84,6 +84,30 @@ export function RecruitmentsTable({
     submit(a.id, status);
   };
 
+  // Deleting is permanent (row and CV file), so it is always confirmed.
+  const remove = async (a: Application) => {
+    const ok = await confirm({
+      title: "DELETE APPLICATION",
+      message: `Permanently delete ${a.name}'s application${a.cvPath ? " and CV" : ""}? This can't be undone.`,
+      confirmLabel: "DELETE",
+    });
+    if (!ok) return;
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/admin/recruitments/${a.id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error(await res.text());
+        router.refresh();
+        toast.success("Application deleted");
+      } catch (err) {
+        toast.error(
+          `Delete failed: ${err instanceof Error ? err.message : "unknown"}`,
+        );
+      }
+    });
+  };
+
   const btn =
     "retro border-2 px-3 py-1 text-[8px] transition-colors disabled:opacity-50";
 
@@ -210,6 +234,14 @@ export function RecruitmentsTable({
             className={`${btn} border-red-500/40 text-red-400 hover:bg-red-500/10`}
           >
             REJECT
+          </button>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => remove(a)}
+            className={`${btn} border-white/20 text-zinc-400 hover:border-red-500/60 hover:text-red-400`}
+          >
+            DELETE
           </button>
         </div>
       ),
