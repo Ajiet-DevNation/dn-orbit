@@ -4,6 +4,7 @@ import { isApproved } from "@/lib/access";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { registrationClosesAt } from "@/lib/event-order";
 import {
   type EventAudience,
   parseFormSchema,
@@ -48,8 +49,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   const isMember = approvedMember; // member path → locked identity, USN exempt
 
   // Deadline + capacity gates.
-  const deadline = event.registrationDeadline ?? event.eventDate;
-  if (deadline && new Date() > deadline)
+  if (new Date() > registrationClosesAt(event))
     return NextResponse.json({ error: "Registration closed" }, { status: 409 });
 
   // Fast, non-authoritative pre-check: reject an obviously-full event before

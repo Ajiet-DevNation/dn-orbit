@@ -93,10 +93,30 @@ const eventFields = {
   formSchema: z.unknown().optional(),
 };
 
-export const createEventSchema = z.object(eventFields);
+// a sign-up deadline after the event would keep registration open for an event
+// that is already over
+const deadlineNotAfterEvent = (e: {
+  eventDate?: Date;
+  registrationDeadline?: Date | null;
+}) =>
+  !e.eventDate ||
+  !e.registrationDeadline ||
+  e.registrationDeadline <= e.eventDate;
+const DEADLINE_ISSUE = {
+  message: "registration deadline can't be after the event",
+  path: ["registrationDeadline"],
+};
 
-/** PATCH is the same shape with every field optional (partial update). */
-export const updateEventSchema = z.object(eventFields).partial();
+export const createEventSchema = z
+  .object(eventFields)
+  .refine(deadlineNotAfterEvent, DEADLINE_ISSUE);
+
+/** PATCH is the same shape with every field optional (partial update). Only
+ *  checks the deadline when both dates arrive together. */
+export const updateEventSchema = z
+  .object(eventFields)
+  .partial()
+  .refine(deadlineNotAfterEvent, DEADLINE_ISSUE);
 
 // ── Projects ─────────────────────────────────────────────────────────────────
 

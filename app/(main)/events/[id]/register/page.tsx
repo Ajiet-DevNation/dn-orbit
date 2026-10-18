@@ -6,6 +6,7 @@ import {
   formatEventDateTime,
   formatEventTime,
 } from "@/lib/event-format";
+import { registrationClosesAt } from "@/lib/event-order";
 import { type EventAudience, parseFormSchema } from "@/lib/forms";
 import { RegistrationForm } from "./RegistrationForm";
 
@@ -37,10 +38,9 @@ export default async function RegisterPage({
     session.user.status === "approved" &&
     (audience === "members" || audience === "members_college");
 
-  const deadline = event.registrationDeadline ?? event.eventDate;
   const closed =
     (event.capacity != null && event._count.registrations >= event.capacity) ||
-    (deadline ? new Date() > deadline : false);
+    new Date() > registrationClosesAt(event);
 
   return (
     <RegistrationForm

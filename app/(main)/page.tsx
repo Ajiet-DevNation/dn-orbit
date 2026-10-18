@@ -25,7 +25,7 @@ import {
   formatEventDateTime,
   formatEventTime,
 } from "@/lib/event-format";
-import { orderForDisplay } from "@/lib/event-order";
+import { orderForDisplay, registrationClosesAt } from "@/lib/event-order";
 import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
 import type { ProjectData } from "@/lib/projects";
@@ -106,7 +106,6 @@ export default async function V2Page() {
   }));
 
   const eventCards: EventCardData[] = events.map((e) => {
-    const deadline = e.registrationDeadline ?? e.eventDate;
     const full = e.capacity != null && e._count.registrations >= e.capacity;
     return {
       id: e.id,
@@ -127,7 +126,7 @@ export default async function V2Page() {
         ? formatEventDateTime(e.registrationDeadline)
         : null,
       isFull: full,
-      registrationClosed: full || (deadline ? new Date() > deadline : false),
+      registrationClosed: full || new Date() > registrationClosesAt(e),
     };
   });
 
