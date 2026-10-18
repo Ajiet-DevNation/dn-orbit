@@ -16,11 +16,11 @@ import { LENS_PAD, LensSection } from "./LensSection";
 
 // ─── tuning (desktop reference; scaled to the viewport by lensSize) ──────────
 const LENS_SIZING = {
-  maxWidth: 420, // portrait member card (lens) width on desktop
+  maxWidth: 620, // portrait member card (lens) width cap
   ratio: 536 / 392, // height / width (~5:7)
   share: 0.36, // lens width / viewport on wider screens
   phoneShare: 0.78,
-  thumbRatio: 0.42, // thumb height / lens height
+  thumbRatio: 0.36, // thumb height / lens height (oryzo ~0.35)
 };
 // Flip easing: smooth ease-in-out, no overshoot, so it reads as a real card turn.
 const FLIP_EASE = "transform 560ms cubic-bezier(0.4, 0.0, 0.2, 1)";
@@ -43,8 +43,10 @@ const MemberFront = memo(function MemberFront({
 }) {
   return (
     <Card className="h-full justify-between gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.05)]">
-      <div className="border-b-[6px] border-white/10 px-3 py-3 text-center">
-        <span className="retro text-[9px] tracking-wider text-[#22c55e]">
+      {/* Sizes in container units (cqw) of the card wrapper, so the chrome
+          scales with the lens. */}
+      <div className="border-b-[6px] border-white/10 px-3 py-[clamp(0.75rem,2.6cqw,1.25rem)] text-center">
+        <span className="retro text-[clamp(9px,2cqw,12px)] tracking-wider text-[#22c55e]">
           {member.role}
         </span>
       </div>
@@ -88,8 +90,8 @@ const MemberFront = memo(function MemberFront({
         </div>
       </div>
 
-      <div className="border-t-[6px] border-white/10 px-3 py-3 text-center">
-        <span className="retro block truncate text-[11px] text-white">
+      <div className="border-t-[6px] border-white/10 px-3 py-[clamp(0.75rem,2.6cqw,1.25rem)] text-center">
+        <span className="retro block truncate text-[clamp(11px,2.7cqw,16px)] text-white">
           {toTitleCase(member.name)}
         </span>
       </div>
@@ -110,16 +112,16 @@ const MemberBack = memo(function MemberBack({
   return (
     <Card className="h-full justify-start gap-4 border-[#22c55e]/30 py-6 shadow-[0_0_24px_rgba(34,197,94,0.14)]">
       <div className="px-5">
-        <p className="retro text-[12px] leading-relaxed text-white">
+        <p className="retro text-[clamp(12px,2.8cqw,17px)] leading-relaxed text-white">
           {toTitleCase(member.name)}
         </p>
-        <p className="retro mt-2 text-[9px] tracking-wider text-[#22c55e]">
+        <p className="retro mt-2 text-[clamp(9px,2cqw,12px)] tracking-wider text-[#22c55e]">
           {member.role}
           {member.isAlumni && <span className="text-amber-400"> · ALUMNI</span>}
         </p>
       </div>
 
-      <p className="flex-1 px-5 text-[12px] leading-relaxed text-muted-foreground">
+      <p className="flex-1 px-5 text-[clamp(12px,2.9cqw,16px)] leading-relaxed text-muted-foreground">
         {member.bio}
       </p>
 
@@ -252,7 +254,7 @@ const MemberThumb = memo(function MemberThumb({
     <div
       aria-hidden
       onClick={() => onPick(index)}
-      className="group relative h-full w-full cursor-pointer overflow-hidden border-2 border-white/10 bg-[#0d0d0d] transition-colors duration-200 hover:border-[#22c55e]/60"
+      className="group @container relative h-full w-full cursor-pointer overflow-hidden border-2 border-white/10 bg-[#0d0d0d] transition-colors duration-200 hover:border-[#22c55e]/60"
     >
       {member.imageUrl ? (
         // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
@@ -273,7 +275,7 @@ const MemberThumb = memo(function MemberThumb({
           </span>
         </div>
       )}
-      <span className="retro absolute inset-x-0 bottom-0 truncate border-t-2 border-white/10 bg-[#0a0a0a]/85 px-2 py-1.5 text-center text-[7px] text-white/75">
+      <span className="retro absolute inset-x-0 bottom-0 truncate border-t-2 border-white/10 bg-[#0a0a0a]/85 px-2 py-[clamp(0.375rem,3cqw,0.6rem)] text-center text-[clamp(7px,4cqw,10px)] text-white/75">
         {toTitleCase(member.name)}
       </span>
     </div>
@@ -342,6 +344,7 @@ export function MembersSection() {
     <LensSection
       id="members"
       title="MEMBERS"
+      kicker="WHO WE ARE"
       sectionRef={sectionRef}
       lensRef={lensRef}
       lensWidth={CARD_W}
@@ -369,7 +372,7 @@ export function MembersSection() {
           key={member.id}
           ref={registerCard(i)}
           data-cf-index={i}
-          className="absolute inset-0"
+          className="@container absolute inset-0"
           style={{
             visibility: i === 0 ? undefined : "hidden",
             // Inner perspective for the front/back flip.

@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import {
-  DISSOLVE_PREVIEW,
+  arrivalProgress,
   dissolveAt,
   entranceFrame,
   entranceProgress,
-  MAX_BLUR_PX,
   segment,
   VIEWFINDER_SHARE,
+  viewfinderSide,
   viewfinderSize,
 } from "./lens-entrance";
 
@@ -28,6 +28,16 @@ describe("entranceProgress", () => {
   });
 });
 
+describe("arrivalProgress", () => {
+  test("0 at the viewport bottom, 1 once the section reaches the top", () => {
+    expect(arrivalProgress(1000, 1000)).toBe(0);
+    expect(arrivalProgress(500, 1000)).toBe(0.5);
+    expect(arrivalProgress(0, 1000)).toBe(1);
+    expect(arrivalProgress(-300, 1000)).toBe(1);
+    expect(arrivalProgress(3000, 1000)).toBe(0);
+  });
+});
+
 describe("segment", () => {
   test("maps a window to 0→1 and clamps outside it", () => {
     expect(segment(0.2, 0.2, 0.4)).toBe(0);
@@ -37,22 +47,27 @@ describe("segment", () => {
 });
 
 describe("entranceFrame", () => {
-  test("start: small viewfinder with a preview glimpse, nothing else", () => {
-    const f = entranceFrame(0);
+  test("pin start: built viewfinder, scroll hint, nothing else yet", () => {
+    const f = entranceFrame(0, 1);
+    expect(f.dissolve).toBe(1);
     expect(f.open).toBe(0);
+    expect(f.blur).toBe(0);
+    expect(f.hint).toBe(1);
+    expect(f.reticle).toBe(1);
     expect(f.giantOpacity).toBe(0);
     expect(f.heading).toBe(0);
     expect(f.thumbs).toBe(0);
     expect(f.chrome).toBe(0);
-    expect(f.hint).toBe(1);
-    expect(f.reticle).toBe(1);
-    expect(f.dissolve).toBe(DISSOLVE_PREVIEW);
-    expect(f.blur).toBe(MAX_BLUR_PX);
   });
 
-  test("end: full lens, sharp, heading in place, strips and controls out", () => {
-    const f = entranceFrame(1);
-    expect(f).toMatchObject({
+  test("the viewfinder content builds while the section arrives", () => {
+    expect(entranceFrame(0, 0).dissolve).toBe(0);
+    expect(entranceFrame(0, 0.6).dissolve).toBeGreaterThan(0);
+    expect(entranceFrame(0, 0.6).dissolve).toBeLessThan(1);
+  });
+
+  test("end: full lens, sharp, title in place, strips and controls out", () => {
+    expect(entranceFrame(1)).toMatchObject({
       open: 1,
       fly: 1,
       giantOpacity: 0,
@@ -60,34 +75,37 @@ describe("entranceFrame", () => {
       hint: 0,
       reticle: 0,
       dissolve: 1,
-      blur: 0,
       thumbs: 1,
       chrome: 1,
     });
+    expect(entranceFrame(1).blur).toBeCloseTo(0, 10);
   });
 
-  test("the lens is open and sharp before the thumbs unfold", () => {
-    const atThumbsStart = entranceFrame(0.66);
-    expect(atThumbsStart.open).toBe(1);
-    expect(atThumbsStart.dissolve).toBe(1);
-    expect(atThumbsStart.thumbs).toBe(0);
+  test("the giant title is solid (never a muddy half-fade) while it crosses", () => {
+    for (const p of [0.15, 0.25, 0.4, 0.6, 0.75]) {
+      expect(entranceFrame(p).giantOpacity).toBe(1);
+    }
   });
 
-  test("giant title is fully visible mid-flight and gone once the heading shows", () => {
-    expect(entranceFrame(0.6).giantOpacity).toBe(1);
-    expect(entranceFrame(0.78).giantOpacity).toBe(0);
-    expect(entranceFrame(0.78).heading).toBe(1);
+  test("focus pull peaks mid-open", () => {
+    const mid = entranceFrame(0.45).blur;
+    expect(mid).toBeGreaterThan(entranceFrame(0.32).blur);
+    expect(mid).toBeGreaterThan(entranceFrame(0.58).blur);
   });
 
-  test("every channel moves monotonically through the pin", () => {
+  test("the lens is open before the title lands and the thumbs unfold", () => {
+    const f = entranceFrame(0.7);
+    expect(f.open).toBe(1);
+    expect(f.thumbs).toBe(0);
+  });
+
+  test("open, fly and thumbs move monotonically through the pin", () => {
     let prev = entranceFrame(0);
     for (let p = 0.01; p <= 1; p += 0.01) {
       const f = entranceFrame(p);
       expect(f.open).toBeGreaterThanOrEqual(prev.open);
       expect(f.fly).toBeGreaterThanOrEqual(prev.fly);
-      expect(f.dissolve).toBeGreaterThanOrEqual(prev.dissolve);
       expect(f.thumbs).toBeGreaterThanOrEqual(prev.thumbs);
-      expect(f.blur).toBeLessThanOrEqual(prev.blur);
       prev = f;
     }
   });
@@ -105,11 +123,14 @@ describe("dissolveAt", () => {
 });
 
 describe("viewfinderSize", () => {
-  test("starts as a square off the shorter side and ends at the lens", () => {
-    expect(viewfinderSize(0, 400, 600)).toEqual({
-      width: 400 * VIEWFINDER_SHARE,
-      height: 400 * VIEWFINDER_SHARE,
-    });
-    expect(viewfinderSize(1, 400, 600)).toEqual({ width: 400, height: 600 });
+  test("starts as a square off the lens height and ends at the lens", () => {
+    const side = 600 * VIEWFINDER_SHARE;
+    expect(viewfinderSide(500, 600)).toBe(side);
+    expect(viewfinderSize(0, 500, 600)).toEqual({ width: side, height: side });
+    expect(viewfinderSize(1, 500, 600)).toEqual({ width: 500, height: 600 });
+  });
+
+  test("never starts wider than a narrow lens", () => {
+    expect(viewfinderSide(200, 800)).toBe(200);
   });
 });

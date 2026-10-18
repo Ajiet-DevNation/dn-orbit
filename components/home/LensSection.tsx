@@ -1,10 +1,9 @@
 "use client";
 
 import { useLensEntrance } from "@/hooks/useLensEntrance";
-import { ENTRANCE_PIN_SVH, VIEWFINDER_SHARE } from "@/lib/lens-entrance";
+import { ENTRANCE_PIN_SVH, viewfinderSide } from "@/lib/lens-entrance";
 import { cn } from "@/lib/utils";
 import { CoverflowFloor } from "./CoverflowControls";
-import { SectionHeading } from "./SectionHeading";
 
 // Shared shell for the Projects and Members lens carousels: the pinned section,
 // the viewfinder/lens frame, the giant title, the pixel cover and the HUD
@@ -23,6 +22,8 @@ const GIANT_GLOW =
 interface LensSectionProps {
   id: string;
   title: string;
+  /** Small line above the title, e.g. "WHAT WE BUILD". */
+  kicker: string;
   sectionRef: React.RefObject<HTMLElement | null>;
   /** The lens window; holds the big cards (and is what the power-on scans). */
   lensRef: React.RefObject<HTMLDivElement | null>;
@@ -45,6 +46,7 @@ interface LensSectionProps {
 export function LensSection({
   id,
   title,
+  kicker,
   sectionRef,
   lensRef,
   lensWidth,
@@ -66,7 +68,7 @@ export function LensSection({
     setIntro,
   });
 
-  const side = Math.min(lensWidth, lensHeight) * VIEWFINDER_SHARE;
+  const side = viewfinderSide(lensWidth, lensHeight);
   const coverRows = Math.max(
     6,
     Math.round((COVER_COLS * lensHeight) / lensWidth),
@@ -82,14 +84,25 @@ export function LensSection({
       className="relative h-[calc(100svh+var(--pin))] w-full scroll-mt-[calc(var(--pin)*-1)] motion-reduce:h-auto motion-reduce:scroll-mt-24"
       style={{ "--pin": `${ENTRANCE_PIN_SVH}svh` } as React.CSSProperties}
     >
-      <div className="sticky top-0 flex h-svh w-full flex-col overflow-hidden pb-6 motion-reduce:static motion-reduce:h-auto motion-reduce:min-h-screen motion-reduce:py-20">
-        {/* The giant title flies into this heading, which then takes over. */}
-        <div
-          ref={entrance.headingRef}
-          className="shrink-0 pt-28"
-          style={{ opacity: 0 }}
-        >
-          <SectionHeading text={title} />
+      {/* Oryzo proportions: the lens fills ~80% of the screen height, centred;
+          the title sits to its left (above it on phones). */}
+      <div className="sticky top-0 h-svh w-full overflow-hidden motion-reduce:relative">
+        {/* The giant title flies into this label, which then takes over. The
+            kicker is there from the start, like oryzo's "SO PORTABLE,". */}
+        <div className="pointer-events-none absolute inset-x-0 top-[92px] z-30 flex flex-col items-center gap-3 md:inset-x-auto md:left-[max(24px,3.5vw)] md:top-[24%] md:items-start">
+          <p className="retro text-[9px] tracking-[0.3em] text-[#22c55e] md:text-[clamp(10px,0.8vw,14px)]">
+            {kicker}
+          </p>
+          <div
+            ref={entrance.headingRef}
+            className="flex flex-col items-center gap-4 md:items-start"
+            style={{ opacity: 0 }}
+          >
+            <h2 className="retro text-xl tracking-wider text-white md:text-[clamp(20px,1.8vw,32px)]">
+              {title}
+            </h2>
+            <span aria-hidden className="block h-[3px] w-16 bg-[#22c55e]" />
+          </div>
         </div>
 
         {/* Lens stage: thumbs run out to both sides, the lens frame sits on
@@ -98,7 +111,7 @@ export function LensSection({
         <div
           ref={entrance.stageRef}
           className={cn(
-            "relative min-h-0 w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
+            "absolute inset-x-0 bottom-0 top-[150px] cursor-grab touch-pan-y select-none active:cursor-grabbing md:top-0",
             stageClassName,
           )}
           style={stageStyle}
@@ -188,13 +201,14 @@ export function LensSection({
           <div
             ref={entrance.hintRef}
             aria-hidden
-            className="retro pointer-events-none absolute inset-x-0 z-10 text-center text-[8px] tracking-[0.3em] text-white/50"
-            style={{
-              top: `calc(50% + ${Math.round(side / 2) + LENS_PAD + 22}px)`,
-            }}
+            className="pointer-events-none absolute inset-x-0 bottom-7 z-10 flex items-center justify-center gap-3"
           >
-            SCROLL{" "}
-            <span className="cursor-blink inline-block text-[#22c55e]">▼</span>
+            <span className="grid size-6 place-items-center border-2 border-[#22c55e]/60 text-[9px] text-[#22c55e]">
+              <span className="cursor-blink">▼</span>
+            </span>
+            <span className="retro text-[8px] tracking-[0.3em] text-white/70">
+              SCROLL TO CONTINUE
+            </span>
           </div>
 
           <div

@@ -2,22 +2,21 @@
 // Members), split out from hooks/useLensEntrance.ts so it can be unit-tested
 // without a DOM.
 //
-// Modelled on oryzo.ai's lens reveal, re-skinned for the 8-bit HUD theme: the
-// section pins, a small dashed viewfinder sits in the middle, a giant glowing
-// title slides across, the viewfinder opens into the full lens while the card
-// inside builds up block by block (the site's pixel dissolve, in place of
-// Oryzo's blur focus-pull), the giant title flies up into the section heading,
-// and the thumb strips unfold from under the lens.
+// Modelled on oryzo.ai's lens reveal, re-skinned for the 8-bit HUD theme:
+//   arrival — while the section scrolls up into view, the content inside the
+//             small dashed viewfinder builds up block by block (the site's
+//             pixel dissolve), so it is never an empty box;
+//   pin     — the section pins; a giant glowing title slides across, the
+//             viewfinder opens into the full lens with a brief focus pull,
+//             the title shrinks into its label on the left, and the thumb
+//             strips unfold from under the lens.
 
 /** Extra scroll the section stays pinned for while the entrance plays (svh). */
-export const ENTRANCE_PIN_SVH = 110;
-/** Viewfinder side before it opens, as a share of the lens's shorter side. */
+export const ENTRANCE_PIN_SVH = 120;
+/** Viewfinder side before it opens, as a share of the lens height. */
 export const VIEWFINDER_SHARE = 0.5;
-/** Share of the dissolve already cleared at p = 0, so the small viewfinder
- *  shows a glitchy glimpse of the card instead of an empty box. */
-export const DISSOLVE_PREVIEW = 0.28;
-/** Blur on the lens content before it is in focus (px). */
-export const MAX_BLUR_PX = 10;
+/** Peak defocus while the viewfinder opens (px). */
+export const MAX_BLUR_PX = 6;
 
 function clamp01(n: number): number {
   // `<=` also folds -0 (from -rectTop at exactly 0) into a plain 0.
@@ -44,22 +43,28 @@ export function entranceProgress(
   return clamp01(-rectTop / travel);
 }
 
+// arrival progress: 0 with the section's top at the viewport bottom, 1 as it pins
+export function arrivalProgress(rectTop: number, viewportHeight: number) {
+  if (viewportHeight <= 0) return 1;
+  return clamp01(1 - rectTop / viewportHeight);
+}
+
 export interface EntranceFrame {
   /** Giant title slide-in from the right (0 = off to the side, 1 = centred). */
   giantIn: number;
   /** Giant title opacity. */
   giantOpacity: number;
-  /** Giant title flight into the heading slot (0 = centre, 1 = heading). */
+  /** Giant title flight into the label slot (0 = centre, 1 = label). */
   fly: number;
-  /** Real section heading opacity (takes over from the giant title). */
+  /** Real section title opacity (takes over from the giant title). */
   heading: number;
-  /** "SCROLL" hint under the viewfinder. */
+  /** "SCROLL TO CONTINUE" hint. */
   hint: number;
   /** Crosshair / ticks inside the viewfinder. */
   reticle: number;
   /** Viewfinder → full lens (0 = small square, 1 = full lens). */
   open: number;
-  /** Share of the pixel cover cleared (DISSOLVE_PREVIEW → 1). */
+  /** Share of the pixel cover cleared. */
   dissolve: number;
   /** Lens content blur, px. */
   blur: number;
@@ -69,23 +74,23 @@ export interface EntranceFrame {
   chrome: number;
 }
 
-export function entranceFrame(p: number): EntranceFrame {
-  const giantIn = easeOutCubic(segment(p, 0, 0.3));
-  const fly = easeInOutCubic(segment(p, 0.5, 0.75));
-  const dissolve =
-    DISSOLVE_PREVIEW + (1 - DISSOLVE_PREVIEW) * segment(p, 0.3, 0.62);
+export function entranceFrame(p: number, arrival = 1): EntranceFrame {
+  const giantIn = easeOutCubic(segment(p, 0.04, 0.34));
+  const open = easeInOutCubic(segment(p, 0.3, 0.6));
   return {
     giantIn,
-    giantOpacity: giantIn * (1 - segment(p, 0.72, 0.78)),
-    fly,
-    heading: segment(p, 0.7, 0.76),
-    hint: 1 - segment(p, 0, 0.15),
-    reticle: 1 - segment(p, 0.25, 0.4),
-    open: easeInOutCubic(segment(p, 0.25, 0.55)),
-    dissolve,
-    blur: MAX_BLUR_PX * (1 - segment(p, 0.3, 0.65)),
-    thumbs: segment(p, 0.66, 0.9),
-    chrome: segment(p, 0.82, 0.95),
+    // Full strength almost at once: a half-faded white reads as muddy grey.
+    giantOpacity: segment(p, 0.04, 0.12) * (1 - segment(p, 0.8, 0.86)),
+    fly: easeInOutCubic(segment(p, 0.56, 0.84)),
+    heading: segment(p, 0.8, 0.86),
+    hint: 1 - segment(p, 0.06, 0.18),
+    reticle: 1 - segment(p, 0.3, 0.42),
+    open,
+    dissolve: segment(arrival, 0.3, 0.95),
+    // A camera-style focus pull: soft mid-open, sharp at both ends.
+    blur: MAX_BLUR_PX * Math.sin(Math.PI * open),
+    thumbs: segment(p, 0.72, 0.94),
+    chrome: segment(p, 0.86, 0.97),
   };
 }
 
@@ -101,9 +106,14 @@ export function viewfinderSize(
   lensWidth: number,
   lensHeight: number,
 ): { width: number; height: number } {
-  const side = Math.min(lensWidth, lensHeight) * VIEWFINDER_SHARE;
+  const side = viewfinderSide(lensWidth, lensHeight);
   return {
     width: side + (lensWidth - side) * open,
     height: side + (lensHeight - side) * open,
   };
+}
+
+// starting square side: half the lens height, never wider than the lens
+export function viewfinderSide(lensWidth: number, lensHeight: number) {
+  return Math.min(lensWidth, lensHeight * VIEWFINDER_SHARE);
 }

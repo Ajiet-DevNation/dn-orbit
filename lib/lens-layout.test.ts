@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   LENS_HEIGHT_RESERVE,
+  LENS_HEIGHT_SHARE,
   LENS_ITEM_GAP,
   lensSize,
   lensTilt,
@@ -82,18 +83,29 @@ describe("lensTilt", () => {
 
 describe("lensSize", () => {
   const projects = {
-    maxWidth: 680,
+    maxWidth: 900,
     ratio: 600 / 680,
     share: 0.46,
     phoneShare: 0.8,
-    thumbRatio: 0.4,
+    thumbRatio: 0.36,
+  };
+  const members = {
+    maxWidth: 620,
+    ratio: 536 / 392,
+    share: 0.36,
+    phoneShare: 0.78,
+    thumbRatio: 0.36,
   };
 
-  test("caps at the desktop maximum on a big screen", () => {
-    expect(lensSize(2000, 1200, projects).cardW).toBe(680);
+  test("fills ~80% of a desktop screen's height, like oryzo", () => {
+    const { cardH } = lensSize(1918, 956, members);
+    expect(cardH).toBeGreaterThanOrEqual(
+      Math.round(956 * LENS_HEIGHT_SHARE) - 1,
+    );
+    expect(cardH).toBeLessThanOrEqual(Math.round(956 * LENS_HEIGHT_SHARE) + 1);
   });
 
-  test("shrinks to fit a short laptop screen", () => {
+  test("leaves room for the nav and counter on a short laptop", () => {
     const { cardH } = lensSize(1366, 657, projects);
     expect(cardH).toBeLessThanOrEqual(657 - LENS_HEIGHT_RESERVE + 1);
   });
@@ -108,8 +120,9 @@ describe("lensSize", () => {
     );
   });
 
-  test("thumbs keep the card's aspect ratio", () => {
-    const { thumbW, thumbH } = lensSize(1600, 1000, projects);
+  test("thumbs are about a third of the lens and keep its aspect", () => {
+    const { cardH, thumbW, thumbH } = lensSize(1600, 1000, projects);
+    expect(thumbH / cardH).toBeCloseTo(0.36, 2);
     expect(thumbH / thumbW).toBeCloseTo(projects.ratio, 1);
   });
 });

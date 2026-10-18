@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 import {
+  arrivalProgress,
   dissolveAt,
   entranceFrame,
   entranceProgress,
@@ -73,13 +74,16 @@ export function useLensEntrance({
 
     const cells = Array.from(coverRef.current?.children ?? []) as HTMLElement[];
     const cellHidden: boolean[] = [];
-    let lastP = Number.NaN;
+    let lastT = Number.NaN;
     let lastBlur = -1;
 
-    const apply = (p: number) => {
-      if (p === lastP) return;
-      lastP = p;
-      const f = entranceFrame(p);
+    // One scalar timeline: t in [-1, 0) is the arrival (section rising into
+    // view), [0, 1] the pinned entrance. Smoothing a single value keeps the two
+    // phases continuous across the moment the section sticks.
+    const apply = (t: number) => {
+      if (t === lastT) return;
+      lastT = t;
+      const f = entranceFrame(Math.max(0, t), Math.min(1, 1 + t));
 
       // Reads first (layout), then writes, so each frame forces at most one
       // layout. The flight target is measured live while it is in use.
@@ -136,7 +140,10 @@ export function useLensEntrance({
 
     const read = () => {
       const r = section.getBoundingClientRect();
-      return entranceProgress(r.top, r.height, window.innerHeight);
+      const vh = window.innerHeight;
+      return r.top > 0
+        ? arrivalProgress(r.top, vh) - 1
+        : entranceProgress(r.top, r.height, vh);
     };
 
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
@@ -164,7 +171,7 @@ export function useLensEntrance({
       raf = requestAnimationFrame(tick);
     };
     const onResize = () => {
-      lastP = Number.NaN; // geometry changed: re-measure and rewrite
+      lastT = Number.NaN; // geometry changed: re-measure and rewrite
       wake();
     };
 

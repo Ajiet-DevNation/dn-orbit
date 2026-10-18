@@ -52,8 +52,12 @@ export function lensTilt(d: number): { deg: number; scale: number } {
 
 /** Below this viewport width the lens takes phone sizing. */
 export const LENS_BREAKPOINT = 768;
-/** Vertical room the heading and counter need around the lens, px. */
-export const LENS_HEIGHT_RESERVE = 290;
+/** Desktop lens height as a share of the viewport (oryzo.ai uses ~0.8). */
+export const LENS_HEIGHT_SHARE = 0.8;
+/** Desktop: room the nav above and the counter below need, px. */
+export const LENS_HEIGHT_RESERVE = 180;
+/** Phone: the title sits above the lens, so more room is reserved, px. */
+export const PHONE_HEIGHT_RESERVE = 300;
 /** Smallest lens height before the section is allowed to overflow, px. */
 export const MIN_LENS_HEIGHT = 220;
 
@@ -69,16 +73,24 @@ export interface LensSizing {
   thumbRatio: number;
 }
 
-// lens + thumb sizes that fit one pinned screen in both directions
+// lens + thumb sizes that fill one pinned screen like oryzo's, in both directions
 export function lensSize(
   viewportWidth: number,
   viewportHeight: number,
   s: LensSizing,
 ) {
-  const share = viewportWidth < LENS_BREAKPOINT ? s.phoneShare : s.share;
-  const byWidth = Math.min(s.maxWidth, viewportWidth * share);
-  const byHeight =
-    Math.max(MIN_LENS_HEIGHT, viewportHeight - LENS_HEIGHT_RESERVE) / s.ratio;
+  const phone = viewportWidth < LENS_BREAKPOINT;
+  const heightRoom = phone
+    ? viewportHeight - PHONE_HEIGHT_RESERVE
+    : Math.min(
+        viewportHeight * LENS_HEIGHT_SHARE,
+        viewportHeight - LENS_HEIGHT_RESERVE,
+      );
+  const byWidth = Math.min(
+    s.maxWidth,
+    viewportWidth * (phone ? s.phoneShare : s.share),
+  );
+  const byHeight = Math.max(MIN_LENS_HEIGHT, heightRoom) / s.ratio;
   const cardW = Math.round(Math.min(byWidth, byHeight));
   const cardH = Math.round(cardW * s.ratio);
   const thumbH = Math.round(cardH * s.thumbRatio);
