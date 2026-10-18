@@ -7,35 +7,35 @@ import {
   releaseVelocity,
 } from "@/lib/coverflow-fling";
 import { isSettled, stepSpring } from "@/lib/coverflow-spring";
+import { lensTilt, lensX, thumbOpacity, thumbX } from "@/lib/lens-layout";
 
-// ─── Looping 3D coverflow controller ──────────────────────────────────────────
-// Drives a focus-based cover-flow: the centred card is full-size, upright, and on
-// top; its neighbours recede behind it (scaled, dimmed, pushed back in Z) and
-// tilt away in 3D on BOTH sides — the indices wrap, so the centre is always
-// flanked and the row fills the stage edge to edge. Focus is driven by pointer
-// drag + ◀ ▶ arrow keys + click-to-centre + a gentle idle auto-advance, all
-// integrated by one rAF loop. Everything is imperative (transforms written
-// straight to the card refs), so there are no per-frame React renders — the only
-// React state is the centre index, surfaced for the position indicator.
+// ─── Looping lens carousel controller ─────────────────────────────────────────
+// Drives the Oryzo-style lens carousel: a fixed centre "lens" shows one card at
+// full size, and a strip of small thumbs runs out to both sides. One focus value
+// moves both — the big card slides one lens-width per step, the thumbs one
+// thumb-pitch per step — so an item reads as growing while it passes through the
+// lens, and its photo tilts + zooms on the way (geometry in lib/lens-layout.ts).
+// Indices wrap, so the lens is always flanked. Focus is driven by pointer drag +
+// ◀ ▶ arrow keys + click-to-centre + a gentle idle auto-advance, all integrated
+// by one rAF loop. Everything is imperative (transforms written straight to the
+// element refs), so there are no per-frame React renders — the only React state
+// is the centre index, surfaced for the position indicator.
 //
-// Shared by the Projects and Members sections. The consumer renders the cards,
-// hands each one back via `registerCard(i)`, spreads `stageHandlers` on the drag
-// area, and reads `activeIndex` / `next` / `prev` / `goTo` for nav chrome. Tapping the centred
-// card calls `onActivateCenter(i, el)`; tapping any other card centres it.
-//
-// The 3D requires the consumer to set `perspective` on the stage (the cards'
-// offset parent) so the per-card `rotateY`/`translateZ` foreshortens correctly.
+// Shared by the Projects and Members sections. The consumer renders the big
+// cards inside the lens and hands each back via `registerCard(i)`, renders the
+// thumbs and hands each back via `registerThumb(i)`, spreads `stageHandlers` on
+// the drag area, and reads `activeIndex` / `next` / `prev` / `goTo` for nav
+// chrome. Tapping the centred card calls `onActivateCenter(i, el)`; tapping any
+// other card or thumb centres it. An element marked [data-lens-tilt] inside a
+// card (its photo) gets the tilt + zoom.
 
 interface CoverflowOptions {
   count: number;
-  /** Horizontal centre-to-centre gap in px (< card width → cards overlap). */
-  spread: number;
-  scaleStep?: number;
-  opacityStep?: number;
-  /** Degrees of Y-rotation per unit of (clamped) distance from centre. */
-  tilt?: number;
-  /** Pixels pushed back in Z per unit of distance from centre. */
-  depth?: number;
+  /** Inner (clipped) lens width in px — the size of the centre card. */
+  lensWidth: number;
+  thumbWidth: number;
+  /** Lens-to-thumb and thumb-to-thumb spacing in px. */
+  gap?: number;
   /** Idle auto-advance period in ms (0 disables it). */
   autoAdvanceMs?: number;
   /** Freezes ONLY the idle auto-advance (drag/keys still work), e.g. while a
@@ -48,15 +48,13 @@ interface CoverflowOptions {
 
 const MAX_DT_MS = 50;
 const DRAG_THRESHOLD = 5;
-const MAX_VISUAL_DISTANCE = 3.5;
-// Tilt saturates fast so the immediate neighbours already read as angled pages
-// rather than the row fanning ever-flatter into the distance.
-const MAX_TILT_DISTANCE = 1.4;
+// Pointer travel per card, as a share of the lens width. Between the thumb pitch
+// and the lens width, so a drag feels attached to whichever strip it started on.
+const DRAG_SPAN = 0.5;
 const INTRO_TAU_MS = 260;
 const SETTLE_EPS = 0.001;
-// A card this faint is off-stage: it stops being painted and stops being
-// written to at all (see applyCards). With fifteen cards that is roughly half
-// the per-frame work saved.
+// A thumb this faint is off-stage: it stops being painted and stops being
+// written to at all (see applyCards).
 const MIN_VISIBLE_OPACITY = 0.005;
 // Grace period after a manual gesture before the idle auto-advance may fire, so
 // a just-finished drag is never immediately yanked onward.
@@ -70,17 +68,11 @@ function wrapDelta(d: number, n: number): number {
   return r;
 }
 
-function clamp(n: number, lo: number, hi: number): number {
-  return n < lo ? lo : n > hi ? hi : n;
-}
-
 export function useCoverflow({
   count,
-  spread,
-  scaleStep = 0.12,
-  opacityStep = 0.32,
-  tilt = 34,
-  depth = 140,
+  lensWidth,
+  thumbWidth,
+  gap = 16,
   autoAdvanceMs = 0,
   paused = false,
   disabled = false,
@@ -88,34 +80,29 @@ export function useCoverflow({
 }: CoverflowOptions) {
   const sectionRef = useRef<HTMLElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  // Last-written z-index / pointer-events / visibility / will-change per card.
-  // transform & opacity are compositor-only (cheap to rewrite each frame), but
-  // these four force a style recalc, so we only touch them when they actually
-  // change — this is what keeps the drag buttery instead of steppy.
-  const lastZRef = useRef<number[]>([]);
-  const lastPeRef = useRef<("auto" | "none")[]>([]);
+  const thumbRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // Last-written visibility / pointer-events / will-change / opacity per big
+  // card and per thumb. transform is compositor-only (cheap to rewrite each
+  // frame), but these force a style recalc, so we only touch them when they
+  // actually change — this is what keeps the drag buttery instead of steppy.
   const lastVisibleRef = useRef<boolean[]>([]);
+  const lastPeRef = useRef<("auto" | "none")[]>([]);
   const lastWillChangeRef = useRef<string[]>([]);
   const lastOpacityRef = useRef<number[]>([]);
-  // Last-written HUD vars per card. Setting a custom property invalidates the
-  // card's style, so — like z-index — we only write when the rounded value
-  // actually changes, sparing the cards whose distance barely moved this frame.
+  const lastThumbVisibleRef = useRef<boolean[]>([]);
+  const lastThumbOpacityRef = useRef<number[]>([]);
+  const lastThumbWillChangeRef = useRef<string[]>([]);
+  // Last-written HUD vars per big card. Setting a custom property invalidates
+  // the card's subtree style, so we only write when the rounded value changes.
+  // Only the one or two cards inside the lens are ever written, so that cost is
+  // bounded no matter how long the row is.
   const lastDepthRef = useRef<number[]>([]);
   const lastCenterRef = useRef<number[]>([]);
-  // The HUD overlay roots inside each card (elements marked [data-hud]).
-  //
-  // --cf-depth / --cf-center used to be written to the CARD root. A custom
-  // property is inherited, so every write invalidated style for the card's
-  // ENTIRE subtree — and a member card is ~30 nodes (two faces, each with a
-  // frame, four brackets, badges, labels). Fifteen cards × two faces × those
-  // nodes, re-resolved whenever a card's distance crossed a 1/100 boundary
-  // during a drag, was the dominant cost in the "slideshow" jank.
-  //
-  // Writing to the overlay root instead confines the invalidation to the six or
-  // seven leaves that actually read the vars. Resolved once per card element
-  // and cached; re-resolved only when the card's DOM node identity changes.
-  const hudElsRef = useRef<(HTMLElement[] | null)[]>([]);
-  const hudOwnerRef = useRef<(HTMLElement | null)[]>([]);
+  // The [data-lens-tilt] photo inside each big card, resolved once per card
+  // element and re-resolved only when the card's DOM node identity changes.
+  const tiltElsRef = useRef<(HTMLElement | null)[]>([]);
+  const tiltOwnerRef = useRef<(HTMLElement | null)[]>([]);
+  const dragPx = Math.max(1, Math.round(lensWidth * DRAG_SPAN));
 
   // Motion state. `focus` is where the row IS (in cards), `target` where it is
   // headed, `velocity` how fast it is travelling (cards/second) — the spring in
@@ -141,9 +128,9 @@ export function useCoverflow({
   const lastMoveXRef = useRef(0);
   const lastMoveTRef = useRef(0);
 
-  // Intro: cards fan in (spread + fade + rise) the first time the section is
-  // seen. `introRef` eases 0 → `introTargetRef`. Under reduced-motion it snaps
-  // straight to 1 so the row is simply present, no entrance.
+  // Intro: the thumbs unfold from under the lens and the lens card rises in,
+  // the first time the section is seen. `introRef` eases 0 → `introTargetRef`.
+  // Under reduced-motion it snaps straight to 1 so the row is simply present.
   const introRef = useRef(0);
   const introTargetRef = useRef(0);
   const reduceMotionRef = useRef(false);
@@ -204,42 +191,43 @@ export function useCoverflow({
 
   // ── Per-frame layout ───────────────────────────────────────────────────────
 
-  // Position every card by its (wrapped) distance from the focused centre.
+  // Place every big card (inside the lens) and every thumb (either side of it)
+  // by its wrapped distance from the focused centre.
   const applyCards = useCallback(() => {
     const f = focusRef.current;
     const intro = introRef.current;
-    const refs = cardRefs.current;
-    const lastZ = lastZRef.current;
-    const lastPe = lastPeRef.current;
+    const reduce = reduceMotionRef.current;
+    const dims = { lensWidth, thumbWidth, gap };
+    // Hold a compositor layer only while the row is on screen — not per
+    // animation, which would tear down and rebuild a layer on every advance.
+    const willChange = inViewRef.current ? "transform" : "";
+    // Thumbs wholly past the viewport edge are skipped like faded ones. Reading
+    // innerWidth does not force layout.
+    const viewHalf = window.innerWidth / 2 + thumbWidth;
+
+    const cards = cardRefs.current;
     const lastVisible = lastVisibleRef.current;
+    const lastPe = lastPeRef.current;
     const lastWillChange = lastWillChangeRef.current;
     const lastOpacity = lastOpacityRef.current;
     const lastDepth = lastDepthRef.current;
     const lastCenter = lastCenterRef.current;
-    const hudEls = hudElsRef.current;
-    const hudOwner = hudOwnerRef.current;
-    // Hold a compositor layer only while the row is on screen — not per
-    // animation. Promoting on every auto-advance and demoting 400ms later
-    // meant the browser tore down and rebuilt a layer per card, per advance,
-    // and the first frames of each move paid for the re-raster.
-    const willChange = inViewRef.current ? "transform, opacity" : "";
+    const tiltEls = tiltElsRef.current;
+    const tiltOwner = tiltOwnerRef.current;
 
-    for (let i = 0; i < refs.length; i++) {
-      const el = refs[i];
+    for (let i = 0; i < cards.length; i++) {
+      const el = cards[i];
       if (!el) continue;
       const d = wrapDelta(i - f, count);
-      const ad = Math.min(Math.abs(d), MAX_VISUAL_DISTANCE);
-      const rawOpacity = Math.max(0, 1 - ad * opacityStep) * intro;
+      const ad = Math.abs(d);
 
-      // Off-stage: hide it once and skip every write until it comes back.
-      if (rawOpacity <= MIN_VISIBLE_OPACITY) {
+      // Outside the lens: hide once and skip every write until it comes back.
+      if (ad >= 1) {
         if (lastVisible[i] !== false) {
           el.style.visibility = "hidden";
-          el.style.opacity = "0";
           el.style.pointerEvents = "none";
           el.style.willChange = "";
           lastVisible[i] = false;
-          lastOpacity[i] = 0;
           lastPe[i] = "none";
           lastWillChange[i] = "";
         }
@@ -254,70 +242,89 @@ export function useCoverflow({
         lastWillChange[i] = willChange;
       }
 
-      const scale = Math.max(0.62, 1 - ad * scaleStep);
-      // Tilt uses a signed, tightly-clamped distance so cards angle toward the
-      // centre (left cards face right, right cards face left), classic coverflow.
-      const sd = clamp(d, -MAX_TILT_DISTANCE, MAX_TILT_DISTANCE);
-      const rotY = -sd * tilt;
-      const tz = -ad * depth;
-      // Intro folds the row in from a collapsed, slightly-sunken stack.
-      const x = d * spread * intro;
+      // Intro lifts the lens card in from slightly below.
       const lift = (1 - intro) * 26;
-      const cardScale = scale * (0.92 + 0.08 * intro);
-
-      // Compositor-only — safe to write every frame.
-      el.style.transform =
-        `translate3d(${x}px, ${lift}px, ${tz}px) ` +
-        `rotateY(${rotY}deg) scale(${cardScale})`;
-
-      const opacity = Math.round(rawOpacity * 100) / 100;
+      el.style.transform = `translate3d(${lensX(d, lensWidth)}px, ${lift}px, 0)`;
+      const opacity = Math.round(intro * 100) / 100;
       if (lastOpacity[i] !== opacity) {
         el.style.opacity = String(opacity);
         lastOpacity[i] = opacity;
       }
 
-      // Depth/emphasis vars consumed by the HUD frame overlays (opacity only, so
-      // they stay compositor-cheap). Side cards darken; the centre card glows.
-      // Rounded to 1/100 and written only on change to avoid needless recalcs,
-      // and written to the overlay roots rather than the card (see hudElsRef).
-      const depthVar = Math.round(Math.min(ad * 0.3, 0.6) * 100) / 100;
-      const centreVar = Math.round(Math.max(0, 1 - ad) * 100) / 100;
-      if (lastDepth[i] !== depthVar || lastCenter[i] !== centreVar) {
-        if (hudOwner[i] !== el) {
-          hudEls[i] = Array.from(
-            el.querySelectorAll<HTMLElement>("[data-hud]"),
-          );
-          hudOwner[i] = el;
-        }
-        const targets = hudEls[i];
-        if (targets) {
-          for (let h = 0; h < targets.length; h++) {
-            if (lastDepth[i] !== depthVar) {
-              targets[h].style.setProperty("--cf-depth", String(depthVar));
-            }
-            if (lastCenter[i] !== centreVar) {
-              targets[h].style.setProperty("--cf-center", String(centreVar));
-            }
-          }
-        }
+      if (tiltOwner[i] !== el) {
+        tiltEls[i] = el.querySelector<HTMLElement>("[data-lens-tilt]");
+        tiltOwner[i] = el;
+      }
+      const photo = tiltEls[i];
+      if (photo) {
+        const { deg, scale } = lensTilt(reduce ? 0 : d);
+        photo.style.transform = `rotate(${deg}deg) scale(${scale})`;
+      }
+
+      // HUD vars (opacity-only consumers): the leaving card darkens, the
+      // arriving one powers up as it reaches the middle.
+      const depthVar = Math.round(Math.min(ad * 0.6, 0.6) * 100) / 100;
+      const centreVar = Math.round((1 - ad) * 100) / 100;
+      if (lastDepth[i] !== depthVar) {
+        el.style.setProperty("--cf-depth", String(depthVar));
         lastDepth[i] = depthVar;
+      }
+      if (lastCenter[i] !== centreVar) {
+        el.style.setProperty("--cf-center", String(centreVar));
         lastCenter[i] = centreVar;
       }
 
-      // Recalc-triggering — only write when changed.
-      const z = 1000 - Math.round(Math.abs(d) * 10);
-      if (lastZ[i] !== z) {
-        el.style.zIndex = String(z);
-        lastZ[i] = z;
-      }
-      const pe: "auto" | "none" =
-        intro < 0.6 || rawOpacity < 0.1 ? "none" : "auto";
+      const pe: "auto" | "none" = intro < 0.6 || ad > 0.5 ? "none" : "auto";
       if (lastPe[i] !== pe) {
         el.style.pointerEvents = pe;
         lastPe[i] = pe;
       }
     }
-  }, [count, spread, scaleStep, opacityStep, tilt, depth]);
+
+    const thumbs = thumbRefs.current;
+    const lastThumbVisible = lastThumbVisibleRef.current;
+    const lastThumbOpacity = lastThumbOpacityRef.current;
+    const lastThumbWillChange = lastThumbWillChangeRef.current;
+
+    for (let i = 0; i < thumbs.length; i++) {
+      const el = thumbs[i];
+      if (!el) continue;
+      const d = wrapDelta(i - f, count);
+      // Intro unfolds both strips outward from under the lens.
+      const x = thumbX(d, dims) * intro;
+      const rawOpacity = thumbOpacity(d, count) * intro;
+      const offStage =
+        rawOpacity <= MIN_VISIBLE_OPACITY ||
+        Math.abs(x) - thumbWidth / 2 > viewHalf ||
+        // Wholly tucked under the lens.
+        Math.abs(x) + thumbWidth / 2 <= lensWidth / 2;
+
+      if (offStage) {
+        if (lastThumbVisible[i] !== false) {
+          el.style.visibility = "hidden";
+          el.style.willChange = "";
+          lastThumbVisible[i] = false;
+          lastThumbWillChange[i] = "";
+        }
+        continue;
+      }
+      if (lastThumbVisible[i] !== true) {
+        el.style.visibility = "";
+        lastThumbVisible[i] = true;
+      }
+      if (lastThumbWillChange[i] !== willChange) {
+        el.style.willChange = willChange;
+        lastThumbWillChange[i] = willChange;
+      }
+
+      el.style.transform = `translate3d(${x}px, 0, 0)`;
+      const opacity = Math.round(rawOpacity * 100) / 100;
+      if (lastThumbOpacity[i] !== opacity) {
+        el.style.opacity = String(opacity);
+        lastThumbOpacity[i] = opacity;
+      }
+    }
+  }, [count, lensWidth, thumbWidth, gap]);
 
   const wake = useCallback(() => {
     if (runningRef.current) return;
@@ -346,6 +353,10 @@ export function useCoverflow({
           velocityRef.current =
             ((focusRef.current - previousFocus) / dt) * 1000;
         }
+      } else if (reduceMotionRef.current) {
+        // Reduced motion: jump straight to the target, no glide.
+        focusRef.current = targetRef.current;
+        velocityRef.current = 0;
       } else {
         const next = stepSpring(
           { pos: focusRef.current, vel: velocityRef.current },
@@ -420,7 +431,7 @@ export function useCoverflow({
     setTarget();
   }, [setTarget]);
 
-  // Initial layout + keep layout correct on resize (spread may change).
+  // Initial layout + keep layout correct on resize (lens size may change).
   useEffect(() => {
     reduceMotionRef.current =
       typeof window !== "undefined" &&
@@ -458,21 +469,24 @@ export function useCoverflow({
       ([entry]) => {
         inViewRef.current = entry.isIntersecting;
         if (entry.isIntersecting) {
-          // Play the fan-in the first time the section is seen.
+          // Play the intro the first time the section is seen.
           if (introTargetRef.current === 0) introTargetRef.current = 1;
           // Promote the visible cards now, before anything moves.
           applyCards();
           wake();
         } else {
           // Off screen: drop the layers and any ghost still fading.
-          const lastWillChange = lastWillChangeRef.current;
-          for (let i = 0; i < cardRefs.current.length; i++) {
-            const card = cardRefs.current[i];
-            if (card && lastWillChange[i]) {
-              card.style.willChange = "";
-              lastWillChange[i] = "";
+          const drop = (els: (HTMLDivElement | null)[], last: string[]) => {
+            for (let i = 0; i < els.length; i++) {
+              const el = els[i];
+              if (el && last[i]) {
+                el.style.willChange = "";
+                last[i] = "";
+              }
             }
-          }
+          };
+          drop(cardRefs.current, lastWillChangeRef.current);
+          drop(thumbRefs.current, lastThumbWillChangeRef.current);
         }
       },
       { threshold: 0 },
@@ -555,7 +569,7 @@ export function useCoverflow({
           if (!draggingRef.current) return;
           const dx = ev.clientX - downXRef.current;
           if (Math.abs(dx) > DRAG_THRESHOLD) movedRef.current = true;
-          manualRef.current = startManualRef.current - dx / spread;
+          manualRef.current = startManualRef.current - dx / dragPx;
 
           // Velocity in cards/ms, smoothed so one jittery sample can't dominate
           // the fling. Clock-based rather than per-event so it doesn't scale
@@ -565,7 +579,7 @@ export function useCoverflow({
             dragVelocityRef.current,
             ev.clientX - lastMoveXRef.current,
             now - lastMoveTRef.current,
-            spread,
+            dragPx,
           );
           lastMoveXRef.current = ev.clientX;
           lastMoveTRef.current = now;
@@ -605,7 +619,7 @@ export function useCoverflow({
       window.addEventListener("pointercancel", endDrag, { signal });
       wake();
     },
-    [centreOn, setTarget, spread, wake],
+    [centreOn, setTarget, dragPx, wake],
   );
 
   useEffect(() => () => dragAbortRef.current?.abort(), []);
@@ -628,9 +642,9 @@ export function useCoverflow({
   // One stable setter per index, cached.
   //
   // `registerCard(i)` used to build a fresh closure on every render, so React
-  // saw a new ref callback each time and detached-then-reattached all fifteen
-  // card refs on EVERY re-render — including the ones a drag triggers as it
-  // crosses card boundaries, i.e. exactly when the frame budget was tightest.
+  // saw a new ref callback each time and detached-then-reattached every card
+  // ref on EVERY re-render — including the ones a drag triggers as it crosses
+  // card boundaries, i.e. exactly when the frame budget was tightest.
   const cardSettersRef = useRef<((el: HTMLDivElement | null) => void)[]>([]);
   const registerCard = useCallback((index: number) => {
     const cached = cardSettersRef.current[index];
@@ -641,10 +655,21 @@ export function useCoverflow({
     cardSettersRef.current[index] = setter;
     return setter;
   }, []);
+  const thumbSettersRef = useRef<((el: HTMLDivElement | null) => void)[]>([]);
+  const registerThumb = useCallback((index: number) => {
+    const cached = thumbSettersRef.current[index];
+    if (cached) return cached;
+    const setter = (el: HTMLDivElement | null) => {
+      thumbRefs.current[index] = el;
+    };
+    thumbSettersRef.current[index] = setter;
+    return setter;
+  }, []);
 
   return {
     sectionRef,
     registerCard,
+    registerThumb,
     onCardClick,
     next,
     prev,

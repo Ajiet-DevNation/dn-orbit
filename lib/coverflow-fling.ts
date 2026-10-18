@@ -1,5 +1,5 @@
 // Pure fling maths for the coverflow drag gesture, split out from the hook so
-// it can be unit-tested without a DOM (same split as lib/glide.ts and
+// it can be unit-tested without a DOM (same split as lib/lens-layout.ts and
 // lib/orbit-trail.ts).
 
 /** How far ahead a release velocity is projected, in ms. */

@@ -121,7 +121,7 @@ export function AsciiBackground() {
     // Honour prefers-reduced-motion: paint one static frame and never start the
     // loop. This background was the only animated surface on the site that
     // ignored the preference entirely — PixelStarsBackground already did this,
-    // useScrollGlide and useCardPowerOn gate on it, and every rAF-driven effect
+    // useCoverflow and useCardPowerOn gate on it, and every rAF-driven effect
     // added since handles it explicitly. The global CSS reset in globals.css
     // can't help here: it only flattens CSS animation, never a rAF loop.
     const reduceMotion =
