@@ -4,6 +4,7 @@ import { isApproved } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
+import { parseBody, projectMemberSchema } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -31,12 +32,11 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { userId, role } = await req.json();
-    if (!userId)
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 },
-      );
+    const parsed = await parseBody(req, projectMemberSchema);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    const { userId, role } = parsed.data;
 
     const member = await db.projectMember.create({
       data: {
@@ -52,6 +52,13 @@ export async function POST(req: NextRequest, { params }: Params) {
       if (error.code === "P2002") {
         return NextResponse.json(
           { error: "User is already a member" },
+          { status: 409 },
+        );
+      }
+      // Foreign key miss: the user (or project) id doesn't exist.
+      if (error.code === "P2003") {
+        return NextResponse.json(
+          { error: "No such user or project" },
           { status: 400 },
         );
       }

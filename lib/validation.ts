@@ -182,6 +182,20 @@ export const scoreWeightsSchema = z
     },
   );
 
+// ── Admin moderation ─────────────────────────────────────────────────────────
+
+/** Approve / reject body shared by the event and project review routes. */
+export const reviewActionSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+});
+
+// ── Project members ──────────────────────────────────────────────────────────
+
+export const projectMemberSchema = z.object({
+  userId: z.string().trim().min(1).max(100),
+  role: optionalText(40),
+});
+
 // ── Helper ───────────────────────────────────────────────────────────────────
 
 export type ParsedBody<T> =

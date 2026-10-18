@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
 
 const connectionString = process.env.DATABASE_URL;
@@ -93,3 +93,11 @@ export const db: PrismaClient =
       return Reflect.get(client, prop);
     },
   });
+
+// update/delete on a row that isn't there — answer 404, not 500
+export function isRecordNotFound(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2025"
+  );
+}

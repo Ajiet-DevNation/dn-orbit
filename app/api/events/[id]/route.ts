@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, isRecordNotFound } from "@/lib/db";
 import { eventUpdateData } from "@/lib/event-payload";
 import { canAccessAdmin } from "@/lib/roles";
 import { parseBody, updateEventSchema } from "@/lib/validation";
@@ -76,12 +76,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!parsed.ok) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
-  const updated = await db.event.update({
-    where: { id },
-    data: eventUpdateData(parsed.data),
-  });
-
-  return NextResponse.json(updated);
+  try {
+    const updated = await db.event.update({
+      where: { id },
+      data: eventUpdateData(parsed.data),
+    });
+    return NextResponse.json(updated);
+  } catch (error) {
+    if (isRecordNotFound(error)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    throw error;
+  }
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
@@ -91,6 +97,13 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   }
 
   const { id } = await params;
-  await db.event.delete({ where: { id } });
+  try {
+    await db.event.delete({ where: { id } });
+  } catch (error) {
+    if (isRecordNotFound(error)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    throw error;
+  }
   return NextResponse.json({ success: true });
 }

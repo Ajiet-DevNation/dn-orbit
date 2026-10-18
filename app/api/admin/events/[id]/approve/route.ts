@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, isRecordNotFound } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
+import { parseBody, reviewActionSchema } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -17,14 +18,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     const { id } = await params;
-    const { action } = await req.json();
-
-    if (action !== "approve" && action !== "reject") {
-      return NextResponse.json(
-        { error: 'action must be "approve" or "reject"' },
-        { status: 400 },
-      );
+    // A malformed body is the client's fault — 400, not the 500 an unguarded
+    // req.json() used to produce.
+    const parsed = await parseBody(req, reviewActionSchema);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
+    const { action } = parsed.data;
 
     const updated = await db.event.update({
       where: { id },
@@ -44,6 +44,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     return NextResponse.json(updated);
   } catch (error) {
+    if (isRecordNotFound(error)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
     console.error("Review Event Error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
