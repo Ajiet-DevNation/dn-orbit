@@ -317,15 +317,13 @@ export function MembersSection() {
     activeIndex,
     settledIndex,
     count,
-    stageHandlers,
     setIntro,
+    setFocus,
+    navigateRef,
   } = useCoverflow({
     count: MEMBERS.length,
     lensWidth: CARD_W,
     thumbWidth: THUMB_W,
-    autoAdvanceMs: 4200,
-    // Don't let the idle auto-advance yank a card away while its bio is open.
-    paused: flipped.size > 0,
     onActivateCenter: (i) =>
       setFlipped((prev) => {
         const nextSet = new Set(prev);
@@ -349,8 +347,10 @@ export function MembersSection() {
       lensRef={lensRef}
       lensWidth={CARD_W}
       lensHeight={CARD_H}
+      count={count}
       setIntro={setIntro}
-      stageHandlers={stageHandlers}
+      setFocus={setFocus}
+      navigateRef={navigateRef}
       thumbs={MEMBERS.map((member, i) => (
         <div
           key={member.id}

@@ -9,10 +9,16 @@
 //   pin     — the section pins; a giant glowing title slides across, the
 //             viewfinder opens into the full lens with a brief focus pull,
 //             the title shrinks into its label on the left, and the thumb
-//             strips unfold from under the lens.
+//             strips unfold from under the lens;
+//   gallery — still pinned, scrolling walks the lens through the cards one by
+//             one (no loop, like oryzo), each card holding centre for a beat.
 
-/** Extra scroll the section stays pinned for while the entrance plays (svh). */
+/** Pinned scroll the entrance plays over (svh). */
 export const ENTRANCE_PIN_SVH = 120;
+/** Pinned scroll per gallery step once the lens is formed (svh). */
+export const ITEM_PIN_SVH = 60;
+/** Share of each gallery step a card holds still at centre, per side. */
+const DWELL = 0.2;
 /** Viewfinder side before it opens, as a share of the lens height. */
 export const VIEWFINDER_SHARE = 0.5;
 /** Peak defocus while the viewfinder opens (px). */
@@ -58,8 +64,6 @@ export interface EntranceFrame {
   fly: number;
   /** Real section title opacity (takes over from the giant title). */
   heading: number;
-  /** "SCROLL TO CONTINUE" hint. */
-  hint: number;
   /** Crosshair / ticks inside the viewfinder. */
   reticle: number;
   /** Viewfinder → full lens (0 = small square, 1 = full lens). */
@@ -83,7 +87,6 @@ export function entranceFrame(p: number, arrival = 1): EntranceFrame {
     giantOpacity: segment(p, 0.04, 0.12) * (1 - segment(p, 0.8, 0.86)),
     fly: easeInOutCubic(segment(p, 0.56, 0.84)),
     heading: segment(p, 0.8, 0.86),
-    hint: 1 - segment(p, 0.06, 0.18),
     reticle: 1 - segment(p, 0.3, 0.42),
     open,
     dissolve: segment(arrival, 0.3, 0.95),
@@ -116,4 +119,49 @@ export function viewfinderSize(
 // starting square side: half the lens height, never wider than the lens
 export function viewfinderSide(lensWidth: number, lensHeight: number) {
   return Math.min(lensWidth, lensHeight * VIEWFINDER_SHARE);
+}
+
+// total pinned scroll for a section with `count` cards (svh)
+export function pinLengthSvh(count: number): number {
+  return ENTRANCE_PIN_SVH + ITEM_PIN_SVH * Math.max(0, count - 1);
+}
+
+// share of the pinned travel the entrance takes; the gallery has the rest
+export function entranceShare(count: number): number {
+  return ENTRANCE_PIN_SVH / pinLengthSvh(count);
+}
+
+// whole-pin progress → entrance progress (0–1) and gallery position (0–count-1)
+export function splitPin(
+  progress: number,
+  count: number,
+): { entrance: number; gallery: number } {
+  const share = entranceShare(count);
+  return {
+    entrance: clamp01(progress / share),
+    gallery:
+      count > 1 ? clamp01((progress - share) / (1 - share)) * (count - 1) : 0,
+  };
+}
+
+// gallery position → lens focus, holding each card centred for a beat
+export function dwellFocus(gallery: number, count: number): number {
+  const last = Math.max(0, count - 1);
+  if (gallery <= 0) return 0;
+  if (gallery >= last) return last;
+  const i = Math.floor(gallery);
+  const t = clamp01((gallery - i - DWELL) / (1 - 2 * DWELL));
+  return i + t * t * (3 - 2 * t);
+}
+
+// whole-pin progress at which card k sits centred (what the arrows scroll to)
+export function progressForCard(k: number, count: number): number {
+  const share = entranceShare(count);
+  if (count <= 1) return share;
+  return share + ((1 - share) * k) / (count - 1);
+}
+
+// "SCROLL TO CONTINUE" stays up through the pin, like oryzo's, then fades
+export function hintOpacity(progress: number): number {
+  return 1 - segment(progress, 0.94, 1);
 }

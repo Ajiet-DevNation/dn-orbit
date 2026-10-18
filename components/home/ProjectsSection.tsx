@@ -406,13 +406,13 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
     activeIndex,
     settledIndex,
     count,
-    stageHandlers,
     setIntro,
+    setFocus,
+    navigateRef,
   } = useCoverflow({
     count: projects.length,
     lensWidth: CARD_W,
     thumbWidth: THUMB_W,
-    autoAdvanceMs: 5200,
     disabled: selected !== null,
     onActivateCenter: open,
   });
@@ -478,8 +478,10 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
       lensRef={lensRef}
       lensWidth={CARD_W}
       lensHeight={CARD_H}
+      count={count}
       setIntro={setIntro}
-      stageHandlers={stageHandlers}
+      setFocus={setFocus}
+      navigateRef={navigateRef}
       stageClassName={cn(selected !== null && "pointer-events-none opacity-0")}
       stageStyle={{ transition: "opacity 300ms var(--ease-out-quart)" }}
       thumbs={projects.map((project, i) => (

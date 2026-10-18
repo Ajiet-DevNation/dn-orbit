@@ -4,46 +4,59 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import {
   arrivalProgress,
   dissolveAt,
+  dwellFocus,
   entranceFrame,
   entranceProgress,
+  hintOpacity,
+  progressForCard,
+  splitPin,
   viewfinderSize,
 } from "@/lib/lens-entrance";
 
-// Scroll-scrubbed entrance for the lens sections (choreography in
-// lib/lens-entrance.ts). Progress comes straight from the section's live rect
-// every frame, so content above changing height (event search, leaderboard
-// pages) can never leave it out of step the way cached trigger offsets can.
-// A short exponential follow smooths wheel steps into a scrub.
+// Scroll drives the whole lens section, like oryzo.ai (choreography in
+// lib/lens-entrance.ts): first the entrance, then — still pinned — the gallery,
+// one card per ITEM_PIN_SVH of scroll. Progress comes straight from the
+// section's live rect every frame, so content above changing height (event
+// search, leaderboard pages) can never leave it out of step the way cached
+// trigger offsets can. An exponential follow smooths wheel steps into a glide.
 //
 // Everything is written imperatively to refs — no React renders per frame. The
 // global CSS reset can't flatten a rAF loop, so reduced motion takes its own
-// path: no listeners, the finished state written once (the section also drops
-// its pin via motion-reduce: classes).
+// path: no listeners, the finished entrance written once, and navigation jumps
+// cards directly (the section also drops its pin via motion-reduce: classes).
 
-/** Follow time constant for the scrub, ms. */
-const SMOOTH_TAU_MS = 90;
+/** Follow time constant for the scrub, ms (~ a Lenis-style glide). */
+const SMOOTH_TAU_MS = 140;
 const MAX_DT_MS = 50;
 const DONE_EPS = 0.0005;
 /** Giant title starts this share of the viewport width to the right. */
 const GIANT_SLIDE_SHARE = 0.6;
 
-interface EntranceOptions {
+interface LensScrollOptions {
   sectionRef: React.RefObject<HTMLElement | null>;
+  count: number;
   lensWidth: number;
   lensHeight: number;
   /** Frame border + inner gap around the lens, px. */
   pad: number;
   /** Drives the thumb strips (useCoverflow's setIntro). */
   setIntro: (value: number) => void;
+  /** Drives the row position (useCoverflow's setFocus). */
+  setFocus: (value: number) => void;
+  /** useCoverflow's navigation hook; pointed at "scroll to that card". */
+  navigateRef: React.RefObject<(index: number) => void>;
 }
 
-export function useLensEntrance({
+export function useLensScroll({
   sectionRef,
+  count,
   lensWidth,
   lensHeight,
   pad,
   setIntro,
-}: EntranceOptions) {
+  setFocus,
+  navigateRef,
+}: LensScrollOptions) {
   const stageRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -55,11 +68,13 @@ export function useLensEntrance({
   const chromeRef = useRef<HTMLDivElement>(null);
   const floorRef = useRef<HTMLDivElement>(null);
 
-  // Read through a ref so a new callback identity can't restart the loop.
+  // Read through refs so a new callback identity can't restart the loop.
   const setIntroRef = useRef(setIntro);
+  const setFocusRef = useRef(setFocus);
   useEffect(() => {
     setIntroRef.current = setIntro;
-  }, [setIntro]);
+    setFocusRef.current = setFocus;
+  }, [setIntro, setFocus]);
 
   // Layout effect: the first frame is written before paint, so a resize never
   // flashes the JSX defaults.
@@ -78,12 +93,14 @@ export function useLensEntrance({
     let lastBlur = -1;
 
     // One scalar timeline: t in [-1, 0) is the arrival (section rising into
-    // view), [0, 1] the pinned entrance. Smoothing a single value keeps the two
-    // phases continuous across the moment the section sticks.
-    const apply = (t: number) => {
+    // view), [0, 1] the whole pin (entrance, then gallery). Smoothing a single
+    // value keeps every phase continuous across the moment the section sticks.
+    const apply = (t: number, still = false) => {
       if (t === lastT) return;
       lastT = t;
-      const f = entranceFrame(Math.max(0, t), Math.min(1, 1 + t));
+      const pin = Math.max(0, t);
+      const { entrance, gallery } = splitPin(pin, count);
+      const f = entranceFrame(entrance, Math.min(1, 1 + t));
 
       // Reads first (layout), then writes, so each frame forces at most one
       // layout. The flight target is measured live while it is in use.
@@ -128,7 +145,8 @@ export function useLensEntrance({
 
       if (reticleRef.current)
         reticleRef.current.style.opacity = String(f.reticle);
-      if (hintRef.current) hintRef.current.style.opacity = String(f.hint);
+      if (hintRef.current)
+        hintRef.current.style.opacity = String(still ? 0 : hintOpacity(pin));
       if (floorRef.current) floorRef.current.style.opacity = String(f.chrome);
       if (chromeRef.current) {
         chromeRef.current.style.opacity = String(f.chrome);
@@ -136,6 +154,7 @@ export function useLensEntrance({
       }
 
       setIntroRef.current(f.thumbs);
+      if (!still) setFocusRef.current(dwellFocus(gallery, count));
     };
 
     const read = () => {
@@ -147,9 +166,22 @@ export function useLensEntrance({
     };
 
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      apply(1);
+      // No pin: show the finished entrance; arrows/keys jump cards directly
+      // (useCoverflow's default navigation).
+      apply(progressForCard(0, count), true);
       return;
     }
+
+    // Arrows, keys and thumb clicks scroll the page to that card, so the
+    // scroll position stays the single source of truth for the row.
+    navigateRef.current = (index: number) => {
+      const r = section.getBoundingClientRect();
+      const travel = r.height - window.innerHeight;
+      window.scrollTo({
+        top: r.top + window.scrollY + progressForCard(index, count) * travel,
+        behavior: "smooth",
+      });
+    };
 
     let current = read();
     let raf = 0;
@@ -182,7 +214,7 @@ export function useLensEntrance({
       window.removeEventListener("scroll", wake);
       window.removeEventListener("resize", onResize);
     };
-  }, [sectionRef, lensWidth, lensHeight, pad]);
+  }, [sectionRef, count, lensWidth, lensHeight, pad, navigateRef]);
 
   return {
     stageRef,

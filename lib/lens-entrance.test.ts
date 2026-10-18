@@ -2,9 +2,17 @@ import { describe, expect, test } from "bun:test";
 import {
   arrivalProgress,
   dissolveAt,
+  dwellFocus,
+  ENTRANCE_PIN_SVH,
   entranceFrame,
   entranceProgress,
+  entranceShare,
+  hintOpacity,
+  ITEM_PIN_SVH,
+  pinLengthSvh,
+  progressForCard,
   segment,
+  splitPin,
   VIEWFINDER_SHARE,
   viewfinderSide,
   viewfinderSize,
@@ -52,7 +60,6 @@ describe("entranceFrame", () => {
     expect(f.dissolve).toBe(1);
     expect(f.open).toBe(0);
     expect(f.blur).toBe(0);
-    expect(f.hint).toBe(1);
     expect(f.reticle).toBe(1);
     expect(f.giantOpacity).toBe(0);
     expect(f.heading).toBe(0);
@@ -72,7 +79,6 @@ describe("entranceFrame", () => {
       fly: 1,
       giantOpacity: 0,
       heading: 1,
-      hint: 0,
       reticle: 0,
       dissolve: 1,
       thumbs: 1,
@@ -132,5 +138,55 @@ describe("viewfinderSize", () => {
 
   test("never starts wider than a narrow lens", () => {
     expect(viewfinderSide(200, 800)).toBe(200);
+  });
+});
+
+describe("gallery", () => {
+  test("pin grows by one step per extra card", () => {
+    expect(pinLengthSvh(1)).toBe(ENTRANCE_PIN_SVH);
+    expect(pinLengthSvh(8)).toBe(ENTRANCE_PIN_SVH + 7 * ITEM_PIN_SVH);
+  });
+
+  test("the entrance plays first, then the gallery walks 0 → last", () => {
+    const share = entranceShare(8);
+    expect(splitPin(share / 2, 8)).toEqual({ entrance: 0.5, gallery: 0 });
+    expect(splitPin(share, 8).entrance).toBe(1);
+    expect(splitPin(share, 8).gallery).toBe(0);
+    expect(splitPin(1, 8)).toEqual({ entrance: 1, gallery: 7 });
+  });
+
+  test("a single card has no gallery to walk", () => {
+    expect(splitPin(1, 1)).toEqual({ entrance: 1, gallery: 0 });
+  });
+
+  test("each card holds centre for a beat, then glides to the next", () => {
+    expect(dwellFocus(2, 8)).toBe(2);
+    expect(dwellFocus(2.15, 8)).toBe(2);
+    expect(dwellFocus(2.85, 8)).toBe(3);
+    expect(dwellFocus(2.5, 8)).toBeCloseTo(2.5, 10);
+    expect(dwellFocus(-1, 8)).toBe(0);
+    expect(dwellFocus(9, 8)).toBe(7);
+  });
+
+  test("dwell focus is continuous and never moves backwards", () => {
+    let prev = 0;
+    for (let g = 0; g <= 7; g += 0.01) {
+      const f = dwellFocus(g, 8);
+      expect(f).toBeGreaterThanOrEqual(prev - 1e-9);
+      expect(f - prev).toBeLessThan(0.05);
+      prev = f;
+    }
+  });
+
+  test("progressForCard lands exactly on that card", () => {
+    for (let k = 0; k < 8; k++) {
+      const { gallery } = splitPin(progressForCard(k, 8), 8);
+      expect(dwellFocus(gallery, 8)).toBeCloseTo(k, 6);
+    }
+  });
+
+  test("scroll hint holds through the pin and fades at the very end", () => {
+    expect(hintOpacity(0.5)).toBe(1);
+    expect(hintOpacity(1)).toBe(0);
   });
 });

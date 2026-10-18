@@ -39,11 +39,6 @@ export function thumbX(d: number, { lensWidth, thumbWidth, gap }: LensDims) {
   return Math.sign(d) * reach;
 }
 
-// fade thumbs out before the loop seam, where an item jumps to the other side
-export function thumbOpacity(d: number, count: number): number {
-  return clamp((count / 2 - Math.abs(d)) * 2, 0, 1);
-}
-
 // photo tilt + zoom for a card d steps from centre (0 at rest)
 export function lensTilt(d: number): { deg: number; scale: number } {
   const t = clamp(d, -1, 1);

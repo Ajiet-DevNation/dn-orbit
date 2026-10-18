@@ -9,7 +9,6 @@ import {
   MAX_TILT_DEG,
   MAX_ZOOM,
   MIN_LENS_HEIGHT,
-  thumbOpacity,
   thumbX,
 } from "./lens-layout";
 
@@ -53,19 +52,6 @@ describe("thumbX", () => {
       expect(x).toBeGreaterThan(prev);
       prev = x;
     }
-  });
-});
-
-describe("thumbOpacity", () => {
-  test("solid well inside the loop", () => {
-    expect(thumbOpacity(1, 14)).toBe(1);
-    expect(thumbOpacity(-4, 14)).toBe(1);
-  });
-
-  test("fades to nothing at the loop seam", () => {
-    expect(thumbOpacity(7, 14)).toBe(0);
-    expect(thumbOpacity(1.5, 3)).toBe(0);
-    expect(thumbOpacity(1.25, 3)).toBeCloseTo(0.5, 10);
   });
 });
 

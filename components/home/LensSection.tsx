@@ -1,7 +1,11 @@
 "use client";
 
-import { useLensEntrance } from "@/hooks/useLensEntrance";
-import { ENTRANCE_PIN_SVH, viewfinderSide } from "@/lib/lens-entrance";
+import { useLensScroll } from "@/hooks/useLensScroll";
+import {
+  ENTRANCE_PIN_SVH,
+  pinLengthSvh,
+  viewfinderSide,
+} from "@/lib/lens-entrance";
 import { cn } from "@/lib/utils";
 import { CoverflowFloor } from "./CoverflowControls";
 
@@ -29,8 +33,10 @@ interface LensSectionProps {
   lensRef: React.RefObject<HTMLDivElement | null>;
   lensWidth: number;
   lensHeight: number;
+  count: number;
   setIntro: (value: number) => void;
-  stageHandlers: React.HTMLAttributes<HTMLDivElement>;
+  setFocus: (value: number) => void;
+  navigateRef: React.RefObject<(index: number) => void>;
   stageClassName?: string;
   stageStyle?: React.CSSProperties;
   /** Big cards, rendered inside the lens. */
@@ -51,8 +57,10 @@ export function LensSection({
   lensRef,
   lensWidth,
   lensHeight,
+  count,
   setIntro,
-  stageHandlers,
+  setFocus,
+  navigateRef,
   stageClassName,
   stageStyle,
   cards,
@@ -60,12 +68,15 @@ export function LensSection({
   controls,
   children,
 }: LensSectionProps) {
-  const entrance = useLensEntrance({
+  const entrance = useLensScroll({
     sectionRef,
+    count,
     lensWidth,
     lensHeight,
     pad: LENS_PAD,
     setIntro,
+    setFocus,
+    navigateRef,
   });
 
   const side = viewfinderSide(lensWidth, lensHeight);
@@ -78,11 +89,16 @@ export function LensSection({
     <section
       ref={sectionRef}
       id={id}
-      // Pinned for ENTRANCE_PIN_SVH of extra scroll while the entrance plays.
-      // The negative scroll margin makes nav/anchor jumps land at the END of
-      // the pin, with the lens already formed. Reduced motion: no pin.
-      className="relative h-[calc(100svh+var(--pin))] w-full scroll-mt-[calc(var(--pin)*-1)] motion-reduce:h-auto motion-reduce:scroll-mt-24"
-      style={{ "--pin": `${ENTRANCE_PIN_SVH}svh` } as React.CSSProperties}
+      // Pinned while scroll drives it: the entrance, then one step per card.
+      // The negative scroll margin makes nav/anchor jumps land where the
+      // entrance ends (lens formed, first card). Reduced motion: no pin.
+      className="relative h-[calc(100svh+var(--pin))] w-full scroll-mt-[calc(var(--entrance)*-1)] motion-reduce:h-auto motion-reduce:scroll-mt-24"
+      style={
+        {
+          "--pin": `${pinLengthSvh(count)}svh`,
+          "--entrance": `${ENTRANCE_PIN_SVH}svh`,
+        } as React.CSSProperties
+      }
     >
       {/* Oryzo proportions: the lens fills ~80% of the screen height, centred;
           the title sits to its left (above it on phones). */}
@@ -111,11 +127,10 @@ export function LensSection({
         <div
           ref={entrance.stageRef}
           className={cn(
-            "absolute inset-x-0 bottom-0 top-[150px] cursor-grab touch-pan-y select-none active:cursor-grabbing md:top-0",
+            "absolute inset-x-0 bottom-0 top-[150px] select-none md:top-0",
             stageClassName,
           )}
           style={stageStyle}
-          {...stageHandlers}
         >
           <div ref={entrance.floorRef} style={{ opacity: 0 }}>
             <CoverflowFloor />
