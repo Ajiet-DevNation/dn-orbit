@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { recomputeLeaderboardAfterResponse } from "@/lib/leaderboard";
 import { canAccessAdmin } from "@/lib/roles";
 import { parseBody, scoreWeightsSchema } from "@/lib/validation";
 
@@ -71,6 +72,8 @@ export async function PATCH(req: NextRequest) {
       actorName: session.user.name,
       summary: `Updated leaderboard weights · GH ${Math.round(githubWeight * 100)}% · LC ${Math.round(lcWeight * 100)}% · EVT ${Math.round(eventWeight * 100)}%`,
     });
+
+    recomputeLeaderboardAfterResponse();
 
     if (existingWeights) {
       const updated = await db.scoreWeight.update({

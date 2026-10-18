@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db, isRecordNotFound } from "@/lib/db";
+import { recomputeLeaderboardAfterResponse } from "@/lib/leaderboard";
 import { canAccessAdmin } from "@/lib/roles";
 import { parseBody, reviewActionSchema } from "@/lib/validation";
 
@@ -34,6 +35,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         reviewedAt: new Date(),
       },
     });
+
+    // Approval decides whether a published event counts toward event scores.
+    recomputeLeaderboardAfterResponse();
 
     void logAudit({
       action: `event.${action}`,

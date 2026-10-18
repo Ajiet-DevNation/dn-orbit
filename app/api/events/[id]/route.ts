@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db, isRecordNotFound } from "@/lib/db";
 import { eventUpdateData } from "@/lib/event-payload";
+import { recomputeLeaderboardAfterResponse } from "@/lib/leaderboard";
 import { canAccessAdmin } from "@/lib/roles";
 import { parseBody, updateEventSchema } from "@/lib/validation";
 
@@ -81,6 +82,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       where: { id },
       data: eventUpdateData(parsed.data),
     });
+    // Publishing, unpublishing or re-dating changes the event-score denominator.
+    recomputeLeaderboardAfterResponse();
     return NextResponse.json(updated);
   } catch (error) {
     if (isRecordNotFound(error)) {
@@ -105,5 +108,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     }
     throw error;
   }
+  recomputeLeaderboardAfterResponse();
   return NextResponse.json({ success: true });
 }
