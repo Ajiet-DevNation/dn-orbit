@@ -141,7 +141,8 @@ export function PlutonStage({ className }: { className?: string }) {
       });
 
       if (bubble) {
-        const p = Math.min(1, Math.max(0, (t - 450) / 240));
+        // After the popup's own entrance has revealed Pluton (~1.1s).
+        const p = Math.min(1, Math.max(0, (t - 1250) / 240));
         bubble.style.transform = `scale(${Math.ceil(p * 4) / 4})`;
       }
 
