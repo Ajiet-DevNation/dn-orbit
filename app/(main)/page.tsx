@@ -14,6 +14,7 @@ import {
 } from "@/components/home/LeaderboardSection";
 import { MembersSection } from "@/components/home/MembersSection";
 import { ProjectsSection } from "@/components/home/ProjectsSection";
+import { RecruitmentBanner } from "@/components/home/RecruitmentBanner";
 import { StatsSection } from "@/components/home/StatsSection";
 import { StatsSyncPing } from "@/components/home/StatsSyncPing";
 import { Footer } from "@/components/layout/Footer";
@@ -29,6 +30,7 @@ import { orderForDisplay } from "@/lib/event-order";
 import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
 import type { ProjectData } from "@/lib/projects";
+import { isRecruitmentOpen } from "@/lib/recruitment-config";
 import { canAccessAdmin } from "@/lib/roles";
 import { languagesFromRecord } from "@/lib/stats-utils";
 import { lastSyncedAt } from "@/lib/sync";
@@ -209,12 +211,14 @@ export default async function V2Page() {
   // stat ticker was removed, and with it the member-count and commit-sum
   // aggregates it needed.
   const syncedAt = await lastSyncedAt();
+  const recruiting = await isRecruitmentOpen();
 
   return (
     <div className="min-h-screen">
       {/* Kicks off a background stats refresh when the cache is stale — the
           SWR replacement for the old GitHub Actions cron (see lib/sync.ts). */}
       <StatsSyncPing />
+      {recruiting && <RecruitmentBanner />}
       <HeroOrbit />
       <AnnouncementCarousel announcements={announcements} />
       {/* PLAYER STATS is personal — only rendered for signed-in members. */}
