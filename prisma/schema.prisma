@@ -490,6 +490,9 @@ model RecruitmentApplication {
   lcUsername     String         @map("lc_username")
   linkedinUrl    String?        @map("linkedin_url")
   xHandle        String?        @map("x_handle")
+  // Storage path in the private `cvs` bucket, not a URL — admins get a
+  // short-lived signed link on demand. Null when no CV was attached.
+  cvPath         String?        @map("cv_path")
   status         ApprovalStatus @default(pending)
   reviewedById   String?        @map("reviewed_by") // user id of the reviewing admin
   reviewedAt     DateTime?      @map("reviewed_at")
