@@ -468,3 +468,47 @@ model ProjectMember {
   @@index([userId])
   @@map("project_members")
 }
+
+
+// ─────────────────────────────────────────────
+// RECRUITMENTS
+// ─────────────────────────────────────────────
+// Singleton switch for the recruitment drive. Fixed id = 1 so admins toggle it
+// with a plain upsert; a missing row means recruitment is closed.
+
+model RecruitmentConfig {
+  id        Int      @id @default(1)
+  isOpen    Boolean  @default(false) @map("is_open")
+  updatedBy String?  @map("updated_by") // user id of the admin who last toggled it
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("recruitment_config")
+}
+
+// A public application submitted from /recruitments. Applicants have no account
+// (sign-in is allowlist-only), so this is a standalone record; admins review it
+// from /admin/recruitments. Accepting only changes the status.
+model RecruitmentApplication {
+  id             String         @id @default(uuid())
+  name           String
+  email          String
+  usn            String
+  branch         String
+  year           Int
+  whatsapp       String
+  about          String
+  githubUsername String         @map("github_username")
+  lcUsername     String         @map("lc_username")
+  linkedinUrl    String?        @map("linkedin_url")
+  xHandle        String?        @map("x_handle")
+  // Storage path in the private `cvs` bucket, not a URL — admins get a
+  // short-lived signed link on demand. Null when no CV was attached.
+  cvPath         String?        @map("cv_path")
+  status         ApprovalStatus @default(pending)
+  reviewedById   String?        @map("reviewed_by") // user id of the reviewing admin
+  reviewedAt     DateTime?      @map("reviewed_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("recruitment_applications")
+}

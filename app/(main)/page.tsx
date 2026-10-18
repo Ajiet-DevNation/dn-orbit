@@ -14,6 +14,8 @@ import {
 } from "@/components/home/LeaderboardSection";
 import { MembersSection } from "@/components/home/MembersSection";
 import { ProjectsSection } from "@/components/home/ProjectsSection";
+import { RecruitmentBanner } from "@/components/home/RecruitmentBanner";
+import { RecruitmentPopup } from "@/components/home/RecruitmentPopup";
 import { StatsSection } from "@/components/home/StatsSection";
 import { StatsSyncPing } from "@/components/home/StatsSyncPing";
 import { Footer } from "@/components/layout/Footer";
@@ -29,6 +31,7 @@ import { orderForDisplay, registrationClosesAt } from "@/lib/event-order";
 import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
 import type { ProjectData } from "@/lib/projects";
+import { isRecruitmentOpen } from "@/lib/recruitment-config";
 import { canAccessAdmin } from "@/lib/roles";
 import { languagesFromRecord } from "@/lib/stats-utils";
 import { lastSyncedAt } from "@/lib/sync";
@@ -79,6 +82,7 @@ export default async function V2Page() {
     topScores,
     dbProjects,
     syncedAt,
+    recruiting,
   ] = await Promise.all([
     db.event.findMany({
       where: { reviewStatus: "approved", isPublished: true },
@@ -120,6 +124,7 @@ export default async function V2Page() {
     }),
     // Only the leaderboard's freshness readout needs this.
     lastSyncedAt(),
+    isRecruitmentOpen(),
   ]);
   const events = orderForDisplay(eventRows);
 
@@ -220,6 +225,12 @@ export default async function V2Page() {
       {/* Kicks off a background stats refresh when the cache is stale — the
           SWR replacement for the old GitHub Actions cron (see lib/sync.ts). */}
       <StatsSyncPing />
+      {recruiting && (
+        <>
+          <RecruitmentBanner />
+          <RecruitmentPopup />
+        </>
+      )}
       <HeroOrbit />
       <AnnouncementCarousel announcements={announcements} />
       {/* PLAYER STATS is personal — only rendered for signed-in members. */}
