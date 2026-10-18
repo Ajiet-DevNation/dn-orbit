@@ -261,6 +261,10 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
                   src={cover}
                   alt=""
                   loading="lazy"
+                  // Dead link: show the empty tile, not a broken-image glyph.
+                  onError={(e) => {
+                    e.currentTarget.style.visibility = "hidden";
+                  }}
                   className="h-full w-full object-cover"
                 />
               ) : (

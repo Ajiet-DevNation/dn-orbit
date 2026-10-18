@@ -52,6 +52,12 @@ function bannerGlyph(type: string): string {
 }
 
 function EventCard({ data }: { data: EventCardData }) {
+  // Remembers WHICH src failed (same pattern as the project card), so a dead
+  // upload degrades to the glyph placeholder instead of the browser's broken
+  // image + alt text, and a later fixed URL retries on its own.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const banner =
+    data.bannerUrl && data.bannerUrl !== failedSrc ? data.bannerUrl : null;
   return (
     <>
       {/* Dedicated hover wrapper — the lift/scale lives here, NOT on the Card,
@@ -71,13 +77,14 @@ function EventCard({ data }: { data: EventCardData }) {
               without next/image remote-pattern config. Falls back to a pixel
               placeholder when no banner is set. */}
           <div className="relative aspect-video w-full overflow-hidden border-b-[6px] border-white/10 bg-[#0d0d0d] transition-colors duration-300 group-hover:border-[#22c55e]/50">
-            {data.bannerUrl ? (
+            {banner ? (
               // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
               <img
-                src={data.bannerUrl}
+                src={banner}
                 alt={data.title}
                 loading="lazy"
                 draggable={false}
+                onError={() => setFailedSrc(banner)}
                 className="pixelated h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 select-none [-webkit-user-drag:none]"
               />
             ) : (
