@@ -1,10 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import {
+  LENS_HEIGHT_RESERVE,
   LENS_ITEM_GAP,
+  lensSize,
   lensTilt,
   lensX,
   MAX_TILT_DEG,
   MAX_ZOOM,
+  MIN_LENS_HEIGHT,
   thumbOpacity,
   thumbX,
 } from "./lens-layout";
@@ -74,5 +77,39 @@ describe("lensTilt", () => {
     expect(lensTilt(0.5).deg).toBe(MAX_TILT_DEG / 2);
     expect(lensTilt(-1).deg).toBe(-MAX_TILT_DEG);
     expect(lensTilt(4)).toEqual({ deg: MAX_TILT_DEG, scale: 1 + MAX_ZOOM });
+  });
+});
+
+describe("lensSize", () => {
+  const projects = {
+    maxWidth: 680,
+    ratio: 600 / 680,
+    share: 0.46,
+    phoneShare: 0.8,
+    thumbRatio: 0.4,
+  };
+
+  test("caps at the desktop maximum on a big screen", () => {
+    expect(lensSize(2000, 1200, projects).cardW).toBe(680);
+  });
+
+  test("shrinks to fit a short laptop screen", () => {
+    const { cardH } = lensSize(1366, 657, projects);
+    expect(cardH).toBeLessThanOrEqual(657 - LENS_HEIGHT_RESERVE + 1);
+  });
+
+  test("takes most of a phone's width", () => {
+    expect(lensSize(390, 844, projects).cardW).toBe(312);
+  });
+
+  test("never collapses below the minimum height", () => {
+    expect(lensSize(800, 300, projects).cardH).toBeGreaterThanOrEqual(
+      MIN_LENS_HEIGHT - 1,
+    );
+  });
+
+  test("thumbs keep the card's aspect ratio", () => {
+    const { thumbW, thumbH } = lensSize(1600, 1000, projects);
+    expect(thumbH / thumbW).toBeCloseTo(projects.ratio, 1);
   });
 });

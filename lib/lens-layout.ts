@@ -49,3 +49,39 @@ export function lensTilt(d: number): { deg: number; scale: number } {
   const t = clamp(d, -1, 1);
   return { deg: t * MAX_TILT_DEG, scale: 1 + Math.abs(t) * MAX_ZOOM };
 }
+
+/** Below this viewport width the lens takes phone sizing. */
+export const LENS_BREAKPOINT = 768;
+/** Vertical room the heading and counter need around the lens, px. */
+export const LENS_HEIGHT_RESERVE = 290;
+/** Smallest lens height before the section is allowed to overflow, px. */
+export const MIN_LENS_HEIGHT = 220;
+
+export interface LensSizing {
+  maxWidth: number;
+  /** Card height / width. */
+  ratio: number;
+  /** Lens width as a share of the viewport on wider screens. */
+  share: number;
+  /** Lens width as a share of the viewport on phones. */
+  phoneShare: number;
+  /** Thumb height / lens height. */
+  thumbRatio: number;
+}
+
+// lens + thumb sizes that fit one pinned screen in both directions
+export function lensSize(
+  viewportWidth: number,
+  viewportHeight: number,
+  s: LensSizing,
+) {
+  const share = viewportWidth < LENS_BREAKPOINT ? s.phoneShare : s.share;
+  const byWidth = Math.min(s.maxWidth, viewportWidth * share);
+  const byHeight =
+    Math.max(MIN_LENS_HEIGHT, viewportHeight - LENS_HEIGHT_RESERVE) / s.ratio;
+  const cardW = Math.round(Math.min(byWidth, byHeight));
+  const cardH = Math.round(cardW * s.ratio);
+  const thumbH = Math.round(cardH * s.thumbRatio);
+  const thumbW = Math.round(thumbH / s.ratio);
+  return { cardW, cardH, thumbW, thumbH };
+}

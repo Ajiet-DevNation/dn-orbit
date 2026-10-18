@@ -31,15 +31,19 @@ const TechChip = memo(function TechChip({ name }: { name: string }) {
   );
 });
 
-import { useViewportWidth } from "@/hooks/useViewportWidth";
-import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
+import { useViewportSize } from "@/hooks/useViewportSize";
+import { lensSize } from "@/lib/lens-layout";
+import { CoverflowControls } from "./CoverflowControls";
+import { LENS_PAD, LensSection } from "./LensSection";
 
-// ─── tuning (desktop reference; scaled to the viewport in the component) ───────
-const MAX_CARD_W = 680; // centre-card (lens) width (px) on desktop
-const CARD_RATIO = 600 / 680; // height / width
-const THUMB_RATIO = 0.4; // thumb height / lens height
-const LENS_PAD = 6; // dashed lens frame inset around the card (px)
-const LENS_BREAKPOINT = 768; // below this, phone sizing
+// ─── tuning (desktop reference; scaled to the viewport by lensSize) ──────────
+const LENS_SIZING = {
+  maxWidth: 680, // centre-card (lens) width on desktop
+  ratio: 600 / 680, // height / width
+  share: 0.46, // lens width / viewport on wider screens
+  phoneShare: 0.8,
+  thumbRatio: 0.4, // thumb height / lens height
+};
 
 function statusColor(status: string): string {
   switch (status) {
@@ -358,18 +362,14 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
   const { selected, detailOpen, flipRef, open, close } =
     useFlipDetail<number>();
 
-  // Responsive sizing: cap at the desktop width, otherwise scale to the viewport
-  // so the lens always fits a phone screen with thumbs peeking out.
-  const vw = useViewportWidth();
-  // Phones: the lens takes most of the width. Wider screens: a smaller share,
-  // so the thumb strips have room to read as a strip.
-  const CARD_W = Math.min(
-    MAX_CARD_W,
-    Math.round(vw * (vw < LENS_BREAKPOINT ? 0.8 : 0.46)),
-  );
-  const CARD_H = Math.round(CARD_W * CARD_RATIO);
-  const THUMB_H = Math.round(CARD_H * THUMB_RATIO);
-  const THUMB_W = Math.round(THUMB_H / CARD_RATIO);
+  // Responsive sizing: the lens must fit one pinned screen, wide or tall.
+  const viewport = useViewportSize();
+  const {
+    cardW: CARD_W,
+    cardH: CARD_H,
+    thumbW: THUMB_W,
+    thumbH: THUMB_H,
+  } = lensSize(viewport.width, viewport.height, LENS_SIZING);
 
   // Memoised: a fresh object literal here would give CoverflowControls a new
   // prop identity on every parent render, defeating its own memo() exactly when
@@ -396,6 +396,7 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
     settledIndex,
     count,
     stageHandlers,
+    setIntro,
   } = useCoverflow({
     count: projects.length,
     lensWidth: CARD_W,
@@ -412,130 +413,118 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
 
   const activeProject = selected !== null ? projects[selected] : null;
 
-  return (
-    <section
-      ref={sectionRef}
-      id="projects"
-      className="relative flex min-h-screen w-full flex-col overflow-hidden py-20 scroll-mt-24"
+  // Detail overlay — the card flies here (FLIP) from the lens. Solid backdrop
+  // so it cleanly covers the title + carousel; padded down so it sits clear of
+  // the sticky nav and reads as centred.
+  const overlay = (
+    <DetailOverlay
+      open={!!activeProject}
+      onClose={close}
+      closeLabel="Close project details"
     >
-      {/* Title gets its own row so the cards never cover it. */}
-      <div className="shrink-0 pt-28">
-        <SectionHeading text="PROJECTS" />
-      </div>
+      {activeProject && (
+        <>
+          <DetailOverlayContent
+            ref={flipRef}
+            className="shrink-0"
+            style={{ width: CARD_W, height: CARD_H }}
+          >
+            <ProjectCard project={activeProject} className="h-full w-full" />
+          </DetailOverlayContent>
+          <DetailOverlayContent>
+            <ProjectDetail project={activeProject} open={detailOpen} />
+          </DetailOverlayContent>
+        </>
+      )}
+    </DetailOverlay>
+  );
 
-      {projects.length === 0 ? (
+  if (projects.length === 0) {
+    return (
+      <section
+        ref={sectionRef}
+        id="projects"
+        className="relative flex min-h-screen w-full flex-col py-20 scroll-mt-24"
+      >
+        <div className="shrink-0 pt-28">
+          <SectionHeading text="PROJECTS" />
+        </div>
         <div className="flex flex-1 items-center justify-center px-6">
           <p className="retro text-center text-[10px] tracking-widest text-muted-foreground">
             NO PROJECTS SHOWCASED YET
           </p>
         </div>
-      ) : (
-        // Lens stage: thumbs run out to both sides, the lens sits on top of
-        // them in the middle (its solid fill is what hides a thumb sliding in).
+      </section>
+    );
+  }
+
+  return (
+    <LensSection
+      id="projects"
+      title="PROJECTS"
+      sectionRef={sectionRef}
+      lensRef={lensRef}
+      lensWidth={CARD_W}
+      lensHeight={CARD_H}
+      setIntro={setIntro}
+      stageHandlers={stageHandlers}
+      stageClassName={cn(selected !== null && "pointer-events-none opacity-0")}
+      stageStyle={{ transition: "opacity 300ms var(--ease-out-quart)" }}
+      thumbs={projects.map((project, i) => (
         <div
-          className={cn(
-            "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
-            selected !== null && "pointer-events-none opacity-0",
-          )}
-          style={{ transition: "opacity 300ms var(--ease-out-quart)" }}
-          {...stageHandlers}
+          key={project.id}
+          ref={registerThumb(i)}
+          className="absolute left-1/2 top-1/2"
+          style={{
+            width: THUMB_W,
+            height: THUMB_H,
+            marginLeft: -THUMB_W / 2,
+            marginTop: -THUMB_H / 2,
+            visibility: "hidden",
+          }}
         >
-          <CoverflowFloor />
-          <div className="absolute inset-0">
-            {projects.map((project, i) => (
-              <div
-                key={project.id}
-                ref={registerThumb(i)}
-                className="absolute left-1/2 top-1/2"
-                style={{
-                  width: THUMB_W,
-                  height: THUMB_H,
-                  marginLeft: -THUMB_W / 2,
-                  marginTop: -THUMB_H / 2,
-                  visibility: "hidden",
-                }}
-              >
-                <ProjectThumb
-                  project={project}
-                  index={i}
-                  onPick={onCardClick}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div
-            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 border-2 border-dashed border-[#22c55e]/40 bg-[#0a0a0a] shadow-[0_0_40px_rgba(0,0,0,0.6)]"
-            style={{ padding: LENS_PAD - 2 }}
-          >
-            <div
-              ref={lensRef}
-              className="relative overflow-hidden"
-              style={{ width: CARD_W, height: CARD_H }}
-            >
-              {projects.map((project, i) => (
-                <div
-                  key={project.id}
-                  ref={registerCard(i)}
-                  data-cf-index={i}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${project.title} — open details`}
-                  onClick={() => onCardClick(i)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onCardClick(i);
-                    }
-                  }}
-                  className="group absolute inset-0 cursor-pointer"
-                  style={{ visibility: i === 0 ? undefined : "hidden" }}
-                >
-                  <ProjectCard
-                    project={project}
-                    className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
-                  />
-                  <HudCardFrame variant="full" />
-                </div>
-              ))}
-            </div>
-          </div>
-          <CoverflowControls
-            onPrev={prev}
-            onNext={next}
-            index={activeIndex}
-            count={count}
-            // Sit the counter just below the lens's bottom edge, so it never
-            // overlaps the card chrome.
-            counterClassName=""
-            counterStyle={counterStyle}
-          />
+          <ProjectThumb project={project} index={i} onPick={onCardClick} />
         </div>
-      )}
-
-      {/* Detail overlay — the card flies here (FLIP) from the lens. Solid
-            backdrop so it cleanly covers the title + carousel; padded down so it
-            sits clear of the sticky nav and reads as centred. */}
-      <DetailOverlay
-        open={!!activeProject}
-        onClose={close}
-        closeLabel="Close project details"
-      >
-        {activeProject && (
-          <>
-            <DetailOverlayContent
-              ref={flipRef}
-              className="shrink-0"
-              style={{ width: CARD_W, height: CARD_H }}
-            >
-              <ProjectCard project={activeProject} className="h-full w-full" />
-            </DetailOverlayContent>
-            <DetailOverlayContent>
-              <ProjectDetail project={activeProject} open={detailOpen} />
-            </DetailOverlayContent>
-          </>
-        )}
-      </DetailOverlay>
-    </section>
+      ))}
+      cards={projects.map((project, i) => (
+        <div
+          key={project.id}
+          ref={registerCard(i)}
+          data-cf-index={i}
+          role="button"
+          tabIndex={0}
+          aria-label={`${project.title} — open details`}
+          onClick={() => onCardClick(i)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onCardClick(i);
+            }
+          }}
+          className="group absolute inset-0 cursor-pointer"
+          style={{ visibility: i === 0 ? undefined : "hidden" }}
+        >
+          <ProjectCard
+            project={project}
+            className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
+          />
+          <HudCardFrame variant="full" />
+        </div>
+      ))}
+      controls={
+        <CoverflowControls
+          onPrev={prev}
+          onNext={next}
+          index={activeIndex}
+          count={count}
+          // Sit the counter just below the lens's bottom edge, so it never
+          // overlaps the card chrome.
+          counterClassName=""
+          counterStyle={counterStyle}
+        />
+      }
+    >
+      {overlay}
+    </LensSection>
   );
 }

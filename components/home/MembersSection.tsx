@@ -7,18 +7,21 @@ import { Card } from "@/components/ui/8bit-card";
 import { MEMBERS, type MemberData } from "@/constants/members";
 import { useCardPowerOn } from "@/hooks/useCardPowerOn";
 import { useCoverflow } from "@/hooks/useCoverflow";
-import { useViewportWidth } from "@/hooks/useViewportWidth";
+import { useViewportSize } from "@/hooks/useViewportSize";
+import { lensSize } from "@/lib/lens-layout";
 import { toTitleCase } from "@/lib/names";
-import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
+import { CoverflowControls } from "./CoverflowControls";
 import { HudCardFrame } from "./HudCardFrame";
-import { SectionHeading } from "./SectionHeading";
+import { LENS_PAD, LensSection } from "./LensSection";
 
-// ─── tuning (desktop reference; scaled to the viewport in the component) ───────
-const MAX_CARD_W = 420; // portrait member card (lens) width (px) on desktop
-const CARD_RATIO = 536 / 392; // height / width (~5:7)
-const THUMB_RATIO = 0.42; // thumb height / lens height
-const LENS_PAD = 6; // dashed lens frame inset around the card (px)
-const LENS_BREAKPOINT = 768; // below this, phone sizing
+// ─── tuning (desktop reference; scaled to the viewport by lensSize) ──────────
+const LENS_SIZING = {
+  maxWidth: 420, // portrait member card (lens) width on desktop
+  ratio: 536 / 392, // height / width (~5:7)
+  share: 0.36, // lens width / viewport on wider screens
+  phoneShare: 0.78,
+  thumbRatio: 0.42, // thumb height / lens height
+};
 // Flip easing: smooth ease-in-out, no overshoot, so it reads as a real card turn.
 const FLIP_EASE = "transform 560ms cubic-bezier(0.4, 0.0, 0.2, 1)";
 
@@ -282,17 +285,14 @@ export function MembersSection() {
   // The lens's clipped window; the bracket power-on looks for cards in here.
   const lensRef = useRef<HTMLDivElement>(null);
 
-  // Responsive sizing so the lens fits a phone screen with thumbs peeking out.
-  const vw = useViewportWidth();
-  // Phones: the lens takes most of the width. Wider screens: a smaller share,
-  // so the thumb strips have room to read as a strip.
-  const CARD_W = Math.min(
-    MAX_CARD_W,
-    Math.round(vw * (vw < LENS_BREAKPOINT ? 0.78 : 0.36)),
-  );
-  const CARD_H = Math.round(CARD_W * CARD_RATIO);
-  const THUMB_H = Math.round(CARD_H * THUMB_RATIO);
-  const THUMB_W = Math.round(THUMB_H / CARD_RATIO);
+  // Responsive sizing: the lens must fit one pinned screen, wide or tall.
+  const viewport = useViewportSize();
+  const {
+    cardW: CARD_W,
+    cardH: CARD_H,
+    thumbW: THUMB_W,
+    thumbH: THUMB_H,
+  } = lensSize(viewport.width, viewport.height, LENS_SIZING);
 
   // Memoised: a fresh object literal here would give CoverflowControls a new
   // prop identity on every parent render, defeating its own memo() exactly when
@@ -316,6 +316,7 @@ export function MembersSection() {
     settledIndex,
     count,
     stageHandlers,
+    setIntro,
   } = useCoverflow({
     count: MEMBERS.length,
     lensWidth: CARD_W,
@@ -338,73 +339,52 @@ export function MembersSection() {
   useCardPowerOn(lensRef, settledIndex);
 
   return (
-    <section
-      ref={sectionRef}
+    <LensSection
       id="members"
-      className="relative flex min-h-screen w-full flex-col overflow-hidden py-20 scroll-mt-24"
-    >
-      {/* Title gets its own row at the top so the cards never cover it. */}
-      <div className="shrink-0 pt-28">
-        <SectionHeading text="MEMBERS" />
-      </div>
-
-      {/* Lens stage: thumbs run out to both sides, the lens sits on top of
-          them in the middle (its solid fill is what hides a thumb sliding in). */}
-      <div
-        className="relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing"
-        {...stageHandlers}
-      >
-        <CoverflowFloor />
-        <div className="absolute inset-0">
-          {MEMBERS.map((member, i) => (
-            <div
-              key={member.id}
-              ref={registerThumb(i)}
-              className="absolute left-1/2 top-1/2"
-              style={{
-                width: THUMB_W,
-                height: THUMB_H,
-                marginLeft: -THUMB_W / 2,
-                marginTop: -THUMB_H / 2,
-                visibility: "hidden",
-              }}
-            >
-              <MemberThumb member={member} index={i} onPick={onCardClick} />
-            </div>
-          ))}
-        </div>
-
+      title="MEMBERS"
+      sectionRef={sectionRef}
+      lensRef={lensRef}
+      lensWidth={CARD_W}
+      lensHeight={CARD_H}
+      setIntro={setIntro}
+      stageHandlers={stageHandlers}
+      thumbs={MEMBERS.map((member, i) => (
         <div
-          className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 border-2 border-dashed border-[#22c55e]/40 bg-[#0a0a0a] shadow-[0_0_40px_rgba(0,0,0,0.6)]"
-          style={{ padding: LENS_PAD - 2 }}
+          key={member.id}
+          ref={registerThumb(i)}
+          className="absolute left-1/2 top-1/2"
+          style={{
+            width: THUMB_W,
+            height: THUMB_H,
+            marginLeft: -THUMB_W / 2,
+            marginTop: -THUMB_H / 2,
+            visibility: "hidden",
+          }}
         >
-          <div
-            ref={lensRef}
-            className="relative overflow-hidden"
-            style={{ width: CARD_W, height: CARD_H }}
-          >
-            {MEMBERS.map((member, i) => (
-              <div
-                key={member.id}
-                ref={registerCard(i)}
-                data-cf-index={i}
-                className="absolute inset-0"
-                style={{
-                  visibility: i === 0 ? undefined : "hidden",
-                  // Inner perspective for the front/back flip.
-                  perspective: 1200,
-                }}
-              >
-                <MemberCard
-                  member={member}
-                  index={i}
-                  flipped={flipped.has(i)}
-                  onActivate={onCardClick}
-                />
-              </div>
-            ))}
-          </div>
+          <MemberThumb member={member} index={i} onPick={onCardClick} />
         </div>
+      ))}
+      cards={MEMBERS.map((member, i) => (
+        <div
+          key={member.id}
+          ref={registerCard(i)}
+          data-cf-index={i}
+          className="absolute inset-0"
+          style={{
+            visibility: i === 0 ? undefined : "hidden",
+            // Inner perspective for the front/back flip.
+            perspective: 1200,
+          }}
+        >
+          <MemberCard
+            member={member}
+            index={i}
+            flipped={flipped.has(i)}
+            onActivate={onCardClick}
+          />
+        </div>
+      ))}
+      controls={
         <CoverflowControls
           onPrev={prev}
           onNext={next}
@@ -415,7 +395,7 @@ export function MembersSection() {
           counterClassName=""
           counterStyle={counterStyle}
         />
-      </div>
-    </section>
+      }
+    />
   );
 }

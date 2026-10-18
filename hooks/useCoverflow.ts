@@ -51,8 +51,6 @@ const DRAG_THRESHOLD = 5;
 // Pointer travel per card, as a share of the lens width. Between the thumb pitch
 // and the lens width, so a drag feels attached to whichever strip it started on.
 const DRAG_SPAN = 0.5;
-const INTRO_TAU_MS = 260;
-const SETTLE_EPS = 0.001;
 // A thumb this faint is off-stage: it stops being painted and stops being
 // written to at all (see applyCards).
 const MIN_VISIBLE_OPACITY = 0.005;
@@ -81,14 +79,13 @@ export function useCoverflow({
   const sectionRef = useRef<HTMLElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const thumbRefs = useRef<(HTMLDivElement | null)[]>([]);
-  // Last-written visibility / pointer-events / will-change / opacity per big
-  // card and per thumb. transform is compositor-only (cheap to rewrite each
+  // Last-written visibility / pointer-events / will-change per big card, plus
+  // opacity per thumb. transform is compositor-only (cheap to rewrite each
   // frame), but these force a style recalc, so we only touch them when they
   // actually change — this is what keeps the drag buttery instead of steppy.
   const lastVisibleRef = useRef<boolean[]>([]);
   const lastPeRef = useRef<("auto" | "none")[]>([]);
   const lastWillChangeRef = useRef<string[]>([]);
-  const lastOpacityRef = useRef<number[]>([]);
   const lastThumbVisibleRef = useRef<boolean[]>([]);
   const lastThumbOpacityRef = useRef<number[]>([]);
   const lastThumbWillChangeRef = useRef<string[]>([]);
@@ -128,11 +125,11 @@ export function useCoverflow({
   const lastMoveXRef = useRef(0);
   const lastMoveTRef = useRef(0);
 
-  // Intro: the thumbs unfold from under the lens and the lens card rises in,
-  // the first time the section is seen. `introRef` eases 0 → `introTargetRef`.
-  // Under reduced-motion it snaps straight to 1 so the row is simply present.
+  // Intro: how far the thumb strips have unfolded from under the lens (0 → 1).
+  // Driven from outside by the section's scroll entrance (useLensEntrance via
+  // `setIntro`), which also owns the reduced-motion path. Input waits for 1, so
+  // nothing can be dragged while the lens is still forming.
   const introRef = useRef(0);
-  const introTargetRef = useRef(0);
   const reduceMotionRef = useRef(false);
 
   // The only React state: the centre index (live, for the counter) and the
@@ -209,7 +206,6 @@ export function useCoverflow({
     const lastVisible = lastVisibleRef.current;
     const lastPe = lastPeRef.current;
     const lastWillChange = lastWillChangeRef.current;
-    const lastOpacity = lastOpacityRef.current;
     const lastDepth = lastDepthRef.current;
     const lastCenter = lastCenterRef.current;
     const tiltEls = tiltElsRef.current;
@@ -242,14 +238,7 @@ export function useCoverflow({
         lastWillChange[i] = willChange;
       }
 
-      // Intro lifts the lens card in from slightly below.
-      const lift = (1 - intro) * 26;
-      el.style.transform = `translate3d(${lensX(d, lensWidth)}px, ${lift}px, 0)`;
-      const opacity = Math.round(intro * 100) / 100;
-      if (lastOpacity[i] !== opacity) {
-        el.style.opacity = String(opacity);
-        lastOpacity[i] = opacity;
-      }
+      el.style.transform = `translate3d(${lensX(d, lensWidth)}px, 0, 0)`;
 
       if (tiltOwner[i] !== el) {
         tiltEls[i] = el.querySelector<HTMLElement>("[data-lens-tilt]");
@@ -335,14 +324,6 @@ export function useCoverflow({
       const dt = Math.min(now - lastTimeRef.current, MAX_DT_MS);
       lastTimeRef.current = now;
 
-      // Ease the intro alongside focus so the fan-in and any drag share a frame.
-      const introDiff = introTargetRef.current - introRef.current;
-      if (Math.abs(introDiff) >= SETTLE_EPS) {
-        introRef.current += introDiff * (1 - Math.exp(-dt / INTRO_TAU_MS));
-      } else {
-        introRef.current = introTargetRef.current;
-      }
-
       const previousFocus = focusRef.current;
       if (draggingRef.current) {
         // A drag tracks the pointer 1:1 — anything else feels like lag. Keep the
@@ -380,9 +361,7 @@ export function useCoverflow({
         { pos: focusRef.current, vel: velocityRef.current },
         targetRef.current,
       );
-      const introSettled =
-        Math.abs(introTargetRef.current - introRef.current) < SETTLE_EPS;
-      if (focusSettled && introSettled) {
+      if (focusSettled) {
         // Land exactly on the target rather than a hair short of it.
         focusRef.current = targetRef.current;
         velocityRef.current = 0;
@@ -436,11 +415,6 @@ export function useCoverflow({
     reduceMotionRef.current =
       typeof window !== "undefined" &&
       !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    // Reduced-motion: skip the entrance, just present the row.
-    if (reduceMotionRef.current) {
-      introRef.current = 1;
-      introTargetRef.current = 1;
-    }
     let frame = 0;
     const onResize = () => {
       if (frame) return;
@@ -460,8 +434,7 @@ export function useCoverflow({
     };
   }, [applyCards, setTarget]);
 
-  // On-screen state for arrow-key gating, auto-advance, the intro trigger and
-  // layer promotion.
+  // On-screen state for arrow-key gating, auto-advance and layer promotion.
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
@@ -469,8 +442,6 @@ export function useCoverflow({
       ([entry]) => {
         inViewRef.current = entry.isIntersecting;
         if (entry.isIntersecting) {
-          // Play the intro the first time the section is seen.
-          if (introTargetRef.current === 0) introTargetRef.current = 1;
           // Promote the visible cards now, before anything moves.
           applyCards();
           wake();
@@ -508,7 +479,7 @@ export function useCoverflow({
         !inViewRef.current ||
         draggingRef.current ||
         hoverRef.current ||
-        introTargetRef.current === 0 ||
+        introRef.current < 1 ||
         // A background tab gets no rAF, so the loop cannot consume advances —
         // without this the row would silently queue up a pile of them and jump
         // on return.
@@ -531,7 +502,8 @@ export function useCoverflow({
   // first in-view carousel to see it handles it and the others stand down.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (disabledRef.current || !inViewRef.current) return;
+      if (disabledRef.current || !inViewRef.current || introRef.current < 1)
+        return;
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
 
       const claimable = e as KeyboardEvent & { __coverflowClaimed?: boolean };
@@ -549,7 +521,7 @@ export function useCoverflow({
   // Drag via window listeners (so in-card clicks still fire); flings on release.
   const onPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (disabledRef.current) return;
+      if (disabledRef.current || introRef.current < 1) return;
       draggingRef.current = true;
       movedRef.current = false;
       downXRef.current = e.clientX;
@@ -639,6 +611,17 @@ export function useCoverflow({
     [count, centreOn],
   );
 
+  // Entrance hook → thumb strips. Applied at once (no loop needed: the caller
+  // already runs on its own rAF), so the strips track the scroll frame-exact.
+  const setIntro = useCallback(
+    (value: number) => {
+      if (introRef.current === value) return;
+      introRef.current = value;
+      applyCards();
+    },
+    [applyCards],
+  );
+
   // One stable setter per index, cached.
   //
   // `registerCard(i)` used to build a fresh closure on every render, so React
@@ -674,6 +657,7 @@ export function useCoverflow({
     next,
     prev,
     goTo: centreOn,
+    setIntro,
     activeIndex,
     settledIndex,
     count,
