@@ -404,8 +404,9 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   );
 }
 
-// Two columns on desktop: a sticky intro rail on the left, the form on the
-// right. Phones get one column with the rail's extras hidden.
+// Hero card across the top, then two columns on desktop: a sticky rail (mission
+// progress, how it works) on the left, the form on the right. Phones get one
+// column with the rail's extras hidden.
 function Layout({
   step,
   filled,
@@ -423,10 +424,12 @@ function Layout({
       >
         ◂ BACK TO ORBIT
       </Link>
+      {/* Full width, like the mock: the rail is too narrow for this card. */}
+      <div className="mt-6">
+        <RecruitHeaderCard current={step} />
+      </div>
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-10">
         <aside className="flex flex-col gap-6 lg:sticky lg:top-28 lg:col-span-2 lg:self-start">
-          <RecruitHeaderCard current={step} />
-
           {filled !== undefined && (
             // Desktop only, like before: on phones the form should start fast.
             <div className="hidden lg:block">
