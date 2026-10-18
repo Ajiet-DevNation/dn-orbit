@@ -2,6 +2,7 @@
 
 import {
   Calendar,
+  ClipboardList,
   Home,
   Inbox,
   LayoutDashboard,
@@ -28,6 +29,7 @@ const navItems = [
   { label: "OVERVIEW", href: "/admin", icon: LayoutDashboard },
   { label: "MEMBERS", href: "/admin/members", icon: Users },
   { label: "REQUESTS", href: "/admin/requests", icon: UserCheck },
+  { label: "RECRUITMENTS", href: "/admin/recruitments", icon: ClipboardList },
   { label: "EVENTS", href: "/admin/events", icon: Calendar },
   { label: "PROJECTS", href: "/admin/projects", icon: Rocket },
   { label: "APPROVALS", href: "/admin/approvals", icon: Inbox },

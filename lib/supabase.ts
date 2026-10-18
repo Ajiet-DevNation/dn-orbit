@@ -8,8 +8,12 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 //
 // Storage bucket: `media`, public-read (folders events/, projects/). Public read
 // lets plain <img src> render the uploaded files without signed URLs.
+//
+// Storage bucket: `cvs`, PRIVATE — recruitment CVs carry personal data, so they
+// are only ever read through short-lived signed URLs from an admin route.
 
 export const MEDIA_BUCKET = "media";
+export const CV_BUCKET = "cvs";
 
 let cached: SupabaseClient | null = null;
 

@@ -20,6 +20,7 @@ import { BootOverlay } from "./BootOverlay";
 
 const MIN_VISIBLE_MS = 2200; // long enough for the pixel draw to finish
 const EXIT_MS = 720;
+const MAX_WAIT_MS = 4000; // lift even if `load` never fires (slow images)
 
 // Smooth, eased ramp (no overshoot) for the exit so it reads as a deliberate
 // "settle into the app" rather than a flat linear dim.
@@ -79,9 +80,13 @@ export function BootSplash() {
 
     if (document.readyState === "complete") dismiss();
     else window.addEventListener("load", dismiss, { once: true });
+    // `load` waits for every image, including third-party GitHub avatars; one
+    // stalled request would keep the splash up forever. Cap the wait.
+    const cap = window.setTimeout(dismiss, MAX_WAIT_MS);
 
     return () => {
       cancelAnimationFrame(raf);
+      window.clearTimeout(cap);
       window.removeEventListener("load", dismiss);
     };
   }, []);
