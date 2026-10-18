@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
+import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
@@ -18,16 +19,21 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     // Fetch existing to check lead
     const project = await db.project.findUnique({
       where: { id },
-      select: { leadId: true },
+      select: {
+        leadId: true,
+        reviewStatus: true,
+        title: true,
+        description: true,
+        githubRepoUrl: true,
+        techStack: true,
+      },
     });
 
     if (!project)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (
-      project.leadId !== session.user.id &&
-      !canAccessAdmin(session.user.role)
-    ) {
+    const isAdmin = canAccessAdmin(session.user.role);
+    if (project.leadId !== session.user.id && !isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -57,10 +63,39 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           : 0;
     }
 
+    // A lead changing what the public sees on an APPROVED project sends it
+    // back to moderation; otherwise approval could be used once and the card
+    // rewritten (title, copy, outbound repo link) with no review. Admin edits
+    // keep the decision.
+    const publicChange =
+      (title !== undefined && title !== project.title) ||
+      (description !== undefined &&
+        (description ?? null) !== project.description) ||
+      (githubRepoUrl !== undefined &&
+        (githubRepoUrl ?? null) !== project.githubRepoUrl) ||
+      (techStack !== undefined &&
+        JSON.stringify(techStack) !== JSON.stringify(project.techStack));
+    const sendBackToReview =
+      !isAdmin && project.reviewStatus === "approved" && publicChange;
+    if (sendBackToReview) {
+      dataToUpdate.reviewStatus = "pending";
+      dataToUpdate.reviewedBy = { disconnect: true };
+      dataToUpdate.reviewedAt = null;
+    }
+
     const updatedProject = await db.project.update({
       where: { id },
       data: dataToUpdate,
     });
+
+    if (sendBackToReview) {
+      void logAudit({
+        action: "project.resubmit",
+        actorId: session.user.id,
+        actorName: session.user.name,
+        summary: `Edited project "${updatedProject.title}" — back in review`,
+      });
+    }
 
     return NextResponse.json(updatedProject);
   } catch (error) {
