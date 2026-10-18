@@ -31,8 +31,9 @@ import { getLenis, smoothScrollTo } from "@/lib/smooth-scroll";
 const SMOOTH_TAU_MS = 140;
 const MAX_DT_MS = 50;
 const DONE_EPS = 0.0005;
-/** Giant title starts this share of the viewport width to the right. */
-const GIANT_SLIDE_SHARE = 0.7;
+/** Giant title starts this share of the viewport width to the right — a full
+ *  width, so it enters from entirely off-screen like oryzo's. */
+const GIANT_SLIDE_SHARE = 1;
 
 interface LensScrollOptions {
   sectionRef: React.RefObject<HTMLElement | null>;
@@ -104,7 +105,6 @@ export function useLensScroll({
     const cells = Array.from(coverRef.current?.children ?? []) as HTMLElement[];
     const cellHidden: boolean[] = [];
     let lastT = Number.NaN;
-    let lastBlur = -1;
     let lastGiantOn = false;
     let lastVeil = -1;
     let lastSolid = -1;
@@ -148,12 +148,6 @@ export function useLensScroll({
           cellHidden[i] = hidden;
         }
       }
-      // A filter keeps its own compositing layer; drop it entirely once sharp.
-      const blur = Math.round(f.blur * 10) / 10;
-      if (blur !== lastBlur) {
-        content.style.filter = blur > 0 ? `blur(${blur}px)` : "";
-        lastBlur = blur;
-      }
 
       const slide = (1 - f.giantIn) * window.innerWidth * GIANT_SLIDE_SHARE;
       const scale = 1 + (flyScale - 1) * f.fly;
@@ -193,7 +187,9 @@ export function useLensScroll({
       if (reticleRef.current)
         reticleRef.current.style.opacity = String(f.reticle);
       if (hintRef.current)
-        hintRef.current.style.opacity = String(still ? 0 : hintOpacity(pin));
+        hintRef.current.style.opacity = String(
+          still ? 0 : hintOpacity(pin) * (1 - f.chrome),
+        );
       if (floorRef.current) floorRef.current.style.opacity = String(f.chrome);
       if (chromeRef.current) {
         chromeRef.current.style.opacity = String(f.chrome);

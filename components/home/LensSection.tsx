@@ -16,6 +16,11 @@ import { CoverflowFloor } from "./CoverflowControls";
 // the thumb layer and nav chrome the carousel itself drives (useCoverflow).
 // The sections own their data, cards and carousel options; this owns the stage.
 
+/** The "01 / 08" counter takes the scroll hint's spot in the bottom row once
+ *  the gallery starts (the hint fades out as the controls fade in), so the two
+ *  never stack or overlap. A constant, so CoverflowControls' memo holds. */
+export const LENS_COUNTER_STYLE = { bottom: 36, top: "auto" } as const;
+
 /** Frame border + inner gap around the lens, px. */
 export const LENS_PAD = 6;
 /** Pixel cover columns; rows follow the lens aspect so cells stay square. */
@@ -248,7 +253,7 @@ export function LensSection({
             className="pointer-events-none absolute inset-x-0 bottom-7 z-10 flex items-center justify-center gap-3"
           >
             <span className="grid size-6 place-items-center border-2 border-[#22c55e]/60 text-[9px] text-[#22c55e]">
-              <span className="cursor-blink">▼</span>
+              <span className="hint-bob">▼</span>
             </span>
             <span className="retro text-[8px] tracking-[0.3em] text-white/70">
               SCROLL TO CONTINUE

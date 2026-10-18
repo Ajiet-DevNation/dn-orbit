@@ -61,9 +61,8 @@ export function useCoverflow({
   const lastThumbVisibleRef = useRef<boolean[]>([]);
   const lastThumbOpacityRef = useRef<number[]>([]);
   const lastThumbWillChangeRef = useRef<string[]>([]);
-  // Last-written HUD vars per big card, written only when the rounded value
-  // changes (a custom property invalidates the card's subtree style).
-  const lastDepthRef = useRef<number[]>([]);
+  // Last-written HUD var per big card, written only when it changes (a custom
+  // property invalidates the card's subtree style).
   const lastCenterRef = useRef<number[]>([]);
   // The [data-lens-tilt] photo inside each big card, resolved once per card
   // element and re-resolved only when the card's DOM node identity changes.
@@ -112,7 +111,6 @@ export function useCoverflow({
     const lastVisible = lastVisibleRef.current;
     const lastPe = lastPeRef.current;
     const lastWillChange = lastWillChangeRef.current;
-    const lastDepth = lastDepthRef.current;
     const lastCenter = lastCenterRef.current;
     const tiltEls = tiltElsRef.current;
     const tiltOwner = tiltOwnerRef.current;
@@ -163,17 +161,12 @@ export function useCoverflow({
         photo.style.transform = `rotate(${deg}deg) scale(${scale})`;
       }
 
-      // HUD vars: the card holding the centre is lit, the other one dimmed.
-      // Flipped once per pass rather than scrubbed per frame — each change
-      // re-painted the card, so the frame chrome (HudCardFrame) eases the
-      // flip with a CSS opacity transition, which runs on the compositor.
-      const lit = ad < 0.5;
-      const depthVar = lit ? 0 : 0.6;
-      const centreVar = lit ? 1 : 0;
-      if (lastDepth[i] !== depthVar) {
-        el.style.setProperty("--cf-depth", String(depthVar));
-        lastDepth[i] = depthVar;
-      }
+      // HUD var: the card holding the centre gets the lit chrome (bloom,
+      // bright brackets). No dimming of the other one — like oryzo, two cards
+      // sharing the lens are both shown at full strength. Flipped once per
+      // pass rather than scrubbed per frame (each change re-paints the card);
+      // HudCardFrame eases the flip with a compositor-run CSS transition.
+      const centreVar = ad < 0.5 ? 1 : 0;
       if (lastCenter[i] !== centreVar) {
         el.style.setProperty("--cf-center", String(centreVar));
         lastCenter[i] = centreVar;

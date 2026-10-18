@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { FaExternalLinkAlt, FaGithub } from "react-icons/fa";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
@@ -34,7 +34,7 @@ const TechChip = memo(function TechChip({ name }: { name: string }) {
 import { useViewportSize } from "@/hooks/useViewportSize";
 import { lensSize } from "@/lib/lens-layout";
 import { CoverflowControls } from "./CoverflowControls";
-import { LENS_PAD, LensSection } from "./LensSection";
+import { LENS_COUNTER_STYLE, LensSection } from "./LensSection";
 
 // ─── tuning (desktop reference; scaled to the viewport by lensSize) ──────────
 const DETAIL_MAX_W = 560; // card width inside the detail overlay
@@ -382,17 +382,6 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
   const DETAIL_W = Math.min(CARD_W, DETAIL_MAX_W);
   const DETAIL_H = Math.round(DETAIL_W * LENS_SIZING.ratio);
 
-  // Memoised: a fresh object literal here would give CoverflowControls a new
-  // prop identity on every parent render, defeating its own memo() exactly when
-  // renders are most expensive — mid-drag.
-  const counterStyle = useMemo(
-    () => ({
-      top: `calc(50% + ${Math.round(CARD_H / 2) + LENS_PAD + 24}px)`,
-      bottom: "auto" as const,
-    }),
-    [CARD_H],
-  );
-
   // The lens's clipped window; the bracket power-on looks for cards in here.
   const lensRef = useRef<HTMLDivElement>(null);
 
@@ -534,7 +523,7 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
           // Sit the counter just below the lens's bottom edge, so it never
           // overlaps the card chrome.
           counterClassName=""
-          counterStyle={counterStyle}
+          counterStyle={LENS_COUNTER_STYLE}
         />
       }
     >

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
@@ -12,7 +12,7 @@ import { lensSize } from "@/lib/lens-layout";
 import { toTitleCase } from "@/lib/names";
 import { CoverflowControls } from "./CoverflowControls";
 import { HudCardFrame } from "./HudCardFrame";
-import { LENS_PAD, LensSection } from "./LensSection";
+import { LENS_COUNTER_STYLE, LensSection } from "./LensSection";
 
 // ─── tuning (desktop reference; scaled to the viewport by lensSize) ──────────
 const LENS_SIZING = {
@@ -296,17 +296,6 @@ export function MembersSection() {
     thumbH: THUMB_H,
   } = lensSize(viewport.width, viewport.height, LENS_SIZING);
 
-  // Memoised: a fresh object literal here would give CoverflowControls a new
-  // prop identity on every parent render, defeating its own memo() exactly when
-  // renders are most expensive — mid-drag.
-  const counterStyle = useMemo(
-    () => ({
-      top: `calc(50% + ${Math.round(CARD_H / 2) + LENS_PAD + 24}px)`,
-      bottom: "auto" as const,
-    }),
-    [CARD_H],
-  );
-
   const {
     sectionRef,
     registerCard,
@@ -396,7 +385,7 @@ export function MembersSection() {
           // Sit the counter just below the lens's bottom edge, so it never
           // overlaps the name plate.
           counterClassName=""
-          counterStyle={counterStyle}
+          counterStyle={LENS_COUNTER_STYLE}
         />
       }
     />

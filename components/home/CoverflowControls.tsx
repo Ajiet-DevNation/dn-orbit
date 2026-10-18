@@ -11,9 +11,12 @@ import { cn } from "@/lib/utils";
 const ArrowButton = memo(function ArrowButton({
   dir,
   onClick,
+  disabled,
 }: {
   dir: "prev" | "next";
   onClick: () => void;
+  /** At either end of the row (no loop): dimmed and inert. */
+  disabled: boolean;
 }) {
   const isPrev = dir === "prev";
   return (
@@ -21,11 +24,13 @@ const ArrowButton = memo(function ArrowButton({
       type="button"
       aria-label={isPrev ? "Previous card" : "Next card"}
       onClick={onClick}
+      disabled={disabled}
       className={[
         "retro absolute top-1/2 z-[1100] grid size-11 -translate-y-1/2 place-items-center",
         "border-2 border-white/15 bg-[#0a0a0a]/60 text-2xl leading-none text-white/65 backdrop-blur-sm",
         "transition-colors duration-200 hover:border-[#22c55e] hover:text-[#22c55e]",
         "focus-visible:border-[#22c55e] focus-visible:text-[#22c55e] focus-visible:outline-none",
+        "disabled:pointer-events-none disabled:opacity-25",
         isPrev ? "left-1 sm:left-3" : "right-1 sm:right-3",
       ].join(" ")}
     >
@@ -55,8 +60,8 @@ export const CoverflowControls = memo(function CoverflowControls({
   if (count <= 1) return null;
   return (
     <>
-      <ArrowButton dir="prev" onClick={onPrev} />
-      <ArrowButton dir="next" onClick={onNext} />
+      <ArrowButton dir="prev" onClick={onPrev} disabled={index <= 0} />
+      <ArrowButton dir="next" onClick={onNext} disabled={index >= count - 1} />
       <div
         className={cn(
           "pointer-events-none absolute inset-x-0 z-[1100] flex items-center justify-center",

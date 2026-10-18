@@ -23,8 +23,8 @@ const DWELL = 0.2;
 export const VIEWFINDER_SHARE = 0.5;
 /** Frosted-glass blur the lens applies to whatever sits behind it. */
 export const LENS_FROST = "blur(14px) saturate(130%)";
-/** Peak defocus while the viewfinder opens (px). */
-export const MAX_BLUR_PX = 6;
+/** How see-through the lens content gets while the title is behind it. */
+export const LENS_VEIL = 0.68;
 
 function clamp01(n: number): number {
   // `<=` also folds -0 (from -rectTop at exactly 0) into a plain 0.
@@ -74,16 +74,16 @@ export interface EntranceFrame {
   reticle: number;
   /** Viewfinder → full lens (0 = small square, 1 = full lens). */
   open: number;
-  /** Lens content opacity: dips while the lens opens so the giant title shows
-   *  through the frosted glass, then turns solid before the title leaves. */
+  /** Lens content opacity. One rule for the whole entrance: while the giant
+   *  title is behind the lens — small viewfinder or open — the content sits
+   *  slightly see-through on frosted glass, so the letters underneath always
+   *  read as blurred (never a hard cut in one phase and frosted in the next). */
   veil: number;
   /** Lens fill: 0 = frosted glass (blurs what is behind), 1 = solid (hides the
    *  thumbs that slide under it once the gallery starts). */
   solid: number;
   /** Share of the pixel cover cleared. */
   dissolve: number;
-  /** Lens content blur, px. */
-  blur: number;
   /** Thumb strips unfolding (fed to useCoverflow as its intro). */
   thumbs: number;
   /** Arrows, counter and floor glow. */
@@ -98,18 +98,19 @@ export function entranceFrame(p: number, arrival = 1): EntranceFrame {
   const open = easeInOutCubic(segment(p, 0.3, 0.58));
   return {
     giantIn: easeOutCubic(segment(p, 0.02, 0.32)),
-    // Full strength almost at once: a half-faded white reads as muddy grey.
-    giantOpacity: segment(p, 0.02, 0.1) * (1 - segment(p, 0.86, 0.9)),
+    // Solid white from its first frame: it enters from fully off-screen (see
+    // useLensScroll), so it needs no fade — a half-faded white reads as grey.
+    giantOpacity: (p > 0 ? 1 : 0) * (1 - segment(p, 0.86, 0.9)),
     glow: segment(p, 0.28, 0.42) * (1 - segment(p, 0.6, 0.76)),
     fly: easeInOutCubic(segment(p, 0.6, 0.88)),
     heading: segment(p, 0.85, 0.89),
     reticle: 1 - segment(p, 0.3, 0.42),
     open,
-    veil: 1 - 0.5 * segment(p, 0.3, 0.42) * (1 - segment(p, 0.56, 0.7)),
+    veil:
+      1 -
+      (1 - LENS_VEIL) * segment(p, 0.02, 0.12) * (1 - segment(p, 0.62, 0.74)),
     solid: segment(p, 0.8, 0.86),
     dissolve: segment(arrival, 0.3, 0.95),
-    // A camera-style focus pull: soft mid-open, sharp at both ends.
-    blur: MAX_BLUR_PX * Math.sin(Math.PI * open),
     thumbs: segment(p, 0.88, 0.98),
     chrome: segment(p, 0.92, 1),
   };

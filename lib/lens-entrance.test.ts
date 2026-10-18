@@ -9,6 +9,7 @@ import {
   entranceShare,
   hintOpacity,
   ITEM_PIN_SVH,
+  LENS_VEIL,
   pinLengthSvh,
   progressForCard,
   segment,
@@ -59,7 +60,6 @@ describe("entranceFrame", () => {
     const f = entranceFrame(0, 1);
     expect(f.dissolve).toBe(1);
     expect(f.open).toBe(0);
-    expect(f.blur).toBe(0);
     expect(f.reticle).toBe(1);
     expect(f.veil).toBe(1);
     expect(f.solid).toBe(0);
@@ -89,7 +89,6 @@ describe("entranceFrame", () => {
       thumbs: 1,
       chrome: 1,
     });
-    expect(entranceFrame(1).blur).toBeCloseTo(0, 10);
   });
 
   test("the giant title is solid (never a muddy half-fade) while it moves", () => {
@@ -98,17 +97,25 @@ describe("entranceFrame", () => {
     }
   });
 
-  test("while the lens opens it is see-through frosted glass", () => {
-    const f = entranceFrame(0.5);
-    expect(f.veil).toBeLessThan(1);
-    expect(f.solid).toBe(0);
-    expect(f.glow).toBe(1);
+  test("the lens treats the title the same in every phase it covers it", () => {
+    // Small viewfinder, mid-open and fully open all show the same frosted veil.
+    const square = entranceFrame(0.2);
+    const opening = entranceFrame(0.45);
+    const open = entranceFrame(0.6);
+    expect(square.open).toBe(0);
+    expect(opening.open).toBeGreaterThan(0);
+    expect(open.open).toBe(1);
+    for (const f of [square, opening, open]) {
+      expect(f.veil).toBe(LENS_VEIL);
+      expect(f.solid).toBe(0);
+    }
+    expect(opening.glow).toBe(1);
   });
 
-  test("the lens fills in before the title shrinks out from behind it", () => {
-    const flyStart = entranceFrame(0.6);
-    expect(flyStart.fly).toBe(0);
-    expect(entranceFrame(0.7).veil).toBe(1);
+  test("the lens fills in while the title shrinks out from behind it", () => {
+    expect(entranceFrame(0.6).fly).toBe(0);
+    expect(entranceFrame(0.74).veil).toBe(1);
+    expect(entranceFrame(0.74).fly).toBeLessThan(1);
   });
 
   test("the thumbs only arrive once the title has landed (like oryzo)", () => {
