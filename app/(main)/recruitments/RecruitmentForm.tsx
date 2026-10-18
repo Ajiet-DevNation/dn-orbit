@@ -18,6 +18,7 @@ import { toast } from "@/components/ui/8bit-toast";
 import {
   ABOUT_MAX_WORDS,
   BRANCHES,
+  CV_MAX_BYTES,
   countWords,
   fieldErrors,
   type RecruitmentApplicationInput,
@@ -109,12 +110,14 @@ const FIELDS: Record<
 };
 
 // Grouping replaces the old one-card-per-field stack: four panels, two columns.
-const SECTIONS: { title: string; keys: Key[] }[] = [
+// `cv` marks the panel that also carries the (non-text) CV upload.
+const SECTIONS: { title: string; keys: Key[]; cv?: true }[] = [
   { title: "ABOUT YOU", keys: ["name", "branch", "year", "usn"] },
   { title: "CONTACT", keys: ["email", "whatsapp"] },
   {
-    title: "PROFILES",
+    title: "PROFILES & CV",
     keys: ["githubUsername", "lcUsername", "linkedinUrl", "xHandle"],
+    cv: true,
   },
   { title: "IN YOUR WORDS", keys: ["about"] },
 ];
@@ -128,9 +131,26 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [step, setStep] = useState<Step>("form");
   const [submitting, setSubmitting] = useState(false);
+  const [cv, setCv] = useState<File | null>(null);
 
   const set = (key: Key) => (v: string) =>
     setValues((p) => ({ ...p, [key]: v }));
+
+  // Checked on pick so a bad file never reaches review. The server re-checks
+  // the actual bytes; this only catches the obvious cases early.
+  const pickCv = (file: File | null) => {
+    const problem = !file
+      ? undefined
+      : file.type !== "application/pdf"
+        ? "CV must be a PDF"
+        : file.size > CV_MAX_BYTES
+          ? "CV must be 2 MB or less"
+          : undefined;
+    setErrors(({ cv: _, ...rest }) =>
+      problem ? { ...rest, cv: problem } : rest,
+    );
+    setCv(problem ? null : file);
+  };
 
   if (!open) {
     return (
@@ -177,11 +197,12 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   const submit = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch("/api/recruitments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
+      // Multipart so the optional CV travels with the application. No
+      // Content-Type header: the browser sets it with the form boundary.
+      const body = new FormData();
+      body.set("data", JSON.stringify(values));
+      if (cv) body.set("cv", cv);
+      const res = await fetch("/api/recruitments", { method: "POST", body });
       if (res.status === 201) {
         setStep("done");
         window.scrollTo({ top: 0 });
@@ -226,6 +247,16 @@ export function RecruitmentForm({ open }: { open: boolean }) {
                   </dd>
                 </div>
               ))}
+              {s.cv && (
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <dt className="retro text-[8px] tracking-widest text-muted-foreground">
+                    CV
+                  </dt>
+                  <dd className="break-all font-mono text-sm text-white">
+                    {cv ? cv.name : "—"}
+                  </dd>
+                </div>
+              )}
             </dl>
           </Panel>
         ))}
@@ -343,6 +374,16 @@ export function RecruitmentForm({ open }: { open: boolean }) {
                   {control(k)}
                 </Field>
               ))}
+              {s.cv && (
+                <Field
+                  id="rec-cv"
+                  label="CV (PDF, MAX 2 MB)"
+                  error={errors.cv}
+                  wide
+                >
+                  <CvPicker file={cv} onPick={pickCv} />
+                </Field>
+              )}
             </div>
           </Panel>
         ))}
@@ -527,6 +568,56 @@ function Field({
         <p className="font-mono text-[11px] leading-relaxed text-[#ef4444]">
           {error}
         </p>
+      )}
+    </div>
+  );
+}
+
+// Pixel-styled file picker. The real <input type="file"> stays in the DOM
+// (sr-only) so keyboard focus, the native dialog and the label all still work.
+function CvPicker({
+  file,
+  onPick,
+}: {
+  file: File | null;
+  onPick: (file: File | null) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 border-2 border-dashed border-white/15 bg-black/40 px-4 py-3 has-[:focus-visible]:border-[#22c55e]/70">
+      <label className="retro cursor-pointer border-2 border-[#22c55e] px-3 py-2 text-[8px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black">
+        {file ? "CHANGE PDF" : "CHOOSE PDF"}
+        <input
+          id="rec-cv"
+          type="file"
+          accept="application/pdf"
+          className="sr-only"
+          onChange={(e) => {
+            onPick(e.target.files?.[0] ?? null);
+            // Reset so re-picking the same file after REMOVE fires onChange.
+            e.target.value = "";
+          }}
+        />
+      </label>
+      {file ? (
+        <>
+          <span className="min-w-0 flex-1 truncate font-mono text-xs text-white">
+            {file.name}
+            <span className="ml-2 text-muted-foreground">
+              {(file.size / 1024).toFixed(0)} KB
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() => onPick(null)}
+            className="retro text-[8px] text-red-400 transition-colors hover:text-red-300"
+          >
+            REMOVE
+          </button>
+        </>
+      ) : (
+        <span className="font-mono text-xs text-muted-foreground">
+          Optional · no file chosen
+        </span>
       )}
     </div>
   );
