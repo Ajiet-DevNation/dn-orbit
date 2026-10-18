@@ -189,6 +189,16 @@ export const reviewActionSchema = z.object({
   action: z.enum(["approve", "reject"]),
 });
 
+/** Admin edit of a member row. Every field optional; the route rejects an
+ *  empty update. Role/status are checked against the Prisma enums. */
+export const memberUpdateSchema = z.object({
+  isVisible: z.boolean().optional(),
+  // Same cap as the onboarding/profile bio.
+  bio: z.string().trim().max(160).nullish(),
+  status: z.nativeEnum($Enums.ApprovalStatus).optional(),
+  role: z.nativeEnum($Enums.Role).optional(),
+});
+
 // ── Project members ──────────────────────────────────────────────────────────
 
 export const projectMemberSchema = z.object({

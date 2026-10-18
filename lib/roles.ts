@@ -51,3 +51,23 @@ export function canAccessAdmin(role: string | null | undefined): boolean {
 export function canManageRoles(role: string | null | undefined): boolean {
   return role === "president";
 }
+
+// Officer tiers that sit above ordinary admins. A lower tier may not reject,
+// hide or edit them — otherwise a core member could reject the President, and a
+// rejected account cannot sign in (lib/auth.ts), locking them out.
+const PROTECTED_RANK: Partial<Record<Role, number>> = {
+  president: 0,
+  vice_president: 1,
+};
+
+// may this admin change another member's status / visibility / bio?
+export function canModerate(
+  actorRole: string | null | undefined,
+  targetRole: string | null | undefined,
+): boolean {
+  if (!canAccessAdmin(actorRole)) return false;
+  const target = isRole(targetRole) ? PROTECTED_RANK[targetRole] : undefined;
+  if (target === undefined) return true;
+  const actor = isRole(actorRole) ? PROTECTED_RANK[actorRole] : undefined;
+  return actor !== undefined && actor < target;
+}
