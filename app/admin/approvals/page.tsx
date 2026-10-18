@@ -25,6 +25,7 @@ export default async function AdminApprovalsPage() {
         title: true,
         description: true,
         submittedAt: true,
+        source: true,
         lead: { select: { name: true, githubUsername: true } },
       },
       orderBy: { submittedAt: "desc" },
@@ -50,7 +51,9 @@ export default async function AdminApprovalsPage() {
     title: p.title,
     description: p.description,
     submittedAt: p.submittedAt,
-    authorName: p.lead?.name ?? "UNKNOWN",
+    // Org imports have no member lead; label the source instead of "UNKNOWN".
+    authorName:
+      p.source === "github" ? "DEVNATION GITHUB" : (p.lead?.name ?? "UNKNOWN"),
     authorGithub: p.lead?.githubUsername ?? null,
   }));
 
