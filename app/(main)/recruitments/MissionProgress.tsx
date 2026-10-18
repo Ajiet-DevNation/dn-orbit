@@ -1,18 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef } from "react";
+import { Progress } from "@/components/ui/8bit-progress";
+import { PixelBubble } from "@/components/ui/PixelBubble";
 import { framePosition, loopFrame } from "@/lib/sprite";
 import { cn } from "@/lib/utils";
-import { GreenBrackets, SignalBars } from "./RecruitHeaderCard";
 
 // Flag-Pluton sheets (PixelLab animate_image, input frame + 8, 64px frames).
 const SHEETS = {
   walk: { url: "url(/assets/pluton/pluton-flag-walk.png)", frames: 9 },
   jump: { url: "url(/assets/pluton/pluton-flag-jump.png)", frames: 9 },
 };
-const PLUTON_PX = 60; // keep in sync with size-[60px] below
-const WALK_SPEED = 0.28; // track widths per second
+const PLUTON_PX = 44; // keep in sync with size-[44px] below
+const WALK_SPEED = 0.28; // bar widths per second
 const STEP_MS = 90;
 
 function prefersReducedMotion(): boolean {
@@ -22,23 +22,20 @@ function prefersReducedMotion(): boolean {
   );
 }
 
-/** Where Pluton stands for `filled` of `total`: 0 = start, else segment centre. */
-function stopFor(filled: number, total: number): number {
-  return filled <= 0 ? 0 : (filled - 0.5) / total;
-}
-
 function bubbleText(filled: number, total: number): string {
   if (filled >= total) return "All set! Hit REVIEW ▸";
-  if (filled === 0) return "Let's complete all the steps and get you on board!";
+  if (filled === 0) return "Let's get you on board!";
   return "Nice! Keep going!";
 }
 
 /**
- * Segmented progress bar with Pluton walking along it: each newly filled
- * required field walks him one segment (backwards if one is cleared), and at
- * 100% he jumps for joy on a loop. One rAF loop drives position, walk/jump
- * frames and the planet bob; reduced motion places him directly on a static
- * frame.
+ * The original PROGRESS panel, plus Pluton walking along underneath the bar:
+ * he stands under the fill's leading edge, walks there whenever a required
+ * field is filled (or back when one is cleared), and jumps for joy at 100%.
+ * His speech bubble rides beside him and pops when its text changes.
+ *
+ * One rAF loop drives position, walk/jump frames and the pop; reduced motion
+ * places him directly on a static frame.
  */
 export function MissionProgress({
   filled,
@@ -50,10 +47,23 @@ export function MissionProgress({
   const trackRef = useRef<HTMLDivElement>(null);
   const plutonRef = useRef<HTMLDivElement>(null);
   const spriteRef = useRef<HTMLDivElement>(null);
-  const planetRef = useRef<HTMLDivElement>(null);
-  // Read by the loop; written on prop change without restarting it.
-  const goal = useRef({ stop: stopFor(filled, total), done: filled >= total });
-  goal.current = { stop: stopFor(filled, total), done: filled >= total };
+  const popRef = useRef<HTMLDivElement>(null);
+  const popAt = useRef(0);
+
+  const stop = total > 0 ? filled / total : 0;
+  const done = filled >= total;
+  const text = bubbleText(filled, total);
+  // Past the middle the bubble moves to his left so it stays inside the card.
+  const bubbleOnLeft = stop > 0.55;
+
+  // Read by the loop; written each render without restarting it.
+  const goal = useRef({ stop, done });
+  goal.current = { stop, done };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-pop on every text change
+  useEffect(() => {
+    popAt.current = performance.now();
+  }, [text]);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -61,18 +71,23 @@ export function MissionProgress({
     const sprite = spriteRef.current;
     if (!track || !pluton || !sprite) return;
 
-    const place = (pos: number, lift = 0, facingLeft = false) => {
+    const place = (pos: number, lift = 0) => {
       const w = track.clientWidth;
       const half = PLUTON_PX / 2;
-      // Clamp so he never hangs off either end of the bar.
+      // Clamped so he never hangs off either end of the bar.
       const x = Math.min(w - half, Math.max(half, pos * w)) - half;
-      pluton.style.transform = `translate(${x}px, ${-lift}px) scaleX(${facingLeft ? -1 : 1})`;
+      pluton.style.transform = `translate(${x}px, ${-lift}px)`;
     };
-    const show = (sheet: keyof typeof SHEETS, frame: number) => {
+    const show = (
+      sheet: keyof typeof SHEETS,
+      frame: number,
+      facingLeft = false,
+    ) => {
       const s = SHEETS[sheet];
       sprite.style.backgroundImage = s.url;
       sprite.style.backgroundSize = `${s.frames * 100}% 100%`;
       sprite.style.backgroundPosition = framePosition(frame, s.frames);
+      sprite.style.transform = facingLeft ? "scaleX(-1)" : "";
     };
 
     if (prefersReducedMotion()) {
@@ -95,36 +110,37 @@ export function MissionProgress({
     const tick = (now: number) => {
       const dt = Math.min(64, now - last) / 1000;
       last = now;
-      const { stop, done } = goal.current;
-      const gap = stop - pos;
+      const g = goal.current;
+      const gap = g.stop - pos;
 
       if (Math.abs(gap) > 0.002) {
         if (!walkStart) walkStart = now;
         facingLeft = gap < 0;
         pos += Math.sign(gap) * Math.min(Math.abs(gap), WALK_SPEED * dt);
-        place(pos, 0, facingLeft);
-        // Frame 0 is the idle pose (input frame); the cycle is 1..8.
+        place(pos);
+        // Frame 0 is the idle pose (input frame); the walk cycle is 1..8.
         show(
           "walk",
           1 + loopFrame(now - walkStart, SHEETS.walk.frames - 1, STEP_MS),
+          facingLeft,
         );
-      } else if (done) {
+      } else if (g.done) {
         walkStart = 0;
-        // Hop is synced to the sheet: one arc per 9-frame cycle, peaking on
-        // the airborne frames mid-cycle.
+        // Hop synced to the sheet: one arc per 9-frame cycle.
         const cycle = SHEETS.jump.frames * STEP_MS;
-        const hop = Math.sin(((now % cycle) / cycle) * Math.PI) * 12;
-        place(pos, Math.round(hop), facingLeft);
+        const hop = Math.sin(((now % cycle) / cycle) * Math.PI) * 10;
+        place(pos, Math.round(hop));
         show("jump", loopFrame(now, SHEETS.jump.frames, STEP_MS));
       } else {
         walkStart = 0;
-        place(pos, 0, facingLeft);
+        place(pos);
         show("walk", 0);
       }
 
-      const planet = planetRef.current;
-      if (planet) {
-        planet.style.transform = `translateY(${Math.round(Math.sin(now / 1400) * 3)}px)`;
+      const pop = popRef.current;
+      if (pop) {
+        const p = Math.min(1, (now - popAt.current) / 220);
+        pop.style.transform = `scale(${Math.ceil(p * 4) / 4})`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -133,66 +149,49 @@ export function MissionProgress({
   }, []);
 
   return (
-    <div className="relative border-2 border-[#8b5cf6]/60 bg-[#0b0714] shadow-[0_0_18px_rgba(139,92,246,0.2)]">
-      <GreenBrackets />
-      <div className="flex flex-col gap-3 p-5 sm:p-6">
-        <div className="flex items-center justify-between">
-          <span className="retro flex items-center gap-2 text-[9px] tracking-widest text-white/85">
-            <SignalBars />
-            MISSION PROGRESS
-          </span>
-          <span className="retro text-[9px] text-[#22c55e]">
-            {filled} / {total} REQUIRED
-          </span>
-        </div>
+    <div className="flex flex-col gap-3 border-2 border-white/10 bg-[#0a0a0a] p-6">
+      <div className="flex items-center justify-between">
+        <span className="retro text-[9px] tracking-widest text-white/80">
+          PROGRESS
+        </span>
+        <span className="retro text-[9px] text-[#22c55e]">
+          {filled} / {total} REQUIRED
+        </span>
+      </div>
+      <Progress
+        value={Math.round((filled / total) * 100)}
+        variant="retro"
+        progressBg="bg-[#22c55e]"
+        className="h-4"
+      />
 
-        {/* Pluton's walkway sits on top of the bar. */}
-        <div ref={trackRef} aria-hidden className="relative mt-1 h-[60px]">
-          <div ref={plutonRef} className="absolute bottom-0 left-0 size-[60px]">
-            <div
-              ref={spriteRef}
-              className="pixelated size-full bg-no-repeat drop-shadow-[0_0_8px_rgba(139,92,246,0.45)]"
-            />
-          </div>
-        </div>
-
-        <div
-          role="progressbar"
-          aria-label="Required fields completed"
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-valuenow={filled}
-          className="flex gap-1 border-2 border-white/10 bg-black/40 p-1"
-        >
-          {Array.from({ length: total }, (_, i) => (
-            <span
-              // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length segment row
-              key={i}
-              className={cn(
-                "h-3 flex-1 transition-colors",
-                i < filled
-                  ? "bg-[#22c55e] shadow-[0_0_8px_rgba(34,197,94,0.55)]"
-                  : "bg-white/[0.06]",
-              )}
-            />
-          ))}
-        </div>
-
-        <div className="mt-1 flex items-end justify-between gap-3">
-          <p
-            aria-live="polite"
-            className="relative border-2 border-[#a78bfa] bg-[#0b0714] px-3 py-2 font-mono text-[11px] leading-snug text-white"
+      {/* Pluton's walkway, under the bar. */}
+      <div ref={trackRef} className="relative mt-1 h-[58px]">
+        <div ref={plutonRef} className="absolute bottom-0 left-0 size-[44px]">
+          <div
+            ref={spriteRef}
+            aria-hidden
+            className="pixelated size-full bg-no-repeat"
+          />
+          <div
+            className={cn(
+              "absolute top-1/2 -translate-y-1/2",
+              bubbleOnLeft
+                ? "right-[calc(100%+12px)]"
+                : "left-[calc(100%+12px)]",
+            )}
           >
-            {bubbleText(filled, total)}
-          </p>
-          <div ref={planetRef} aria-hidden className="shrink-0">
-            <Image
-              src="/assets/pluton/planet.png"
-              alt=""
-              width={60}
-              height={60}
-              className="pixelated"
-            />
+            <div
+              ref={popRef}
+              className={bubbleOnLeft ? "origin-right" : "origin-left"}
+            >
+              <PixelBubble
+                tail={bubbleOnLeft ? "right" : "left"}
+                className="whitespace-nowrap text-[10px]"
+              >
+                <span aria-live="polite">{text}</span>
+              </PixelBubble>
+            </div>
           </div>
         </div>
       </div>
