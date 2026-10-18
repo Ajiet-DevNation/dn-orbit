@@ -5,11 +5,20 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { fetchLeetCodeProfile } from "@/lib/lc-fetcher";
 
 const profileSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  usn: z.string().min(5, "USN must be valid"),
-  branch: z.string().min(2, "Branch is required"),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name is too long"),
+  usn: z.string().trim().min(5, "USN must be valid").max(20, "USN is too long"),
+  branch: z
+    .string()
+    .trim()
+    .min(2, "Branch is required")
+    .max(100, "Branch is too long"),
   year: z.coerce.number().min(1).max(5),
   lc_username: z
     .string()
@@ -43,13 +52,24 @@ export async function updateProfile(formData: FormData) {
   try {
     const existingUser = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true },
+      select: { id: true, lcUsername: true },
     });
 
     if (!existingUser) {
       return {
         error: "Your session is stale. Please sign out and sign in again.",
       };
+    }
+
+    // Same check onboarding does: a new handle must resolve to a real
+    // LeetCode profile, or the leaderboard would silently score zero.
+    const lcChanged = parsed.data.lc_username !== existingUser.lcUsername;
+    if (lcChanged) {
+      try {
+        await fetchLeetCodeProfile(parsed.data.lc_username);
+      } catch {
+        return { error: "Incorrect LeetCode username. Profile not found." };
+      }
     }
 
     const updatedUser = await db.user.update({
@@ -63,6 +83,16 @@ export async function updateProfile(formData: FormData) {
         bio: parsed.data.bio,
       },
     });
+
+    // New handle: put the member at the front of the stats queue so the board
+    // stops showing the old account's numbers on the next drain.
+    if (lcChanged) {
+      await db.statsSyncState.upsert({
+        where: { userId: session.user.id },
+        create: { userId: session.user.id, lcDirty: true },
+        update: { lcDirty: true, nextAttemptAt: null, failCount: 0 },
+      });
+    }
 
     revalidatePath("/profile");
     revalidatePath("/members");
