@@ -20,7 +20,10 @@ const globalForPrisma = globalThis as unknown as PrismaGlobal;
  *
  * Pool config:
  *   - sslmode=verify-full: Neon always uses valid SSL certs (replaces deprecated sslmode=require)
- *   - idleTimeoutMillis:0: don't hold idle connections; Neon suspends after inactivity
+ *   - idleTimeoutMillis:10s: close idle clients ourselves. 0 does NOT mean "hold
+ *     none" in pg — it disables idle closing, so clients sat open until Neon
+ *     cut them server-side ("Connection terminated unexpectedly" pool errors,
+ *     and a race where a dead client could be handed to the next query).
  *   - connectionTimeoutMillis:30000: give Neon up to 30s to wake from cold start
  */
 function createPrismaClient(): PrismaClient {
@@ -41,7 +44,7 @@ function createPrismaClient(): PrismaClient {
     globalForPrisma.pgPool ??
     new Pool({
       connectionString: safeConnectionString,
-      idleTimeoutMillis: 0,
+      idleTimeoutMillis: 10_000,
       connectionTimeoutMillis: 30_000,
       ssl: { rejectUnauthorized: true },
     });
