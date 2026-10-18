@@ -23,6 +23,7 @@ interface Application {
   lcUsername: string;
   linkedinUrl: string | null;
   xHandle: string | null;
+  cvPath: string | null;
   status: string;
   createdAt: string;
 }
@@ -141,6 +142,17 @@ export function RecruitmentsTable({
               className={link}
             >
               X: @{a.xHandle}
+            </a>
+          )}
+          {/* Private bucket: this route signs a one-minute URL and redirects. */}
+          {a.cvPath && (
+            <a
+              href={`/api/admin/recruitments/${a.id}/cv`}
+              target="_blank"
+              rel="noreferrer"
+              className={link}
+            >
+              CV ↗
             </a>
           )}
         </div>

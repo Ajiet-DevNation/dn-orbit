@@ -35,6 +35,7 @@ export default async function AdminRecruitmentsPage() {
         lcUsername: true,
         linkedinUrl: true,
         xHandle: true,
+        cvPath: true,
         status: true,
         createdAt: true,
       },
