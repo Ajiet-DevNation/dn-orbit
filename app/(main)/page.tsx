@@ -15,6 +15,7 @@ import {
 import { MembersSection } from "@/components/home/MembersSection";
 import { ProjectsSection } from "@/components/home/ProjectsSection";
 import { RecruitmentBanner } from "@/components/home/RecruitmentBanner";
+import { RecruitmentPopup } from "@/components/home/RecruitmentPopup";
 import { StatsSection } from "@/components/home/StatsSection";
 import { StatsSyncPing } from "@/components/home/StatsSyncPing";
 import { Footer } from "@/components/layout/Footer";
@@ -218,7 +219,12 @@ export default async function V2Page() {
       {/* Kicks off a background stats refresh when the cache is stale — the
           SWR replacement for the old GitHub Actions cron (see lib/sync.ts). */}
       <StatsSyncPing />
-      {recruiting && <RecruitmentBanner />}
+      {recruiting && (
+        <>
+          <RecruitmentBanner />
+          <RecruitmentPopup />
+        </>
+      )}
       <HeroOrbit />
       <AnnouncementCarousel announcements={announcements} />
       {/* PLAYER STATS is personal — only rendered for signed-in members. */}
