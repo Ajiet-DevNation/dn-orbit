@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { PlutonStage } from "@/components/home/PlutonStage";
+import { Button } from "@/components/ui/8bit-button";
 import { Z_MODAL } from "@/components/ui/PixelModal";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { onBootSplashDone } from "@/lib/boot-splash";
@@ -208,14 +209,16 @@ export function RecruitmentPopup() {
                 <span className="text-[#c4b5fd]">{" // RECRUITMENT"}</span>
               </span>
             </h2>
-            <button
+            <Button
               type="button"
+              size="sm"
+              variant="outline"
               aria-label="Close"
               onClick={() => onOpenChange(false)}
-              className="retro flex size-8 shrink-0 items-center justify-center border-2 border-[#a78bfa] bg-[#140d24] text-xs text-white transition-colors hover:bg-[#8b5cf6]/40"
+              className="shrink-0 text-[10px]"
             >
               <span aria-hidden>✕</span>
-            </button>
+            </Button>
           </div>
 
           <div className="p-2 md:p-2.5">
@@ -264,17 +267,18 @@ export function RecruitmentPopup() {
                   </ul>
 
                   <div data-reveal className="flex flex-col gap-3 sm:flex-row">
-                    <Link
-                      href="/recruitments"
-                      onClick={markSeen}
-                      className="retro border-2 border-[#86efac] bg-[#22c55e] px-6 py-3 text-center text-[10px] text-black shadow-[0_0_16px_rgba(34,197,94,0.45)] transition-colors hover:bg-[#4ade80]"
+                    <Button
+                      asChild
+                      className="text-[10px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black sm:px-6"
                     >
-                      JOIN THE CREW →
-                    </Link>
+                      <Link href="/recruitments" onClick={markSeen}>
+                        JOIN THE CREW ▸
+                      </Link>
+                    </Button>
                     <button
                       type="button"
                       onClick={() => onOpenChange(false)}
-                      className="retro border-2 border-[#22c55e] px-6 py-3 text-[10px] text-[#22c55e] transition-colors hover:bg-[#22c55e]/10"
+                      className="retro border-4 border-[#22c55e] px-5 py-2 text-[10px] text-[#22c55e] transition-colors hover:bg-[#22c55e]/10"
                     >
                       EXPLORE DEVNATION
                     </button>
