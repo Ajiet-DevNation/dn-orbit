@@ -114,7 +114,7 @@ export function LensSection({
             className="flex flex-col items-center gap-4 md:items-start"
             style={{ opacity: 0 }}
           >
-            <h2 className="retro text-xl tracking-wider text-white md:text-[clamp(20px,1.8vw,32px)]">
+            <h2 className="retro lens-glass text-xl tracking-wider text-white md:text-[clamp(20px,1.8vw,32px)]">
               {title}
             </h2>
             <span aria-hidden className="block h-[3px] w-16 bg-[#22c55e]" />
@@ -201,7 +201,7 @@ export function LensSection({
           <div
             ref={entrance.giantRef}
             aria-hidden
-            className="retro pointer-events-none absolute left-1/2 top-1/2 z-20 whitespace-nowrap tracking-wider text-white"
+            className="retro lens-glass pointer-events-none absolute left-1/2 top-1/2 z-20 whitespace-nowrap tracking-wider text-white"
             style={{
               fontSize: "clamp(32px, 9vw, 170px)",
               textShadow: GIANT_GLOW,

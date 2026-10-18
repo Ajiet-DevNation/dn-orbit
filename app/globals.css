@@ -183,6 +183,19 @@ body {
   border-right: 3px solid;
 }
 
+/* Frosted HUD glass behind the lens section titles. The giant entrance title
+   and the small label share it, sized in em, so the giant shrinks exactly into
+   the label's glass. Right padding is 0.05em short to cancel tracking-wider's
+   trailing letter-space, keeping the text optically centred. */
+.lens-glass {
+  padding: 0.16em 0.29em 0.16em 0.34em;
+  background: rgba(10, 10, 10, 0.42);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  box-shadow: inset 0 0 0.6em rgba(34, 197, 94, 0.08);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+
 /* ── Scrollbar Styling ── */
 
 ::-webkit-scrollbar {
