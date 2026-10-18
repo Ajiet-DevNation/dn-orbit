@@ -123,12 +123,19 @@ export function useCoverflow({
       const d = i - f;
       const ad = Math.abs(d);
 
+      if (tiltOwner[i] !== el) {
+        tiltEls[i] = el.querySelector<HTMLElement>("[data-lens-tilt]");
+        tiltOwner[i] = el;
+      }
+      const photo = tiltEls[i];
+
       // Outside the lens: hide once and skip every write until it comes back.
       if (ad >= 1) {
         if (lastVisible[i] !== false) {
           el.style.visibility = "hidden";
           el.style.pointerEvents = "none";
           el.style.willChange = "";
+          if (photo) photo.style.willChange = "";
           lastVisible[i] = false;
           lastPe[i] = "none";
           lastWillChange[i] = "";
@@ -141,25 +148,28 @@ export function useCoverflow({
       }
       if (lastWillChange[i] !== willChange) {
         el.style.willChange = willChange;
+        // The tilting photo gets its own layer too. Without it every scroll
+        // frame re-painted the whole picture area (the project cards' dot
+        // grid, giant watermark and chips) — why Projects ran heavier than
+        // Members.
+        if (photo) photo.style.willChange = willChange;
         lastWillChange[i] = willChange;
       }
 
       el.style.transform = `translate3d(${lensX(d, lensWidth)}px, 0, 0)`;
 
-      if (tiltOwner[i] !== el) {
-        tiltEls[i] = el.querySelector<HTMLElement>("[data-lens-tilt]");
-        tiltOwner[i] = el;
-      }
-      const photo = tiltEls[i];
       if (photo) {
         const { deg, scale } = lensTilt(reduce ? 0 : d);
         photo.style.transform = `rotate(${deg}deg) scale(${scale})`;
       }
 
-      // HUD vars (opacity-only consumers): the leaving card darkens, the
-      // arriving one powers up as it reaches the middle.
-      const depthVar = Math.round(Math.min(ad * 0.6, 0.6) * 100) / 100;
-      const centreVar = Math.round((1 - ad) * 100) / 100;
+      // HUD vars: the card holding the centre is lit, the other one dimmed.
+      // Flipped once per pass rather than scrubbed per frame — each change
+      // re-painted the card, so the frame chrome (HudCardFrame) eases the
+      // flip with a CSS opacity transition, which runs on the compositor.
+      const lit = ad < 0.5;
+      const depthVar = lit ? 0 : 0.6;
+      const centreVar = lit ? 1 : 0;
       if (lastDepth[i] !== depthVar) {
         el.style.setProperty("--cf-depth", String(depthVar));
         lastDepth[i] = depthVar;
@@ -312,6 +322,9 @@ export function useCoverflow({
           };
           drop(cardRefs.current, lastWillChangeRef.current);
           drop(thumbRefs.current, lastThumbWillChangeRef.current);
+          for (const photo of tiltElsRef.current) {
+            if (photo) photo.style.willChange = "";
+          }
         }
       },
       { threshold: 0 },

@@ -91,6 +91,7 @@ export function useLensScroll({
     const cellHidden: boolean[] = [];
     let lastT = Number.NaN;
     let lastBlur = -1;
+    let lastGiantOn = false;
 
     // One scalar timeline: t in [-1, 0) is the arrival (section rising into
     // view), [0, 1] the whole pin (entrance, then gallery). Smoothing a single
@@ -140,7 +141,14 @@ export function useLensScroll({
         `translate(-50%, -50%) translate3d(${slide + dx * f.fly}px, ` +
         `${dy * f.fly}px, 0) scale(${scale})`;
       giant.style.opacity = String(f.giantOpacity);
-      giant.style.visibility = f.giantOpacity > 0 ? "" : "hidden";
+      const giantOn = f.giantOpacity > 0;
+      if (giantOn !== lastGiantOn) {
+        giant.style.visibility = giantOn ? "" : "hidden";
+        // Its own layer while it moves: the glowing glyphs and the frosted
+        // backdrop are then composited, not re-painted, every frame.
+        giant.style.willChange = giantOn ? "transform, opacity" : "";
+        lastGiantOn = giantOn;
+      }
       heading.style.opacity = String(f.heading);
 
       if (reticleRef.current)
@@ -207,11 +215,27 @@ export function useLensScroll({
       wake();
     };
 
-    window.addEventListener("scroll", wake, { passive: true });
+    // Only track scroll while the section is near the viewport; crossing the
+    // margin either way wakes one last settle, so it always rests clamped.
+    let near = false;
+    const onScroll = () => {
+      if (near) wake();
+    };
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        near = entry.isIntersecting;
+        wake();
+      },
+      { rootMargin: "50% 0px" },
+    );
+    io.observe(section);
+
+    window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize, { passive: true });
     return () => {
       if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", wake);
+      io.disconnect();
+      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
   }, [sectionRef, count, lensWidth, lensHeight, pad, navigateRef]);
