@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { isApproved } from "@/lib/access";
 import { auth } from "@/lib/auth";
+import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
 import { getSupabaseAdmin, MEDIA_BUCKET } from "@/lib/supabase";
 
 // Uploads a cropped cover image (already at the target ratio/size from the
@@ -20,6 +21,8 @@ const MIME_EXT: Record<string, string> = {
   "image/png": "png",
 };
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const UPLOADS_PER_WINDOW = 20;
+const UPLOAD_WINDOW_MS = 10 * 60_000;
 
 // The declared content-type is client-controlled; before publishing bytes to
 // the public bucket under an image/* content-type, check they actually start
@@ -47,6 +50,14 @@ export async function POST(req: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   }
+
+  // Each call can publish 5 MB to the public bucket; cap it per account.
+  const limit = rateLimit(
+    rateLimitKey(req, "upload", session.user.id),
+    UPLOADS_PER_WINDOW,
+    UPLOAD_WINDOW_MS,
+  );
+  if (!limit.ok) return tooManyRequests(limit);
 
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
