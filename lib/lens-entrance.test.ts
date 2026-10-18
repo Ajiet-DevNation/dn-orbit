@@ -1,7 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import {
-  arrivalProgress,
-  dissolveAt,
   dwellFocus,
   ENTRANCE_PIN_SVH,
   entranceFrame,
@@ -9,7 +7,7 @@ import {
   entranceShare,
   hintOpacity,
   ITEM_PIN_SVH,
-  LENS_VEIL,
+  MAX_BLUR_PX,
   pinLengthSvh,
   progressForCard,
   segment,
@@ -37,16 +35,6 @@ describe("entranceProgress", () => {
   });
 });
 
-describe("arrivalProgress", () => {
-  test("0 at the viewport bottom, 1 once the section reaches the top", () => {
-    expect(arrivalProgress(1000, 1000)).toBe(0);
-    expect(arrivalProgress(500, 1000)).toBe(0.5);
-    expect(arrivalProgress(0, 1000)).toBe(1);
-    expect(arrivalProgress(-300, 1000)).toBe(1);
-    expect(arrivalProgress(3000, 1000)).toBe(0);
-  });
-});
-
 describe("segment", () => {
   test("maps a window to 0→1 and clamps outside it", () => {
     expect(segment(0.2, 0.2, 0.4)).toBe(0);
@@ -56,12 +44,11 @@ describe("segment", () => {
 });
 
 describe("entranceFrame", () => {
-  test("pin start: built viewfinder, nothing else yet", () => {
-    const f = entranceFrame(0, 1);
-    expect(f.dissolve).toBe(1);
+  test("pin start: an empty, pictureless viewfinder box", () => {
+    const f = entranceFrame(0);
     expect(f.open).toBe(0);
+    expect(f.veil).toBe(0);
     expect(f.reticle).toBe(1);
-    expect(f.veil).toBe(1);
     expect(f.solid).toBe(0);
     expect(f.giantOpacity).toBe(0);
     expect(f.heading).toBe(0);
@@ -69,10 +56,29 @@ describe("entranceFrame", () => {
     expect(f.chrome).toBe(0);
   });
 
-  test("the viewfinder content builds while the section arrives", () => {
-    expect(entranceFrame(0, 0).dissolve).toBe(0);
-    expect(entranceFrame(0, 0.6).dissolve).toBeGreaterThan(0);
-    expect(entranceFrame(0, 0.6).dissolve).toBeLessThan(1);
+  test("the box stays pictureless while the title slides in behind it", () => {
+    for (const p of [0.1, 0.2, 0.3, 0.45]) {
+      expect(entranceFrame(p).veil).toBe(0);
+      expect(entranceFrame(p).solid).toBe(0);
+    }
+    expect(entranceFrame(0.2).giantOpacity).toBe(1);
+  });
+
+  test("the picture blurs in as the box opens: faint+soft, then solid+sharp", () => {
+    const early = entranceFrame(0.55);
+    const later = entranceFrame(0.68);
+    expect(early.veil).toBeGreaterThan(0);
+    expect(early.veil).toBeLessThan(later.veil);
+    expect(early.blur).toBeGreaterThan(later.blur);
+    expect(early.blur).toBeLessThan(MAX_BLUR_PX);
+    expect(entranceFrame(0.8).veil).toBe(1);
+    expect(entranceFrame(0.8).blur).toBe(0);
+  });
+
+  test("the picture only starts once the box is mostly open (like oryzo)", () => {
+    const f = entranceFrame(0.48);
+    expect(f.open).toBeGreaterThan(0.8);
+    expect(f.veil).toBe(0);
   });
 
   test("end: solid sharp lens, title landed, strips and controls out", () => {
@@ -84,8 +90,8 @@ describe("entranceFrame", () => {
       heading: 1,
       reticle: 0,
       veil: 1,
+      blur: 0,
       solid: 1,
-      dissolve: 1,
       thumbs: 1,
       chrome: 1,
     });
@@ -97,27 +103,6 @@ describe("entranceFrame", () => {
     }
   });
 
-  test("the lens treats the title the same in every phase it covers it", () => {
-    // Small viewfinder, mid-open and fully open all show the same frosted veil.
-    const square = entranceFrame(0.2);
-    const opening = entranceFrame(0.45);
-    const open = entranceFrame(0.6);
-    expect(square.open).toBe(0);
-    expect(opening.open).toBeGreaterThan(0);
-    expect(open.open).toBe(1);
-    for (const f of [square, opening, open]) {
-      expect(f.veil).toBe(LENS_VEIL);
-      expect(f.solid).toBe(0);
-    }
-    expect(opening.glow).toBe(1);
-  });
-
-  test("the lens fills in while the title shrinks out from behind it", () => {
-    expect(entranceFrame(0.6).fly).toBe(0);
-    expect(entranceFrame(0.74).veil).toBe(1);
-    expect(entranceFrame(0.74).fly).toBeLessThan(1);
-  });
-
   test("the thumbs only arrive once the title has landed (like oryzo)", () => {
     const f = entranceFrame(0.88);
     expect(f.fly).toBe(1);
@@ -125,25 +110,16 @@ describe("entranceFrame", () => {
     expect(f.solid).toBe(1);
   });
 
-  test("open, fly and thumbs move monotonically through the pin", () => {
+  test("open, veil, fly and thumbs move monotonically through the pin", () => {
     let prev = entranceFrame(0);
     for (let p = 0.01; p <= 1; p += 0.01) {
       const f = entranceFrame(p);
       expect(f.open).toBeGreaterThanOrEqual(prev.open);
+      expect(f.veil).toBeGreaterThanOrEqual(prev.veil);
+      expect(f.blur).toBeLessThanOrEqual(prev.blur);
       expect(f.fly).toBeGreaterThanOrEqual(prev.fly);
       expect(f.thumbs).toBeGreaterThanOrEqual(prev.thumbs);
       prev = f;
-    }
-  });
-});
-
-describe("dissolveAt", () => {
-  test("deterministic and inside [0, 1)", () => {
-    for (let i = 0; i < 300; i++) {
-      const t = dissolveAt(i);
-      expect(t).toBeGreaterThanOrEqual(0);
-      expect(t).toBeLessThan(1);
-      expect(dissolveAt(i)).toBe(t);
     }
   });
 });

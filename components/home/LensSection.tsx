@@ -11,8 +11,8 @@ import { cn } from "@/lib/utils";
 import { CoverflowFloor } from "./CoverflowControls";
 
 // Shared shell for the Projects and Members lens carousels: the pinned section,
-// the viewfinder/lens frame, the giant title, the pixel cover and the HUD
-// reticle that make up the scroll entrance (hooks/useLensEntrance.ts), plus
+// the viewfinder/lens frame, the giant title and the HUD reticle that make up
+// the scroll entrance (hooks/useLensScroll.ts), plus
 // the thumb layer and nav chrome the carousel itself drives (useCoverflow).
 // The sections own their data, cards and carousel options; this owns the stage.
 
@@ -23,8 +23,6 @@ export const LENS_COUNTER_STYLE = { bottom: 36, top: "auto" } as const;
 
 /** Frame border + inner gap around the lens, px. */
 export const LENS_PAD = 6;
-/** Pixel cover columns; rows follow the lens aspect so cells stay square. */
-const COVER_COLS = 12;
 
 const GIANT_BLOOM =
   "0 0 24px rgba(255,255,255,0.55), 0 0 60px rgba(34,197,94,0.5), 0 0 120px rgba(34,197,94,0.3)";
@@ -89,10 +87,6 @@ export function LensSection({
   });
 
   const side = viewfinderSide(lensWidth, lensHeight);
-  const coverRows = Math.max(
-    6,
-    Math.round((COVER_COLS * lensHeight) / lensWidth),
-  );
 
   return (
     <section
@@ -169,6 +163,8 @@ export function LensSection({
                 height: lensHeight,
                 marginLeft: -lensWidth / 2,
                 marginTop: -lensHeight / 2,
+                // Starts hidden: the viewfinder opens as an empty box.
+                opacity: 0,
               }}
             >
               <div
@@ -176,22 +172,6 @@ export function LensSection({
                 className="relative h-full w-full overflow-hidden"
               >
                 {cards}
-              </div>
-              {/* 8-bit focus pull: background-coloured blocks clear in a
-                  scattered order as the lens opens (same look as PixelReveal). */}
-              <div
-                ref={entrance.coverRef}
-                aria-hidden
-                className="pointer-events-none absolute inset-0 grid"
-                style={{
-                  gridTemplateColumns: `repeat(${COVER_COLS}, 1fr)`,
-                  gridTemplateRows: `repeat(${coverRows}, 1fr)`,
-                }}
-              >
-                {Array.from({ length: COVER_COLS * coverRows }, (_, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: fixed, positional grid
-                  <span key={i} className="bg-[#0a0a0a]" />
-                ))}
               </div>
             </div>
 

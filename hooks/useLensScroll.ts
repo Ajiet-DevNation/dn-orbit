@@ -2,8 +2,6 @@
 
 import { useEffect, useLayoutEffect, useRef } from "react";
 import {
-  arrivalProgress,
-  dissolveAt,
   dwellFocus,
   entranceFrame,
   entranceProgress,
@@ -63,7 +61,6 @@ export function useLensScroll({
   const stageRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const coverRef = useRef<HTMLDivElement>(null);
   const reticleRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
   const giantRef = useRef<HTMLDivElement>(null);
@@ -102,22 +99,20 @@ export function useLensScroll({
     )
       return;
 
-    const cells = Array.from(coverRef.current?.children ?? []) as HTMLElement[];
-    const cellHidden: boolean[] = [];
     let lastT = Number.NaN;
+    let lastBlur = -1;
     let lastGiantOn = false;
     let lastVeil = -1;
     let lastSolid = -1;
 
-    // One scalar timeline: t in [-1, 0) is the arrival (section rising into
-    // view), [0, 1] the whole pin (entrance, then gallery). Smoothing a single
-    // value keeps every phase continuous across the moment the section sticks.
-    const apply = (t: number, still = false) => {
-      if (t === lastT) return;
-      lastT = t;
-      const pin = Math.max(0, t);
+    // One scalar timeline over the whole pin (entrance, then gallery), so
+    // every phase stays continuous. `still` = reduced motion: no pin, no hint,
+    // and the row is left where navigation puts it.
+    const apply = (pin: number, still = false) => {
+      if (pin === lastT) return;
+      lastT = pin;
       const { entrance, gallery } = splitPin(pin, count);
-      const f = entranceFrame(entrance, Math.min(1, 1 + t));
+      const f = entranceFrame(entrance);
 
       // Reads first (layout), then writes, so each frame forces at most one
       // layout. The flight target is measured live while it is in use.
@@ -141,12 +136,12 @@ export function useLensScroll({
       frame.style.width = `${box.width + pad * 2}px`;
       frame.style.height = `${box.height + pad * 2}px`;
 
-      for (let i = 0; i < cells.length; i++) {
-        const hidden = f.dissolve > dissolveAt(i);
-        if (cellHidden[i] !== hidden) {
-          cells[i].style.visibility = hidden ? "hidden" : "";
-          cellHidden[i] = hidden;
-        }
+      // Blur-in: the card appears soft and sharpens. A filter holds its own
+      // compositing layer, so it is dropped entirely once sharp.
+      const blur = Math.round(f.blur * 10) / 10;
+      if (blur !== lastBlur) {
+        content.style.filter = blur > 0 ? `blur(${blur}px)` : "";
+        lastBlur = blur;
       }
 
       const slide = (1 - f.giantIn) * window.innerWidth * GIANT_SLIDE_SHARE;
@@ -203,9 +198,7 @@ export function useLensScroll({
     const read = () => {
       const r = section.getBoundingClientRect();
       const vh = window.innerHeight;
-      return r.top > 0
-        ? arrivalProgress(r.top, vh) - 1
-        : entranceProgress(r.top, r.height, vh);
+      return entranceProgress(r.top, r.height, vh);
     };
 
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
@@ -282,7 +275,6 @@ export function useLensScroll({
     stageRef,
     frameRef,
     contentRef,
-    coverRef,
     reticleRef,
     hintRef,
     giantRef,

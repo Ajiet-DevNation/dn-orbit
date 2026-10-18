@@ -3,13 +3,12 @@
 // without a DOM.
 //
 // Modelled on oryzo.ai's lens reveal, re-skinned for the 8-bit HUD theme:
-//   arrival — while the section scrolls up into view, the content inside the
-//             small dashed viewfinder builds up block by block (the site's
-//             pixel dissolve), so it is never an empty box;
-//   pin     — the section pins; a giant glowing title slides across, the
-//             viewfinder opens into the full lens with a brief focus pull,
-//             the title shrinks into its label on the left, and the thumb
-//             strips unfold from under the lens;
+//   pin     — the section pins with an EMPTY viewfinder: a dashed, frosted
+//             box with a HUD reticle and no picture. A giant glowing title
+//             slides across behind it; the box opens into the full lens and
+//             the card blurs in (faint and soft → solid and sharp), like
+//             oryzo's photo; the title shrinks behind the lens into its label
+//             on the left; then the thumb strips unfold from under the lens;
 //   gallery — still pinned, scrolling walks the lens through the cards one by
 //             one (no loop, like oryzo), each card holding centre for a beat.
 
@@ -23,8 +22,8 @@ const DWELL = 0.2;
 export const VIEWFINDER_SHARE = 0.5;
 /** Frosted-glass blur the lens applies to whatever sits behind it. */
 export const LENS_FROST = "blur(14px) saturate(130%)";
-/** How see-through the lens content gets while the title is behind it. */
-export const LENS_VEIL = 0.68;
+/** Blur the card starts from as it fades into the opened lens (px). */
+export const MAX_BLUR_PX = 18;
 
 function clamp01(n: number): number {
   // `<=` also folds -0 (from -rectTop at exactly 0) into a plain 0.
@@ -51,12 +50,6 @@ export function entranceProgress(
   return clamp01(-rectTop / travel);
 }
 
-// arrival progress: 0 with the section's top at the viewport bottom, 1 as it pins
-export function arrivalProgress(rectTop: number, viewportHeight: number) {
-  if (viewportHeight <= 0) return 1;
-  return clamp01(1 - rectTop / viewportHeight);
-}
-
 export interface EntranceFrame {
   /** Giant title slide-in from the right (0 = off to the side, 1 = parked
    *  with its left edge on the label's left edge). */
@@ -74,27 +67,27 @@ export interface EntranceFrame {
   reticle: number;
   /** Viewfinder → full lens (0 = small square, 1 = full lens). */
   open: number;
-  /** Lens content opacity. One rule for the whole entrance: while the giant
-   *  title is behind the lens — small viewfinder or open — the content sits
-   *  slightly see-through on frosted glass, so the letters underneath always
-   *  read as blurred (never a hard cut in one phase and frosted in the next). */
+  /** Card opacity in the lens: 0 while the viewfinder is an empty box, rising
+   *  as the box opens (together with `blur`, a soft blur-in). While it is
+   *  below 1 the frosted glass shows the title behind it, blurred — the same
+   *  look in every phase the title is under the lens. */
   veil: number;
+  /** Card blur in the lens, px: strong as it starts to appear, 0 once sharp. */
+  blur: number;
   /** Lens fill: 0 = frosted glass (blurs what is behind), 1 = solid (hides the
    *  thumbs that slide under it once the gallery starts). */
   solid: number;
-  /** Share of the pixel cover cleared. */
-  dissolve: number;
   /** Thumb strips unfolding (fed to useCoverflow as its intro). */
   thumbs: number;
   /** Arrows, counter and floor glow. */
   chrome: number;
 }
 
-// Timed against oryzo.ai's own reveal, frame by frame: title slides in behind
-// the viewfinder → glows as the viewfinder opens into a frosted lens → the lens
-// fills in and sharpens → the title shrinks into its label behind the lens →
-// only then do the thumb strips arrive.
-export function entranceFrame(p: number, arrival = 1): EntranceFrame {
+// Timed against oryzo.ai's own reveal, frame by frame: an empty viewfinder →
+// title slides in behind it → glows as the box opens into a frosted lens → the
+// picture blurs in and sharpens → the title shrinks into its label behind the
+// lens → only then do the thumb strips arrive.
+export function entranceFrame(p: number): EntranceFrame {
   const open = easeInOutCubic(segment(p, 0.3, 0.58));
   return {
     giantIn: easeOutCubic(segment(p, 0.02, 0.32)),
@@ -106,20 +99,12 @@ export function entranceFrame(p: number, arrival = 1): EntranceFrame {
     heading: segment(p, 0.85, 0.89),
     reticle: 1 - segment(p, 0.3, 0.42),
     open,
-    veil:
-      1 -
-      (1 - LENS_VEIL) * segment(p, 0.02, 0.12) * (1 - segment(p, 0.62, 0.74)),
+    veil: easeOutCubic(segment(p, 0.48, 0.72)),
+    blur: MAX_BLUR_PX * (1 - easeOutCubic(segment(p, 0.48, 0.8))),
     solid: segment(p, 0.8, 0.86),
-    dissolve: segment(arrival, 0.3, 0.95),
     thumbs: segment(p, 0.88, 0.98),
     chrome: segment(p, 0.92, 1),
   };
-}
-
-// when cover cell i clears, in [0, 1): a scattered but deterministic order
-export function dissolveAt(i: number): number {
-  const r = Math.sin((i + 1) * 12.9898) * 43758.5453;
-  return r - Math.floor(r);
 }
 
 // viewfinder size for an open amount, morphing the square into the lens
