@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/DetailOverlay";
 import { useFlipDetail } from "@/hooks/useFlipDetail";
 import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
+import { smoothScrollTo } from "@/lib/smooth-scroll";
 import { cn } from "@/lib/utils";
 import { PixelReveal } from "./PixelReveal";
 import { SectionHeading } from "./SectionHeading";
@@ -372,7 +373,7 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
   function goToPage(p: number) {
     setPage(Math.min(Math.max(1, p), totalPages));
     // Bring the grid back into view so the next page isn't below the fold.
-    sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (sectionRef.current) smoothScrollTo(sectionRef.current);
   }
 
   return (

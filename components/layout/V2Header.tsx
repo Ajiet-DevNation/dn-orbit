@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/8bit-avatar";
 import { Button } from "@/components/ui/8bit-button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
+import { smoothScrollTo } from "@/lib/smooth-scroll";
 import { BrandLink } from "./BrandLink";
 
 // Split out of the header chunk: the modal (and the vaul drawer it pulls in)
@@ -98,7 +99,8 @@ export function V2Header({
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    document.getElementById(value)?.scrollIntoView({ behavior: "smooth" });
+    const target = document.getElementById(value);
+    if (target) smoothScrollTo(target);
   };
 
   const initials = (userName ?? "?")
@@ -120,8 +122,7 @@ export function V2Header({
             wordmarkClassName="text-2xl mt-1 hidden sm:block"
             priority
             onClick={() => {
-              if (isLandingPage)
-                window.scrollTo({ top: 0, behavior: "smooth" });
+              if (isLandingPage) smoothScrollTo(0);
             }}
           />
 

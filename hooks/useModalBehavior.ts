@@ -2,6 +2,7 @@
 
 import { type RefObject, useEffect, useId } from "react";
 import { isTopModal, modalDepth, popModal, pushModal } from "@/lib/modal-stack";
+import { setScrollLocked } from "@/lib/smooth-scroll";
 
 const FOCUSABLE = [
   "a[href]",
@@ -56,7 +57,11 @@ export function useModalBehavior(
     // page actually had so a site that sets its own overflow is respected.
     const body = document.body;
     const previousOverflow = modalDepth() === 1 ? body.style.overflow : null;
-    if (modalDepth() === 1) body.style.overflow = "hidden";
+    if (modalDepth() === 1) {
+      body.style.overflow = "hidden";
+      // Lenis scrolls the page itself, so an overflow lock alone won't hold it.
+      setScrollLocked(true);
+    }
 
     const previouslyFocused = document.activeElement as HTMLElement | null;
 
@@ -116,6 +121,7 @@ export function useModalBehavior(
 
       if (modalDepth() === 0) {
         body.style.overflow = previousOverflow ?? "";
+        setScrollLocked(false);
       }
 
       // Return focus to whatever opened the modal — without this the tab order

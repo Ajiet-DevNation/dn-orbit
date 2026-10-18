@@ -12,6 +12,7 @@ import {
   splitPin,
   viewfinderSize,
 } from "@/lib/lens-entrance";
+import { getLenis, smoothScrollTo } from "@/lib/smooth-scroll";
 
 // Scroll drives the whole lens section, like oryzo.ai (choreography in
 // lib/lens-entrance.ts): first the entrance, then — still pinned — the gallery,
@@ -25,7 +26,7 @@ import {
 // path: no listeners, the finished entrance written once, and navigation jumps
 // cards directly (the section also drops its pin via motion-reduce: classes).
 
-/** Follow time constant for the scrub, ms (~ a Lenis-style glide). */
+/** Follow time constant for the scrub without Lenis, ms (a Lenis-like glide). */
 const SMOOTH_TAU_MS = 140;
 const MAX_DT_MS = 50;
 const DONE_EPS = 0.0005;
@@ -185,10 +186,9 @@ export function useLensScroll({
     navigateRef.current = (index: number) => {
       const r = section.getBoundingClientRect();
       const travel = r.height - window.innerHeight;
-      window.scrollTo({
-        top: r.top + window.scrollY + progressForCard(index, count) * travel,
-        behavior: "smooth",
-      });
+      smoothScrollTo(
+        r.top + window.scrollY + progressForCard(index, count) * travel,
+      );
     };
 
     let current = read();
@@ -200,7 +200,11 @@ export function useLensScroll({
       const dt = Math.min(now - last, MAX_DT_MS);
       last = now;
       const target = read();
-      current += (target - current) * (1 - Math.exp(-dt / SMOOTH_TAU_MS));
+      // Under Lenis the scroll position is already eased; following it
+      // directly keeps the lens locked to it instead of trailing a second ease.
+      current = getLenis()
+        ? target
+        : current + (target - current) * (1 - Math.exp(-dt / SMOOTH_TAU_MS));
       if (Math.abs(target - current) < DONE_EPS) current = target;
       apply(current);
       raf = current === target ? 0 : requestAnimationFrame(tick);
