@@ -37,12 +37,11 @@ export function SignalBars() {
 /**
  * The /recruitments hero card: green pixel frame, JOIN / DEVNATION, steps, and
  * Pluton waving from his laptop on a rock with a speech bubble and twinkles.
- * Frames are stepped by useSpriteSheet; the float and sparkle blink share one
- * small rAF loop with an explicit reduced-motion path (static).
+ * Frames are stepped by useSpriteSheet; the sparkle blink is a small rAF loop
+ * with an explicit reduced-motion path (static).
  */
 export function RecruitHeaderCard({ current }: { current: Step | null }) {
   const spriteRef = useRef<HTMLDivElement>(null);
-  const floatRef = useRef<HTMLDivElement>(null);
   const sparkleRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   const frameAt = useCallback(
@@ -57,11 +56,6 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
     let raf = 0;
     const tick = (now: number) => {
       const t = now - start;
-      const el = floatRef.current;
-      if (el) {
-        const y = Math.round(Math.sin((t / 2600) * Math.PI * 2) * 3);
-        el.style.transform = `translateY(${y}px)`;
-      }
       sparkleRefs.current.forEach((s, i) => {
         if (!s) return;
         const c = ((t + SPARKLES[i].phase) % 1600) / 1600;
@@ -145,13 +139,20 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
             </span>
           ))}
 
-          <div
-            ref={floatRef}
-            className="absolute -bottom-2 right-[12%] size-[192px] sm:size-[256px]"
-          >
+          {/* Pluton seated on a full rock: the PixelLab mound sits behind the
+              sprite (whose own rock is rounded off) and rests on the frame's
+              bottom line. Static ground, so no float here. */}
+          <div className="absolute -bottom-[23px] right-[6%] w-[222px] sm:w-[296px]">
+            <Image
+              src="/assets/pluton/rock-mound.png"
+              alt=""
+              width={148}
+              height={41}
+              className="pixelated absolute bottom-0 left-0 h-auto w-full"
+            />
             <div
               ref={spriteRef}
-              className="pixelated size-full bg-[url(/assets/pluton/pluton-laptop.png)] bg-[length:900%_100%] bg-no-repeat"
+              className="pixelated relative mx-auto mb-[9px] size-[192px] bg-[url(/assets/pluton/pluton-laptop.png)] bg-[length:900%_100%] bg-no-repeat sm:mb-3 sm:size-[256px]"
             />
           </div>
         </div>
