@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
+import { framePosition, pingPongFrame } from "@/lib/sprite";
 import { cn } from "@/lib/utils";
 
 // Pluton, alive: floats and sways, an asteroid orbits him (passing behind on
@@ -39,13 +40,6 @@ const FLOAT_MS = 3200;
 const WAVE_FRAMES = 9;
 const WAVE_STEP_MS = 90;
 const WAVE_CYCLE_MS = 4200;
-
-function waveFrame(t: number): number {
-  const k = Math.floor((t % WAVE_CYCLE_MS) / WAVE_STEP_MS);
-  const last = WAVE_FRAMES - 1;
-  if (k > last * 2) return 0;
-  return k <= last ? k : last * 2 - k;
-}
 
 export function PlutonStage({ className }: { className?: string }) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -129,8 +123,10 @@ export function PlutonStage({ className }: { className?: string }) {
 
       const wave = waveRef.current;
       if (wave) {
-        const f = waveFrame(t);
-        wave.style.backgroundPosition = `${(f / (WAVE_FRAMES - 1)) * 100}% 0`;
+        wave.style.backgroundPosition = framePosition(
+          pingPongFrame(t, WAVE_FRAMES, WAVE_STEP_MS, WAVE_CYCLE_MS),
+          WAVE_FRAMES,
+        );
       }
 
       sparkleRefs.current.forEach((el, i) => {
