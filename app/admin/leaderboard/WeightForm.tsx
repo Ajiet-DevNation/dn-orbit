@@ -120,7 +120,7 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
           <span
             className={`retro border-2 px-2 py-1 text-[9px] uppercase ${
               isValid
-                ? "border-[#22c55e] text-[#22c55e]"
+                ? "border-brand text-brand-light"
                 : "border-red-500/40 text-red-400"
             }`}
           >
@@ -135,7 +135,7 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
           score before normalisation. */}
       <div className="space-y-4 border-t-2 border-white/10 pt-6">
         <div className="space-y-1">
-          <span className="retro text-[9px] uppercase tracking-widest text-[#22c55e]">
+          <span className="retro text-[9px] uppercase tracking-widest text-brand-light">
             OPEN SOURCE · GITHUB
           </span>
           <p className="retro text-[8px] leading-relaxed text-zinc-600 uppercase tracking-widest">
@@ -188,7 +188,7 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
         <Button
           type="submit"
           disabled={isPending || !isValid || !ossValid}
-          className="w-full text-[9px] !bg-[#22c55e] !text-black hover:!bg-[#16a34a]"
+          className="w-full text-[9px] !bg-brand !text-black hover:!bg-brand-light"
         >
           {isPending ? "SAVING…" : "SAVE WEIGHTS"}
         </Button>

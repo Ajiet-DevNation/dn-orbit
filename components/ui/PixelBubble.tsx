@@ -2,7 +2,7 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-// Pluton's speech bubble, from a PixelLab sprite recoloured to the site green.
+// Pluton's speech bubble, from a PixelLab sprite recoloured to the site purple.
 // The body (bubble.png) is a 9-slice border-image — 6px source corners at 3×
 // (18px) — so one asset fits any text. The tail is the bubble's own generated
 // tail; its first source row (3px) sits on the body's outline and opens it.

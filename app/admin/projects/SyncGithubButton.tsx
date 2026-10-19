@@ -43,7 +43,7 @@ export function SyncGithubButton() {
       type="button"
       onClick={sync}
       disabled={isPending}
-      className="retro border-2 border-[#22c55e] px-3 py-1.5 text-[8px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black disabled:opacity-50"
+      className="retro border-2 border-brand px-3 py-1.5 text-[8px] text-brand-light transition-colors hover:bg-brand hover:text-black disabled:opacity-50"
     >
       {isPending ? "SYNCING…" : "SYNC FROM GITHUB"}
     </button>

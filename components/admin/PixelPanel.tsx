@@ -12,7 +12,7 @@ export function PixelPanel({
   return (
     <section className={cn("border-2 border-white/10 bg-black/60", className)}>
       {title && (
-        <header className="retro border-b-2 border-white/10 px-5 py-3 text-[9px] tracking-widest text-[#22c55e]">
+        <header className="retro border-b-2 border-white/10 px-5 py-3 text-[9px] tracking-widest text-brand-light">
           {title}
         </header>
       )}

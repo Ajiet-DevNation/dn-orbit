@@ -9,7 +9,7 @@ import { toast as rawToast } from "@/components/ui/8bit-toast";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
-  const color = kind === "success" ? "text-green-500" : "text-red-500";
+  const color = kind === "success" ? "text-brand-light" : "text-red-500";
   toast(<span className={color}>{message}</span>);
 }
 
@@ -108,7 +108,7 @@ export function LeetCodeConnect({
             type="button"
             onClick={connect}
             disabled={disabled || loading || !value.trim()}
-            className="h-full text-[9px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+            className="h-full text-[9px] !bg-brand hover:!bg-brand-light !text-black"
           >
             {loading ? "…" : "CONNECT"}
           </Button>
@@ -116,17 +116,17 @@ export function LeetCodeConnect({
       </div>
 
       {preview && (
-        <div className="flex items-center gap-3 border-2 border-[#22c55e]/60 bg-[#22c55e]/[0.06] p-3">
+        <div className="flex items-center gap-3 border-2 border-brand/60 bg-brand/[0.06] p-3">
           {preview.avatar ? (
             // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
             <img
               src={preview.avatar}
               alt={preview.username}
-              className="pixelated size-10 shrink-0 border-2 border-[#22c55e]/40 object-cover select-none"
+              className="pixelated size-10 shrink-0 border-2 border-brand/40 object-cover select-none"
               draggable={false}
             />
           ) : (
-            <span className="flex size-10 shrink-0 items-center justify-center border-2 border-[#22c55e]/40 text-[#22c55e]">
+            <span className="flex size-10 shrink-0 items-center justify-center border-2 border-brand/40 text-brand-light">
               <SiLeetcode className="size-5" />
             </span>
           )}
@@ -134,7 +134,7 @@ export function LeetCodeConnect({
             <p className="retro truncate text-[10px] text-white">
               {preview.realName || preview.username}
             </p>
-            <p className="retro mt-1 truncate text-[8px] tracking-widest text-[#22c55e]">
+            <p className="retro mt-1 truncate text-[8px] tracking-widest text-brand-light">
               ✓ {preview.totalSolved} SOLVED
               {preview.ranking != null
                 ? ` · #${preview.ranking.toLocaleString()}`

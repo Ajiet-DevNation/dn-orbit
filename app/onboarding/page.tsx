@@ -64,7 +64,7 @@ function SuccessOverlay() {
       />
       <div className="relative z-10 text-center space-y-6">
         <div
-          className="w-3 h-3 bg-emerald-500 mx-auto"
+          className="w-3 h-3 bg-brand mx-auto"
           style={{
             animation: "pixel-pulse 1.5s step-end infinite",
             boxShadow: "0 0 12px rgba(16,185,129,0.8)",
@@ -76,7 +76,7 @@ function SuccessOverlay() {
           COMMITTED
         </h2>
         <p
-          className="text-xs text-emerald-500 tracking-widest uppercase opacity-80"
+          className="text-xs text-brand-light tracking-widest uppercase opacity-80"
           style={{ animation: "pixel-pulse 1.5s step-end infinite" }}
         >
           &gt; UPLINK_SUCCESS · REDIRECTING

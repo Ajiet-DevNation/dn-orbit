@@ -144,11 +144,11 @@ export default async function SettingsPage() {
               {runtime.map((metric) => (
                 <div
                   key={metric.label}
-                  className="border-2 border-white/10 p-4 transition-colors hover:border-[#22c55e]/30"
+                  className="border-2 border-white/10 p-4 transition-colors hover:border-brand/30"
                 >
                   <div className="mb-2 flex items-center gap-3">
                     <metric.icon
-                      className={`h-4 w-4 ${metric.bad ? "text-red-400" : "text-[#22c55e]"}`}
+                      className={`h-4 w-4 ${metric.bad ? "text-red-400" : "text-brand-light"}`}
                     />
                     <span className="retro text-[9px] tracking-widest text-zinc-500 uppercase">
                       {metric.label}
@@ -188,7 +188,7 @@ export default async function SettingsPage() {
                     <span
                       className={`h-1.5 w-1.5 rounded-full ${
                         e.set
-                          ? "bg-[#22c55e] shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+                          ? "bg-brand shadow-[0_0_8px_rgba(139,92,246,0.5)]"
                           : e.required
                             ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"
                             : "bg-zinc-600"
@@ -197,7 +197,7 @@ export default async function SettingsPage() {
                     <span
                       className={`retro text-[9px] ${
                         e.set
-                          ? "text-[#22c55e]"
+                          ? "text-brand-light"
                           : e.required
                             ? "text-red-400"
                             : "text-zinc-600"
@@ -248,7 +248,7 @@ export default async function SettingsPage() {
                   DATABASE
                 </span>
                 <span
-                  className={`retro text-[9px] ${dbReachable ? "text-[#22c55e]" : "text-red-400"}`}
+                  className={`retro text-[9px] ${dbReachable ? "text-brand-light" : "text-red-400"}`}
                 >
                   {dbReachable ? "OK" : "FAILED"}
                 </span>

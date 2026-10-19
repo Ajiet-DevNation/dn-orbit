@@ -66,7 +66,7 @@ export function LeaderboardPreview({ rows }: { rows: PreviewRow[] }) {
               className="p-4 flex items-center justify-between hover:bg-zinc-950 transition-all group"
             >
               <div className="flex items-center gap-6">
-                <span className="retro text-xl text-zinc-700 group-hover:text-[#22c55e] transition-colors">
+                <span className="retro text-xl text-zinc-700 group-hover:text-brand-light transition-colors">
                   {s.position.toString().padStart(2, "0")}
                 </span>
                 <div className="flex flex-col">
@@ -79,7 +79,7 @@ export function LeaderboardPreview({ rows }: { rows: PreviewRow[] }) {
                 </div>
               </div>
               <div className="text-right">
-                <div className="retro text-base text-[#22c55e] tabular-nums">
+                <div className="retro text-base text-brand-light tabular-nums">
                   {s.totalScore.toFixed(2)}
                 </div>
                 <div className="retro text-[8px] text-zinc-700 uppercase tracking-widest">

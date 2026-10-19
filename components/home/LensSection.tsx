@@ -25,10 +25,10 @@ export const LENS_COUNTER_STYLE = { bottom: 36, top: "auto" } as const;
 export const LENS_PAD = 6;
 
 const GIANT_BLOOM =
-  "0 0 24px rgba(255,255,255,0.55), 0 0 60px rgba(34,197,94,0.5), 0 0 120px rgba(34,197,94,0.3)";
+  "0 0 24px rgba(255,255,255,0.55), 0 0 60px rgba(139,92,246,0.5), 0 0 120px rgba(139,92,246,0.3)";
 
 const GIANT_GLOW =
-  "0 0 18px rgba(34,197,94,0.55), 0 0 48px rgba(34,197,94,0.28), 0 0 2px rgba(255,255,255,0.8)";
+  "0 0 18px rgba(139,92,246,0.55), 0 0 48px rgba(139,92,246,0.28), 0 0 2px rgba(255,255,255,0.8)";
 
 interface LensSectionProps {
   id: string;
@@ -109,7 +109,7 @@ export function LensSection({
         {/* The giant title flies into this label, which then takes over. The
             kicker is there from the start, like oryzo's "SO PORTABLE,". */}
         <div className="pointer-events-none absolute inset-x-0 top-[92px] z-30 flex flex-col items-center gap-3 md:inset-x-auto md:left-[max(24px,3.5vw)] md:top-[24%] md:items-start">
-          <p className="retro text-[9px] tracking-[0.3em] text-[#22c55e] md:text-[clamp(10px,0.8vw,14px)]">
+          <p className="retro text-[9px] tracking-[0.3em] text-brand-light md:text-[clamp(10px,0.8vw,14px)]">
             {kicker}
           </p>
           <div
@@ -120,7 +120,7 @@ export function LensSection({
             <h2 className="retro text-xl tracking-wider text-white md:text-[clamp(20px,1.8vw,32px)]">
               {title}
             </h2>
-            <span aria-hidden className="block h-[3px] w-16 bg-[#22c55e]" />
+            <span aria-hidden className="block h-[3px] w-16 bg-brand" />
           </div>
         </div>
 
@@ -145,7 +145,7 @@ export function LensSection({
               content stays full size and centred, clipped by the frame. */}
           <div
             ref={entrance.frameRef}
-            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 overflow-hidden border-2 border-dashed border-[#22c55e]/40 shadow-[0_0_40px_rgba(0,0,0,0.6)]"
+            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 overflow-hidden border-2 border-dashed border-brand/40 shadow-[0_0_40px_rgba(0,0,0,0.6)]"
             // Frosted glass until the entrance ends (the hook turns it solid).
             style={{
               width: side + LENS_PAD * 2,
@@ -181,16 +181,16 @@ export function LensSection({
               aria-hidden
               className="pointer-events-none absolute inset-0 z-10"
             >
-              <span className="absolute left-1/2 top-1/2 h-[2px] w-5 -translate-x-1/2 -translate-y-1/2 bg-[#22c55e]/70" />
-              <span className="absolute left-1/2 top-1/2 h-5 w-[2px] -translate-x-1/2 -translate-y-1/2 bg-[#22c55e]/70" />
-              <span className="absolute left-1/2 top-0 h-2.5 w-[2px] -translate-x-1/2 bg-[#22c55e]/60" />
-              <span className="absolute bottom-0 left-1/2 h-2.5 w-[2px] -translate-x-1/2 bg-[#22c55e]/60" />
-              <span className="absolute left-0 top-1/2 h-[2px] w-2.5 -translate-y-1/2 bg-[#22c55e]/60" />
-              <span className="absolute right-0 top-1/2 h-[2px] w-2.5 -translate-y-1/2 bg-[#22c55e]/60" />
-              <span className="retro absolute left-2 top-2 text-[6px] tracking-widest text-[#22c55e]/80">
+              <span className="absolute left-1/2 top-1/2 h-[2px] w-5 -translate-x-1/2 -translate-y-1/2 bg-brand/70" />
+              <span className="absolute left-1/2 top-1/2 h-5 w-[2px] -translate-x-1/2 -translate-y-1/2 bg-brand/70" />
+              <span className="absolute left-1/2 top-0 h-2.5 w-[2px] -translate-x-1/2 bg-brand/60" />
+              <span className="absolute bottom-0 left-1/2 h-2.5 w-[2px] -translate-x-1/2 bg-brand/60" />
+              <span className="absolute left-0 top-1/2 h-[2px] w-2.5 -translate-y-1/2 bg-brand/60" />
+              <span className="absolute right-0 top-1/2 h-[2px] w-2.5 -translate-y-1/2 bg-brand/60" />
+              <span className="retro absolute left-2 top-2 text-[6px] tracking-widest text-brand-light/80">
                 SCAN
               </span>
-              <span className="cursor-blink absolute right-2 top-2 size-1.5 bg-[#22c55e]" />
+              <span className="cursor-blink absolute right-2 top-2 size-1.5 bg-brand" />
             </div>
           </div>
 
@@ -232,7 +232,7 @@ export function LensSection({
             aria-hidden
             className="pointer-events-none absolute inset-x-0 bottom-7 z-10 flex items-center justify-center gap-3"
           >
-            <span className="grid size-6 place-items-center border-2 border-[#22c55e]/60 text-[9px] text-[#22c55e]">
+            <span className="grid size-6 place-items-center border-2 border-brand/60 text-[9px] text-brand-light">
               <span className="hint-bob">▼</span>
             </span>
             <span className="retro text-[8px] tracking-[0.3em] text-white/70">

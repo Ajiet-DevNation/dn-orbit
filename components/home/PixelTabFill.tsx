@@ -1,4 +1,4 @@
-// Green selection fill for the nav tabs, drawn in as scattered pixel blocks
+// Purple selection fill for the nav tabs, drawn in as scattered pixel blocks
 // (matching the loading-screen logo) rather than a sliding bar. The cells react
 // to the parent TabsTrigger's `data-state="active"` purely via CSS (see the
 // `.pixel-tab-cell` rules in globals.css); per-cell delays are deterministic

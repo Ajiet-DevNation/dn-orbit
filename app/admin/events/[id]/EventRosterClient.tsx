@@ -92,7 +92,7 @@ export default function EventRosterClient({
       header: "STATUS",
       render: (r) => (
         <span
-          className={`retro inline-block border-2 px-2 py-1 text-[8px] ${r.attended ? "border-[#22c55e] text-[#22c55e]" : "border-white/15 text-zinc-500"}`}
+          className={`retro inline-block border-2 px-2 py-1 text-[8px] ${r.attended ? "border-brand text-brand-light" : "border-white/15 text-zinc-500"}`}
         >
           {r.attended ? "ATTENDED" : "ABSENT"}
         </span>
@@ -107,7 +107,7 @@ export default function EventRosterClient({
           type="button"
           disabled={isPending}
           onClick={() => toggle(r.id, r.attended)}
-          className="retro border-2 border-white/15 px-3 py-1 text-[8px] text-white/70 transition-colors hover:border-[#22c55e] hover:text-[#22c55e] disabled:opacity-50"
+          className="retro border-2 border-white/15 px-3 py-1 text-[8px] text-white/70 transition-colors hover:border-brand hover:text-brand-light disabled:opacity-50"
         >
           {r.attended ? "REVOKE" : "MARK ATTENDED"}
         </button>
@@ -123,7 +123,7 @@ export default function EventRosterClient({
         </span>
         <a
           href={`/api/events/${eventId}/registrations.csv`}
-          className="retro border-2 border-[#22c55e]/40 px-3 py-2 text-[8px] text-[#22c55e] transition-colors hover:bg-[#22c55e]/10"
+          className="retro border-2 border-brand/40 px-3 py-2 text-[8px] text-brand-light transition-colors hover:bg-brand/10"
         >
           ↓ EXPORT CSV
         </a>

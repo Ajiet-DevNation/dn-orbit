@@ -27,13 +27,13 @@ const ProjectModal = dynamic(
 
 // The 8bit-toast bundle exports a single-arg `toast(title)` helper (no
 // .success/.error variants exported). It renders the title node as-is, so we
-// pass a colour-coded element: green = success, amber = partial, red = fail.
+// pass a colour-coded element: purple = success, amber = partial, red = fail.
 const toast = rawToast as unknown as (message: ReactNode) => void;
 
 function notify(kind: "success" | "warn" | "error", message: string) {
   const color =
     kind === "success"
-      ? "text-green-500"
+      ? "text-brand-light"
       : kind === "warn"
         ? "text-yellow-500"
         : "text-red-500";
@@ -361,7 +361,7 @@ export function StatsSection({
               <DifficultyTile
                 value={leetcode?.easySolved ?? 0}
                 label="EASY"
-                color="text-green-500"
+                color="text-brand-light"
               />
               <DifficultyTile
                 value={leetcode?.mediumSolved ?? 0}
@@ -401,7 +401,7 @@ export function StatsSection({
               <Progress
                 value={Math.round(score)}
                 variant="retro"
-                progressBg="bg-green-500"
+                progressBg="bg-brand"
                 className="h-5"
               />
             </div>

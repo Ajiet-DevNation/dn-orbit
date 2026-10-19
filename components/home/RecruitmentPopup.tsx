@@ -202,10 +202,10 @@ export function RecruitmentPopup() {
               <span aria-hidden className="flex shrink-0 gap-1.5">
                 <span className="size-2.5 bg-[#ef4444]" />
                 <span className="size-2.5 bg-[#eab308]" />
-                <span className="size-2.5 bg-[#22c55e]" />
+                <span className="size-2.5 bg-brand" />
               </span>
               <span className="truncate">
-                <span className="text-[#22c55e]">DEVNATION</span>
+                <span className="text-brand-light">DEVNATION</span>
                 <span className="text-[#c4b5fd]">{" // RECRUITMENT"}</span>
               </span>
             </h2>
@@ -231,7 +231,7 @@ export function RecruitmentPopup() {
                     <span className="block text-2xl text-white sm:text-3xl md:text-4xl">
                       WE ARE
                     </span>
-                    <span className="mt-2 block text-3xl text-[#22c55e] [text-shadow:0_0_18px_rgba(34,197,94,0.5)] sm:text-4xl md:text-5xl">
+                    <span className="mt-2 block text-3xl text-brand-light [text-shadow:0_0_18px_rgba(139,92,246,0.5)] sm:text-4xl md:text-5xl">
                       HIRING!
                     </span>
                   </h3>
@@ -269,7 +269,7 @@ export function RecruitmentPopup() {
                   <div data-reveal className="flex flex-col gap-3 sm:flex-row">
                     <Button
                       asChild
-                      className="text-[10px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black sm:px-6"
+                      className="text-[10px] !bg-brand hover:!bg-brand-light !text-black sm:px-6"
                     >
                       <Link href="/recruitments" onClick={markSeen}>
                         JOIN THE CREW ▸
@@ -278,7 +278,7 @@ export function RecruitmentPopup() {
                     <button
                       type="button"
                       onClick={() => onOpenChange(false)}
-                      className="retro border-4 border-[#22c55e] px-5 py-2 text-[10px] text-[#22c55e] transition-colors hover:bg-[#22c55e]/10"
+                      className="retro border-4 border-brand px-5 py-2 text-[10px] text-brand-light transition-colors hover:bg-brand/10"
                     >
                       EXPLORE DEVNATION
                     </button>

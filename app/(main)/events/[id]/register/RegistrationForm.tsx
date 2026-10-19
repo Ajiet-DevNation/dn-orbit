@@ -79,8 +79,8 @@ export function RegistrationForm({
   if (done) {
     return (
       <Shell title={title} meta={meta}>
-        <Card className="w-full items-center gap-4 border-[#22c55e]/30 p-10 text-center">
-          <span className="retro text-4xl text-[#22c55e]">✓</span>
+        <Card className="w-full items-center gap-4 border-brand/30 p-10 text-center">
+          <span className="retro text-4xl text-brand-light">✓</span>
           <p className="retro text-sm text-white">YOU&apos;RE REGISTERED!</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
             We&apos;ve saved your spot. See you there.
@@ -204,7 +204,7 @@ export function RegistrationForm({
           <Button
             type="submit"
             disabled={submitting}
-            className="w-full text-[11px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black sm:w-fit sm:px-10"
+            className="w-full text-[11px] !bg-brand hover:!bg-brand-light !text-black sm:w-fit sm:px-10"
           >
             {submitting ? "SUBMITTING…" : "SUBMIT REGISTRATION"}
           </Button>
@@ -239,10 +239,10 @@ function Shell({
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 px-5 py-24 sm:gap-8 sm:px-6 sm:py-28">
       <Back />
-      {/* Google-Forms-style header card: a green top accent bar + the event
+      {/* Google-Forms-style header card: a purple top accent bar + the event
           identity, sitting above the question cards. */}
-      <div className="flex flex-col gap-3 border-2 border-white/10 border-t-[6px] border-t-[#22c55e] bg-[#0a0a0a] p-6 sm:p-8">
-        <span className="retro text-[9px] tracking-widest text-[#22c55e]">
+      <div className="flex flex-col gap-3 border-2 border-white/10 border-t-[6px] border-t-brand bg-[#0a0a0a] p-6 sm:p-8">
+        <span className="retro text-[9px] tracking-widest text-brand-light">
           EVENT REGISTRATION
         </span>
         <h1 className="retro text-lg leading-relaxed text-white sm:text-xl">
@@ -250,7 +250,7 @@ function Shell({
         </h1>
         <div className="flex flex-wrap items-center gap-3">
           <AudienceBadge audience={meta.audience} />
-          {when && <p className="retro text-[10px] text-[#22c55e]">{when}</p>}
+          {when && <p className="retro text-[10px] text-brand-light">{when}</p>}
         </div>
         {meta.capacityLabel && (
           <p className="retro text-[9px] text-muted-foreground">
@@ -278,7 +278,7 @@ function Shell({
 function AudienceBadge({ audience }: { audience: EventAudience }) {
   const label = AUDIENCE_BADGE_LABELS[audience];
   return (
-    <span className="retro border-2 border-[#22c55e] px-2 py-1 text-[8px] text-[#22c55e]">
+    <span className="retro border-2 border-brand px-2 py-1 text-[8px] text-brand-light">
       {label}
     </span>
   );
@@ -288,7 +288,7 @@ function Back() {
   return (
     <Link
       href="/#events"
-      className="retro flex w-fit items-center gap-2 text-[9px] text-[#22c55e] transition-colors duration-200 hover:text-white"
+      className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
     >
       ◂ BACK TO EVENTS
     </Link>

@@ -517,7 +517,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
         isBack ? Math.PI : 0,
         isBack ? 2 * Math.PI : Math.PI,
       );
-      ctx.strokeStyle = `rgba(34, 197, 94, ${isBack ? 0.1 : 0.32})`;
+      ctx.strokeStyle = `rgba(139, 92, 246, ${isBack ? 0.1 : 0.32})`;
       ctx.lineWidth = isBack ? 1.5 : 2.25;
       ctx.stroke();
 
@@ -537,7 +537,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
 
         const jitter = ((i * 2654435761) % 100) / 100;
         const size = 2 + Math.round(jitter * 2) * 2;
-        ctx.fillStyle = `rgba(34, 197, 94, ${(isBack ? 0.14 : 0.4) + jitter * 0.2})`;
+        ctx.fillStyle = `rgba(139, 92, 246, ${(isBack ? 0.14 : 0.4) + jitter * 0.2})`;
         ctx.fillRect(
           Math.round((cx + x) / 4) * 4,
           Math.round((cy + y) / 4) * 4,
@@ -632,7 +632,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
         ctx.scale(ringScale, ringScale);
         ctx.translate(-cx, -cy);
 
-        ctx.shadowColor = `rgba(34, 197, 94, ${0.85 * ringOpacity})`;
+        ctx.shadowColor = `rgba(139, 92, 246, ${0.85 * ringOpacity})`;
         ctx.shadowBlur = 18;
 
         // Slightly thicker ring for more presence.
@@ -646,7 +646,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
           startAngle,
           endAngle,
         );
-        ctx.strokeStyle = `rgba(34, 197, 94, ${(isBack ? 0.22 : 0.45) * ringOpacity})`;
+        ctx.strokeStyle = `rgba(139, 92, 246, ${(isBack ? 0.22 : 0.45) * ringOpacity})`;
         ctx.lineWidth = 6;
         ctx.stroke();
 
@@ -1341,7 +1341,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
         }
         .pixel-pulse-text {
           animation: pixel-pulse 1.5s step-end infinite;
-          text-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+          text-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
         }
       `,
         }}

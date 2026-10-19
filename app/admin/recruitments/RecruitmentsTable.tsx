@@ -35,7 +35,7 @@ const STATUS_TEXT: Record<string, string> = {
   rejected: "REJECTED",
 };
 
-const link = "text-[#22c55e] underline-offset-2 hover:underline";
+const link = "text-brand-light underline-offset-2 hover:underline";
 
 export function RecruitmentsTable({
   applications,
@@ -187,7 +187,7 @@ export function RecruitmentsTable({
       header: "ABOUT",
       render: (a) => (
         <details className="max-w-xs text-[11px] text-white/70">
-          <summary className="retro cursor-pointer text-[8px] text-zinc-500 hover:text-[#22c55e]">
+          <summary className="retro cursor-pointer text-[8px] text-zinc-500 hover:text-brand-light">
             READ
           </summary>
           <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed">
@@ -205,7 +205,7 @@ export function RecruitmentsTable({
             a.status === "rejected"
               ? "text-red-500"
               : a.status === "approved"
-                ? "text-[#22c55e]"
+                ? "text-brand-light"
                 : "text-zinc-400"
           }`}
         >
@@ -223,7 +223,7 @@ export function RecruitmentsTable({
             type="button"
             disabled={isPending || a.status === "approved"}
             onClick={() => setStatus(a, "approved")}
-            className={`${btn} border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black`}
+            className={`${btn} border-brand text-brand-light hover:bg-brand hover:text-black`}
           >
             ACCEPT
           </button>

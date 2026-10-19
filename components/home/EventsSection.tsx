@@ -71,13 +71,13 @@ function EventCard({ data }: { data: EventCardData }) {
             outset-only shadow → never covers or blocks the card. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_30px_rgba(34,197,94,0.18)] transition-opacity duration-300 group-hover:opacity-100"
+          className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_30px_rgba(139,92,246,0.18)] transition-opacity duration-300 group-hover:opacity-100"
         />
-        <Card className="h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.04)] transition-colors duration-300 group-hover:border-[#22c55e]/50">
+        <Card className="h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(139,92,246,0.04)] transition-colors duration-300 group-hover:border-brand/50">
           {/* Banner — plain <img> (pixelated) so arbitrary admin URLs render
               without next/image remote-pattern config. Falls back to a pixel
               placeholder when no banner is set. */}
-          <div className="relative aspect-video w-full overflow-hidden border-b-[6px] border-white/10 bg-[#0d0d0d] transition-colors duration-300 group-hover:border-[#22c55e]/50">
+          <div className="relative aspect-video w-full overflow-hidden border-b-[6px] border-white/10 bg-[#0d0d0d] transition-colors duration-300 group-hover:border-brand/50">
             {banner ? (
               // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
               <img
@@ -90,12 +90,12 @@ function EventCard({ data }: { data: EventCardData }) {
               />
             ) : (
               <div className="dot-grid-bg flex h-full w-full items-center justify-center transition-transform duration-500 ease-out group-hover:scale-110">
-                <span className="retro text-5xl text-[#22c55e]/30 transition-colors duration-300 select-none group-hover:text-[#22c55e]/60">
+                <span className="retro text-5xl text-brand-light/30 transition-colors duration-300 select-none group-hover:text-brand-light/60">
                   {bannerGlyph(data.type)}
                 </span>
               </div>
             )}
-            <span className="retro absolute left-3 top-3 inline-block border-2 border-[#22c55e] bg-[#0a0a0a]/80 px-2 py-1 text-[8px] text-[#22c55e] transition-colors duration-300 group-hover:bg-[#22c55e] group-hover:text-[#0a0a0a]">
+            <span className="retro absolute left-3 top-3 inline-block border-2 border-brand bg-[#0a0a0a]/80 px-2 py-1 text-[8px] text-brand-light transition-colors duration-300 group-hover:bg-brand group-hover:text-[#0a0a0a]">
               {data.type}
             </span>
             {/* Who may register — set in the modal but previously only visible
@@ -118,7 +118,7 @@ function EventCard({ data }: { data: EventCardData }) {
               grid reads evenly across rows. The banner above is already a fixed
               aspect-video, so reserving the text block is all that's needed. */}
           <div className="flex flex-1 flex-col gap-3 p-6">
-            <h3 className="retro line-clamp-2 min-h-[2lh] text-sm leading-relaxed text-white transition-colors duration-300 group-hover:text-[#22c55e]">
+            <h3 className="retro line-clamp-2 min-h-[2lh] text-sm leading-relaxed text-white transition-colors duration-300 group-hover:text-brand-light">
               {data.title}
             </h3>
 
@@ -150,7 +150,7 @@ function EmptyState() {
   return (
     <div className="mx-auto max-w-md">
       <Card className="items-center gap-4 border-white/10 py-12 text-center">
-        <span className="retro text-3xl text-[#22c55e]/30">▞▚</span>
+        <span className="retro text-3xl text-brand-light/30">▞▚</span>
         <h3 className="retro text-sm text-white">NO EVENTS SCHEDULED</h3>
         <p className="retro text-[9px] text-muted-foreground">
           CHECK BACK SOON
@@ -163,7 +163,7 @@ function EmptyState() {
 function AudienceBadge({ audience }: { audience: EventCardData["audience"] }) {
   const label = AUDIENCE_BADGE_LABELS[audience];
   return (
-    <span className="retro border-2 border-[#22c55e] px-2 py-1 text-[8px] text-[#22c55e]">
+    <span className="retro border-2 border-brand px-2 py-1 text-[8px] text-brand-light">
       {label}
     </span>
   );
@@ -207,7 +207,7 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
           {data.title}
         </h3>
       </div>
-      <p className="retro text-[10px] text-[#22c55e]">
+      <p className="retro text-[10px] text-brand-light">
         {[data.dateLabel, data.timeLabel, data.location]
           .filter(Boolean)
           .join(" · ")}
@@ -246,7 +246,7 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
       ) : (
         <Button
           asChild
-          className="w-fit text-[9px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+          className="w-fit text-[9px] !bg-brand hover:!bg-brand-light !text-black"
         >
           <Link href={`/events/${data.id}/register`}>REGISTER ▸</Link>
         </Button>
@@ -261,7 +261,7 @@ function NoMatch({ query }: { query: string }) {
   return (
     <div className="mx-auto max-w-md">
       <Card className="items-center gap-4 border-white/10 py-12 text-center">
-        <span className="retro text-3xl text-[#22c55e]/30">▞▚</span>
+        <span className="retro text-3xl text-brand-light/30">▞▚</span>
         <h3 className="retro text-sm text-white">NO EVENTS FOUND</h3>
         <p className="retro break-words text-[9px] text-muted-foreground">
           NO MATCH FOR &quot;{query.toUpperCase()}&quot;
@@ -298,7 +298,7 @@ function pageItems(current: number, total: number): (number | "…")[] {
 }
 
 // Pagination control built on the shared 8-bit Button (chunky pixel border +
-// shadow). The active page is filled green to match the site's accent buttons
+// shadow). The active page is filled purple to match the site's accent buttons
 // (e.g. ADMIN in the profile modal); the rest stay the default pixel button.
 function PageButton({
   children,
@@ -323,7 +323,7 @@ function PageButton({
       aria-current={active ? "page" : undefined}
       className={cn(
         "min-w-[2.5rem] text-[9px]",
-        active && "!bg-[#22c55e] hover:!bg-[#16a34a] !text-black",
+        active && "!bg-brand hover:!bg-brand-light !text-black",
       )}
     >
       {children}

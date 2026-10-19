@@ -163,7 +163,7 @@ function PixelCrown({ progress }: { progress: number }) {
         ))}
         {/* jewels */}
         <rect x="2" y="3" width="1" height="1" fill="#ef4444" />
-        <rect x="4" y="4" width="1" height="1" fill="#22c55e" />
+        <rect x="4" y="4" width="1" height="1" fill="#8b5cf6" />
         <rect x="6" y="3" width="1" height="1" fill="#3b82f6" />
       </svg>
     </div>
@@ -348,7 +348,7 @@ function LeaderboardList({
           header and the rows; spacing is controlled here instead. */}
       <div className="px-4">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <p className="retro text-xs tracking-wider text-[#22c55e]">
+          <p className="retro text-xs tracking-wider text-brand-light">
             RANK {rangeStart}–{rangeEnd}
           </p>
           {/* How fresh the numbers are. Stats refresh continuously as members
@@ -370,7 +370,7 @@ function LeaderboardList({
           <ScoreHead label="GH" title="GitHub score" />
           <ScoreHead label="LC" title="LeetCode score" />
           <ScoreHead label="EVT" title="Event participation score" />
-          <span className="retro w-12 shrink-0 text-right text-[8px] tracking-[0.15em] text-[#22c55e]/90">
+          <span className="retro w-12 shrink-0 text-right text-[8px] tracking-[0.15em] text-brand-light/90">
             TOTAL
           </span>
         </div>
@@ -423,7 +423,7 @@ function LeaderboardList({
                 <ScoreCell value={e.githubScore} />
                 <ScoreCell value={e.lcScore} />
                 <ScoreCell value={e.eventScore} />
-                <span className="retro w-12 shrink-0 text-right text-sm text-[#22c55e]">
+                <span className="retro w-12 shrink-0 text-right text-sm text-brand-light">
                   {e.score}
                 </span>
               </div>
@@ -490,7 +490,7 @@ function ScoreHead({ label, title }: { label: string; title: string }) {
   );
 }
 
-// Right-aligned per-category score value (muted mono so the green TOTAL stays
+// Right-aligned per-category score value (muted mono so the purple TOTAL stays
 // the clear focal point of each row).
 function ScoreCell({ value }: { value: number }) {
   return (
@@ -506,7 +506,7 @@ function EmptyState() {
       <SectionHeading text="LEADERBOARD" />
       <div className="mx-auto max-w-md">
         <Card className="items-center gap-4 border-white/10 py-12 text-center">
-          <span className="retro text-3xl text-[#22c55e]/30">▟▙</span>
+          <span className="retro text-3xl text-brand-light/30">▟▙</span>
           <h3 className="retro text-sm text-white">LEADERBOARD COMPUTING</h3>
           <p className="retro text-[9px] text-muted-foreground">
             SCORES UPDATE EVERY 15 MINUTES · CHECK BACK SOON

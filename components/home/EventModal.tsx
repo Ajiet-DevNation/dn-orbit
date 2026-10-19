@@ -28,7 +28,7 @@ import {
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
-  const color = kind === "success" ? "text-green-500" : "text-red-500";
+  const color = kind === "success" ? "text-brand-light" : "text-red-500";
   toast(<span className={color}>{message}</span>);
 }
 
@@ -42,7 +42,7 @@ interface EventModalProps {
 // panels so the modal reads as the same "create event" surface. ──
 function SectionHeading({ children }: { children: ReactNode }) {
   return (
-    <h3 className="retro mt-2 border-b-2 border-white/10 pb-2 text-[10px] tracking-widest text-[#22c55e]">
+    <h3 className="retro mt-2 border-b-2 border-white/10 pb-2 text-[10px] tracking-widest text-brand-light">
       {children}
     </h3>
   );
@@ -170,7 +170,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
       }
     >
       {!isAdmin && (
-        <p className="retro mb-7 border-2 border-[#22c55e]/40 bg-[#22c55e]/[0.05] p-3 text-[10px] leading-relaxed text-muted-foreground">
+        <p className="retro mb-7 border-2 border-brand/40 bg-brand/[0.05] p-3 text-[10px] leading-relaxed text-muted-foreground">
           Heads up — your event goes to an admin for review before it&apos;s
           published.
         </p>

@@ -33,13 +33,13 @@ interface FooterLinkDef {
   external?: boolean;
 }
 
-// Pixel eyebrow: a green pixel-block marker + a Press Start 2P label. The block
+// Pixel eyebrow: a purple pixel-block marker + a Press Start 2P label. The block
 // (echoed by the email bullet) is the footer's small recurring signature — used
 // instead of decorative 01/02 numbering, since these groups aren't a sequence.
 function PixelLabel({ children }: { children: React.ReactNode }) {
   return (
     <h3 className="retro flex items-center gap-2.5 text-[11px] tracking-[0.22em] text-white">
-      <span aria-hidden="true" className="inline-block size-2.5 bg-[#22c55e]" />
+      <span aria-hidden="true" className="inline-block size-2.5 bg-brand" />
       {children}
     </h3>
   );
@@ -49,13 +49,13 @@ function FooterLink({ label, href, external }: FooterLinkDef) {
   // Pixel face, small + tracked — a true 8-bit terminal menu. Press Start 2P is
   // all-caps by nature, so the labels read as a cohesive pixel set.
   const className =
-    "group/flink retro flex items-center justify-between gap-4 border-b border-white/[0.07] py-3.5 text-[10px] tracking-wide text-zinc-300 uppercase leading-none transition-colors hover:text-[#22c55e]";
+    "group/flink retro flex items-center justify-between gap-4 border-b border-white/[0.07] py-3.5 text-[10px] tracking-wide text-zinc-300 uppercase leading-none transition-colors hover:text-brand-light";
   const inner = (
     <>
       <span>{label}</span>
       <span
         aria-hidden="true"
-        className="-translate-x-1 text-[#22c55e] opacity-0 transition-all duration-200 group-hover/flink:translate-x-0 group-hover/flink:opacity-100"
+        className="-translate-x-1 text-brand-light opacity-0 transition-all duration-200 group-hover/flink:translate-x-0 group-hover/flink:opacity-100"
       >
         ▸
       </span>
@@ -113,7 +113,7 @@ export function Footer() {
         <div>
           <BrandLink imageClassName="h-12 w-12" wordmarkClassName="text-2xl" />
 
-          <p className="retro mt-8 max-w-md border-l-2 border-[#22c55e] pl-4 text-[10px] leading-[2] text-zinc-300">
+          <p className="retro mt-8 max-w-md border-l-2 border-brand pl-4 text-[10px] leading-[2] text-zinc-300">
             DevNation, the student developer community at AJIET. Part of Nexus,
             AJIET&apos;s student-led tech umbrella.
           </p>
@@ -127,11 +127,11 @@ export function Footer() {
             </p>
             <a
               href="mailto:aboobakkartwaha@gmail.com"
-              className="retro mt-5 inline-flex max-w-full items-center gap-2.5 text-[10px] break-all text-zinc-300 transition-colors hover:text-[#22c55e]"
+              className="retro mt-5 inline-flex max-w-full items-center gap-2.5 text-[10px] break-all text-zinc-300 transition-colors hover:text-brand-light"
             >
               <span
                 aria-hidden="true"
-                className="inline-block size-2 shrink-0 bg-[#22c55e]"
+                className="inline-block size-2 shrink-0 bg-brand"
               />
               aboobakkartwaha@gmail.com
             </a>
@@ -151,10 +151,10 @@ export function Footer() {
           href="https://github.com/Ajiet-DevNation"
           target="_blank"
           rel="noopener noreferrer"
-          className="retro flex items-center gap-2 text-[10px] tracking-[0.2em] text-zinc-500 transition-colors hover:text-[#22c55e]"
+          className="retro flex items-center gap-2 text-[10px] tracking-[0.2em] text-zinc-500 transition-colors hover:text-brand-light"
         >
           <FaGithub className="size-3.5" /> MADE BY DEVNATION{" "}
-          <span className="text-[#22c55e]">♥</span>
+          <span className="text-brand-light">♥</span>
         </a>
       </div>
     </footer>

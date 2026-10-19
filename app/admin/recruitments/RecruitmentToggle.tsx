@@ -37,12 +37,12 @@ export function RecruitmentToggle({ initialOpen }: { initialOpen: boolean }) {
           <span
             className={`h-1.5 w-1.5 rounded-full ${
               open
-                ? "bg-[#22c55e] shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+                ? "bg-brand shadow-[0_0_8px_rgba(139,92,246,0.5)]"
                 : "bg-zinc-600"
             }`}
           />
           <span
-            className={`retro text-[10px] ${open ? "text-[#22c55e]" : "text-zinc-500"}`}
+            className={`retro text-[10px] ${open ? "text-brand-light" : "text-zinc-500"}`}
           >
             {open ? "OPEN" : "CLOSED"}
           </span>
@@ -62,7 +62,7 @@ export function RecruitmentToggle({ initialOpen }: { initialOpen: boolean }) {
         className={`retro border-2 px-4 py-2 text-[9px] transition-colors disabled:opacity-50 ${
           open
             ? "border-red-500/40 text-red-400 hover:bg-red-500/10"
-            : "border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black"
+            : "border-brand text-brand-light hover:bg-brand hover:text-black"
         }`}
       >
         {isPending

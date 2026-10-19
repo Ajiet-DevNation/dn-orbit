@@ -169,8 +169,8 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   if (step === "done") {
     return (
       <Layout step="done">
-        <Card className="w-full items-center gap-4 border-[#22c55e]/30 p-10 text-center">
-          <span className="retro text-4xl text-[#22c55e]">✓</span>
+        <Card className="w-full items-center gap-4 border-brand/30 p-10 text-center">
+          <span className="retro text-4xl text-brand-light">✓</span>
           <p className="retro text-sm text-white">APPLICATION SENT!</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
             Thanks for applying. The team will review it and reach out on
@@ -274,7 +274,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
             type="button"
             disabled={submitting}
             onClick={submit}
-            className="text-[11px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black sm:px-10"
+            className="text-[11px] !bg-brand hover:!bg-brand-light !text-black sm:px-10"
           >
             {submitting ? "SUBMITTING…" : "SUBMIT APPLICATION"}
           </Button>
@@ -394,7 +394,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
           </p>
           <Button
             type="submit"
-            className="w-full text-[11px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black sm:w-fit sm:px-10"
+            className="w-full text-[11px] !bg-brand hover:!bg-brand-light !text-black sm:w-fit sm:px-10"
           >
             REVIEW INFORMATION ▸
           </Button>
@@ -420,7 +420,7 @@ function Layout({
     <div className="mx-auto w-full max-w-6xl px-5 py-24 sm:px-6 sm:py-28">
       <Link
         href="/"
-        className="retro flex w-fit items-center gap-2 text-[9px] text-[#22c55e] transition-colors duration-200 hover:text-white"
+        className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
       >
         ◂ BACK TO ORBIT
       </Link>
@@ -447,7 +447,7 @@ function Layout({
                 "We reach out on WhatsApp or email.",
               ].map((text, i) => (
                 <li key={text} className="flex gap-3">
-                  <span className="retro shrink-0 text-[9px] leading-5 text-[#22c55e]">
+                  <span className="retro shrink-0 text-[9px] leading-5 text-brand-light">
                     0{i + 1}
                   </span>
                   <span className="text-xs leading-5 text-muted-foreground">
@@ -475,9 +475,9 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-2 border-white/10 bg-[#0a0a0a] transition-colors duration-200 focus-within:border-[#22c55e]/40">
+    <section className="border-2 border-white/10 bg-[#0a0a0a] transition-colors duration-200 focus-within:border-brand/40">
       <header className="flex items-center gap-3 border-b-2 border-white/10 px-5 py-3 sm:px-6">
-        <span className="retro text-[9px] text-[#22c55e]">0{index}</span>
+        <span className="retro text-[9px] text-brand-light">0{index}</span>
         <h2 className="retro text-[9px] tracking-widest text-white/80">
           {"// "}
           {title}
@@ -509,7 +509,7 @@ function Field({
     <div className={cn("flex flex-col gap-2.5", wide && "sm:col-span-2")}>
       <Label
         htmlFor={id}
-        className="font-mono text-sm font-semibold leading-relaxed tracking-wide text-[#22c55e]"
+        className="font-mono text-sm font-semibold leading-relaxed tracking-wide text-brand-light"
       >
         {label}
         {required && <span className="text-[#ef4444]"> *</span>}
@@ -534,8 +534,8 @@ function CvPicker({
   onPick: (file: File | null) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 border-2 border-dashed border-white/15 bg-black/40 px-4 py-3 has-[:focus-visible]:border-[#22c55e]/70">
-      <label className="retro cursor-pointer border-2 border-[#22c55e] px-3 py-2 text-[8px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black">
+    <div className="flex flex-wrap items-center gap-3 border-2 border-dashed border-white/15 bg-black/40 px-4 py-3 has-[:focus-visible]:border-brand/70">
+      <label className="retro cursor-pointer border-2 border-brand px-3 py-2 text-[8px] text-brand-light transition-colors hover:bg-brand hover:text-black">
         {file ? "CHANGE PDF" : "CHOOSE PDF"}
         <input
           id="rec-cv"

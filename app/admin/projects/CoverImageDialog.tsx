@@ -62,7 +62,7 @@ export function CoverImageDialog({
             CANCEL
           </Button>
           <Button
-            className="flex-1 text-[10px] !bg-[#22c55e] !text-black hover:!bg-[#16a34a]"
+            className="flex-1 text-[10px] !bg-brand !text-black hover:!bg-brand-light"
             onClick={() => onSave(trimmed === "" ? null : trimmed)}
             disabled={busy || !valid}
           >

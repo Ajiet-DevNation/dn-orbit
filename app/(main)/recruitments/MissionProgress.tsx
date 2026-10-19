@@ -31,7 +31,7 @@ function bubbleText(filled: number, total: number): string {
 }
 
 /**
- * MISSION PROGRESS: a segmented bar in the green pixel frame, with Pluton
+ * MISSION PROGRESS: a segmented bar in the purple pixel frame, with Pluton
  * walking along underneath it:
  * he stands under the fill's leading edge, walks there whenever a required
  * field is filled (or back when one is cleared), and jumps for joy at 100%.
@@ -159,7 +159,7 @@ export function MissionProgress({
             <SignalBars />
             MISSION PROGRESS
           </span>
-          <span className="retro whitespace-nowrap text-[9px] text-[#22c55e]">
+          <span className="retro whitespace-nowrap text-[9px] text-brand-light">
             {filled} / {total} REQUIRED
           </span>
         </div>
@@ -171,7 +171,7 @@ export function MissionProgress({
           aria-valuemin={0}
           aria-valuemax={total}
           aria-valuenow={filled}
-          className="flex gap-[3px] border-[3px] border-[#22c55e] bg-[#22c55e] p-[3px]"
+          className="flex gap-[3px] border-[3px] border-brand bg-brand p-[3px]"
         >
           {Array.from({ length: total }, (_, i) => (
             <span
@@ -179,7 +179,7 @@ export function MissionProgress({
               key={i}
               className={cn(
                 "h-4 flex-1",
-                i < filled ? "bg-[#4ade80]" : "bg-[#1a1838]",
+                i < filled ? "bg-brand-light" : "bg-[#1a1838]",
               )}
             />
           ))}

@@ -94,14 +94,14 @@ function AnnouncementSlide({
     // percentage, so it resolves against each parent's content box and fits.
     <Card
       className={cn(
-        "h-full gap-4 py-8 border-white/10 shadow-[0_0_15px_rgba(34,197,94,0.05)] transition-colors duration-500",
+        "h-full gap-4 py-8 border-white/10 shadow-[0_0_15px_rgba(139,92,246,0.05)] transition-colors duration-500",
         // Linked cards get a stronger hover cue than passive ones.
-        item.href ? "hover:border-[#22c55e]/70" : "hover:border-[#22c55e]/40",
+        item.href ? "hover:border-brand/70" : "hover:border-brand/40",
       )}
     >
       {item.tag && (
         <div className="px-6 sm:px-8">
-          <span className="retro inline-block border-2 border-[#22c55e] px-3 py-1.5 text-[9px] text-[#22c55e]">
+          <span className="retro inline-block border-2 border-brand px-3 py-1.5 text-[9px] text-brand-light">
             {item.tag}
           </span>
         </div>
@@ -123,7 +123,7 @@ function AnnouncementSlide({
           <p className="retro text-[9px] text-muted-foreground">{item.meta}</p>
         )}
         {item.href && (
-          <span className="retro text-[9px] text-[#22c55e]">VIEW &rarr;</span>
+          <span className="retro text-[9px] text-brand-light">VIEW &rarr;</span>
         )}
       </div>
     </Card>
@@ -144,7 +144,7 @@ function AnnouncementSlide({
           title={item.title}
           draggable={false}
           onClick={onNavGuard}
-          className="block h-full rounded-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#22c55e]"
+          className="block h-full rounded-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
         >
           {card}
         </a>

@@ -19,11 +19,11 @@ interface Props {
   onChange: (value: unknown) => void;
 }
 
-// Choice rows: pixel-bordered tiles that fill green when selected. The real
+// Choice rows: pixel-bordered tiles that fill purple when selected. The real
 // radio/checkbox is kept (sr-only) for keyboard + a11y; the visible control is
 // an 8-bit square mark (matching PixelCheckbox) instead of the round native one.
 const choiceLabel =
-  "flex cursor-pointer items-center gap-3 border-2 border-white/15 bg-[#0d0d0d] px-4 py-3 text-sm text-white transition-colors hover:border-[#22c55e]/40 has-[:checked]:border-[#22c55e]/70 has-[:checked]:bg-[#22c55e]/[0.06]";
+  "flex cursor-pointer items-center gap-3 border-2 border-white/15 bg-[#0d0d0d] px-4 py-3 text-sm text-white transition-colors hover:border-brand/40 has-[:checked]:border-brand/70 has-[:checked]:bg-brand/[0.06]";
 
 // Square pixel indicator for choice rows. `peer-focus-visible` lights it up when
 // the (sr-only) input next to it is keyboard-focused.
@@ -32,11 +32,11 @@ function ChoiceMark({ checked }: { checked: boolean }) {
     <span
       aria-hidden
       className={cn(
-        "flex size-5 shrink-0 items-center justify-center border-2 bg-black transition-colors peer-focus-visible:border-[#22c55e]",
-        checked ? "border-[#22c55e]" : "border-white/30",
+        "flex size-5 shrink-0 items-center justify-center border-2 bg-black transition-colors peer-focus-visible:border-brand",
+        checked ? "border-brand" : "border-white/30",
       )}
     >
-      {checked && <span className="block size-2.5 bg-[#22c55e]" />}
+      {checked && <span className="block size-2.5 bg-brand" />}
     </span>
   );
 }

@@ -20,7 +20,7 @@ import { TechStackSelect } from "./TechStackSelect";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
-  const color = kind === "success" ? "text-green-500" : "text-red-500";
+  const color = kind === "success" ? "text-brand-light" : "text-red-500";
   toast(<span className={color}>{message}</span>);
 }
 
@@ -123,7 +123,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
         </Button>
       }
     >
-      <p className="retro mb-7 border-2 border-[#22c55e]/40 bg-[#22c55e]/[0.05] p-3 text-[10px] leading-relaxed text-muted-foreground">
+      <p className="retro mb-7 border-2 border-brand/40 bg-brand/[0.05] p-3 text-[10px] leading-relaxed text-muted-foreground">
         Heads up — your project goes to an admin for review before it&apos;s
         listed.
       </p>

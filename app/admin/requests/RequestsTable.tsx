@@ -106,7 +106,7 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
       render: (r) => (
         <span
           className={`retro text-[9px] ${
-            r.status === "rejected" ? "text-red-500" : "text-[#22c55e]"
+            r.status === "rejected" ? "text-red-500" : "text-brand-light"
           }`}
         >
           {STATUS_LABELS[r.status as ApprovalStatus] ?? r.status}
@@ -123,7 +123,7 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
             type="button"
             disabled={isPending || r.status === "approved"}
             onClick={() => setStatus(r.id, "approved", r.name || "this member")}
-            className={`${btn} border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black`}
+            className={`${btn} border-brand text-brand-light hover:bg-brand hover:text-black`}
           >
             APPROVE
           </button>

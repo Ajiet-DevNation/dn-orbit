@@ -135,7 +135,7 @@ export function MemberTable({
         <span
           className={`retro inline-block border-2 px-2 py-1 text-[8px] ${
             canAccessAdmin(m.role)
-              ? "border-[#22c55e] bg-[#22c55e] text-black"
+              ? "border-brand bg-brand text-black"
               : "border-white/10 text-zinc-500"
           }`}
         >

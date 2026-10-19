@@ -27,7 +27,7 @@ import { LeetCodeConnect } from "./LeetCodeConnect";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
-  const color = kind === "success" ? "text-green-500" : "text-red-500";
+  const color = kind === "success" ? "text-brand-light" : "text-red-500";
   toast(<span className={color}>{message}</span>);
 }
 
@@ -166,7 +166,7 @@ export function ProfileModal({
               <span
                 className={`retro inline-block border-2 px-3 py-1.5 text-[9px] tracking-widest uppercase ${
                   isAdmin
-                    ? "border-[#22c55e] bg-[#22c55e]/[0.08] text-[#22c55e]"
+                    ? "border-brand bg-brand/[0.08] text-brand-light"
                     : "border-white/25 bg-white/[0.04] text-zinc-300"
                 }`}
               >
@@ -199,7 +199,7 @@ export function ProfileModal({
 
               {isAdmin && (
                 <Button
-                  className="w-full text-[10px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+                  className="w-full text-[10px] !bg-brand hover:!bg-brand-light !text-black"
                   onClick={() => {
                     onOpenChange(false);
                     router.push("/admin");
