@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { PlutonStage } from "@/components/home/PlutonStage";
-import { Button } from "@/components/ui/8bit-button";
 import { Z_MODAL } from "@/components/ui/PixelModal";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { onBootSplashDone } from "@/lib/boot-splash";
@@ -34,6 +33,10 @@ const FEATURES = [
 const ENTER_MS = 1150;
 const EXIT_MS = 320;
 const LINE_SCALE = 0.012;
+
+// Shared shape for the two CTAs: same size and press, different fill.
+const CTA =
+  "retro inline-flex items-center justify-center px-5 py-3.5 text-[10px] transition-[background-color,color,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-[6px] focus-visible:outline-brand-light active:scale-[0.97]";
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const steps = (p: number, n: number) => Math.ceil(clamp01(p) * n) / n;
@@ -194,7 +197,7 @@ export function RecruitmentPopup() {
         <div className="relative border-[3px] border-[#8b5cf6] bg-[#0b0714] shadow-[0_0_22px_rgba(139,92,246,0.6),inset_0_0_26px_rgba(139,92,246,0.16)]">
           <FrameBrackets />
 
-          <div className="flex items-center justify-between gap-4 border-b-[3px] border-[#8b5cf6] bg-[#8b5cf6]/[0.09] px-5 py-3 md:px-6">
+          <div className="flex items-center justify-between gap-4 border-b-[3px] border-[#8b5cf6] bg-[linear-gradient(90deg,rgba(139,92,246,0.14),rgba(139,92,246,0.04))] py-3 pr-4 pl-5 md:pl-6">
             <h2
               id={titleId}
               className="retro flex min-w-0 items-center gap-4 text-[10px] md:text-sm"
@@ -205,24 +208,22 @@ export function RecruitmentPopup() {
                 <span className="size-2.5 bg-brand" />
               </span>
               <span className="truncate">
-                <span className="text-brand-light">DEVNATION</span>
-                <span className="text-[#c4b5fd]">{" // RECRUITMENT"}</span>
+                <span className="text-white">DEVNATION</span>
+                <span className="text-brand-light">{" // RECRUITMENT"}</span>
               </span>
             </h2>
-            <Button
+            <button
               type="button"
-              size="sm"
-              variant="outline"
               aria-label="Close"
               onClick={() => onOpenChange(false)}
-              className="shrink-0 text-[10px]"
+              className="retro grid size-9 shrink-0 place-items-center border-2 border-brand/50 text-[11px] text-brand-soft transition-[border-color,color,transform] duration-150 ease-out hover:border-brand hover:text-white focus-visible:border-brand-light focus-visible:text-white focus-visible:outline-none active:scale-95"
             >
               <span aria-hidden>✕</span>
-            </Button>
+            </button>
           </div>
 
           <div className="p-2 md:p-2.5">
-            <div className="relative max-h-[78vh] overflow-y-auto border-2 border-[#8b5cf6]/45 bg-[radial-gradient(ellipse_at_78%_50%,rgba(139,92,246,0.2),transparent_60%)] px-5 py-6 md:px-9 md:py-8">
+            <div className="relative max-h-[78vh] overflow-y-auto border-2 border-[#8b5cf6]/30 bg-[radial-gradient(ellipse_at_78%_50%,rgba(139,92,246,0.2),transparent_60%)] px-5 py-6 md:px-9 md:py-8">
               <InnerCorners />
 
               <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-[1.15fr_1fr] md:gap-8">
@@ -237,20 +238,17 @@ export function RecruitmentPopup() {
                   </h3>
                   <p
                     data-reveal
-                    className="font-mono text-sm leading-relaxed text-white/85"
+                    className="max-w-[46ch] font-mono text-sm leading-[1.75] text-white/80"
                   >
                     Curious minds wanted. Join us to build, learn, experiment,
                     and create things that matter.
                   </p>
 
-                  <ul
-                    data-reveal
-                    className="grid grid-cols-3 divide-x-2 divide-white/10"
-                  >
+                  <ul data-reveal className="grid grid-cols-3 gap-2.5">
                     {FEATURES.map((f) => (
                       <li
                         key={f.label}
-                        className="flex flex-col items-center gap-2.5 px-2 text-center"
+                        className="flex flex-col items-center gap-2.5 border-2 border-white/[0.06] bg-white/[0.02] px-2 py-3.5 text-center"
                       >
                         <Image
                           src={f.icon}
@@ -267,18 +265,23 @@ export function RecruitmentPopup() {
                   </ul>
 
                   <div data-reveal className="flex flex-col gap-3 sm:flex-row">
-                    <Button
-                      asChild
-                      className="text-[10px] !bg-brand hover:!bg-brand-light !text-black sm:px-6"
+                    <Link
+                      href="/recruitments"
+                      onClick={markSeen}
+                      className={cn(
+                        CTA,
+                        "m-1.5 bg-brand text-[#0a0a0a] shadow-[0_0_0_3px_#0b0714,0_0_0_6px_#8b5cf6] hover:bg-brand-light",
+                      )}
                     >
-                      <Link href="/recruitments" onClick={markSeen}>
-                        JOIN THE CREW ▸
-                      </Link>
-                    </Button>
+                      JOIN THE CREW ▸
+                    </Link>
                     <button
                       type="button"
                       onClick={() => onOpenChange(false)}
-                      className="retro border-4 border-brand px-5 py-2 text-[10px] text-brand-light transition-colors hover:bg-brand/10"
+                      className={cn(
+                        CTA,
+                        "m-1.5 text-brand-soft shadow-[inset_0_0_0_3px_rgba(139,92,246,0.6)] hover:bg-brand/10 hover:text-white",
+                      )}
                     >
                       EXPLORE DEVNATION
                     </button>
@@ -289,7 +292,9 @@ export function RecruitmentPopup() {
                   data-pop
                   className="order-1 mx-auto w-full max-w-[220px] md:order-2 md:max-w-[380px]"
                 >
-                  <PlutonStage />
+                  {/* Clip the rotated orbit layers' empty corners, which otherwise
+                      poke out and give the panel a phantom scrollbar. */}
+                  <PlutonStage className="overflow-clip [overflow-clip-margin:24px]" />
                 </div>
               </div>
             </div>

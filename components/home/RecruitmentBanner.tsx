@@ -3,25 +3,33 @@ import Link from "next/link";
 // Thin "we're hiring" strip floated over the top of the hero. Rendered by the
 // landing page only while an admin has recruitment switched on. Absolute so it
 // doesn't push the full-height orbit down. It shares the top row with the
-// sticky header (z-50), so it sits above it (z-60) and leaves side gaps for the
-// logo and avatar; the wrapper is click-through so those gaps don't block them.
-// On phones there's no room beside the logo, so it drops below the header row.
+// sticky header (z-50), so it sits above it (z-60), sized to its content and
+// centred on the logo row; the wrapper is click-through so the gaps beside it
+// don't block the logo or avatar. On phones it drops below the header row.
 export function RecruitmentBanner() {
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-28 z-[60] px-4 md:top-7 md:px-64">
+    <div className="pointer-events-none absolute inset-x-0 top-28 z-[60] flex justify-center px-4 md:top-[37px]">
       <Link
         href="/recruitments"
-        className="group pointer-events-auto mx-auto flex max-w-5xl items-center justify-center gap-3 border-2 border-brand/30 bg-black/70 px-4 py-3 backdrop-blur-sm transition-colors hover:border-brand/70 sm:gap-5"
+        className="group pointer-events-auto inline-flex items-center gap-3.5 border-2 border-brand/35 bg-[#0a0a0a]/75 py-2.5 pr-4 pl-3.5 backdrop-blur-sm transition-[border-color,box-shadow] duration-200 hover:border-brand hover:shadow-[0_0_24px_rgba(139,92,246,0.25)] focus-visible:border-brand focus-visible:outline-none"
       >
-        <span className="retro text-[8px] tracking-[0.3em] text-brand-light sm:text-[9px]">
+        {/* Live dot: a solid pixel with a stepped ring pinging out of it. */}
+        <span aria-hidden className="relative size-2 shrink-0 bg-brand">
+          <span className="absolute -inset-1 animate-[recruit-ping_1.6s_steps(4,end)_infinite] border-2 border-brand" />
+        </span>
+        <span className="retro text-[8px] tracking-[0.28em] text-brand-light">
           RECRUITING
         </span>
-        <span aria-hidden className="h-4 w-px bg-white/20" />
-        <span className="hidden font-mono text-xs text-white/70 xl:inline">
+        <span aria-hidden className="hidden h-3.5 w-px bg-white/15 xl:block" />
+        <span className="hidden whitespace-nowrap font-mono text-xs text-white/65 xl:inline">
           Think you could be part of DevNation? We&apos;d love to have you.
         </span>
-        <span className="retro border-b-2 border-brand pb-0.5 text-[8px] text-white transition-colors group-hover:text-brand-light sm:text-[9px]">
-          APPLY NOW ▸
+        <span aria-hidden className="h-3.5 w-px bg-white/15" />
+        <span className="retro whitespace-nowrap text-[8px] text-white transition-colors duration-200 group-hover:text-brand-light">
+          APPLY NOW{" "}
+          <span className="inline-block transition-transform duration-200 ease-out group-hover:translate-x-[3px]">
+            ▸
+          </span>
         </span>
       </Link>
     </div>
