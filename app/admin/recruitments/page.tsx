@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { PixelPanel } from "@/components/admin/PixelPanel";
+import { PixelStatTile } from "@/components/admin/PixelStatTile";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isRecruitmentOpen } from "@/lib/recruitment-config";
@@ -42,9 +43,9 @@ export default async function AdminRecruitmentsPage() {
     }),
   ]);
 
-  const pendingCount = applications.filter(
-    (a) => a.status === "pending",
-  ).length;
+  const count = (status: string) =>
+    applications.filter((a) => a.status === status).length;
+  const pendingCount = count("pending");
 
   return (
     <div className="space-y-8 p-6 md:p-8">
@@ -53,6 +54,12 @@ export default async function AdminRecruitmentsPage() {
         subtitle="APPLICATION REVIEW QUEUE"
         code={`${pendingCount} PENDING`}
       />
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <PixelStatTile label="TOTAL" value={applications.length} />
+        <PixelStatTile label="PENDING" value={pendingCount} />
+        <PixelStatTile label="ACCEPTED" value={count("approved")} />
+        <PixelStatTile label="REJECTED" value={count("rejected")} />
+      </div>
       <PixelPanel title="RECRUITMENT STATUS">
         <RecruitmentToggle initialOpen={open} />
       </PixelPanel>
