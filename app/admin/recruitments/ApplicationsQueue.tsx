@@ -92,12 +92,14 @@ export function ApplicationsQueue({
           body: JSON.stringify({ status }),
         });
         if (!res.ok) throw new Error(await res.text());
+        const { emailed } = (await res.json()) as { emailed: boolean };
         router.refresh();
-        toast.success(
+        const done =
           status === "approved"
             ? "Application accepted"
-            : "Application rejected",
-        );
+            : "Application rejected";
+        if (emailed) toast.success(`${done} · email sent`);
+        else toast.error(`${done}, but the email could not be sent`);
       } catch (err) {
         toast.error(
           `Update failed: ${err instanceof Error ? err.message : "unknown"}`,
@@ -105,19 +107,26 @@ export function ApplicationsQueue({
       }
     });
 
-  // Rejecting is confirmed, like every other negative decision in the panel.
+  // Both decisions email the candidate, so both are confirmed first.
   const setStatus = async (
     a: Application,
     status: Exclude<ApprovalStatus, "pending">,
   ) => {
-    if (status === "rejected") {
-      const ok = await confirm({
-        title: "REJECT APPLICATION",
-        message: `Reject ${a.name}'s application?`,
-        confirmLabel: "REJECT",
-      });
-      if (!ok) return;
-    }
+    const ok = await confirm(
+      status === "approved"
+        ? {
+            title: "ACCEPT APPLICATION",
+            message: `Accept ${a.name}? They'll get a welcome email at ${a.email}.`,
+            confirmLabel: "ACCEPT",
+            danger: false,
+          }
+        : {
+            title: "REJECT APPLICATION",
+            message: `Reject ${a.name}'s application? They'll get an email at ${a.email}.`,
+            confirmLabel: "REJECT",
+          },
+    );
+    if (!ok) return;
     submit(a.id, status);
   };
 
