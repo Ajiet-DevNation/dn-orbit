@@ -2,10 +2,10 @@ import type { Prisma } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, isRecordNotFound } from "@/lib/db";
 import { toTitleCase } from "@/lib/names";
-import { canAccessAdmin, canManageRoles, isRole } from "@/lib/roles";
-import { isApprovalStatus } from "@/lib/status";
+import { canAccessAdmin, canManageRoles, canModerate } from "@/lib/roles";
+import { memberUpdateSchema, parseBody } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -17,34 +17,48 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     const { id } = await params;
-    const body = await req.json();
+    const parsed = await parseBody(req, memberUpdateSchema);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    const { isVisible, role, bio, status } = parsed.data;
 
-    const { isVisible, role, bio, status } = body;
+    const target = await db.user.findUnique({
+      where: { id },
+      select: { role: true },
+    });
+    if (!target) {
+      return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    }
+    // A lower admin tier may not reject, hide or edit the officers above it
+    // (a rejected account cannot sign in, so this was a lock-out). Members may
+    // still edit their own row.
+    if (
+      id !== session.user.id &&
+      !canModerate(session.user.role, target.role)
+    ) {
+      return NextResponse.json(
+        { error: "You can't change a member of a higher tier" },
+        { status: 403 },
+      );
+    }
 
     const updateData: Prisma.UserUpdateInput = {};
-    if (isVisible !== undefined) updateData.isVisible = Boolean(isVisible);
-    if (bio !== undefined) updateData.bio = String(bio);
+    if (isVisible !== undefined) updateData.isVisible = isVisible;
+    if (bio !== undefined) updateData.bio = bio || null;
 
     // Approve / reject membership — allowed for any admin tier (route is already
     // canAccessAdmin-gated); only role-tier changes below require President.
-    if (status !== undefined) {
-      if (!isApprovalStatus(status)) {
-        return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-      }
-      updateData.status = status;
-    }
+    if (status !== undefined) updateData.status = status;
 
     if (role !== undefined) {
       // Any admin tier can toggle visibility/bio, but only the President may
-      // change role tiers — and only to a valid tier.
+      // change role tiers.
       if (!canManageRoles(session.user.role)) {
         return NextResponse.json(
           { error: "Only the President may change roles" },
           { status: 403 },
         );
-      }
-      if (!isRole(role)) {
-        return NextResponse.json({ error: "Invalid role" }, { status: 400 });
       }
       // Don't let the President strip their own management ability and lock out.
       if (id === session.user.id && role !== "president") {
@@ -89,6 +103,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ success: true, user: updatedUser });
   } catch (error) {
+    if (isRecordNotFound(error)) {
+      return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    }
     console.error("Update Member Error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },

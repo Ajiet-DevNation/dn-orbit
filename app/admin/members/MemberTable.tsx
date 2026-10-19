@@ -23,6 +23,7 @@ import {
   ROLES,
   type Role,
 } from "@/lib/roles";
+import { errorMessage } from "@/lib/utils";
 
 interface Member {
   id: string;
@@ -95,7 +96,7 @@ export function MemberTable({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ role: newRole }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
 
         router.refresh();
         toast.success(`Role updated to ${ROLE_LABELS[newRole]}`);

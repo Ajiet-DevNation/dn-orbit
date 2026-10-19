@@ -370,3 +370,39 @@ describe("scoreWeightsSchema", () => {
     expect(result.ok).toBe(false);
   });
 });
+
+describe("event deadline vs event date", () => {
+  const base = { title: "Workshop", eventDate: "2026-08-10T10:00" };
+
+  test("create rejects a deadline after the event", () => {
+    const r = createEventSchema.safeParse({
+      ...base,
+      registrationDeadline: "2026-08-11T10:00",
+    });
+    expect(r.success).toBe(false);
+    if (!r.success)
+      expect(r.error.issues[0].path).toEqual(["registrationDeadline"]);
+  });
+
+  test("create accepts a deadline on or before the event", () => {
+    expect(
+      createEventSchema.safeParse({
+        ...base,
+        registrationDeadline: "2026-08-10T10:00",
+      }).success,
+    ).toBe(true);
+  });
+
+  test("update checks only when both dates are sent", () => {
+    expect(
+      updateEventSchema.safeParse({ registrationDeadline: "2030-01-01T00:00" })
+        .success,
+    ).toBe(true);
+    expect(
+      updateEventSchema.safeParse({
+        eventDate: "2026-08-10T10:00",
+        registrationDeadline: "2030-01-01T00:00",
+      }).success,
+    ).toBe(false);
+  });
+});

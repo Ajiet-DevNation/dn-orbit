@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { toast } from "@/components/ui/8bit-toast";
+import { errorMessage } from "@/lib/utils";
 
 export interface RosterEntry {
   id: string;
@@ -87,7 +88,7 @@ function useAttendance(eventId: string) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ registrationId, attended: !current }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         router.refresh();
       } catch (err) {
         toast.error(

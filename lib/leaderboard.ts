@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import {
   computeLeaderboard,
@@ -22,6 +23,9 @@ export const LEADERBOARD_VISIBLE_USER_FILTER: Prisma.UserWhereInput = {
   OR: [{ status: "approved" }, { lcUsername: { not: null } }],
 };
 
+// Arbitrary app-wide key for the recompute advisory lock.
+const LEADERBOARD_LOCK_KEY = 4_204_201;
+
 export async function recomputeLeaderboardScores() {
   const weightConfig = await db.scoreWeight.findFirst();
   const weights = {
@@ -32,7 +36,13 @@ export async function recomputeLeaderboardScores() {
   };
 
   const now = new Date();
-  const eventFilter = { isPublished: true, eventDate: { lt: now } } as const;
+  // Same visibility rule as the public site (approved AND published), so an
+  // event still in moderation can't count toward anyone's attendance ratio.
+  const eventFilter = {
+    isPublished: true,
+    reviewStatus: "approved",
+    eventDate: { lt: now },
+  } as const;
 
   const totalEvents = await db.event.count({ where: eventFilter });
 
@@ -74,8 +84,14 @@ export async function recomputeLeaderboardScores() {
   // pooled connection (Neon) that blew Prisma's 5s transaction budget once the
   // cohort grew. delete+createMany is two statements total — latency-immune —
   // and readers still never observe a half-written board.
+  //
+  // The advisory lock serialises concurrent recomputes (a stats drain racing an
+  // admin weight change). Without it, the second swap's deleteMany could miss
+  // rows the first had just inserted and its createMany would hit the unique
+  // userId — failing the second run. Released automatically at commit.
   const computedAt = new Date();
   await db.$transaction([
+    db.$executeRaw`SELECT 1 FROM pg_advisory_xact_lock(${LEADERBOARD_LOCK_KEY}::bigint)`,
     db.leaderboardScore.deleteMany({}),
     db.leaderboardScore.createMany({
       data: finalScores.map((score) => ({
@@ -91,4 +107,17 @@ export async function recomputeLeaderboardScores() {
   ]);
 
   return { updatedUsersCount: finalScores.length };
+}
+
+// Recompute once the response is out (weights, attendance or event visibility
+// changed). Scores were otherwise only rebuilt when someone's GitHub/LeetCode
+// stats moved, so an admin edit could sit unreflected on the board for hours.
+export function recomputeLeaderboardAfterResponse(): void {
+  after(async () => {
+    try {
+      await recomputeLeaderboardScores();
+    } catch (error) {
+      console.error("[leaderboard] recompute failed:", error);
+    }
+  });
 }

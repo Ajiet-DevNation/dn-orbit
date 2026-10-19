@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { FaExternalLinkAlt, FaGithub } from "react-icons/fa";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
@@ -12,7 +12,6 @@ import {
 import { useCardPowerOn } from "@/hooks/useCardPowerOn";
 import { useCoverflow } from "@/hooks/useCoverflow";
 import { useFlipDetail } from "@/hooks/useFlipDetail";
-import { useScrollGlide } from "@/hooks/useScrollGlide";
 import type { ProjectData } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 import { HudCardFrame } from "./HudCardFrame";
@@ -32,13 +31,20 @@ const TechChip = memo(function TechChip({ name }: { name: string }) {
   );
 });
 
-import { useViewportWidth } from "@/hooks/useViewportWidth";
-import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
+import { useViewportSize } from "@/hooks/useViewportSize";
+import { lensSize } from "@/lib/lens-layout";
+import { CoverflowControls } from "./CoverflowControls";
+import { LENS_COUNTER_STYLE, LensSection } from "./LensSection";
 
-// ─── tuning (desktop reference; scaled to the viewport in the component) ───────
-const MAX_CARD_W = 680; // centre-card width (px) on desktop
-const CARD_RATIO = 600 / 680; // height / width
-const SPREAD_RATIO = 400 / 680; // centre-to-centre gap / width
+// ─── tuning (desktop reference; scaled to the viewport by lensSize) ──────────
+const DETAIL_MAX_W = 560; // card width inside the detail overlay
+const LENS_SIZING = {
+  maxWidth: 900, // centre-card (lens) width cap
+  ratio: 600 / 680, // height / width
+  share: 0.46, // lens width / viewport on wider screens
+  phoneShare: 0.8,
+  thumbRatio: 0.36, // thumb height / lens height (oryzo ~0.35)
+};
 
 function statusColor(status: string): string {
   switch (status) {
@@ -69,6 +75,16 @@ function statusFillClass(status: string): string {
   }
 }
 
+// Up to two alphanumerics for the cartridge monogram, e.g. "CERT GEN" → "CE".
+function monogramOf(title: string): string {
+  return (
+    title
+      .replace(/[^A-Za-z0-9]/g, "")
+      .slice(0, 2)
+      .toUpperCase() || "?"
+  );
+}
+
 // ─── Presentational project card (carousel + detail view) ─────────────────────
 const ProjectCard = memo(function ProjectCard({
   project,
@@ -89,12 +105,7 @@ const ProjectCard = memo(function ProjectCard({
     project.imageUrl && project.imageUrl !== failedSrc
       ? project.imageUrl
       : null;
-  // Up to two alphanumerics for the cartridge monogram, e.g. "CERT GEN" → "CE".
-  const monogram =
-    project.title
-      .replace(/[^A-Za-z0-9]/g, "")
-      .slice(0, 2)
-      .toUpperCase() || "?";
+  const monogram = monogramOf(project.title);
   return (
     <Card
       className={cn(
@@ -103,10 +114,15 @@ const ProjectCard = memo(function ProjectCard({
       )}
       style={style}
     >
-      <div className="flex items-center justify-between gap-3 border-b-[6px] border-white/10 px-5 py-4">
-        <h3 className="retro truncate text-sm text-white">{project.title}</h3>
+      {/* Sizes are in container units (cqw) of the card's wrapper, which is a
+          size container, so the chrome scales with the lens instead of
+          sitting tiny in a big card. */}
+      <div className="flex items-center justify-between gap-3 border-b-[6px] border-white/10 px-[clamp(1.25rem,3cqw,2rem)] py-[clamp(1rem,2.4cqw,1.5rem)]">
+        <h3 className="retro truncate text-[clamp(0.875rem,2.2cqw,1.25rem)] text-white">
+          {project.title}
+        </h3>
         <span
-          className="retro shrink-0 border-2 px-2 py-1 text-[7px]"
+          className="retro shrink-0 border-2 px-[clamp(0.5rem,1.2cqw,0.75rem)] py-[clamp(0.25rem,0.7cqw,0.4rem)] text-[clamp(7px,1.1cqw,10px)]"
           style={{ color, borderColor: color }}
         >
           {project.status}
@@ -116,53 +132,57 @@ const ProjectCard = memo(function ProjectCard({
       {/* Picture — fills the rest. Plain <img> (pixelated) or, when a project has
           no cover, a composed "cartridge" fallback so the card never reads empty. */}
       <div className="relative flex-1 overflow-hidden bg-[#0d0d0d]">
-        {cover ? (
-          // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
-          <img
-            src={cover}
-            alt={project.title}
-            loading="lazy"
-            // See MembersSection: intrinsic size stops the card reflowing when
-            // the bytes land, async decode keeps it off the main thread.
-            width={680}
-            height={600}
-            decoding="async"
-            draggable={false}
-            onError={() => setFailedSrc(cover)}
-            className="pixelated h-full w-full object-cover select-none [-webkit-user-drag:none]"
-          />
-        ) : (
-          <div className="dot-grid-bg relative flex h-full w-full flex-col items-center justify-center gap-7 p-8">
-            {/* Oversized monogram watermark for depth behind the tile. */}
-            <span
-              aria-hidden
-              className="retro pointer-events-none absolute inset-0 flex items-center justify-center text-[12rem] leading-none text-white/[0.03] select-none"
-            >
-              {monogram}
-            </span>
-
-            {/* Cartridge tile: status-colored pixel border + monogram. */}
-            <div
-              className="relative z-10 flex size-28 items-center justify-center border-4 bg-[#0a0a0a]"
-              style={{ borderColor: color, boxShadow: `0 0 24px ${color}22` }}
-            >
-              <span className="retro text-4xl text-white select-none">
+        {/* The lens carousel tilts + zooms this wrapper as the card slides
+            through (see useCoverflow); the header and progress strip stay put. */}
+        <div data-lens-tilt className="h-full w-full">
+          {cover ? (
+            // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
+            <img
+              src={cover}
+              alt={project.title}
+              loading="lazy"
+              // See MembersSection: intrinsic size stops the card reflowing when
+              // the bytes land, async decode keeps it off the main thread.
+              width={680}
+              height={600}
+              decoding="async"
+              draggable={false}
+              onError={() => setFailedSrc(cover)}
+              className="pixelated h-full w-full object-cover select-none [-webkit-user-drag:none]"
+            />
+          ) : (
+            <div className="dot-grid-bg relative flex h-full w-full flex-col items-center justify-center gap-[clamp(1.75rem,4cqw,2.75rem)] p-8">
+              {/* Oversized monogram watermark for depth behind the tile. */}
+              <span
+                aria-hidden
+                className="retro pointer-events-none absolute inset-0 flex items-center justify-center text-[clamp(12rem,34cqw,20rem)] leading-none text-white/[0.03] select-none"
+              >
                 {monogram}
               </span>
-            </div>
 
-            {/* Tech stack chips — the glanceable substance that fills the card. */}
-            {project.techStack.length > 0 && (
-              <div className="z-10 flex max-w-[85%] flex-wrap justify-center gap-3">
-                {project.techStack.map((tech) => (
-                  <TechChip key={tech} name={tech} />
-                ))}
+              {/* Cartridge tile: status-colored pixel border + monogram. */}
+              <div
+                className="relative z-10 flex size-[clamp(7rem,17cqw,10.5rem)] items-center justify-center border-4 bg-[#0a0a0a]"
+                style={{ borderColor: color, boxShadow: `0 0 24px ${color}22` }}
+              >
+                <span className="retro text-[clamp(2.25rem,6cqw,3.75rem)] text-white select-none">
+                  {monogram}
+                </span>
               </div>
-            )}
 
-            <FaGithub className="z-10 size-5 text-white/20" />
-          </div>
-        )}
+              {/* Tech stack chips — the glanceable substance that fills the card. */}
+              {project.techStack.length > 0 && (
+                <div className="z-10 flex max-w-[85%] flex-wrap justify-center gap-[clamp(0.75rem,1.6cqw,1rem)] [&>span]:px-[clamp(0.625rem,1.4cqw,0.9rem)] [&>span]:py-[clamp(0.375rem,0.9cqw,0.6rem)] [&>span]:text-[clamp(9px,1.4cqw,12px)]">
+                  {project.techStack.map((tech) => (
+                    <TechChip key={tech} name={tech} />
+                  ))}
+                </div>
+              )}
+
+              <FaGithub className="z-10 size-[clamp(1.25rem,3cqw,1.75rem)] text-white/20" />
+            </div>
+          )}
+        </div>
 
         {/* Completion strip — the lead sets this in the "new project" modal and
             admins maintain it, but it had no public surface at all. Overlaid on
@@ -285,171 +305,229 @@ function ProjectDetail({
   );
 }
 
+// ─── Thumb (the small strip either side of the lens) ──────────────────────────
+// Decorative twin of the card: the big card in the lens is the real control, so
+// thumbs stay out of the tab order and the accessibility tree.
+const ProjectThumb = memo(function ProjectThumb({
+  project,
+  index,
+  onPick,
+}: {
+  project: ProjectData;
+  index: number;
+  onPick: (index: number) => void;
+}) {
+  const color = statusColor(project.status);
+  // Same dead-cover fallback as the full card.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const cover =
+    project.imageUrl && project.imageUrl !== failedSrc
+      ? project.imageUrl
+      : null;
+  return (
+    <div
+      aria-hidden
+      onClick={() => onPick(index)}
+      className="group @container relative h-full w-full cursor-pointer overflow-hidden border-2 border-white/10 bg-[#0d0d0d] transition-colors duration-200 hover:border-[#22c55e]/60"
+    >
+      {cover ? (
+        // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
+        <img
+          src={cover}
+          alt=""
+          loading="lazy"
+          width={272}
+          height={240}
+          decoding="async"
+          draggable={false}
+          onError={() => setFailedSrc(cover)}
+          className="pixelated h-full w-full object-cover opacity-80 transition-opacity duration-200 select-none group-hover:opacity-100 [-webkit-user-drag:none]"
+        />
+      ) : (
+        <div className="dot-grid-bg flex h-full w-full items-center justify-center pb-6">
+          <div
+            className="flex size-[clamp(3.5rem,22cqw,5rem)] items-center justify-center border-[3px] bg-[#0a0a0a]"
+            style={{ borderColor: color }}
+          >
+            <span className="retro text-[clamp(1.125rem,8cqw,1.6rem)] text-white/80 select-none">
+              {monogramOf(project.title)}
+            </span>
+          </div>
+        </div>
+      )}
+      <span className="retro absolute inset-x-0 bottom-0 truncate border-t-2 border-white/10 bg-[#0a0a0a]/85 px-2 py-[clamp(0.375rem,3cqw,0.6rem)] text-center text-[clamp(7px,4cqw,10px)] text-white/75">
+        {project.title}
+      </span>
+    </div>
+  );
+});
+
 export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
   // FLIP shared-element transition: the centre card flies from its on-screen
   // rect into the detail slot. Keyed by carousel index.
   const { selected, detailOpen, flipRef, open, close } =
     useFlipDetail<number>();
 
-  // Responsive sizing: cap at the desktop width, otherwise scale to the viewport
-  // so the centre card always fits a phone screen.
-  const vw = useViewportWidth();
-  const CARD_W = Math.min(MAX_CARD_W, Math.round(vw * 0.86));
-  const CARD_H = Math.round(CARD_W * CARD_RATIO);
-  const SPREAD = Math.round(CARD_W * SPREAD_RATIO);
+  // Responsive sizing: the lens must fit one pinned screen, wide or tall.
+  const viewport = useViewportSize();
+  const {
+    cardW: CARD_W,
+    cardH: CARD_H,
+    thumbW: THUMB_W,
+    thumbH: THUMB_H,
+  } = lensSize(viewport.width, viewport.height, LENS_SIZING);
 
-  // Memoised: a fresh object literal here would give CoverflowControls a new
-  // prop identity on every parent render, defeating its own memo() exactly when
-  // renders are most expensive — mid-drag.
-  const counterStyle = useMemo(
-    () => ({
-      top: `calc(50% + ${Math.round(CARD_H / 2) + 24}px)`,
-      bottom: "auto" as const,
-    }),
-    [CARD_H],
-  );
+  // The detail view leaves room for its text column: the card there is capped
+  // well below the (now viewport-sized) lens. The FLIP scales between the two.
+  const DETAIL_W = Math.min(CARD_W, DETAIL_MAX_W);
+  const DETAIL_H = Math.round(DETAIL_W * LENS_SIZING.ratio);
 
-  // Wrapper the scroll-glide drifts horizontally (left for projects).
-  const glideRef = useRef<HTMLDivElement>(null);
+  // The lens's clipped window; the bracket power-on looks for cards in here.
+  const lensRef = useRef<HTMLDivElement>(null);
 
   const {
     sectionRef,
     registerCard,
+    registerThumb,
     onCardClick,
     next,
     prev,
     activeIndex,
     settledIndex,
     count,
-    stageHandlers,
+    setIntro,
+    setFocus,
+    navigateRef,
   } = useCoverflow({
     count: projects.length,
-    spread: SPREAD,
-    tilt: 30,
-    depth: 150,
-    autoAdvanceMs: 5200,
+    lensWidth: CARD_W,
+    thumbWidth: THUMB_W,
     disabled: selected !== null,
     onActivateCenter: open,
-  });
-
-  // Scroll-linked horizontal glide: the projects row drifts LEFT as the section
-  // travels the viewport. Additive transform on a wrapper, so it composes with
-  // (never overwrites) the per-card coverflow transforms.
-  useScrollGlide(sectionRef, glideRef, {
-    direction: -1,
-    distancePx: Math.round(vw * 0.16),
   });
 
   // GSAP power-on (bracket pop) on the card the row came to rest on — keyed off
   // the SETTLED index, not the live one, so a drag sweeping past ten cards
   // doesn't fire ten bracket animations mid-gesture.
-  useCardPowerOn(glideRef, settledIndex);
+  useCardPowerOn(lensRef, settledIndex);
 
   const activeProject = selected !== null ? projects[selected] : null;
 
-  return (
-    <section
-      ref={sectionRef}
-      id="projects"
-      className="relative flex min-h-screen w-full flex-col overflow-hidden py-20 scroll-mt-24"
+  // Detail overlay — the card flies here (FLIP) from the lens. Solid backdrop
+  // so it cleanly covers the title + carousel; padded down so it sits clear of
+  // the sticky nav and reads as centred.
+  const overlay = (
+    <DetailOverlay
+      open={!!activeProject}
+      onClose={close}
+      closeLabel="Close project details"
     >
-      {/* Title gets its own row so the cards never cover it. */}
-      <div className="shrink-0 pt-28">
-        <SectionHeading text="PROJECTS" />
-      </div>
+      {activeProject && (
+        <>
+          <DetailOverlayContent
+            ref={flipRef}
+            className="@container shrink-0"
+            style={{ width: DETAIL_W, height: DETAIL_H }}
+          >
+            <ProjectCard project={activeProject} className="h-full w-full" />
+          </DetailOverlayContent>
+          <DetailOverlayContent>
+            <ProjectDetail project={activeProject} open={detailOpen} />
+          </DetailOverlayContent>
+        </>
+      )}
+    </DetailOverlay>
+  );
 
-      {/* Coverflow stage. `perspective` makes the per-card rotateY/translateZ
-          foreshorten into a true 3D cover-flow that spans the full width. */}
-      <div
-        className={cn(
-          "relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing",
-          selected !== null && "pointer-events-none opacity-0",
-        )}
-        style={{
-          transition: "opacity 300ms var(--ease-out-quart)",
-          perspective: 1700,
-        }}
-        {...stageHandlers}
+  if (projects.length === 0) {
+    return (
+      <section
+        ref={sectionRef}
+        id="projects"
+        className="relative flex min-h-screen w-full flex-col py-20 scroll-mt-24"
       >
-        <CoverflowFloor />
-        {/* Glide wrapper: full-size + preserve-3d so the stage's perspective
-              still reaches the cards, while GSAP drifts this element on scroll. */}
-        <div
-          ref={glideRef}
-          className="absolute inset-0"
-          style={{ transformStyle: "preserve-3d" }}
-        >
-          {projects.map((project, i) => (
-            <div
-              key={project.id}
-              ref={registerCard(i)}
-              data-cf-index={i}
-              role="button"
-              tabIndex={0}
-              onClick={() => onCardClick(i)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onCardClick(i);
-                }
-              }}
-              className="group absolute left-1/2 top-1/2 cursor-pointer"
-              style={{
-                width: CARD_W,
-                height: CARD_H,
-                marginLeft: -CARD_W / 2,
-                marginTop: -CARD_H / 2,
-              }}
-            >
-              {/* Hover glow as a pre-rendered shadow faded via opacity
-                    (compositor) instead of animating box-shadow (paint-bound). */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_34px_rgba(34,197,94,0.2)] transition-opacity duration-300 group-hover:opacity-100"
-              />
-              <ProjectCard
-                project={project}
-                className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
-              />
-              <HudCardFrame variant="full" />
-            </div>
-          ))}
+        <div className="shrink-0 pt-28">
+          <SectionHeading text="PROJECTS" />
         </div>
+        <div className="flex flex-1 items-center justify-center px-6">
+          <p className="retro text-center text-[10px] tracking-widest text-muted-foreground">
+            NO PROJECTS SHOWCASED YET
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <LensSection
+      id="projects"
+      title="PROJECTS"
+      kicker="WHAT WE BUILD"
+      sectionRef={sectionRef}
+      lensRef={lensRef}
+      lensWidth={CARD_W}
+      lensHeight={CARD_H}
+      count={count}
+      setIntro={setIntro}
+      setFocus={setFocus}
+      navigateRef={navigateRef}
+      stageClassName={cn(selected !== null && "pointer-events-none opacity-0")}
+      stageStyle={{ transition: "opacity 300ms var(--ease-out-quart)" }}
+      thumbs={projects.map((project, i) => (
+        <div
+          key={project.id}
+          ref={registerThumb(i)}
+          className="absolute left-1/2 top-1/2"
+          style={{
+            width: THUMB_W,
+            height: THUMB_H,
+            marginLeft: -THUMB_W / 2,
+            marginTop: -THUMB_H / 2,
+            visibility: "hidden",
+          }}
+        >
+          <ProjectThumb project={project} index={i} onPick={onCardClick} />
+        </div>
+      ))}
+      cards={projects.map((project, i) => (
+        <div
+          key={project.id}
+          ref={registerCard(i)}
+          data-cf-index={i}
+          role="button"
+          tabIndex={0}
+          aria-label={`${project.title} — open details`}
+          onClick={() => onCardClick(i)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onCardClick(i);
+            }
+          }}
+          className="group @container absolute inset-0 cursor-pointer"
+          style={{ visibility: i === 0 ? undefined : "hidden" }}
+        >
+          <ProjectCard
+            project={project}
+            className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
+          />
+          <HudCardFrame variant="full" />
+        </div>
+      ))}
+      controls={
         <CoverflowControls
           onPrev={prev}
           onNext={next}
           index={activeIndex}
           count={count}
-          // Sit the counter just below the card's bottom edge (cards centre at
-          // the stage midpoint), so it never overlaps the card chrome.
+          // Sit the counter just below the lens's bottom edge, so it never
+          // overlaps the card chrome.
           counterClassName=""
-          counterStyle={counterStyle}
+          counterStyle={LENS_COUNTER_STYLE}
         />
-      </div>
-
-      {/* Detail overlay — the card flies here (FLIP) from the centre. Solid
-            backdrop so it cleanly covers the title + carousel; padded down so it
-            sits clear of the sticky nav and reads as centred. */}
-      <DetailOverlay
-        open={!!activeProject}
-        onClose={close}
-        closeLabel="Close project details"
-      >
-        {activeProject && (
-          <>
-            <DetailOverlayContent
-              ref={flipRef}
-              className="shrink-0"
-              style={{ width: CARD_W, height: CARD_H }}
-            >
-              <ProjectCard project={activeProject} className="h-full w-full" />
-            </DetailOverlayContent>
-            <DetailOverlayContent>
-              <ProjectDetail project={activeProject} open={detailOpen} />
-            </DetailOverlayContent>
-          </>
-        )}
-      </DetailOverlay>
-    </section>
+      }
+    >
+      {overlay}
+    </LensSection>
   );
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { canManageEventRoster } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { recomputeLeaderboardAfterResponse } from "@/lib/leaderboard";
 
 export async function POST(
   req: Request,
@@ -39,6 +40,8 @@ export async function POST(
     if (updated.count === 0) {
       return new NextResponse("REGISTRATION_NOT_FOUND", { status: 404 });
     }
+    // Attendance is the event-score numerator.
+    recomputeLeaderboardAfterResponse();
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -9,9 +9,17 @@ import { fetchLeetCodeStats } from "@/lib/lc-fetcher";
 import { isAjietUsn } from "@/lib/usn";
 
 const onboardingSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  usn: z.string().min(5, "USN must be valid"),
-  branch: z.string().min(2, "Branch is required"),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name is too long"),
+  usn: z.string().trim().min(5, "USN must be valid").max(20, "USN is too long"),
+  branch: z
+    .string()
+    .trim()
+    .min(2, "Branch is required")
+    .max(100, "Branch is too long"),
   year: z.coerce.number().min(1).max(5),
   lc_username: z
     .string()

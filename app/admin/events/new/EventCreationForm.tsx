@@ -22,6 +22,7 @@ import {
   eventTypeOptions,
   type FormFieldDef,
 } from "@/lib/forms";
+import { errorMessage } from "@/lib/utils";
 import { FormBuilder } from "../_form/FormBuilder";
 
 interface EventFormState {
@@ -78,19 +79,26 @@ export default function EventCreationForm({
       toast.error("Every custom question needs a label");
       return;
     }
+    // Zone-less strings of one fixed format compare correctly as text.
+    if (f.registrationDeadline && f.registrationDeadline > f.eventDate) {
+      toast.error("Registration deadline can't be after the event");
+      return;
+    }
     startTransition(async () => {
       try {
         const payload = {
           title: f.title,
           eventType: f.eventType,
           description: f.description,
-          eventDate: new Date(f.eventDate).toISOString(),
+          // Sent as the bare datetime-local string, NOT toISOString(): the
+          // server pins zone-less input to UTC and every surface formats in
+          // UTC (lib/event-format.ts). Converting here applied the browser's
+          // offset on top, so each admin save shifted the event (IST: -5:30).
+          eventDate: f.eventDate,
           location: f.location,
           audience: f.audience,
           capacity: f.capacity ? Number(f.capacity) : null,
-          registrationDeadline: f.registrationDeadline
-            ? new Date(f.registrationDeadline).toISOString()
-            : null,
+          registrationDeadline: f.registrationDeadline || null,
           bannerUrl: f.bannerUrl || null,
           formSchema: schema,
           isPublished: f.isPublished === "true",
@@ -103,7 +111,7 @@ export default function EventCreationForm({
             body: JSON.stringify(payload),
           },
         );
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         toast.success(isEdit ? "Event updated" : "Event created");
         router.push("/admin/events");
         router.refresh();

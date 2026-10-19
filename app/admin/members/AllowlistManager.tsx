@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { toast } from "@/components/ui/8bit-toast";
 import { useConfirm } from "@/components/ui/PixelConfirm";
+import { errorMessage } from "@/lib/utils";
 
 interface AllowlistEntry {
   id: string;
@@ -85,7 +86,7 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
         const res = await fetch(`/api/admin/allowlist/${entry.id}`, {
           method: "DELETE",
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         router.refresh();
         toast.success("Removed from allowlist");
       } catch (err) {

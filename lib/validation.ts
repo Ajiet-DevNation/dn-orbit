@@ -93,10 +93,30 @@ const eventFields = {
   formSchema: z.unknown().optional(),
 };
 
-export const createEventSchema = z.object(eventFields);
+// a sign-up deadline after the event would keep registration open for an event
+// that is already over
+const deadlineNotAfterEvent = (e: {
+  eventDate?: Date;
+  registrationDeadline?: Date | null;
+}) =>
+  !e.eventDate ||
+  !e.registrationDeadline ||
+  e.registrationDeadline <= e.eventDate;
+const DEADLINE_ISSUE = {
+  message: "registration deadline can't be after the event",
+  path: ["registrationDeadline"],
+};
 
-/** PATCH is the same shape with every field optional (partial update). */
-export const updateEventSchema = z.object(eventFields).partial();
+export const createEventSchema = z
+  .object(eventFields)
+  .refine(deadlineNotAfterEvent, DEADLINE_ISSUE);
+
+/** PATCH is the same shape with every field optional (partial update). Only
+ *  checks the deadline when both dates arrive together. */
+export const updateEventSchema = z
+  .object(eventFields)
+  .partial()
+  .refine(deadlineNotAfterEvent, DEADLINE_ISSUE);
 
 // ── Projects ─────────────────────────────────────────────────────────────────
 
@@ -161,6 +181,30 @@ export const scoreWeightsSchema = z
       path: ["weights"],
     },
   );
+
+// ── Admin moderation ─────────────────────────────────────────────────────────
+
+/** Approve / reject body shared by the event and project review routes. */
+export const reviewActionSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+});
+
+/** Admin edit of a member row. Every field optional; the route rejects an
+ *  empty update. Role/status are checked against the Prisma enums. */
+export const memberUpdateSchema = z.object({
+  isVisible: z.boolean().optional(),
+  // Same cap as the onboarding/profile bio.
+  bio: z.string().trim().max(160).nullish(),
+  status: z.nativeEnum($Enums.ApprovalStatus).optional(),
+  role: z.nativeEnum($Enums.Role).optional(),
+});
+
+// ── Project members ──────────────────────────────────────────────────────────
+
+export const projectMemberSchema = z.object({
+  userId: z.string().trim().min(1).max(100),
+  role: optionalText(40),
+});
 
 // ── Helper ───────────────────────────────────────────────────────────────────
 

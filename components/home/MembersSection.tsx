@@ -1,23 +1,27 @@
 "use client";
 
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
 import { Card } from "@/components/ui/8bit-card";
 import { MEMBERS, type MemberData } from "@/constants/members";
 import { useCardPowerOn } from "@/hooks/useCardPowerOn";
 import { useCoverflow } from "@/hooks/useCoverflow";
-import { useScrollGlide } from "@/hooks/useScrollGlide";
-import { useViewportWidth } from "@/hooks/useViewportWidth";
+import { useViewportSize } from "@/hooks/useViewportSize";
+import { lensSize } from "@/lib/lens-layout";
 import { toTitleCase } from "@/lib/names";
-import { CoverflowControls, CoverflowFloor } from "./CoverflowControls";
+import { CoverflowControls } from "./CoverflowControls";
 import { HudCardFrame } from "./HudCardFrame";
-import { SectionHeading } from "./SectionHeading";
+import { LENS_COUNTER_STYLE, LensSection } from "./LensSection";
 
-// ─── tuning (desktop reference; scaled to the viewport in the component) ───────
-const MAX_CARD_W = 420; // portrait member card width (px) on desktop
-const CARD_RATIO = 536 / 392; // height / width (~5:7)
-const SPREAD_RATIO = 260 / 420; // centre-to-centre gap / width
+// ─── tuning (desktop reference; scaled to the viewport by lensSize) ──────────
+const LENS_SIZING = {
+  maxWidth: 620, // portrait member card (lens) width cap
+  ratio: 536 / 392, // height / width (~5:7)
+  share: 0.36, // lens width / viewport on wider screens
+  phoneShare: 0.78,
+  thumbRatio: 0.36, // thumb height / lens height (oryzo ~0.35)
+};
 // Flip easing: smooth ease-in-out, no overshoot, so it reads as a real card turn.
 const FLIP_EASE = "transform 560ms cubic-bezier(0.4, 0.0, 0.2, 1)";
 
@@ -39,8 +43,10 @@ const MemberFront = memo(function MemberFront({
 }) {
   return (
     <Card className="h-full justify-between gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.05)]">
-      <div className="border-b-[6px] border-white/10 px-3 py-3 text-center">
-        <span className="retro text-[9px] tracking-wider text-[#22c55e]">
+      {/* Sizes in container units (cqw) of the card wrapper, so the chrome
+          scales with the lens. */}
+      <div className="border-b-[6px] border-white/10 px-3 py-[clamp(0.75rem,2.6cqw,1.25rem)] text-center">
+        <span className="retro text-[clamp(9px,2cqw,12px)] tracking-wider text-[#22c55e]">
           {member.role}
         </span>
       </div>
@@ -52,36 +58,40 @@ const MemberFront = memo(function MemberFront({
             ALUMNI
           </span>
         )}
-        {member.imageUrl ? (
-          // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
-          <img
-            src={member.imageUrl}
-            alt={member.name}
-            loading="lazy"
-            // Intrinsic size + async decode: without these the browser has no
-            // dimensions until the bytes land (so the card reflows) and decodes
-            // on the main thread, which lands as a dropped frame mid-drag. The
-            // numbers are the card's display size, not the file's — they only
-            // need to give the right aspect ratio and a sensible layout box.
-            width={520}
-            height={420}
-            decoding="async"
-            draggable={false}
-            // object-top keeps faces in frame — most headshots sit in the upper
-            // portion, and the card crops to a near-square portrait window.
-            className="pixelated h-full w-full object-cover object-top select-none [-webkit-user-drag:none]"
-          />
-        ) : (
-          <div className="dot-grid-bg flex h-full w-full items-center justify-center">
-            <span className="retro text-5xl text-[#22c55e]/25 select-none">
-              {initials(member.name)}
-            </span>
-          </div>
-        )}
+        {/* The lens carousel tilts + zooms this wrapper as the card slides
+            through (see useCoverflow); the frame around it stays straight. */}
+        <div data-lens-tilt className="h-full w-full">
+          {member.imageUrl ? (
+            // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
+            <img
+              src={member.imageUrl}
+              alt={member.name}
+              loading="lazy"
+              // Intrinsic size + async decode: without these the browser has no
+              // dimensions until the bytes land (so the card reflows) and decodes
+              // on the main thread, which lands as a dropped frame mid-drag. The
+              // numbers are the card's display size, not the file's — they only
+              // need to give the right aspect ratio and a sensible layout box.
+              width={520}
+              height={420}
+              decoding="async"
+              draggable={false}
+              // object-top keeps faces in frame — most headshots sit in the upper
+              // portion, and the card crops to a near-square portrait window.
+              className="pixelated h-full w-full object-cover object-top select-none [-webkit-user-drag:none]"
+            />
+          ) : (
+            <div className="dot-grid-bg flex h-full w-full items-center justify-center">
+              <span className="retro text-5xl text-[#22c55e]/25 select-none">
+                {initials(member.name)}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="border-t-[6px] border-white/10 px-3 py-3 text-center">
-        <span className="retro block truncate text-[11px] text-white">
+      <div className="border-t-[6px] border-white/10 px-3 py-[clamp(0.75rem,2.6cqw,1.25rem)] text-center">
+        <span className="retro block truncate text-[clamp(11px,2.7cqw,16px)] text-white">
           {toTitleCase(member.name)}
         </span>
       </div>
@@ -102,16 +112,16 @@ const MemberBack = memo(function MemberBack({
   return (
     <Card className="h-full justify-start gap-4 border-[#22c55e]/30 py-6 shadow-[0_0_24px_rgba(34,197,94,0.14)]">
       <div className="px-5">
-        <p className="retro text-[12px] leading-relaxed text-white">
+        <p className="retro text-[clamp(12px,2.8cqw,17px)] leading-relaxed text-white">
           {toTitleCase(member.name)}
         </p>
-        <p className="retro mt-2 text-[9px] tracking-wider text-[#22c55e]">
+        <p className="retro mt-2 text-[clamp(9px,2cqw,12px)] tracking-wider text-[#22c55e]">
           {member.role}
           {member.isAlumni && <span className="text-amber-400"> · ALUMNI</span>}
         </p>
       </div>
 
-      <p className="flex-1 px-5 text-[12px] leading-relaxed text-muted-foreground">
+      <p className="flex-1 px-5 text-[clamp(12px,2.9cqw,16px)] leading-relaxed text-muted-foreground">
         {member.bio}
       </p>
 
@@ -228,46 +238,81 @@ const MemberCard = memo(function MemberCard({
   );
 });
 
+// ─── Thumb (the small strip either side of the lens) ──────────────────────────
+// Decorative twin of the card: the big card in the lens is the real control, so
+// thumbs stay out of the tab order and the accessibility tree.
+const MemberThumb = memo(function MemberThumb({
+  member,
+  index,
+  onPick,
+}: {
+  member: MemberData;
+  index: number;
+  onPick: (index: number) => void;
+}) {
+  return (
+    <div
+      aria-hidden
+      onClick={() => onPick(index)}
+      className="group @container relative h-full w-full cursor-pointer overflow-hidden border-2 border-white/10 bg-[#0d0d0d] transition-colors duration-200 hover:border-[#22c55e]/60"
+    >
+      {member.imageUrl ? (
+        // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
+        <img
+          src={member.imageUrl}
+          alt=""
+          loading="lazy"
+          width={180}
+          height={246}
+          decoding="async"
+          draggable={false}
+          className="pixelated h-full w-full object-cover object-top opacity-80 transition-opacity duration-200 select-none group-hover:opacity-100 [-webkit-user-drag:none]"
+        />
+      ) : (
+        <div className="dot-grid-bg flex h-full w-full items-center justify-center">
+          <span className="retro text-2xl text-[#22c55e]/25 select-none">
+            {initials(member.name)}
+          </span>
+        </div>
+      )}
+      <span className="retro absolute inset-x-0 bottom-0 truncate border-t-2 border-white/10 bg-[#0a0a0a]/85 px-2 py-[clamp(0.375rem,3cqw,0.6rem)] text-center text-[clamp(7px,4cqw,10px)] text-white/75">
+        {toTitleCase(member.name)}
+      </span>
+    </div>
+  );
+});
+
 export function MembersSection() {
   const [flipped, setFlipped] = useState<Set<number>>(() => new Set());
-  // Wrapper the scroll-glide drifts horizontally (right for members).
-  const glideRef = useRef<HTMLDivElement>(null);
+  // The lens's clipped window; the bracket power-on looks for cards in here.
+  const lensRef = useRef<HTMLDivElement>(null);
 
-  // Responsive sizing so the card fits a phone screen.
-  const vw = useViewportWidth();
-  const CARD_W = Math.min(MAX_CARD_W, Math.round(vw * 0.82));
-  const CARD_H = Math.round(CARD_W * CARD_RATIO);
-  const SPREAD = Math.round(CARD_W * SPREAD_RATIO);
-
-  // Memoised: a fresh object literal here would give CoverflowControls a new
-  // prop identity on every parent render, defeating its own memo() exactly when
-  // renders are most expensive — mid-drag.
-  const counterStyle = useMemo(
-    () => ({
-      top: `calc(50% + ${Math.round(CARD_H / 2) + 24}px)`,
-      bottom: "auto" as const,
-    }),
-    [CARD_H],
-  );
+  // Responsive sizing: the lens must fit one pinned screen, wide or tall.
+  const viewport = useViewportSize();
+  const {
+    cardW: CARD_W,
+    cardH: CARD_H,
+    thumbW: THUMB_W,
+    thumbH: THUMB_H,
+  } = lensSize(viewport.width, viewport.height, LENS_SIZING);
 
   const {
     sectionRef,
     registerCard,
+    registerThumb,
     onCardClick,
     next,
     prev,
     activeIndex,
     settledIndex,
     count,
-    stageHandlers,
+    setIntro,
+    setFocus,
+    navigateRef,
   } = useCoverflow({
     count: MEMBERS.length,
-    spread: SPREAD,
-    tilt: 32,
-    depth: 130,
-    autoAdvanceMs: 4200,
-    // Don't let the idle auto-advance yank a card away while its bio is open.
-    paused: flipped.size > 0,
+    lensWidth: CARD_W,
+    thumbWidth: THUMB_W,
     onActivateCenter: (i) =>
       setFlipped((prev) => {
         const nextSet = new Set(prev);
@@ -277,82 +322,72 @@ export function MembersSection() {
       }),
   });
 
-  // Scroll-linked horizontal glide: the members row drifts RIGHT as the section
-  // travels the viewport. Additive transform on a wrapper, composing with the
-  // per-card coverflow transforms.
-  useScrollGlide(sectionRef, glideRef, {
-    direction: 1,
-    distancePx: Math.round(vw * 0.16),
-  });
-
   // GSAP power-on (bracket pop) on the card the row came to rest on — keyed off
   // the SETTLED index, not the live one, so a drag sweeping past ten cards
   // doesn't fire ten bracket animations mid-gesture.
-  useCardPowerOn(glideRef, settledIndex);
+  useCardPowerOn(lensRef, settledIndex);
 
   return (
-    <section
-      ref={sectionRef}
+    <LensSection
       id="members"
-      className="relative flex min-h-screen w-full flex-col overflow-hidden py-20 scroll-mt-24"
-    >
-      {/* Title gets its own row at the top so the cards never cover it. */}
-      <div className="shrink-0 pt-28">
-        <SectionHeading text="MEMBERS" />
-      </div>
-
-      {/* Coverflow stage fills the rest; cards centre within it. `perspective`
-          here is what makes the per-card rotateY/translateZ foreshorten into a
-          true 3D cover-flow that spans the full width. */}
-      <div
-        className="relative w-full flex-1 cursor-grab touch-pan-y select-none active:cursor-grabbing"
-        style={{ perspective: 1700 }}
-        {...stageHandlers}
-      >
-        <CoverflowFloor />
-        {/* Glide wrapper: full-size + preserve-3d so the stage's perspective
-            still reaches the cards, while GSAP drifts this element on scroll. */}
+      title="MEMBERS"
+      kicker="WHO WE ARE"
+      sectionRef={sectionRef}
+      lensRef={lensRef}
+      lensWidth={CARD_W}
+      lensHeight={CARD_H}
+      count={count}
+      setIntro={setIntro}
+      setFocus={setFocus}
+      navigateRef={navigateRef}
+      thumbs={MEMBERS.map((member, i) => (
         <div
-          ref={glideRef}
-          className="absolute inset-0"
-          style={{ transformStyle: "preserve-3d" }}
+          key={member.id}
+          ref={registerThumb(i)}
+          className="absolute left-1/2 top-1/2"
+          style={{
+            width: THUMB_W,
+            height: THUMB_H,
+            marginLeft: -THUMB_W / 2,
+            marginTop: -THUMB_H / 2,
+            visibility: "hidden",
+          }}
         >
-          {MEMBERS.map((member, i) => (
-            <div
-              key={member.id}
-              ref={registerCard(i)}
-              data-cf-index={i}
-              className="absolute left-1/2 top-1/2"
-              style={{
-                width: CARD_W,
-                height: CARD_H,
-                marginLeft: -CARD_W / 2,
-                marginTop: -CARD_H / 2,
-                // Inner perspective for the front/back flip, independent of the
-                // stage's cover-flow perspective above.
-                perspective: 1200,
-              }}
-            >
-              <MemberCard
-                member={member}
-                index={i}
-                flipped={flipped.has(i)}
-                onActivate={onCardClick}
-              />
-            </div>
-          ))}
+          <MemberThumb member={member} index={i} onPick={onCardClick} />
         </div>
+      ))}
+      cards={MEMBERS.map((member, i) => (
+        <div
+          key={member.id}
+          ref={registerCard(i)}
+          data-cf-index={i}
+          className="@container absolute inset-0"
+          style={{
+            visibility: i === 0 ? undefined : "hidden",
+            // Inner perspective for the front/back flip.
+            perspective: 1200,
+          }}
+        >
+          <MemberCard
+            member={member}
+            index={i}
+            flipped={flipped.has(i)}
+            onActivate={onCardClick}
+          />
+        </div>
+      ))}
+      controls={
         <CoverflowControls
           onPrev={prev}
           onNext={next}
           index={activeIndex}
           count={count}
-          // Sit the counter just below the card's bottom edge (cards centre at
-          // the stage midpoint), so it never overlaps the name plate.
+          // Sit the counter just below the lens's bottom edge, so it never
+          // overlaps the name plate.
           counterClassName=""
-          counterStyle={counterStyle}
+          counterStyle={LENS_COUNTER_STYLE}
         />
-      </div>
-    </section>
+      }
+    />
   );
 }

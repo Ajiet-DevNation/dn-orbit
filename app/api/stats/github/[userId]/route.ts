@@ -5,12 +5,13 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fetchGitHubStats } from "@/lib/github";
+import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
 import { canAccessAdmin } from "@/lib/roles";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ userId: string }> },
 ) {
   const { userId } = await params;
@@ -67,6 +68,15 @@ export async function GET(
       source: "cache",
     });
   }
+
+  // Cache miss: the next step calls upstream. Throttle per caller so a stale
+  // row (or an upstream outage) can't turn reloads into an API flood.
+  const limit = rateLimit(
+    rateLimitKey(req, "stats-github", session.user.id),
+    10,
+    60_000,
+  );
+  if (!limit.ok) return tooManyRequests(limit);
 
   // ── 4. Fetch from GitHub API ───────────────────────────────
   // Read the OAuth token from the DB Account row, NOT the session — the token is

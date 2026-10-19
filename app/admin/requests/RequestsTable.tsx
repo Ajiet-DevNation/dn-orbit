@@ -9,6 +9,7 @@ import {
 import { toast } from "@/components/ui/8bit-toast";
 import { useConfirm } from "@/components/ui/PixelConfirm";
 import { type ApprovalStatus, STATUS_LABELS } from "@/lib/status";
+import { errorMessage } from "@/lib/utils";
 
 interface Req {
   id: string;
@@ -34,7 +35,7 @@ export function RequestsTable({ initialRequests }: { initialRequests: Req[] }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         router.refresh();
         toast.success(
           status === "approved" ? "Member approved" : "Member rejected",

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AsciiBackground } from "@/components/home/AsciiBackground";
 import { PendingBanner } from "@/components/home/PendingBanner";
 import type { ProfileData } from "@/components/home/ProfileModal";
+import { SmoothScroll } from "@/components/layout/SmoothScroll";
 import { V2Header } from "@/components/layout/V2Header";
 import { BootSplash } from "@/components/ui/BootSplash";
 import { auth } from "@/lib/auth";
@@ -61,6 +62,7 @@ export default async function V2Layout({
       {/* Boot-splash overlay: paints with the initial shell and guarantees the
           pixel DN-logo draw plays before fading (see BootSplash). */}
       <BootSplash />
+      <SmoothScroll />
       <AsciiBackground />
       <div className="relative" style={{ zIndex: 2 }}>
         {session?.user?.status === "pending" && <PendingBanner />}

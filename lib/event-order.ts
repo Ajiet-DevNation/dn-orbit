@@ -37,3 +37,14 @@ export function orderForDisplay<T extends HasEventDate>(
 
   return [...upcoming, ...past];
 }
+
+// sign-ups shut at the deadline, and never later than the event itself
+export function registrationClosesAt(event: {
+  eventDate: Date;
+  registrationDeadline: Date | null;
+}): Date {
+  const { eventDate, registrationDeadline } = event;
+  return registrationDeadline && registrationDeadline < eventDate
+    ? registrationDeadline
+    : eventDate;
+}

@@ -182,16 +182,7 @@ export const { handlers, auth, signIn } = NextAuth({
       if (await isRejected(githubUsername, email)) return false;
       return true;
     },
-    async jwt({ token, user, account, trigger, session }) {
-      // Handle manual session updates from the client
-      if (trigger === "update" && session) {
-        if (session.usn !== undefined) token.usn = session.usn;
-        if (session.branch !== undefined) token.branch = session.branch;
-        if (session.lcUsername !== undefined)
-          token.lcUsername = session.lcUsername;
-        if (session.name !== undefined) token.name = session.name;
-      }
-
+    async jwt({ token, user, account, trigger }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
@@ -204,20 +195,37 @@ export const { handlers, auth, signIn } = NextAuth({
         ).githubUsername;
         token.roleSyncedAt = Date.now();
       } else if (token.id) {
-        // Live RBAC: re-read role/status from the DB so admin changes take
-        // effect without the user re-authenticating. Throttled to at most one
-        // query per ROLE_SYNC_MS per active session; an explicit client
-        // update() bypasses the throttle for an instant self-refresh.
+        // Live RBAC + profile: re-read role/status and the onboarding fields
+        // from the DB so admin changes and profile edits take effect without
+        // the user re-authenticating. Throttled to at most one query per
+        // ROLE_SYNC_MS per active session; an explicit client update() bypasses
+        // the throttle for an instant self-refresh.
+        //
+        // The client's update() payload is deliberately ignored. It used to be
+        // copied into the token, so any signed-in browser could call
+        // update({ usn, branch, lcUsername }) and walk past the onboarding gate
+        // in proxy.ts without ever saving a profile. The DB is the only source.
         const lastSynced = (token.roleSyncedAt as number | undefined) ?? 0;
         const force = trigger === "update";
         if (force || Date.now() - lastSynced > ROLE_SYNC_MS) {
           const fresh = await db.user.findUnique({
             where: { id: token.id as string },
-            select: { role: true, status: true },
+            select: {
+              role: true,
+              status: true,
+              usn: true,
+              branch: true,
+              lcUsername: true,
+              name: true,
+            },
           });
           if (fresh) {
             token.role = fresh.role;
             token.status = fresh.status;
+            token.usn = fresh.usn;
+            token.branch = fresh.branch;
+            token.lcUsername = fresh.lcUsername;
+            token.name = fresh.name;
           }
           token.roleSyncedAt = Date.now();
         }

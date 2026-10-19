@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { toast } from "@/components/ui/8bit-toast";
 import { PixelSlider } from "@/components/ui/PixelSlider";
+import { errorMessage } from "@/lib/utils";
 
 interface WeightFormProps {
   initialWeights: {
@@ -63,7 +64,7 @@ export function WeightForm({ initialWeights }: WeightFormProps) {
             ghOpenSourcePerPrPoints: parsedPerPr,
           }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) throw new Error(await errorMessage(res));
         router.refresh();
         toast.success("Weights saved");
       } catch (err) {

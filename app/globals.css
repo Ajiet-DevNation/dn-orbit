@@ -122,9 +122,9 @@ body {
 }
 
 /* ── HUD cartridge card frame ──────────────────────────────────────────────
-   A clean retro-HUD chrome layered over the 8-bit coverflow cards. Static
-   textures whose OPACITY is driven by the engine's per-frame --cf-center /
-   --cf-depth vars (compositor-cheap); the corner-bracket "pop" is animated
+   A clean retro-HUD chrome layered over the 8-bit lens cards. Static
+   textures whose OPACITY follows the engine's --cf-center var
+   (compositor-cheap); the corner-bracket "pop" is animated
    imperatively by GSAP (see useCardPowerOn) so it survives the global
    reduced-motion CSS reset. */
 
@@ -181,6 +181,24 @@ body {
   right: 7px;
   border-bottom: 3px solid;
   border-right: 3px solid;
+}
+
+/* Lens "scroll to continue" chevron: a soft two-step bob (pixel feel, never
+   vanishes like a blink would). Flattened by the reduced-motion reset. */
+@keyframes hint-bob {
+  0%,
+  49% {
+    transform: translateY(-1px);
+  }
+  50%,
+  100% {
+    transform: translateY(2px);
+  }
+}
+
+.hint-bob {
+  display: inline-block;
+  animation: hint-bob 1.2s linear infinite;
 }
 
 /* ── Scrollbar Styling ── */

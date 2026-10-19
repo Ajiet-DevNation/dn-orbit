@@ -1,5 +1,11 @@
 import { expect, test } from "bun:test";
-import { canAccessAdmin, canManageRoles, isRole, ROLES } from "./roles";
+import {
+  canAccessAdmin,
+  canManageRoles,
+  canModerate,
+  isRole,
+  ROLES,
+} from "./roles";
 
 test("admin tiers can access admin, member / alumni / ajiet_student cannot", () => {
   expect(canAccessAdmin("president")).toBe(true);
@@ -41,4 +47,24 @@ test("ROLES lists all six tiers in priority order", () => {
     "alumni",
     "ajiet_student",
   ]);
+});
+
+test("canModerate: lower tiers cannot touch the officers above them", () => {
+  expect(canModerate("core_member", "president")).toBe(false);
+  expect(canModerate("core_member", "vice_president")).toBe(false);
+  expect(canModerate("vice_president", "president")).toBe(false);
+  expect(canModerate("vice_president", "vice_president")).toBe(false);
+});
+
+test("canModerate: officers moderate those below; anyone moderates members", () => {
+  expect(canModerate("president", "vice_president")).toBe(true);
+  expect(canModerate("president", "core_member")).toBe(true);
+  expect(canModerate("vice_president", "core_member")).toBe(true);
+  expect(canModerate("core_member", "core_member")).toBe(true);
+  expect(canModerate("core_member", "ajiet_student")).toBe(true);
+});
+
+test("canModerate: non-admins moderate nobody", () => {
+  expect(canModerate("member", "ajiet_student")).toBe(false);
+  expect(canModerate(undefined, "member")).toBe(false);
 });

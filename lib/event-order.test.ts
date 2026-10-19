@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { orderForDisplay } from "./event-order";
+import { orderForDisplay, registrationClosesAt } from "./event-order";
 
 // `now` is always injected so these assertions do not rot as the clock moves.
 const NOW = new Date("2026-07-30T12:00:00.000Z");
@@ -75,5 +75,29 @@ describe("orderForDisplay", () => {
     ];
     orderForDisplay(input, NOW);
     expect(input.map((e) => e.label)).toEqual(["february", "august"]);
+  });
+});
+
+describe("registrationClosesAt", () => {
+  const eventDate = new Date("2026-08-10T10:00:00.000Z");
+
+  it("uses the deadline when it falls before the event", () => {
+    const deadline = new Date("2026-08-08T23:59:00.000Z");
+    expect(
+      registrationClosesAt({ eventDate, registrationDeadline: deadline }),
+    ).toEqual(deadline);
+  });
+
+  it("falls back to the event start when no deadline is set", () => {
+    expect(
+      registrationClosesAt({ eventDate, registrationDeadline: null }),
+    ).toEqual(eventDate);
+  });
+
+  it("never stays open past the event, even with a later deadline", () => {
+    const late = new Date("2027-01-01T00:00:00.000Z");
+    expect(
+      registrationClosesAt({ eventDate, registrationDeadline: late }),
+    ).toEqual(eventDate);
   });
 });
