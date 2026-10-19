@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
-import { PixelPanel } from "@/components/admin/PixelPanel";
 import { PixelStatTile } from "@/components/admin/PixelStatTile";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -60,9 +59,7 @@ export default async function AdminRecruitmentsPage() {
         <PixelStatTile label="ACCEPTED" value={count("approved")} />
         <PixelStatTile label="REJECTED" value={count("rejected")} />
       </div>
-      <PixelPanel title="RECRUITMENT STATUS">
-        <RecruitmentToggle initialOpen={open} />
-      </PixelPanel>
+      <RecruitmentToggle initialOpen={open} />
       <RecruitmentsTable
         applications={applications.map((a) => ({
           ...a,
