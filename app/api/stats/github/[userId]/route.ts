@@ -8,6 +8,7 @@ import { fetchGitHubStats } from "@/lib/github";
 import { githubAccessToken } from "@/lib/github-token";
 import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
 import { canAccessAdmin } from "@/lib/roles";
+import { saveGithubStats } from "@/lib/statsSync";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -140,16 +141,7 @@ export async function GET(
     });
   }
 
-  const existing = await db.githubStats.findFirst({ where: { userId } });
-
-  const saved = existing
-    ? await db.githubStats.update({
-        where: { id: existing.id },
-        data: statsData,
-      })
-    : await db.githubStats.create({
-        data: { userId, ...statsData },
-      });
+  const saved = await saveGithubStats(userId, statsData);
 
   // ── 6. Return response (WITH githubUsername) ───────────────
   return NextResponse.json({

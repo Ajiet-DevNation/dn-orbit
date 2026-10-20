@@ -6,6 +6,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fetchLeetCodeProfile } from "@/lib/lc-fetcher";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { rateLimit } from "@/lib/rate-limit";
 
 const profileSchema = z.object({
@@ -102,6 +103,8 @@ export async function updateProfile(formData: FormData) {
     }
 
     revalidatePath("/", "layout");
+    // The public board shows member names.
+    invalidatePublic(PUBLIC_TAG.leaderboard);
 
     // We return the updated fields so the client can call NextAuth's `update()` method
     return {

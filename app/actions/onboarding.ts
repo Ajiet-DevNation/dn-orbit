@@ -6,6 +6,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fetchLeetCodeStats } from "@/lib/lc-fetcher";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { rateLimit } from "@/lib/rate-limit";
 import { isAjietUsn } from "@/lib/usn";
 
@@ -107,7 +108,17 @@ export async function submitOnboarding(formData: FormData) {
       },
     });
 
+    // The LeetCode handle is new: queue it for the next drain rather than
+    // waiting for this member's GitHub side to come due.
+    await db.statsSyncState.upsert({
+      where: { userId: session.user.id },
+      create: { userId: session.user.id, lcDirty: true },
+      update: { lcDirty: true, nextAttemptAt: null, failCount: 0 },
+    });
+
     revalidatePath("/", "layout");
+    // Onboarding makes a member visible on the public board.
+    invalidatePublic(PUBLIC_TAG.leaderboard);
 
     // We return the updated fields so the client can call NextAuth's `update()` method
     return {

@@ -8,6 +8,11 @@ import EventRosterClient from "./EventRosterClient";
 
 export const metadata = { title: "EVENT ROSTER // ADMIN" };
 
+// Every row carries the registrant's custom answers, so an uncapped roster on a
+// popular event shipped megabytes into the RSC payload. Same cap as
+// /my-events; the CSV export is the complete list.
+const MAX_ROSTER_ROWS = 300;
+
 export default async function AdminEventRosterPage({
   params,
 }: {
@@ -19,7 +24,13 @@ export default async function AdminEventRosterPage({
   const { id } = await params;
   const event = await db.event.findUnique({
     where: { id },
-    include: { registrations: { orderBy: { registeredAt: "asc" } } },
+    include: {
+      registrations: {
+        orderBy: { registeredAt: "asc" },
+        take: MAX_ROSTER_ROWS,
+      },
+      _count: { select: { registrations: true } },
+    },
   });
   if (!event) notFound();
 
@@ -47,6 +58,7 @@ export default async function AdminEventRosterPage({
       <EventRosterClient
         eventId={event.id}
         registrations={registrations}
+        totalRegistrations={event._count.registrations}
         formFields={formFields}
       />
     </div>

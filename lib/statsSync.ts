@@ -1,7 +1,51 @@
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { fetchGitHubStats } from "@/lib/github";
 import { githubAccessToken } from "@/lib/github-token";
 import { fetchLeetCodeStats } from "@/lib/lc-fetcher";
+
+// One stats row per member, written in place. user_id isn't unique in the
+// schema (the relation is a list), so a drain racing a manual refresh could
+// insert a second row, and a later unordered findFirst then kept updating the
+// OLD row while the board read the new one — stats looked frozen. Both writers
+// below update the newest row and delete any strays, so duplicates self-heal.
+
+type GithubStatsData = Omit<Prisma.GithubStatsCreateManyInput, "id" | "userId">;
+type LcStatsData = Omit<Prisma.LcStatsCreateManyInput, "id" | "userId">;
+
+export async function saveGithubStats(userId: string, data: GithubStatsData) {
+  const [keep, ...strays] = await db.githubStats.findMany({
+    where: { userId },
+    orderBy: { fetchedAt: "desc" },
+    select: { id: true },
+  });
+  const saved = keep
+    ? await db.githubStats.update({ where: { id: keep.id }, data })
+    : await db.githubStats.create({ data: { userId, ...data } });
+  if (strays.length > 0) {
+    await db.githubStats.deleteMany({
+      where: { id: { in: strays.map((r) => r.id) } },
+    });
+  }
+  return saved;
+}
+
+export async function saveLcStats(userId: string, data: LcStatsData) {
+  const [keep, ...strays] = await db.lcStats.findMany({
+    where: { userId },
+    orderBy: { fetchedAt: "desc" },
+    select: { id: true },
+  });
+  const saved = keep
+    ? await db.lcStats.update({ where: { id: keep.id }, data })
+    : await db.lcStats.create({ data: { userId, ...data } });
+  if (strays.length > 0) {
+    await db.lcStats.deleteMany({
+      where: { id: { in: strays.map((r) => r.id) } },
+    });
+  }
+  return saved;
+}
 
 type SyncResult = {
   provider: "github" | "lc";
@@ -46,7 +90,6 @@ export async function syncGitHubStatsForUser(
       includePrivate: true,
       openSourceMinStars,
     });
-    const existing = await db.githubStats.findFirst({ where: { userId } });
     const statsData = {
       reposCount: stats.reposCount,
       totalCommits: stats.totalCommits,
@@ -57,16 +100,7 @@ export async function syncGitHubStatsForUser(
       fetchedAt: new Date(),
     };
 
-    if (existing) {
-      await db.githubStats.update({
-        where: { id: existing.id },
-        data: statsData,
-      });
-    } else {
-      await db.githubStats.create({
-        data: { userId, ...statsData },
-      });
-    }
+    await saveGithubStats(userId, statsData);
 
     return {
       provider: "github" as const,
@@ -110,7 +144,6 @@ export async function syncLeetCodeStatsForUser(
 
   try {
     const stats = await fetchLeetCodeStats(user.lcUsername);
-    const existing = await db.lcStats.findFirst({ where: { userId } });
     const statsData = {
       totalSolved: stats.totalSolved,
       easySolved: stats.easySolved,
@@ -121,16 +154,7 @@ export async function syncLeetCodeStatsForUser(
       fetchedAt: new Date(),
     };
 
-    if (existing) {
-      await db.lcStats.update({
-        where: { id: existing.id },
-        data: statsData,
-      });
-    } else {
-      await db.lcStats.create({
-        data: { userId, ...statsData },
-      });
-    }
+    await saveLcStats(userId, statsData);
 
     return {
       provider: "lc" as const,

@@ -13,6 +13,16 @@ risks that are known and accepted for now.
 
 Admin → Settings shows which of these are missing.
 
+## Deploys and migrations
+
+`bun run build` runs `prisma migrate deploy` only when `VERCEL_ENV=production`,
+and a failed migration now fails the build. Before, `|| true` swallowed it and
+shipped new code against the old schema. Preview builds no longer migrate.
+Before this change, a preview whose env pointed at the production DB applied a
+PR's migration to production. If previews have their own Neon branch, run
+`bunx prisma migrate deploy` against it yourself (or give the Preview
+environment a build step that does).
+
 ## Rate limiting and Vercel WAF
 
 `lib/rate-limit.ts` is an in-process fixed window, so it is a speed bump per

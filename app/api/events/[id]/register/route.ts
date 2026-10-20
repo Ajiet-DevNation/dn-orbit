@@ -10,6 +10,7 @@ import {
   parseFormSchema,
   validateSubmission,
 } from "@/lib/forms";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
 
 type Params = { params: Promise<{ id: string }> };
@@ -100,38 +101,52 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   try {
+    const data = {
+      eventId,
+      userId: session?.user.id ?? null,
+      name: result.value.name,
+      email: result.value.email,
+      usn: result.value.usn ?? null,
+      responses: result.value.responses as Prisma.InputJsonValue,
+    };
+
     // Authoritative capacity guard. For a capped event we lock the event row
     // (`FOR UPDATE`) so concurrent registrations serialize here, then re-count
     // under that lock before inserting — closing the check-then-act race where
     // two requests both pass the pre-check above and overshoot capacity.
-    // Uncapped events skip the lock entirely (no contention on the common path).
-    const outcome = await db.$transaction(async (tx) => {
-      if (event.capacity != null) {
-        const locked = await tx.$queryRaw<{ capacity: number | null }[]>`
-          SELECT capacity FROM events WHERE id = ${eventId} FOR UPDATE
-        `;
-        const cap = locked[0]?.capacity ?? null;
-        if (cap != null) {
-          const count = await tx.registration.count({ where: { eventId } });
-          if (count >= cap) return { full: true as const };
-        }
-      }
-      const created = await tx.registration.create({
-        data: {
-          eventId,
-          userId: session?.user.id ?? null,
-          name: result.value.name,
-          email: result.value.email,
-          usn: result.value.usn ?? null,
-          responses: result.value.responses as Prisma.InputJsonValue,
-        },
-      });
-      return { full: false as const, id: created.id };
-    });
+    // Uncapped events skip the transaction entirely: a plain insert, no
+    // BEGIN/COMMIT round trips and no pooled connection held open.
+    const outcome =
+      event.capacity == null
+        ? {
+            full: false as const,
+            id: (await db.registration.create({ data })).id,
+          }
+        : await db.$transaction(
+            async (tx) => {
+              const locked = await tx.$queryRaw<{ capacity: number | null }[]>`
+                SELECT capacity FROM events WHERE id = ${eventId} FOR UPDATE
+              `;
+              const cap = locked[0]?.capacity ?? null;
+              if (cap != null) {
+                const count = await tx.registration.count({
+                  where: { eventId },
+                });
+                if (count >= cap) return { full: true as const };
+              }
+              const created = await tx.registration.create({ data });
+              return { full: false as const, id: created.id };
+            },
+            // A popular capped event queues registrants on the row lock; give
+            // the queue room before Prisma's 2s/5s defaults turn it into 500s.
+            { maxWait: 5_000, timeout: 10_000 },
+          );
 
     if (outcome.full) {
       return NextResponse.json({ error: "Event is full" }, { status: 409 });
     }
+    // Cards show seat counts / FULL.
+    invalidatePublic(PUBLIC_TAG.events);
 
     void logAudit({
       action: "registration.create",
@@ -150,6 +165,16 @@ export async function POST(req: NextRequest, { params }: Params) {
         { status: 409 },
       );
     }
+    // Couldn't get a slot in the queue for the capacity lock in time.
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2028"
+    ) {
+      return NextResponse.json(
+        { error: "Registration is busy right now — please retry in a moment." },
+        { status: 503, headers: { "Retry-After": "3" } },
+      );
+    }
     throw e;
   }
 }
@@ -162,5 +187,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   await db.registration.deleteMany({
     where: { eventId, userId: session.user.id },
   });
+  // Cards show seat counts.
+  invalidatePublic(PUBLIC_TAG.events);
   return NextResponse.json({ success: true });
 }

@@ -341,9 +341,9 @@ function Roster({ event }: { event: MyEvent }) {
         {/* Server-side authorization scopes this to events the caller created. */}
         <a
           href={`/api/events/${event.id}/registrations.csv`}
-          className="retro border-2 border-brand/40 px-3 py-2 text-[8px] tracking-wider text-brand-light transition-colors hover:bg-brand/10"
+          className="retro inline-flex items-center gap-2 border-2 border-brand/40 px-3 py-2 text-[8px] tracking-wider text-brand-light transition-colors hover:bg-brand/10"
         >
-          ↓ EXPORT CSV
+          <PixelArrow dir="down" /> EXPORT CSV
         </a>
       </div>
 
