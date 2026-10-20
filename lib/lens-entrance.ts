@@ -1,28 +1,31 @@
 // Pure choreography for the lens sections' scroll entrance (Projects /
-// Members), split out from hooks/useLensEntrance.ts so it can be unit-tested
+// Members), split out from hooks/useLensScroll.ts so it can be unit-tested
 // without a DOM.
 //
-// Modelled on oryzo.ai's lens reveal, re-skinned for the 8-bit HUD theme:
-//   pin     — the section pins with an EMPTY viewfinder: a dashed, frosted
-//             box with a HUD reticle and no picture. From there the card fades
-//             in steadily (0 → 100% opacity, no blur) across the whole
-//             entrance, so the title sliding behind the glass always shows
-//             through it, softened — as in oryzo's lens. The box opens into
-//             the full lens, the title shrinks behind it into its label on the
-//             left, and the thumbs fade in beside the lens, nearest first;
-//   gallery — still pinned, scrolling walks the lens through the cards one by
-//             one (no loop, like oryzo), each card holding centre for a beat.
+// Scroll-scrubbed, in order:
+//   title   — the giant title slides in from the right and parks dead centre;
+//   box     — the lens frame draws itself: all four sides grow out of the
+//             corners in chunky pixel steps until they meet;
+//   picture — the glass frosts over (blurring the title behind it) and the
+//             first card blurs in; as it sharpens, the title shrinks behind
+//             the lens into its label on the left;
+//   gallery — thumbs and controls fade in, then (still pinned) scrolling walks
+//             the lens through the cards one by one, each holding for a beat.
 
 /** Pinned scroll the entrance plays over (svh). */
-export const ENTRANCE_PIN_SVH = 120;
+export const ENTRANCE_PIN_SVH = 180;
 /** Pinned scroll per gallery step once the lens is formed (svh). */
 export const ITEM_PIN_SVH = 60;
 /** Share of each gallery step a card holds still at centre, per side. */
 const DWELL = 0.2;
-/** Viewfinder side before it opens, as a share of the lens height. */
-export const VIEWFINDER_SHARE = 0.5;
 /** Frosted-glass blur the lens applies to whatever sits behind it. */
 export const LENS_FROST = "blur(14px) saturate(130%)";
+/** Blur on the first card the moment it starts to appear, px. */
+export const REVEAL_BLUR_PX = 16;
+/** Extra scale on the first card as it starts to appear (settles to 1). */
+export const REVEAL_ZOOM = 0.04;
+/** Pixel step the frame's sides grow by while drawing, px. */
+export const EDGE_CHUNK_PX = 12;
 
 function clamp01(n: number): number {
   // `<=` also folds -0 (from -rectTop at exactly 0) into a plain 0.
@@ -36,6 +39,7 @@ export function segment(p: number, a: number, b: number): number {
 
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
+const smootherstep = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
 const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
 
@@ -51,75 +55,72 @@ export function entranceProgress(
 }
 
 export interface EntranceFrame {
-  /** Giant title slide-in from the right (0 = off to the side, 1 = parked
-   *  with its left edge on the label's left edge). */
+  /** Giant title slide-in from the right (0 = off-screen, 1 = parked centre). */
   giantIn: number;
   /** Giant title opacity. */
   giantOpacity: number;
-  /** Extra glow on the giant title while the lens opens (0–1). */
+  /** Extra glow on the giant title while it holds centre (0–1). */
   glow: number;
+  /** Lens frame drawing itself, corners out (0 = nothing, 1 = closed box). */
+  draw: number;
+  /** Frosted glass inside the frame (0 = clear, 1 = fully frosted). */
+  frost: number;
+  /** First card blurring in: opacity, and 1 − share of blur / zoom left. */
+  reveal: number;
   /** Giant title shrinking into the label (0 = giant, 1 = label). It scales
    *  from its left edge and stays behind the lens the whole way. */
   fly: number;
-  /** Real section title opacity (takes over from the giant title). */
+  /** Real section label (kicker + title) opacity; takes over from the giant. */
   heading: number;
-  /** Crosshair / ticks inside the viewfinder. */
-  reticle: number;
-  /** Viewfinder → full lens (0 = small square, 1 = full lens). */
-  open: number;
-  /** Card opacity in the lens: 0 at the start (an empty box), rising steadily
-   *  to 1 by the end of the entrance. While it is below 1 the frosted glass
-   *  shows the title behind it, blurred — the same look in every phase. */
-  veil: number;
-  /** Lens fill: 0 = frosted glass (blurs what is behind), 1 = solid (hides the
-   *  thumbs that slide under it once the gallery starts). */
+  /** Lens fill: 0 = glass, 1 = solid (hides the thumbs sliding under it). */
   solid: number;
+  /** "Scroll to continue" hint; gone before the counter takes its spot. */
+  hint: number;
   /** Thumb strips unfolding (fed to useCoverflow as its intro). */
   thumbs: number;
   /** Arrows, counter and floor glow. */
   chrome: number;
 }
 
-// Timed against oryzo.ai's own reveal, frame by frame: an empty viewfinder →
-// title slides in behind it while the picture fades in → glows as the box
-// opens into a frosted lens → the title shrinks into its label behind the
-// (by then solid) lens → the thumbs fade in beside it.
+// Phases overlap on purpose so nothing ever stops and restarts: the frost
+// starts under the last strokes of the frame, the card starts to blur in as
+// the box closes, and the title leaves only once the card is coming through.
 export function entranceFrame(p: number): EntranceFrame {
-  const open = easeInOutCubic(segment(p, 0.3, 0.58));
   return {
-    giantIn: easeOutCubic(segment(p, 0.02, 0.32)),
-    // Solid white from its first frame: it enters from fully off-screen (see
-    // useLensScroll), so it needs no fade — a half-faded white reads as grey.
-    giantOpacity: (p > 0 ? 1 : 0) * (1 - segment(p, 0.86, 0.9)),
-    glow: segment(p, 0.28, 0.42) * (1 - segment(p, 0.6, 0.76)),
-    fly: easeInOutCubic(segment(p, 0.6, 0.88)),
-    heading: segment(p, 0.85, 0.89),
-    reticle: 1 - segment(p, 0.3, 0.42),
-    open,
-    veil: smoothstep(segment(p, 0, 0.8)),
-    solid: segment(p, 0.76, 0.82),
+    giantIn: easeOutCubic(segment(p, 0, 0.22)),
+    // Solid white from its first frame: it enters from fully off-screen, so it
+    // needs no fade — a half-faded white reads as grey.
+    giantOpacity: (p > 0 ? 1 : 0) * (1 - segment(p, 0.88, 0.92)),
+    glow: smoothstep(segment(p, 0.18, 0.3)) * (1 - segment(p, 0.48, 0.64)),
+    draw: segment(p, 0.28, 0.46),
+    frost: smoothstep(segment(p, 0.4, 0.56)),
+    reveal: smootherstep(segment(p, 0.44, 0.82)),
+    fly: easeInOutCubic(segment(p, 0.54, 0.9)),
+    heading: segment(p, 0.88, 0.92),
+    solid: segment(p, 0.8, 0.86),
+    hint: 1 - segment(p, 0.8, 0.86),
     // A long, staggered window (see thumbReveal) — a short one read as a pop.
-    thumbs: segment(p, 0.82, 1),
+    thumbs: segment(p, 0.86, 1),
     chrome: segment(p, 0.9, 1),
   };
 }
 
-// viewfinder size for an open amount, morphing the square into the lens
-export function viewfinderSize(
-  open: number,
-  lensWidth: number,
-  lensHeight: number,
-): { width: number; height: number } {
-  const side = viewfinderSide(lensWidth, lensHeight);
-  return {
-    width: side + (lensWidth - side) * open,
-    height: side + (lensHeight - side) * open,
-  };
-}
-
-// starting square side: half the lens height, never wider than the lens
-export function viewfinderSide(lensWidth: number, lensHeight: number) {
-  return Math.min(lensWidth, lensHeight * VIEWFINDER_SHARE);
+// half-length each side of the frame has grown from its corners, snapped to
+// pixel chunks; both reach exactly half the box at draw = 1, so sides meet
+export function frameEdges(
+  draw: number,
+  width: number,
+  height: number,
+  chunk = EDGE_CHUNK_PX,
+): { across: number; down: number } {
+  const grow = (half: number) =>
+    draw <= 0
+      ? 0
+      : Math.min(
+          half,
+          Math.max(chunk, Math.ceil((half * draw) / chunk) * chunk),
+        );
+  return { across: grow(width / 2), down: grow(height / 2) };
 }
 
 // total pinned scroll for a section with `count` cards (svh)
@@ -160,9 +161,4 @@ export function progressForCard(k: number, count: number): number {
   const share = entranceShare(count);
   if (count <= 1) return share;
   return share + ((1 - share) * k) / (count - 1);
-}
-
-// "SCROLL TO CONTINUE" stays up through the pin, like oryzo's, then fades
-export function hintOpacity(progress: number): number {
-  return 1 - segment(progress, 0.94, 1);
 }
