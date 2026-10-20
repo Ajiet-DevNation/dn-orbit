@@ -3,15 +3,19 @@ import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { sendMail } from "@/lib/mail";
 import { recruitmentReviewSchema } from "@/lib/recruitment";
+import { decisionMail } from "@/lib/recruitment-mail";
 import { canAccessAdmin } from "@/lib/roles";
 import { CV_BUCKET, getSupabaseAdmin } from "@/lib/supabase";
 import { parseBody } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
 
-// Accept or reject an application. Status only — accepting does not touch the
-// sign-in allowlist; admins add accepted people there separately.
+// Accept or reject an application, then email the candidate the decision.
+// Accepting does not touch the sign-in allowlist; admins add accepted people
+// there separately. The mail goes out only after the update is saved, and a
+// failed send doesn't undo the decision: the response reports `emailed`.
 export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await auth();
   if (!session || !canAccessAdmin(session.user.role)) {
@@ -35,14 +39,23 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       },
     });
 
+    const emailed = await sendMail({
+      to: updated.email,
+      ...decisionMail(updated.name, status),
+    });
+
     void logAudit({
       action: `recruitment.${status === "approved" ? "accept" : "reject"}`,
       actorId: session.user.id,
       actorName: session.user.name,
-      summary: `${status === "approved" ? "Accepted" : "Rejected"} ${updated.name}'s application`,
+      summary: `${status === "approved" ? "Accepted" : "Rejected"} ${updated.name}'s application ${emailed ? "(emailed)" : "(email failed)"}`,
     });
 
-    return NextResponse.json({ id: updated.id, status: updated.status });
+    return NextResponse.json({
+      id: updated.id,
+      status: updated.status,
+      emailed,
+    });
   } catch (e) {
     if (
       e instanceof Prisma.PrismaClientKnownRequestError &&
