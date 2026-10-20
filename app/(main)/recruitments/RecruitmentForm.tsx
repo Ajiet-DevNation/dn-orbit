@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { toast } from "@/components/ui/8bit-toast";
+import { PixelArrow } from "@/components/ui/PixelArrow";
 import {
   ABOUT_MAX_WORDS,
   BRANCHES,
@@ -268,7 +269,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
             onClick={() => setStep("form")}
             className="text-[11px] sm:px-8"
           >
-            ◂ EDIT
+            <PixelArrow dir="left" /> EDIT
           </Button>
           <Button
             type="button"
@@ -396,7 +397,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
             type="submit"
             className="w-full text-[11px] !bg-brand hover:!bg-brand-light !text-black sm:w-fit sm:px-10"
           >
-            REVIEW INFORMATION ▸
+            REVIEW INFORMATION <PixelArrow />
           </Button>
         </div>
       </form>
@@ -422,7 +423,7 @@ function Layout({
         href="/"
         className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
       >
-        ◂ BACK TO ORBIT
+        <PixelArrow dir="left" /> BACK TO ORBIT
       </Link>
       {/* Full width, like the mock: the rail is too narrow for this card. */}
       <div className="mt-6">

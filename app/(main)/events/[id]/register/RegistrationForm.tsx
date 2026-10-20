@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
 import { toast } from "@/components/ui/8bit-toast";
+import { PixelArrow } from "@/components/ui/PixelArrow";
 import {
   AUDIENCE_BADGE_LABELS,
   type EventAudience,
@@ -290,7 +291,7 @@ function Back() {
       href="/#events"
       className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
     >
-      ◂ BACK TO EVENTS
+      <PixelArrow dir="left" /> BACK TO EVENTS
     </Link>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { toast } from "@/components/ui/8bit-toast";
+import { PixelArrow } from "@/components/ui/PixelArrow";
 import { errorMessage } from "@/lib/utils";
 
 export interface RosterEntry {
@@ -369,7 +370,10 @@ function EventCard({ event }: { event: MyEvent }) {
         aria-expanded={open}
         className="retro mt-4 cursor-pointer text-[9px] tracking-widest text-brand-light transition-colors hover:text-white"
       >
-        {open ? "▾ HIDE ROSTER" : `▸ VIEW ROSTER (${event.registeredCount})`}
+        <span className="inline-flex items-center gap-2">
+          <PixelArrow dir={open ? "down" : "right"} />
+          {open ? "HIDE ROSTER" : `VIEW ROSTER (${event.registeredCount})`}
+        </span>
       </button>
 
       {open && <Roster event={event} />}

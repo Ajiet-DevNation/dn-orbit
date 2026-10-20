@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { PlutonStage } from "@/components/home/PlutonStage";
+import { PixelArrow } from "@/components/ui/PixelArrow";
 import { Z_MODAL } from "@/components/ui/PixelModal";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { onBootSplashDone } from "@/lib/boot-splash";
@@ -273,7 +274,7 @@ export function RecruitmentPopup() {
                         "m-1.5 bg-brand text-[#0a0a0a] shadow-[0_0_0_3px_#0b0714,0_0_0_6px_#8b5cf6] hover:bg-brand-light",
                       )}
                     >
-                      JOIN THE CREW ▸
+                      JOIN THE CREW <PixelArrow className="ml-2.5" />
                     </Link>
                     <button
                       type="button"

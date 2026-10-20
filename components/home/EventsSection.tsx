@@ -9,6 +9,7 @@ import {
   DetailOverlay,
   DetailOverlayContent,
 } from "@/components/ui/DetailOverlay";
+import { PixelArrow } from "@/components/ui/PixelArrow";
 import { useFlipDetail } from "@/hooks/useFlipDetail";
 import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
 import { smoothScrollTo } from "@/lib/smooth-scroll";
@@ -248,7 +249,9 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
           asChild
           className="w-fit text-[9px] !bg-brand hover:!bg-brand-light !text-black"
         >
-          <Link href={`/events/${data.id}/register`}>REGISTER ▸</Link>
+          <Link href={`/events/${data.id}/register`}>
+            REGISTER <PixelArrow />
+          </Link>
         </Button>
       )}
     </div>

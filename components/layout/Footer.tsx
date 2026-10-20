@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FaGithub } from "react-icons/fa";
+import { PixelArrow } from "@/components/ui/PixelArrow";
 import { BrandLink } from "./BrandLink";
 
 // Footer links. Internal anchors scroll the landing page; external links open in
@@ -55,9 +56,9 @@ function FooterLink({ label, href, external }: FooterLinkDef) {
       <span>{label}</span>
       <span
         aria-hidden="true"
-        className="-translate-x-1 text-brand-light opacity-0 transition-all duration-200 group-hover/flink:translate-x-0 group-hover/flink:opacity-100"
+        className="-translate-x-1 text-brand-light opacity-0 transition-[translate,opacity] duration-200 group-hover/flink:translate-x-0 group-hover/flink:opacity-100"
       >
-        ▸
+        <PixelArrow />
       </span>
     </>
   );

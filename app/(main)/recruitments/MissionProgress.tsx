@@ -25,7 +25,7 @@ function prefersReducedMotion(): boolean {
 }
 
 function bubbleText(filled: number, total: number): string {
-  if (filled >= total) return "All set! Hit REVIEW ▸";
+  if (filled >= total) return "All set! Hit REVIEW!";
   if (filled === 0) return "Let's get you on board!";
   return "Nice! Keep going!";
 }
