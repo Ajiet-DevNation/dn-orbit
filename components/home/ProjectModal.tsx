@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
+import { Textarea } from "@/components/ui/8bit-textarea";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
@@ -136,8 +137,8 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
 
       <div className="grid gap-5">
         <div className="grid gap-2">
-          <Label htmlFor="pr-title" className="text-[10px]">
-            TITLE *
+          <Label htmlFor="pr-title">
+            TITLE <span className="text-brand-light">*</span>
           </Label>
           <Input
             id="pr-title"
@@ -148,27 +149,18 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="pr-desc" className="text-[10px]">
-            DESCRIPTION
-          </Label>
-          <div className="relative flex border-y-[4px] border-foreground dark:border-ring">
-            <textarea
-              id="pr-desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What does it do?"
-              rows={4}
-              className="retro w-full resize-none rounded-none bg-transparent px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
-            />
-            <div
-              className="pointer-events-none absolute inset-0 -mx-1 border-x-[4px] border-foreground dark:border-ring"
-              aria-hidden="true"
-            />
-          </div>
+          <Label htmlFor="pr-desc">DESCRIPTION</Label>
+          <Textarea
+            id="pr-desc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What does it do?"
+            rows={4}
+          />
         </div>
 
         <div className="grid gap-2">
-          <Label className="text-[10px]">COVER IMAGE (5:4)</Label>
+          <Label>COVER IMAGE (5:4)</Label>
           <ImageCropUpload
             aspect={5 / 4}
             kind="project"
@@ -178,8 +170,8 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
         </div>
 
         <div className="grid gap-4">
-          <Label htmlFor="pr-repo" className="text-[10px]">
-            GITHUB REPO URL *
+          <Label htmlFor="pr-repo">
+            GITHUB REPO URL <span className="text-brand-light">*</span>
           </Label>
           <Input
             id="pr-repo"
@@ -191,9 +183,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
         </div>
 
         <div className="grid gap-4">
-          <Label htmlFor="pr-demo" className="text-[10px]">
-            DEMO LINK
-          </Label>
+          <Label htmlFor="pr-demo">DEMO LINK</Label>
           <Input
             id="pr-demo"
             type="url"
@@ -205,7 +195,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div className="grid gap-2">
-            <Label className="text-[10px]">STATUS</Label>
+            <Label>STATUS</Label>
             <Select
               value={status}
               onValueChange={(v) => setStatus(v as ProjectStatus)}
@@ -223,9 +213,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="pr-progress" className="text-[10px]">
-              PROGRESS %
-            </Label>
+            <Label htmlFor="pr-progress">PROGRESS %</Label>
             <Input
               id="pr-progress"
               type="number"
@@ -249,7 +237,7 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
         </div>
 
         <div className="grid gap-6">
-          <Label className="text-[10px] gap-1">TECH STACK</Label>
+          <Label className="gap-1">TECH STACK</Label>
           <TechStackSelect value={techStack} onChange={setTechStack} />
         </div>
       </div>

@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
+import { Textarea } from "@/components/ui/8bit-textarea";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
@@ -187,8 +188,8 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
         <SectionHeading>01 · DETAILS</SectionHeading>
 
         <div className="grid gap-2">
-          <Label htmlFor="ev-title" className="text-[10px]">
-            TITLE *
+          <Label htmlFor="ev-title">
+            TITLE <span className="text-brand-light">*</span>
           </Label>
           <Input
             id="ev-title"
@@ -203,7 +204,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
               clip instead of overflowing the modal. */}
         <div className="grid grid-cols-2 gap-5 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label className="text-[10px]">TYPE</Label>
+            <Label>TYPE</Label>
             <Select value={eventType} onValueChange={setEventType}>
               <SelectTrigger>
                 <SelectValue placeholder="SELECT" />
@@ -218,8 +219,8 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="ev-date" className="text-[10px]">
-              DATE &amp; TIME *
+            <Label htmlFor="ev-date">
+              DATE &amp; TIME <span className="text-brand-light">*</span>
             </Label>
             <Input
               id="ev-date"
@@ -233,9 +234,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="ev-loc" className="text-[10px]">
-            LOCATION
-          </Label>
+          <Label htmlFor="ev-loc">LOCATION</Label>
           <Input
             id="ev-loc"
             value={location}
@@ -245,25 +244,14 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="ev-desc" className="text-[10px]">
-            DESCRIPTION
-          </Label>
-          {/* Multiline — same pixel-border frame as the 8bit Input, but a
-                textarea so text wraps onto new lines instead of scrolling. */}
-          <div className="relative flex border-y-[4px] border-foreground dark:border-ring">
-            <textarea
-              id="ev-desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What's it about?"
-              rows={4}
-              className="retro w-full resize-none rounded-none bg-transparent px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
-            />
-            <div
-              className="pointer-events-none absolute inset-0 -mx-1 border-x-[4px] border-foreground dark:border-ring"
-              aria-hidden="true"
-            />
-          </div>
+          <Label htmlFor="ev-desc">DESCRIPTION</Label>
+          <Textarea
+            id="ev-desc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What's it about?"
+            rows={4}
+          />
         </div>
 
         {/* ── 02 · AUDIENCE & CAPACITY ── */}
@@ -271,7 +259,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label className="text-[10px]">WHO CAN REGISTER</Label>
+            <Label>WHO CAN REGISTER</Label>
             <Select value={audience} onValueChange={setAudience}>
               <SelectTrigger>
                 <SelectValue placeholder="SELECT" />
@@ -286,9 +274,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="ev-cap" className="text-[10px]">
-              CAPACITY (INF IF BLANK)
-            </Label>
+            <Label htmlFor="ev-cap">CAPACITY (INF IF BLANK)</Label>
             <Input
               id="ev-cap"
               type="number"
@@ -299,9 +285,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="ev-deadline" className="text-[10px]">
-              REG. DEADLINE
-            </Label>
+            <Label htmlFor="ev-deadline">REG. DEADLINE</Label>
             <Input
               id="ev-deadline"
               type="datetime-local"

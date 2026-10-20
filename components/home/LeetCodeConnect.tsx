@@ -32,7 +32,6 @@ interface LeetCodeConnectProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  inputClassName?: string;
   disabled?: boolean;
   /** Visual error state on the input (parent-driven validation). */
   invalid?: boolean;
@@ -51,7 +50,6 @@ export function LeetCodeConnect({
   value,
   onChange,
   placeholder,
-  inputClassName,
   disabled,
   invalid,
 }: LeetCodeConnectProps) {
@@ -102,7 +100,8 @@ export function LeetCodeConnect({
             onChange(e.target.value);
             if (preview) setPreview(null); // edits invalidate the confirmation
           }}
-          className={`flex-1 ${invalid ? "border-destructive focus-visible:ring-destructive" : ""} ${inputClassName ?? ""}`}
+          aria-invalid={invalid}
+          className="flex-1"
         />
         {/* The 8-bit Button paints its pixel border 6px OUTSIDE its box, top and
             bottom, while the Input's frame is inside its own. Stretching both to

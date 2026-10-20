@@ -220,9 +220,7 @@ export function ProfileModal({
           {/* ── Right: editable details ── */}
           <div className="grid gap-5">
             <div className="grid gap-2">
-              <Label htmlFor="pm-name" className="text-[10px]">
-                NAME
-              </Label>
+              <Label htmlFor="pm-name">NAME</Label>
               <Input
                 id="pm-name"
                 value={name}
@@ -231,9 +229,7 @@ export function ProfileModal({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="pm-usn" className="text-[10px]">
-                USN
-              </Label>
+              <Label htmlFor="pm-usn">USN</Label>
               <Input
                 id="pm-usn"
                 value={usn}
@@ -242,9 +238,7 @@ export function ProfileModal({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="pm-lc" className="text-[10px]">
-                LEETCODE
-              </Label>
+              <Label htmlFor="pm-lc">LEETCODE</Label>
               <LeetCodeConnect
                 id="pm-lc"
                 value={lcUsername}
@@ -255,7 +249,7 @@ export function ProfileModal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="grid gap-2">
-                <Label className="text-[10px]">BRANCH</Label>
+                <Label>BRANCH</Label>
                 <Select value={branch} onValueChange={setBranch}>
                   <SelectTrigger>
                     <SelectValue placeholder="SELECT" />
@@ -270,7 +264,7 @@ export function ProfileModal({
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label className="text-[10px]">YEAR</Label>
+                <Label>YEAR</Label>
                 <Select value={year} onValueChange={setYear}>
                   <SelectTrigger>
                     <SelectValue placeholder="SELECT" />
@@ -287,9 +281,7 @@ export function ProfileModal({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="pm-bio" className="text-[10px]">
-                BIO
-              </Label>
+              <Label htmlFor="pm-bio">BIO</Label>
               <Input
                 id="pm-bio"
                 value={bio}

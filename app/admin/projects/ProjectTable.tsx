@@ -332,7 +332,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
             onValueChange={(v) => handleStatus(p.id, v as ProjectStatus)}
             disabled={isPending}
           >
-            <SelectTrigger className="h-auto min-w-[8.5rem] py-1 text-[8px]">
+            <SelectTrigger className="min-w-[8.5rem] data-[size=default]:h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="z-[200] dark">

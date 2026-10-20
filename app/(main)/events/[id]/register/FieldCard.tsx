@@ -1,17 +1,21 @@
+import { FIELD_ERROR } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
 
 // One Google-Forms-style question card: a bordered surface that highlights purple
-// while focused (focus-within), a pixel label with a red required marker, an
+// while focused (focus-within), a pixel label with a purple required marker, an
 // optional helper line, the control, and an inline error. Shared by the built-in
 // name/email/usn fields and the dynamic schema fields so every question looks
 // identical.
 export function FieldCard({
+  htmlFor,
   label,
   required,
   description,
   error,
   children,
 }: {
+  /** id of the control, so clicking the label focuses it. */
+  htmlFor?: string;
   label: string;
   required?: boolean;
   description?: string;
@@ -20,28 +24,21 @@ export function FieldCard({
 }) {
   return (
     <div
-      className={`flex flex-col gap-2.5 border-2 bg-[#0a0a0a] p-5 transition-colors duration-200 focus-within:border-brand/60 ${
+      className={`flex flex-col gap-3 border-2 bg-[#0a0a0a] p-5 transition-colors duration-200 focus-within:border-brand/60 ${
         error ? "border-[#ef4444]/60" : "border-white/10"
       }`}
     >
-      {/* Readable mono (not the pixel display face) — question labels are
-          arbitrary sentences, so the pixel font made them hard to read. Bold +
-          purple keeps it clearly a form label, on-theme. */}
-      <Label className="font-mono text-sm font-semibold leading-relaxed tracking-wide text-brand-light">
+      <Label htmlFor={htmlFor}>
         {label}
-        {required && <span className="text-[#ef4444]"> *</span>}
+        {required && <span className="text-brand-light">*</span>}
       </Label>
       {description && (
-        <p className="text-xs leading-relaxed text-muted-foreground">
+        <p className="font-mono text-xs leading-relaxed text-muted-foreground">
           {description}
         </p>
       )}
       {children}
-      {error && (
-        <p className="font-mono text-[11px] leading-relaxed text-[#ef4444]">
-          {error}
-        </p>
-      )}
+      {error && <p className={FIELD_ERROR}>{error}</p>}
     </div>
   );
 }

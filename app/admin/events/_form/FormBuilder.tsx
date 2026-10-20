@@ -206,7 +206,9 @@ export function FormBuilder({
             {/* Label + type */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label className="text-[9px]">QUESTION *</Label>
+                <Label>
+                  QUESTION <span className="text-brand-light">*</span>
+                </Label>
                 <Input
                   value={f.label}
                   placeholder="e.g. T-shirt size"
@@ -214,7 +216,7 @@ export function FormBuilder({
                 />
               </div>
               <div className="grid gap-2">
-                <Label className="text-[9px]">TYPE</Label>
+                <Label>TYPE</Label>
                 <Select
                   value={f.type}
                   onValueChange={(type) =>
@@ -243,7 +245,7 @@ export function FormBuilder({
             {/* Help text + placeholder (placeholder only for free-text inputs) */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label className="text-[9px]">HELP TEXT</Label>
+                <Label>HELP TEXT</Label>
                 <Input
                   value={f.description ?? ""}
                   placeholder="Optional"
@@ -254,7 +256,7 @@ export function FormBuilder({
               </div>
               {!isChoice && (
                 <div className="grid gap-2">
-                  <Label className="text-[9px]">PLACEHOLDER</Label>
+                  <Label>PLACEHOLDER</Label>
                   <Input
                     value={f.placeholder ?? ""}
                     placeholder="Optional"
@@ -269,7 +271,7 @@ export function FormBuilder({
             {/* Options editor for choice-style fields */}
             {isChoice && (
               <div className="flex flex-col gap-2.5">
-                <Label className="text-[9px]">OPTIONS</Label>
+                <Label>OPTIONS</Label>
                 {(f.options ?? []).map((opt, oi) => (
                   <div key={oi} className="flex items-center gap-3">
                     <Input
@@ -317,7 +319,7 @@ export function FormBuilder({
                 to an earlier choice question (branching forms). */}
             {condCandidates.length > 0 && (
               <div className="grid gap-2 border-t-2 border-white/10 pt-4">
-                <Label className="inline-flex items-center gap-2 text-[9px]">
+                <Label className="inline-flex items-center gap-2">
                   <span aria-hidden className="text-brand-light">
                     ⑂
                   </span>

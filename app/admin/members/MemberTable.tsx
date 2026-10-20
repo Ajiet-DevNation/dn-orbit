@@ -166,7 +166,7 @@ export function MemberTable({
             >
               <SelectTrigger
                 aria-label={`Set role for ${m.name ?? m.id}`}
-                className="w-[190px] text-[10px]"
+                className="w-[190px] data-[size=default]:h-9"
               >
                 <SelectValue />
               </SelectTrigger>

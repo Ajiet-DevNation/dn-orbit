@@ -61,6 +61,13 @@ export function RegistrationForm({
   const [usn, setUsn] = useState(prefill?.usn ?? "");
   const [responses, setResponses] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Editing a field clears its error; the full check runs again on submit.
+  const clearError = (key: string) =>
+    setErrors((p) => {
+      if (!(key in p)) return p;
+      const { [key]: _, ...rest } = p;
+      return rest;
+    });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   // Hidden (unmet-condition) fields are dropped by validateSubmission on both
@@ -139,49 +146,60 @@ export function RegistrationForm({
   return (
     <Shell title={title} meta={meta}>
       <form onSubmit={submit} noValidate className="flex w-full flex-col gap-5">
-        <FieldCard label="NAME" required error={errors.name}>
+        <FieldCard htmlFor="reg-name" label="NAME" required error={errors.name}>
           <Input
-            font="normal"
+            id="reg-name"
             value={name}
             autoComplete="name"
             placeholder="Your full name"
             aria-invalid={!!errors.name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              clearError("name");
+            }}
           />
         </FieldCard>
 
         <FieldCard
+          htmlFor="reg-email"
           label="EMAIL"
           required
           error={errors.email}
           description={emailLocked ? "Linked to your account." : undefined}
         >
           <Input
-            font="normal"
+            id="reg-email"
             type="email"
             value={email}
             disabled={emailLocked}
             autoComplete="email"
             placeholder="you@example.com"
             aria-invalid={!!errors.email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              clearError("email");
+            }}
           />
         </FieldCard>
 
         {showUsn && (
           <FieldCard
+            htmlFor="reg-usn"
             label="USN / COLLEGE ID"
             required
             error={errors.usn}
             description={usnLocked ? "Linked to your account." : undefined}
           >
             <Input
-              font="normal"
+              id="reg-usn"
               value={usn}
               disabled={usnLocked}
               placeholder="e.g. 4JK24CS069"
               aria-invalid={!!errors.usn}
-              onChange={(e) => setUsn(e.target.value)}
+              onChange={(e) => {
+                setUsn(e.target.value);
+                clearError("usn");
+              }}
             />
           </FieldCard>
         )}
@@ -193,14 +211,17 @@ export function RegistrationForm({
               field={f}
               value={responses[f.id]}
               error={errors[f.id]}
-              onChange={(v) => setResponses((p) => ({ ...p, [f.id]: v }))}
+              onChange={(v) => {
+                setResponses((p) => ({ ...p, [f.id]: v }));
+                clearError(f.id);
+              }}
             />
           ) : null,
         )}
 
         <div className="mt-1 flex flex-col gap-3">
-          <p className="retro text-[8px] tracking-widest text-muted-foreground">
-            <span className="text-[#ef4444]">*</span> REQUIRED
+          <p className="retro text-[9px] tracking-[0.14em] text-muted-foreground">
+            <span className="text-brand-light">*</span> REQUIRED
           </p>
           <Button
             type="submit"

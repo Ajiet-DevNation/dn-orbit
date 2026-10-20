@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
-import { Input } from "@/components/ui/8bit-input";
+import { FIELD_ERROR, FIELD_FRAME, Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
 import {
   Select,
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
+import { Textarea } from "@/components/ui/8bit-textarea";
 import { toast } from "@/components/ui/8bit-toast";
 import { PixelArrow, PixelCheck } from "@/components/ui/PixelIcons";
 import {
@@ -123,6 +124,10 @@ const SECTIONS: { title: string; keys: Key[]; cv?: true }[] = [
   { title: "IN YOUR WORDS", keys: ["about"] },
 ];
 
+// Review read-back: the form's label style, dimmed, above each answer.
+const REVIEW_LABEL =
+  "retro text-[10px] leading-relaxed tracking-[0.14em] text-muted-foreground";
+
 const REQUIRED = (Object.keys(FIELDS) as Key[]).filter(
   (k) => FIELDS[k].required,
 );
@@ -134,8 +139,15 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   const [submitting, setSubmitting] = useState(false);
   const [cv, setCv] = useState<File | null>(null);
 
-  const set = (key: Key) => (v: string) =>
+  // Editing a field clears its error; the full check runs again on REVIEW.
+  const set = (key: Key) => (v: string) => {
     setValues((p) => ({ ...p, [key]: v }));
+    setErrors((p) => {
+      if (!(key in p)) return p;
+      const { [key]: _, ...rest } = p;
+      return rest;
+    });
+  };
 
   // Checked on pick so a bad file never reaches review. The server re-checks
   // the actual bytes; this only catches the obvious cases early.
@@ -240,7 +252,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
                     FIELDS[k].wide && "sm:col-span-2",
                   )}
                 >
-                  <dt className="retro text-[8px] tracking-widest text-muted-foreground">
+                  <dt className={REVIEW_LABEL}>
                     {k === "about" ? "ABOUT YOU" : FIELDS[k].label}
                   </dt>
                   <dd className="whitespace-pre-wrap break-words font-mono text-sm text-white">
@@ -250,9 +262,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
               ))}
               {s.cv && (
                 <div className="flex flex-col gap-1 sm:col-span-2">
-                  <dt className="retro text-[8px] tracking-widest text-muted-foreground">
-                    CV
-                  </dt>
+                  <dt className={REVIEW_LABEL}>CV</dt>
                   <dd className="break-all font-mono text-sm text-white">
                     {cv ? cv.name : "—"}
                   </dd>
@@ -313,25 +323,18 @@ export function RecruitmentForm({ open }: { open: boolean }) {
       const words = countWords(values.about);
       return (
         <>
-          {/* Same pixel frame as the event form's paragraph field. */}
-          <div className="relative flex border-y-[6px] border-foreground dark:border-ring">
-            <textarea
-              id={id}
-              value={values.about}
-              placeholder="I am a…"
-              aria-invalid={invalid}
-              onChange={(e) => set("about")(e.target.value)}
-              rows={6}
-              className="min-h-[160px] w-full resize-y rounded-none bg-transparent px-3 py-2.5 font-mono text-sm leading-relaxed text-white outline-none placeholder:text-zinc-600"
-            />
-            <div
-              className="pointer-events-none absolute inset-0 -mx-[6px] border-x-[6px] border-foreground dark:border-ring"
-              aria-hidden="true"
-            />
-          </div>
+          <Textarea
+            id={id}
+            value={values.about}
+            placeholder="I am a…"
+            aria-invalid={invalid}
+            onChange={(e) => set("about")(e.target.value)}
+            rows={6}
+            className="[&_textarea]:min-h-[160px]"
+          />
           <p
             className={cn(
-              "retro text-right text-[8px]",
+              "text-right font-mono text-xs",
               words > ABOUT_MAX_WORDS
                 ? "text-[#ef4444]"
                 : "text-muted-foreground",
@@ -346,7 +349,6 @@ export function RecruitmentForm({ open }: { open: boolean }) {
     return (
       <Input
         id={id}
-        font="normal"
         type={f.type ?? "text"}
         value={values[k]}
         autoComplete={f.autoComplete}
@@ -390,8 +392,8 @@ export function RecruitmentForm({ open }: { open: boolean }) {
         ))}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="retro text-[8px] tracking-widest text-muted-foreground">
-            <span className="text-[#ef4444]">*</span> REQUIRED
+          <p className="retro text-[9px] tracking-[0.14em] text-muted-foreground">
+            <span className="text-brand-light">*</span> REQUIRED
           </p>
           <Button
             type="submit"
@@ -507,20 +509,13 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("flex flex-col gap-2.5", wide && "sm:col-span-2")}>
-      <Label
-        htmlFor={id}
-        className="font-mono text-sm font-semibold leading-relaxed tracking-wide text-brand-light"
-      >
+    <div className={cn("flex flex-col gap-3", wide && "sm:col-span-2")}>
+      <Label htmlFor={id}>
         {label}
-        {required && <span className="text-[#ef4444]"> *</span>}
+        {required && <span className="text-brand-light">*</span>}
       </Label>
       {children}
-      {error && (
-        <p className="font-mono text-[11px] leading-relaxed text-[#ef4444]">
-          {error}
-        </p>
-      )}
+      {error && <p className={FIELD_ERROR}>{error}</p>}
     </div>
   );
 }
@@ -535,8 +530,13 @@ function CvPicker({
   onPick: (file: File | null) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 border-2 border-dashed border-white/15 bg-black/40 px-4 py-3 has-[:focus-visible]:border-brand/70">
-      <label className="retro cursor-pointer border-2 border-brand px-3 py-2 text-[8px] text-brand-light transition-colors hover:bg-brand hover:text-black">
+    <div
+      className={cn(
+        FIELD_FRAME,
+        "min-h-11 flex-wrap gap-3 py-1.5 pr-1.5 pl-3.5 dark:bg-input/30",
+      )}
+    >
+      <label className="retro order-last ml-auto cursor-pointer border-2 border-brand px-3 py-2 text-[8px] text-brand-light transition-colors duration-150 hover:bg-brand hover:text-black has-[:focus-visible]:bg-brand has-[:focus-visible]:text-black">
         {file ? "CHANGE PDF" : "CHOOSE PDF"}
         <input
           id="rec-cv"
@@ -552,7 +552,7 @@ function CvPicker({
       </label>
       {file ? (
         <>
-          <span className="min-w-0 flex-1 truncate font-mono text-xs text-white">
+          <span className="min-w-0 flex-1 truncate font-mono text-sm text-foreground">
             {file.name}
             <span className="ml-2 text-muted-foreground">
               {(file.size / 1024).toFixed(0)} KB
@@ -561,13 +561,13 @@ function CvPicker({
           <button
             type="button"
             onClick={() => onPick(null)}
-            className="retro text-[8px] text-red-400 transition-colors hover:text-red-300"
+            className="retro text-[8px] text-[#f87171] transition-colors duration-150 hover:text-red-300"
           >
             REMOVE
           </button>
         </>
       ) : (
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="min-w-0 flex-1 font-mono text-sm text-muted-foreground">
           Optional · no file chosen
         </span>
       )}

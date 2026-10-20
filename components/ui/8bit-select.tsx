@@ -1,6 +1,11 @@
 import type * as SelectPrimitive from "@radix-ui/react-select";
 import { cva, type VariantProps } from "class-variance-authority";
 import {
+  FIELD_FRAME,
+  FIELD_FRAME_SIDES,
+  FIELD_TEXT,
+} from "@/components/ui/8bit-input";
+import {
   Select as ShadcnSelect,
   SelectContent as ShadcnSelectContent,
   SelectGroup as ShadcnSelectGroup,
@@ -22,7 +27,7 @@ const inputVariants = cva("", {
     },
   },
   defaultVariants: {
-    font: "retro",
+    font: "normal",
   },
 });
 
@@ -52,10 +57,7 @@ function SelectValue({ ...props }: BitSelectValueProps) {
   const { font } = props;
 
   return (
-    <ShadcnSelectValue
-      className={cn(font !== "normal" && "retro")}
-      {...props}
-    />
+    <ShadcnSelectValue className={cn(font === "retro" && "retro")} {...props} />
   );
 }
 
@@ -73,26 +75,25 @@ function SelectTrigger({ children, ...props }: BitSelectTriggerProps) {
       className={cn(
         // w-full + min-w-0 so the trigger fills its column and can shrink,
         // letting a long value truncate (line-clamp) instead of overflowing.
-        "relative w-full min-w-0 border-y-[4px] border-foreground dark:border-ring",
+        FIELD_FRAME,
+        "w-full",
         className,
-        font !== "normal" && "retro",
+        font === "retro" && "retro",
       )}
     >
       <ShadcnSelectTrigger
         {...props}
         className={cn(
           // min-w-0 on the value child lets line-clamp-1 truncate it.
-          "rounded-none ring-0 w-full min-w-0 border-0 *:data-[slot=select-value]:min-w-0",
+          "w-full min-w-0 rounded-none border-0 px-3.5 shadow-none ring-0 focus-visible:ring-0 data-[size=default]:h-11 *:data-[slot=select-value]:min-w-0",
+          FIELD_TEXT,
           className,
         )}
       >
         {children}
       </ShadcnSelectTrigger>
 
-      <div
-        className="absolute inset-0 border-x-[4px] -mx-1 border-foreground dark:border-ring pointer-events-none"
-        aria-hidden="true"
-      />
+      <div className={FIELD_FRAME_SIDES} aria-hidden="true" />
     </div>
   );
 }
@@ -113,7 +114,8 @@ function SelectContent({
   return (
     <ShadcnSelectContent
       className={cn(
-        font !== "normal" && "retro",
+        "font-mono",
+        font === "retro" && "retro",
         className,
         "relative rounded-none border-4 border-foreground dark:border-ring -ml-1 mt-1",
       )}
