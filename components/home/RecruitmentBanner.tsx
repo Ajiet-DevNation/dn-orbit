@@ -1,27 +1,48 @@
 import Link from "next/link";
+import { PixelArrow } from "@/components/ui/PixelIcons";
 
-// Thin "we're hiring" strip floated over the top of the hero. Rendered by the
+// Thin "we're hiring" tab floated over the top of the hero. Rendered by the
 // landing page only while an admin has recruitment switched on. Absolute so it
 // doesn't push the full-height orbit down. It shares the top row with the
-// sticky header (z-50), so it sits above it (z-60) and leaves side gaps for the
-// logo and avatar; the wrapper is click-through so those gaps don't block them.
-// On phones there's no room beside the logo, so it drops below the header row.
+// sticky header (z-50), so it sits above it (z-60), centred on the logo row;
+// the wrapper is click-through so the gaps beside it don't block the logo or
+// avatar. On phones it drops below the header row.
+//
+// Its frame is the nav tabs' frame (8bit-tabs TabsList): card fill with 6px
+// ring-coloured bars pushed outside each edge, which leaves the corners
+// notched. That is what makes it read as part of the header.
 export function RecruitmentBanner() {
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-28 z-[60] px-4 md:top-7 md:px-64">
+    <div className="pointer-events-none absolute inset-x-0 top-28 z-[60] flex justify-center px-4 md:top-[36px]">
       <Link
         href="/recruitments"
-        className="group pointer-events-auto mx-auto flex max-w-5xl items-center justify-center gap-3 border-2 border-[#22c55e]/30 bg-black/70 px-4 py-3 backdrop-blur-sm transition-colors hover:border-[#22c55e]/70 sm:gap-5"
+        className="group retro pointer-events-auto relative inline-flex h-10 items-center gap-3.5 bg-card pr-4 pl-3.5 text-white outline-none focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-brand-light"
       >
-        <span className="retro text-[8px] tracking-[0.3em] text-[#22c55e] sm:text-[9px]">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -my-1.5 border-y-[6px] border-ring transition-colors duration-200 group-hover:border-brand"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -mx-1.5 border-x-[6px] border-ring transition-colors duration-200 group-hover:border-brand"
+        />
+
+        {/* Live dot: a pixel that blinks in two hard steps. */}
+        <span
+          aria-hidden
+          className="size-2 shrink-0 animate-[recruit-blink_1.2s_steps(1,end)_infinite] bg-brand shadow-[0_0_8px_rgba(139,92,246,0.8)]"
+        />
+        <span className="text-[8px] tracking-[0.28em] text-brand-light">
           RECRUITING
         </span>
-        <span aria-hidden className="h-4 w-px bg-white/20" />
-        <span className="hidden font-mono text-xs text-white/70 xl:inline">
+        <span aria-hidden className="hidden h-3.5 w-0.5 bg-white/15 xl:block" />
+        <span className="hidden whitespace-nowrap font-mono text-xs tracking-normal text-white/65 xl:inline">
           Think you could be part of DevNation? We&apos;d love to have you.
         </span>
-        <span className="retro border-b-2 border-[#22c55e] pb-0.5 text-[8px] text-white transition-colors group-hover:text-[#22c55e] sm:text-[9px]">
-          APPLY NOW ▸
+        <span aria-hidden className="h-3.5 w-0.5 bg-white/15" />
+        <span className="inline-flex items-center gap-2 whitespace-nowrap text-[8px] transition-colors duration-200 group-hover:text-brand-light">
+          APPLY NOW
+          <PixelArrow className="transition-transform duration-200 ease-out group-hover:translate-x-[3px]" />
         </span>
       </Link>
     </div>

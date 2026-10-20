@@ -1,7 +1,7 @@
 // The single page header for every /admin surface.
 //
 // The panel previously carried two headers that looked different but did the
-// same job — this one, and `AdminHeading` (green accent bar + a right-aligned
+// same job — this one, and `AdminHeading` (purple accent bar + a right-aligned
 // counter). Approvals and Requests used the latter, seven pages used this one,
 // and "new event" hand-rolled a third. They are merged here: the accent bar and
 // the `code` slot come from AdminHeading, the `actions` slot from the original,
@@ -26,11 +26,11 @@ export function PixelPageHeader({
         <h1 className="retro text-xl leading-relaxed tracking-wider text-white uppercase select-none md:text-2xl">
           {title}
         </h1>
-        <span aria-hidden="true" className="block h-[5px] w-28 bg-[#22c55e]" />
+        <span aria-hidden="true" className="block h-[5px] w-28 bg-brand" />
         {(subtitle || code) && (
           <div className="flex items-center gap-4">
             {subtitle && (
-              <span className="retro text-[8px] tracking-[0.3em] text-[#22c55e]/60 uppercase">
+              <span className="retro text-[8px] tracking-[0.3em] text-brand-light/60 uppercase">
                 {subtitle}
               </span>
             )}

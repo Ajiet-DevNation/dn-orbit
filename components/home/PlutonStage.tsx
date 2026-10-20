@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
+import { ringCells } from "@/lib/orbit-engine";
 import { framePosition, pingPongFrame } from "@/lib/sprite";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,25 @@ const FLOAT_MS = 3200;
 const WAVE_FRAMES = 9;
 const WAVE_STEP_MS = 90;
 const WAVE_CYCLE_MS = 4200;
+
+// The ring as square pixel cells, like the landing page's orbits. Plotted once
+// with the tilt applied in maths (in tenths of a percent, so it can snap to a
+// fine grid) so every cell is an upright square rather than a tilted one.
+const RING_DOT = 1.4; // % of the stage
+const RING_PIXELS = ringCells({
+  rx: RING.rx * 10,
+  ry: RING.ry * 10,
+  cx: RING.cx * 10,
+  cy: RING.cy * 10,
+  tilt: (TILT * Math.PI) / 180,
+  count: 64,
+  cell: 8,
+})
+  .map((c) => ({ x: c.x / 10, y: c.y / 10, front: c.front }))
+  // Two cells that snap to the same spot would collide as React keys.
+  .filter(
+    (c, i, all) => all.findIndex((o) => o.x === c.x && o.y === c.y) === i,
+  );
 
 export function PlutonStage({ className }: { className?: string }) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -112,7 +132,7 @@ export function PlutonStage({ className }: { className?: string }) {
       }
       const ring = ringRef.current;
       if (ring) {
-        ring.style.transform = `translate(${eased.x * 5}px, ${eased.y * 4}px) rotate(${TILT}deg)`;
+        ring.style.transform = `translate(${eased.x * 5}px, ${eased.y * 4}px)`;
       }
       const layer = asteroidLayerRef.current;
       if (layer) {
@@ -181,29 +201,26 @@ export function PlutonStage({ className }: { className?: string }) {
         </div>
       ))}
 
-      {/* Orbit ring, behind Pluton. */}
-      <div
-        ref={ringRef}
-        className="absolute inset-0 z-10"
-        style={{ transform: `rotate(${TILT}deg)` }}
-      >
+      {/* Orbit ring, behind Pluton: pixel cells, near half brighter. */}
+      <div ref={ringRef} className="absolute inset-0 z-10">
         <svg
           aria-hidden="true"
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
-          className="h-full w-full overflow-visible"
+          shapeRendering="crispEdges"
+          className="h-full w-full overflow-visible [filter:drop-shadow(0_0_4px_#8b5cf6)]"
         >
-          <ellipse
-            cx={RING.cx}
-            cy={RING.cy}
-            rx={RING.rx}
-            ry={RING.ry}
-            fill="none"
-            stroke="#a78bfa"
-            strokeWidth={3}
-            vectorEffect="non-scaling-stroke"
-            className="[filter:drop-shadow(0_0_6px_#8b5cf6)]"
-          />
+          {RING_PIXELS.map((c) => (
+            <rect
+              key={`${c.x}-${c.y}`}
+              x={c.x - RING_DOT / 2}
+              y={c.y - RING_DOT / 2}
+              width={RING_DOT}
+              height={RING_DOT}
+              fill={c.front ? "#c4b5fd" : "#8b5cf6"}
+              fillOpacity={c.front ? 1 : 0.6}
+            />
+          ))}
         </svg>
       </div>
 

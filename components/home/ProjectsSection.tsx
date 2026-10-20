@@ -18,14 +18,14 @@ import { HudCardFrame } from "./HudCardFrame";
 import { SectionHeading } from "./SectionHeading";
 import { TECH_BY_NAME } from "./techStack";
 
-// Read-only tech chip: dark background + green pixel border + green tech icon,
+// Read-only tech chip: dark background + purple pixel border + purple tech icon,
 // matching the chips in the "new project" form (TechStackSelect) where the icons
 // pop against the dark fill.
 const TechChip = memo(function TechChip({ name }: { name: string }) {
   const Icon = TECH_BY_NAME[name]?.Icon;
   return (
-    <span className="retro inline-flex items-center gap-2 border-2 border-[#22c55e] bg-[#0a0a0a] px-2.5 py-1.5 text-[9px] text-white">
-      {Icon && <Icon className="size-3.5 shrink-0 text-[#22c55e]" />}
+    <span className="retro inline-flex items-center gap-2 border-2 border-brand bg-[#0a0a0a] px-2.5 py-1.5 text-[9px] text-white">
+      {Icon && <Icon className="size-3.5 shrink-0 text-brand-light" />}
       {name}
     </span>
   );
@@ -49,7 +49,7 @@ const LENS_SIZING = {
 function statusColor(status: string): string {
   switch (status) {
     case "ACTIVE":
-      return "#22c55e";
+      return "#8b5cf6";
     case "SHIPPED":
       return "#3b82f6";
     case "WIP":
@@ -65,7 +65,7 @@ function statusColor(status: string): string {
 function statusFillClass(status: string): string {
   switch (status) {
     case "ACTIVE":
-      return "bg-[#22c55e]";
+      return "bg-brand";
     case "SHIPPED":
       return "bg-[#3b82f6]";
     case "WIP":
@@ -109,7 +109,7 @@ const ProjectCard = memo(function ProjectCard({
   return (
     <Card
       className={cn(
-        "h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.04)]",
+        "h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(139,92,246,0.04)]",
         className,
       )}
       style={style}
@@ -246,7 +246,7 @@ function ProjectDetail({
       {project.progressPct != null && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
-            <span className="retro text-[10px] tracking-wider text-[#22c55e]">
+            <span className="retro text-[10px] tracking-wider text-brand-light">
               PROGRESS
             </span>
             <span className="retro text-[10px] text-muted-foreground">
@@ -263,7 +263,7 @@ function ProjectDetail({
       )}
 
       <div className="flex flex-col gap-3">
-        <span className="retro text-[10px] tracking-wider text-[#22c55e]">
+        <span className="retro text-[10px] tracking-wider text-brand-light">
           TECH STACK
         </span>
         <div className="flex flex-wrap gap-3">
@@ -328,7 +328,7 @@ const ProjectThumb = memo(function ProjectThumb({
     <div
       aria-hidden
       onClick={() => onPick(index)}
-      className="group @container relative h-full w-full cursor-pointer overflow-hidden border-2 border-white/10 bg-[#0d0d0d] transition-colors duration-200 hover:border-[#22c55e]/60"
+      className="group @container relative h-full w-full cursor-pointer overflow-hidden border-2 border-white/10 bg-[#0d0d0d] transition-colors duration-200 hover:border-brand/60"
     >
       {cover ? (
         // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
@@ -509,7 +509,7 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
         >
           <ProjectCard
             project={project}
-            className="transition-colors duration-300 group-hover:border-[#22c55e]/50"
+            className="transition-colors duration-300 group-hover:border-brand/50"
           />
           <HudCardFrame variant="full" />
         </div>

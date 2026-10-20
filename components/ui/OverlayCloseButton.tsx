@@ -24,7 +24,7 @@ export function OverlayCloseButton({
       aria-label={label}
       className={cn("text-[10px]", className)}
     >
-      <span aria-hidden>✕</span> CLOSE
+      <span aria-hidden>×</span> CLOSE
     </Button>
   );
 }

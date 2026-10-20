@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 import { PixelModal } from "@/components/ui/PixelModal";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
@@ -25,10 +26,18 @@ export function ContactModal({ open, onOpenChange }: ContactModalProps) {
     try {
       await navigator.clipboard.writeText(email);
       setCopied(email);
-      toast(<span className="text-green-500">✓ Copied {email}</span>);
+      toast(
+        <span className="inline-flex items-center gap-2 text-brand-light">
+          <PixelCheck /> Copied {email}
+        </span>,
+      );
       setTimeout(() => setCopied((c) => (c === email ? null : c)), 1500);
     } catch {
-      toast(<span className="text-red-500">✗ Couldn&apos;t copy</span>);
+      toast(
+        <span className="inline-flex items-center gap-2 text-red-500">
+          <PixelCross /> Couldn&apos;t copy
+        </span>,
+      );
     }
   }
 
@@ -44,15 +53,15 @@ export function ContactModal({ open, onOpenChange }: ContactModalProps) {
         {CONTACTS.map((c) => (
           <li
             key={c.email}
-            className="flex items-center gap-3 border-2 border-white/15 bg-white/[0.02] p-3 hover:border-[#22c55e]/50 sm:gap-4 sm:p-4"
+            className="flex items-center gap-3 border-2 border-white/15 bg-white/[0.02] p-3 hover:border-brand/50 sm:gap-4 sm:p-4"
           >
             <div className="min-w-0 flex-1">
-              <p className="retro text-sm text-[#22c55e] sm:text-base">
+              <p className="retro text-sm text-brand-light sm:text-base">
                 {c.name}
               </p>
               <a
                 href={`mailto:${c.email}`}
-                className="mt-1.5 block truncate text-[11px] text-white hover:text-[#22c55e] sm:text-sm"
+                className="mt-1.5 block truncate text-[11px] text-white hover:text-brand-light sm:text-sm"
                 title={c.email}
               >
                 {c.email}

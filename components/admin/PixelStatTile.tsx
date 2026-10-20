@@ -6,9 +6,9 @@ export function PixelStatTile({
   value: string | number;
 }) {
   return (
-    // Softer, landing-consistent stat: neutral frame + white value, with green
+    // Softer, landing-consistent stat: neutral frame + white value, with purple
     // reserved as a small left-accent rather than flooding the whole tile.
-    <div className="border-2 border-white/10 border-l-[6px] border-l-[#22c55e]/60 bg-white/[0.02] px-5 py-4">
+    <div className="border-2 border-white/10 border-l-[6px] border-l-brand/60 bg-white/[0.02] px-5 py-4">
       <div className="retro text-[8px] tracking-widest text-zinc-500">
         {label}
       </div>

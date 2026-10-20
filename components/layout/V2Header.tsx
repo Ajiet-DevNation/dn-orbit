@@ -155,7 +155,7 @@ export function V2Header({
                       value={tab.value}
                       className="relative overflow-hidden px-4 py-2 text-xs transition-none data-[state=active]:bg-transparent! data-[state=active]:text-[#0a0a0a]"
                     >
-                      {/* Green selection drawn in as scattered pixel blocks. */}
+                      {/* Purple selection drawn in as scattered pixel blocks. */}
                       <PixelTabFill />
                       <span className="relative z-10">{tab.label}</span>
                     </TabsTrigger>

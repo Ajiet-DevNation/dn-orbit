@@ -14,9 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
+import { Textarea } from "@/components/ui/8bit-textarea";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 import { PixelModal } from "@/components/ui/PixelModal";
 import {
   AUDIENCE_OPTIONS,
@@ -28,8 +30,13 @@ import {
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
-  const color = kind === "success" ? "text-green-500" : "text-red-500";
-  toast(<span className={color}>{message}</span>);
+  const color = kind === "success" ? "text-brand-light" : "text-red-500";
+  toast(
+    <span className={`inline-flex items-center gap-2 ${color}`}>
+      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
+      {message}
+    </span>,
+  );
 }
 
 interface EventModalProps {
@@ -42,7 +49,7 @@ interface EventModalProps {
 // panels so the modal reads as the same "create event" surface. ──
 function SectionHeading({ children }: { children: ReactNode }) {
   return (
-    <h3 className="retro mt-2 border-b-2 border-white/10 pb-2 text-[10px] tracking-widest text-[#22c55e]">
+    <h3 className="retro mt-2 border-b-2 border-white/10 pb-2 text-[10px] tracking-widest text-brand-light">
       {children}
     </h3>
   );
@@ -80,21 +87,21 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
 
   async function handleCreate() {
     if (!title.trim() || !eventDate) {
-      notify("error", "✗ Title and date are required");
+      notify("error", "Title and date are required");
       return;
     }
     // Every builder question needs a label; an "Untitled question" left in the
     // schema produces a confusing registration field, so block on it early.
     const blankLabel = schema.find((f) => !f.label.trim());
     if (blankLabel) {
-      notify("error", "✗ Every custom question needs a label");
+      notify("error", "Every custom question needs a label");
       return;
     }
     if (
       capacity &&
       (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)
     ) {
-      notify("error", "✗ Capacity must be a whole number ≥ 1");
+      notify("error", "Capacity must be a whole number ≥ 1");
       return;
     }
     if (
@@ -102,7 +109,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
       eventDate &&
       new Date(registrationDeadline) > new Date(eventDate)
     ) {
-      notify("error", "✗ Registration deadline can't be after the event");
+      notify("error", "Registration deadline can't be after the event");
       return;
     }
 
@@ -131,19 +138,19 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
       notify(
         "success",
         isAdmin && publishNow
-          ? "✓ Event published"
-          : "✓ Event submitted for admin review",
+          ? "Event published"
+          : "Event submitted for admin review",
       );
       // First-ever event: point the user to where they can track it and see who
       // registers, since that page isn't obvious. Shown once (server flag).
       if (body.isFirstEvent) {
-        notify("success", "✓ Find it under YOUR EVENTS in your profile");
+        notify("success", "Find it under YOUR EVENTS in your profile");
       }
       reset();
       onOpenChange(false);
       router.refresh();
     } catch (err) {
-      notify("error", `✗ ${err instanceof Error ? err.message : "Failed"}`);
+      notify("error", `${err instanceof Error ? err.message : "Failed"}`);
     } finally {
       setSaving(false);
     }
@@ -170,7 +177,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
       }
     >
       {!isAdmin && (
-        <p className="retro mb-7 border-2 border-[#22c55e]/40 bg-[#22c55e]/[0.05] p-3 text-[10px] leading-relaxed text-muted-foreground">
+        <p className="retro mb-7 border-2 border-brand/40 bg-brand/[0.05] p-3 text-[10px] leading-relaxed text-muted-foreground">
           Heads up — your event goes to an admin for review before it&apos;s
           published.
         </p>
@@ -181,8 +188,8 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
         <SectionHeading>01 · DETAILS</SectionHeading>
 
         <div className="grid gap-2">
-          <Label htmlFor="ev-title" className="text-[10px]">
-            TITLE *
+          <Label htmlFor="ev-title">
+            TITLE <span className="text-brand-light">*</span>
           </Label>
           <Input
             id="ev-title"
@@ -197,7 +204,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
               clip instead of overflowing the modal. */}
         <div className="grid grid-cols-2 gap-5 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label className="text-[10px]">TYPE</Label>
+            <Label>TYPE</Label>
             <Select value={eventType} onValueChange={setEventType}>
               <SelectTrigger>
                 <SelectValue placeholder="SELECT" />
@@ -212,8 +219,8 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="ev-date" className="text-[10px]">
-              DATE &amp; TIME *
+            <Label htmlFor="ev-date">
+              DATE &amp; TIME <span className="text-brand-light">*</span>
             </Label>
             <Input
               id="ev-date"
@@ -227,9 +234,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="ev-loc" className="text-[10px]">
-            LOCATION
-          </Label>
+          <Label htmlFor="ev-loc">LOCATION</Label>
           <Input
             id="ev-loc"
             value={location}
@@ -239,25 +244,14 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="ev-desc" className="text-[10px]">
-            DESCRIPTION
-          </Label>
-          {/* Multiline — same pixel-border frame as the 8bit Input, but a
-                textarea so text wraps onto new lines instead of scrolling. */}
-          <div className="relative flex border-y-[4px] border-foreground dark:border-ring">
-            <textarea
-              id="ev-desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What's it about?"
-              rows={4}
-              className="retro w-full resize-none rounded-none bg-transparent px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground"
-            />
-            <div
-              className="pointer-events-none absolute inset-0 -mx-1 border-x-[4px] border-foreground dark:border-ring"
-              aria-hidden="true"
-            />
-          </div>
+          <Label htmlFor="ev-desc">DESCRIPTION</Label>
+          <Textarea
+            id="ev-desc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="What's it about?"
+            rows={4}
+          />
         </div>
 
         {/* ── 02 · AUDIENCE & CAPACITY ── */}
@@ -265,7 +259,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label className="text-[10px]">WHO CAN REGISTER</Label>
+            <Label>WHO CAN REGISTER</Label>
             <Select value={audience} onValueChange={setAudience}>
               <SelectTrigger>
                 <SelectValue placeholder="SELECT" />
@@ -280,9 +274,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="ev-cap" className="text-[10px]">
-              CAPACITY (INF IF BLANK)
-            </Label>
+            <Label htmlFor="ev-cap">CAPACITY (INF IF BLANK)</Label>
             <Input
               id="ev-cap"
               type="number"
@@ -293,9 +285,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="ev-deadline" className="text-[10px]">
-              REG. DEADLINE
-            </Label>
+            <Label htmlFor="ev-deadline">REG. DEADLINE</Label>
             <Input
               id="ev-deadline"
               type="datetime-local"

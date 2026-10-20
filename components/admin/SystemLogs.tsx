@@ -95,10 +95,10 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
           {filtered.map((log) => (
             <div
               key={log.id}
-              className="border-2 border-white/10 p-3 transition-colors hover:border-[#22c55e]/40 hover:bg-[#22c55e]/[0.04]"
+              className="border-2 border-white/10 p-3 transition-colors hover:border-brand/40 hover:bg-brand/[0.04]"
             >
               <div className="flex items-center gap-3">
-                <span className="retro shrink-0 text-[8px] text-[#22c55e]/60">
+                <span className="retro shrink-0 text-[8px] text-brand-light/60">
                   [{stamp(log.createdAt)}]
                 </span>
                 <span className="retro truncate text-[8px] tracking-widest text-zinc-600">
@@ -108,7 +108,7 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
               <p className="retro mt-1.5 text-[10px] leading-relaxed text-zinc-300">
                 {log.summary}
                 {log.actorName ? (
-                  <span className="text-[#22c55e]/70">
+                  <span className="text-brand-light/70">
                     {" "}
                     — {toTitleCase(log.actorName)}
                   </span>

@@ -34,7 +34,7 @@ export function RecruitmentToggle({ initialOpen }: { initialOpen: boolean }) {
     <section
       className={`flex flex-col gap-4 border-2 border-l-[6px] bg-black/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
         open
-          ? "border-white/10 border-l-[#22c55e]"
+          ? "border-white/10 border-l-brand"
           : "border-white/10 border-l-zinc-600"
       }`}
     >
@@ -43,9 +43,9 @@ export function RecruitmentToggle({ initialOpen }: { initialOpen: boolean }) {
           <span className="text-zinc-500">RECRUITMENT</span>
           <span
             aria-hidden
-            className={`size-2 ${open ? "animate-pulse bg-[#22c55e]" : "bg-zinc-600"}`}
+            className={`size-2 ${open ? "animate-pulse bg-brand" : "bg-zinc-600"}`}
           />
-          <span className={open ? "text-[#22c55e]" : "text-zinc-400"}>
+          <span className={open ? "text-brand-light" : "text-zinc-400"}>
             {open ? "OPEN" : "CLOSED"}
           </span>
         </div>
@@ -64,7 +64,7 @@ export function RecruitmentToggle({ initialOpen }: { initialOpen: boolean }) {
         className={`retro shrink-0 self-start border-2 px-4 py-2 text-[9px] transition-colors disabled:opacity-50 sm:self-auto ${
           open
             ? "border-red-500/40 text-red-400 hover:bg-red-500/10"
-            : "border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black"
+            : "border-brand text-brand-light hover:bg-brand hover:text-black"
         }`}
       >
         {isPending

@@ -8,7 +8,7 @@ import { ProjectTable } from "./ProjectTable";
 import { SyncGithubButton } from "./SyncGithubButton";
 
 export const metadata = {
-  title: "PROJECTS // ORBIT ADMIN",
+  title: "PROJECTS // ADMIN",
 };
 
 export default async function AdminProjectsPage() {

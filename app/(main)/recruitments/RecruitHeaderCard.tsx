@@ -27,15 +27,15 @@ const SPARKLES = [
 export function SignalBars() {
   return (
     <span aria-hidden className="flex items-end gap-[3px]">
-      <span className="h-3 w-1 bg-[#22c55e]" />
-      <span className="h-3 w-1 bg-[#22c55e]" />
-      <span className="h-3 w-1 bg-[#22c55e]" />
+      <span className="h-3 w-1 bg-brand" />
+      <span className="h-3 w-1 bg-brand" />
+      <span className="h-3 w-1 bg-brand" />
     </span>
   );
 }
 
 /**
- * The /recruitments hero card: green pixel frame, JOIN / DEVNATION, steps, and
+ * The /recruitments hero card: purple pixel frame, JOIN / DEVNATION, steps, and
  * Pluton waving from his laptop on a rock with a speech bubble and twinkles.
  * Frames are stepped by useSpriteSheet; the float and sparkle blink share one
  * small rAF loop with an explicit reduced-motion path (static).
@@ -79,14 +79,14 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
     <PixelFrame>
       <div className="grid grid-cols-1 gap-6 px-3 py-2 md:grid-cols-[1.15fr_1fr] md:gap-4 md:px-5">
         <div className="flex flex-col gap-5">
-          <span className="retro flex items-center gap-3 text-[10px] tracking-widest text-[#22c55e] sm:text-xs">
+          <span className="retro flex items-center gap-3 text-[10px] tracking-widest text-brand-light sm:text-xs">
             <SignalBars />
             RECRUITMENT
             <span aria-hidden className="h-[2px] flex-1 bg-white/15" />
           </span>
           <h1 className="retro text-3xl leading-tight sm:text-4xl lg:text-5xl">
             <span className="block text-white">JOIN</span>
-            <span className="mt-2 block text-[#22c55e]">DEVNATION</span>
+            <span className="mt-2 block text-brand-light">DEVNATION</span>
           </h1>
           <p className="font-mono text-sm leading-relaxed text-[#d4d0ea] sm:text-base">
             Think you could be part of DevNation?
@@ -104,7 +104,7 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
                   className={cn(
                     "retro text-[10px] tracking-widest sm:text-xs",
                     i === at
-                      ? "text-[#22c55e]"
+                      ? "text-brand-light"
                       : i < at
                         ? "text-white/70"
                         : "text-[#6d6a8a]",

@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/8bit-card";
-import { Input } from "@/components/ui/8bit-input";
+import { FIELD_ERROR, Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
 import {
   Select,
@@ -23,7 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { toast } from "@/components/ui/8bit-toast";
-import { PixelStarsBackground } from "@/components/ui/PixelStarsBackground";
+import { PixelStarfield } from "@/components/ui/PixelStarfield";
+import { cn } from "@/lib/utils";
 
 // ── Validation ───────────────────────────────────────────────────────────────
 
@@ -64,7 +65,7 @@ function SuccessOverlay() {
       />
       <div className="relative z-10 text-center space-y-6">
         <div
-          className="w-3 h-3 bg-emerald-500 mx-auto"
+          className="w-3 h-3 bg-brand mx-auto"
           style={{
             animation: "pixel-pulse 1.5s step-end infinite",
             boxShadow: "0 0 12px rgba(16,185,129,0.8)",
@@ -76,7 +77,7 @@ function SuccessOverlay() {
           COMMITTED
         </h2>
         <p
-          className="text-xs text-emerald-500 tracking-widest uppercase opacity-80"
+          className="text-xs text-brand-light tracking-widest uppercase opacity-80"
           style={{ animation: "pixel-pulse 1.5s step-end infinite" }}
         >
           &gt; UPLINK_SUCCESS · REDIRECTING
@@ -144,8 +145,8 @@ export default function OnboardingPage() {
   if (showSuccess) return <SuccessOverlay />;
 
   return (
-    <div className="dark flex w-full min-h-screen items-center justify-center bg-background p-6 md:p-12 retro relative">
-      <PixelStarsBackground />
+    <div className="dark flex w-full min-h-screen items-center justify-center bg-black p-6 md:p-12 retro relative">
+      <PixelStarfield className="z-0" />
       <div className="w-full max-w-lg relative z-10">
         <Card>
           <CardHeader className="p-6 pb-2 flex flex-col items-center text-center space-y-0">
@@ -169,9 +170,7 @@ export default function OnboardingPage() {
           <CardContent className="p-8 pt-0">
             {serverError && (
               <div className="border-y-[3px] border-destructive mb-8 px-4 py-3 bg-destructive/10">
-                <p className="text-[8px] text-destructive font-black tracking-wider uppercase text-center">
-                  ▲ {serverError}
-                </p>
+                <p className={cn(FIELD_ERROR, "text-center")}>{serverError}</p>
               </div>
             )}
 
@@ -186,12 +185,7 @@ export default function OnboardingPage() {
 
               <div className="space-y-5">
                 <div className="grid gap-3">
-                  <Label
-                    htmlFor="name"
-                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
-                  >
-                    FULL_NAME
-                  </Label>
+                  <Label htmlFor="name">FULL NAME</Label>
                   <Input
                     id="name"
                     placeholder="YOUR NAME"
@@ -199,22 +193,15 @@ export default function OnboardingPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setName(e.target.value)
                     }
-                    className={`text-xs ${fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    aria-invalid={!!fieldErrors.name}
                   />
                   {fieldErrors.name && (
-                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">
-                      {fieldErrors.name}
-                    </p>
+                    <p className={FIELD_ERROR}>{fieldErrors.name}</p>
                   )}
                 </div>
 
                 <div className="grid gap-3">
-                  <Label
-                    htmlFor="usn"
-                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
-                  >
-                    USN
-                  </Label>
+                  <Label htmlFor="usn">USN</Label>
                   <Input
                     id="usn"
                     placeholder="4AL22CS001"
@@ -222,25 +209,20 @@ export default function OnboardingPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setUsn(e.target.value.toUpperCase())
                     }
-                    className={`text-xs uppercase ${fieldErrors.usn ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    className="[&_input]:uppercase"
+                    aria-invalid={!!fieldErrors.usn}
                   />
                   {fieldErrors.usn && (
-                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">
-                      {fieldErrors.usn}
-                    </p>
+                    <p className={FIELD_ERROR}>{fieldErrors.usn}</p>
                   )}
                 </div>
 
                 <div className="grid gap-3">
-                  <Label
-                    htmlFor="branch"
-                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
-                  >
-                    DOMAIN
-                  </Label>
+                  <Label htmlFor="branch">BRANCH</Label>
                   <Select value={branch} onValueChange={setBranch}>
                     <SelectTrigger
-                      className={`w-full ${fieldErrors.branch ? "border-destructive" : ""}`}
+                      id="branch"
+                      aria-invalid={!!fieldErrors.branch}
                     >
                       <SelectValue placeholder="SELECT" />
                     </SelectTrigger>
@@ -256,47 +238,41 @@ export default function OnboardingPage() {
                     </SelectContent>
                   </Select>
                   {fieldErrors.branch && (
-                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">
-                      {fieldErrors.branch}
-                    </p>
+                    <p className={FIELD_ERROR}>{fieldErrors.branch}</p>
                   )}
                 </div>
 
                 <div className="grid gap-3">
-                  <Label className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                    YEAR
-                  </Label>
-                  <div className="grid grid-cols-4 gap-3">
+                  <Label id="year-label">YEAR</Label>
+                  <div
+                    role="radiogroup"
+                    aria-labelledby="year-label"
+                    className="grid grid-cols-4 gap-3"
+                  >
                     {["1", "2", "3", "4"].map((y) => (
-                      <Button
+                      <label
                         key={y}
-                        type="button"
-                        variant={year === y ? "default" : "outline"}
-                        onClick={() => setYear(y)}
-                        className={`py-3 text-xs rounded-none h-auto transition-all ${
-                          year === y
-                            ? "bg-white text-black dark:bg-white dark:text-black border-white shadow-[0_0_10px_rgba(255,255,255,0.5)] translate-y-1"
-                            : "opacity-50 hover:opacity-100"
-                        }`}
+                        className="retro flex h-11 cursor-pointer items-center justify-center border-2 border-white/15 bg-[#0d0d0d] text-xs text-white/70 transition-colors duration-150 hover:border-brand/40 hover:text-white has-[:checked]:border-brand has-[:checked]:bg-brand has-[:checked]:text-[#0a0a0a] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-light"
                       >
+                        <input
+                          type="radio"
+                          name="year-choice"
+                          value={y}
+                          checked={year === y}
+                          onChange={() => setYear(y)}
+                          className="sr-only"
+                        />
                         {y}
-                      </Button>
+                      </label>
                     ))}
                   </div>
                   {fieldErrors.year && (
-                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">
-                      {fieldErrors.year}
-                    </p>
+                    <p className={FIELD_ERROR}>{fieldErrors.year}</p>
                   )}
                 </div>
 
                 <div className="grid gap-3">
-                  <Label
-                    htmlFor="lc_username"
-                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
-                  >
-                    LEETCODE_USERNAME
-                  </Label>
+                  <Label htmlFor="lc_username">LEETCODE USERNAME</Label>
                   {/* CONNECT verifies the handle against the live profile so a
                       typo or wrong name can't be committed. */}
                   <LeetCodeConnect
@@ -304,22 +280,17 @@ export default function OnboardingPage() {
                     value={lcUsername}
                     onChange={setLcUsername}
                     placeholder="YOUR_LC_HANDLE"
-                    inputClassName="text-xs"
                     invalid={!!fieldErrors.lcUsername}
                   />
                   {fieldErrors.lcUsername && (
-                    <p className="text-[10px] text-destructive uppercase tracking-widest mt-1">
-                      {fieldErrors.lcUsername}
-                    </p>
+                    <p className={FIELD_ERROR}>{fieldErrors.lcUsername}</p>
                   )}
                 </div>
 
                 <div className="grid gap-3">
-                  <Label
-                    htmlFor="bio"
-                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
-                  >
-                    BIO <span className="text-zinc-600">(OPTIONAL)</span>
+                  <Label htmlFor="bio">
+                    BIO{" "}
+                    <span className="text-muted-foreground">(OPTIONAL)</span>
                   </Label>
                   <Input
                     id="bio"
@@ -329,25 +300,15 @@ export default function OnboardingPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setBio(e.target.value)
                     }
-                    className="text-xs"
                   />
                 </div>
 
                 <div className="grid gap-3">
-                  <Label
-                    htmlFor="github"
-                    className="text-[10px] text-muted-foreground uppercase tracking-widest"
-                  >
-                    GITHUB_USERNAME{" "}
-                    <span className="text-zinc-600">(AUTO-FILLED)</span>
+                  <Label htmlFor="github">
+                    GITHUB USERNAME{" "}
+                    <span className="text-muted-foreground">(AUTO-FILLED)</span>
                   </Label>
-                  <Input
-                    id="github"
-                    value={githubUsername}
-                    readOnly
-                    disabled
-                    className="text-xs opacity-50 cursor-not-allowed"
-                  />
+                  <Input id="github" value={githubUsername} readOnly disabled />
                 </div>
               </div>
 

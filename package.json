@@ -2,9 +2,10 @@
   "name": "dn-orbit",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "bun@1.4.3",
   "scripts": {
-    "dev": "next dev",
-    "build": "bunx prisma generate && bunx prisma migrate deploy && next build",
+    "dev": "next dev --no-server-fast-refresh",
+    "build": "prisma generate && (prisma migrate deploy || true) && next build",
     "start": "next start",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

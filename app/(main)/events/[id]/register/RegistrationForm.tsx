@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
 import { toast } from "@/components/ui/8bit-toast";
+import { PixelArrow, PixelCheck } from "@/components/ui/PixelIcons";
 import {
   AUDIENCE_BADGE_LABELS,
   type EventAudience,
@@ -60,6 +61,13 @@ export function RegistrationForm({
   const [usn, setUsn] = useState(prefill?.usn ?? "");
   const [responses, setResponses] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Editing a field clears its error; the full check runs again on submit.
+  const clearError = (key: string) =>
+    setErrors((p) => {
+      if (!(key in p)) return p;
+      const { [key]: _, ...rest } = p;
+      return rest;
+    });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   // Hidden (unmet-condition) fields are dropped by validateSubmission on both
@@ -79,8 +87,8 @@ export function RegistrationForm({
   if (done) {
     return (
       <Shell title={title} meta={meta}>
-        <Card className="w-full items-center gap-4 border-[#22c55e]/30 p-10 text-center">
-          <span className="retro text-4xl text-[#22c55e]">✓</span>
+        <Card className="w-full items-center gap-4 border-brand/30 p-10 text-center">
+          <PixelCheck className="text-4xl text-brand-light" />
           <p className="retro text-sm text-white">YOU&apos;RE REGISTERED!</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
             We&apos;ve saved your spot. See you there.
@@ -138,49 +146,60 @@ export function RegistrationForm({
   return (
     <Shell title={title} meta={meta}>
       <form onSubmit={submit} noValidate className="flex w-full flex-col gap-5">
-        <FieldCard label="NAME" required error={errors.name}>
+        <FieldCard htmlFor="reg-name" label="NAME" required error={errors.name}>
           <Input
-            font="normal"
+            id="reg-name"
             value={name}
             autoComplete="name"
             placeholder="Your full name"
             aria-invalid={!!errors.name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              clearError("name");
+            }}
           />
         </FieldCard>
 
         <FieldCard
+          htmlFor="reg-email"
           label="EMAIL"
           required
           error={errors.email}
           description={emailLocked ? "Linked to your account." : undefined}
         >
           <Input
-            font="normal"
+            id="reg-email"
             type="email"
             value={email}
             disabled={emailLocked}
             autoComplete="email"
             placeholder="you@example.com"
             aria-invalid={!!errors.email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              clearError("email");
+            }}
           />
         </FieldCard>
 
         {showUsn && (
           <FieldCard
+            htmlFor="reg-usn"
             label="USN / COLLEGE ID"
             required
             error={errors.usn}
             description={usnLocked ? "Linked to your account." : undefined}
           >
             <Input
-              font="normal"
+              id="reg-usn"
               value={usn}
               disabled={usnLocked}
               placeholder="e.g. 4JK24CS069"
               aria-invalid={!!errors.usn}
-              onChange={(e) => setUsn(e.target.value)}
+              onChange={(e) => {
+                setUsn(e.target.value);
+                clearError("usn");
+              }}
             />
           </FieldCard>
         )}
@@ -192,19 +211,22 @@ export function RegistrationForm({
               field={f}
               value={responses[f.id]}
               error={errors[f.id]}
-              onChange={(v) => setResponses((p) => ({ ...p, [f.id]: v }))}
+              onChange={(v) => {
+                setResponses((p) => ({ ...p, [f.id]: v }));
+                clearError(f.id);
+              }}
             />
           ) : null,
         )}
 
         <div className="mt-1 flex flex-col gap-3">
-          <p className="retro text-[8px] tracking-widest text-muted-foreground">
-            <span className="text-[#ef4444]">*</span> REQUIRED
+          <p className="retro text-[9px] tracking-[0.14em] text-muted-foreground">
+            <span className="text-brand-light">*</span> REQUIRED
           </p>
           <Button
             type="submit"
             disabled={submitting}
-            className="w-full text-[11px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black sm:w-fit sm:px-10"
+            className="w-full text-[11px] !bg-brand hover:!bg-brand-light !text-black sm:w-fit sm:px-10"
           >
             {submitting ? "SUBMITTING…" : "SUBMIT REGISTRATION"}
           </Button>
@@ -239,10 +261,10 @@ function Shell({
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 px-5 py-24 sm:gap-8 sm:px-6 sm:py-28">
       <Back />
-      {/* Google-Forms-style header card: a green top accent bar + the event
+      {/* Google-Forms-style header card: a purple top accent bar + the event
           identity, sitting above the question cards. */}
-      <div className="flex flex-col gap-3 border-2 border-white/10 border-t-[6px] border-t-[#22c55e] bg-[#0a0a0a] p-6 sm:p-8">
-        <span className="retro text-[9px] tracking-widest text-[#22c55e]">
+      <div className="flex flex-col gap-3 border-2 border-white/10 border-t-[6px] border-t-brand bg-[#0a0a0a] p-6 sm:p-8">
+        <span className="retro text-[9px] tracking-widest text-brand-light">
           EVENT REGISTRATION
         </span>
         <h1 className="retro text-lg leading-relaxed text-white sm:text-xl">
@@ -250,7 +272,7 @@ function Shell({
         </h1>
         <div className="flex flex-wrap items-center gap-3">
           <AudienceBadge audience={meta.audience} />
-          {when && <p className="retro text-[10px] text-[#22c55e]">{when}</p>}
+          {when && <p className="retro text-[10px] text-brand-light">{when}</p>}
         </div>
         {meta.capacityLabel && (
           <p className="retro text-[9px] text-muted-foreground">
@@ -278,7 +300,7 @@ function Shell({
 function AudienceBadge({ audience }: { audience: EventAudience }) {
   const label = AUDIENCE_BADGE_LABELS[audience];
   return (
-    <span className="retro border-2 border-[#22c55e] px-2 py-1 text-[8px] text-[#22c55e]">
+    <span className="retro border-2 border-brand px-2 py-1 text-[8px] text-brand-light">
       {label}
     </span>
   );
@@ -288,9 +310,9 @@ function Back() {
   return (
     <Link
       href="/#events"
-      className="retro flex w-fit items-center gap-2 text-[9px] text-[#22c55e] transition-colors duration-200 hover:text-white"
+      className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
     >
-      ◂ BACK TO EVENTS
+      <PixelArrow dir="left" /> BACK TO EVENTS
     </Link>
   );
 }

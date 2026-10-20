@@ -177,7 +177,7 @@ export function ImageCropUpload({
             <button
               type="button"
               onClick={pickFile}
-              className="retro border-2 border-white/20 px-3 py-2 text-[9px] text-white/80 transition-colors hover:border-[#22c55e] hover:text-[#22c55e]"
+              className="retro border-2 border-white/20 px-3 py-2 text-[9px] text-white/80 transition-colors hover:border-brand hover:text-brand-light"
             >
               CHANGE
             </button>
@@ -194,7 +194,7 @@ export function ImageCropUpload({
         <button
           type="button"
           onClick={pickFile}
-          className="retro flex w-full items-center justify-center border-2 border-dashed border-white/20 bg-[#0d0d0d] px-4 py-8 text-[9px] text-muted-foreground transition-colors hover:border-[#22c55e] hover:text-[#22c55e]"
+          className="retro flex w-full items-center justify-center border-2 border-dashed border-white/20 bg-[#0d0d0d] px-4 py-8 text-[9px] text-muted-foreground transition-colors hover:border-brand hover:text-brand-light"
           style={{ aspectRatio: String(aspect) }}
         >
           + UPLOAD IMAGE
@@ -228,7 +228,7 @@ export function ImageCropUpload({
               CANCEL
             </Button>
             <Button
-              className="flex-1 text-[10px] !bg-[#22c55e] !text-black hover:!bg-[#16a34a]"
+              className="flex-1 text-[10px] !bg-brand !text-black hover:!bg-brand-light"
               onClick={confirmCrop}
               disabled={busy}
             >
@@ -269,7 +269,7 @@ export function ImageCropUpload({
               step={0.01}
               value={zoom}
               onChange={(e) => setZoom(Number(e.target.value))}
-              className="h-1 flex-1 cursor-pointer accent-[#22c55e]"
+              className="h-1 flex-1 cursor-pointer accent-brand"
               aria-label="Zoom"
             />
             <span className="retro text-[8px] text-muted-foreground">ZOOM</span>

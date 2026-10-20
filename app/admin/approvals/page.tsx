@@ -6,7 +6,7 @@ import { canAccessAdmin } from "@/lib/roles";
 import { ApprovalsQueue } from "./ApprovalsQueue";
 
 export const metadata = {
-  title: "APPROVALS // ORBIT ADMIN",
+  title: "APPROVALS // ADMIN",
 };
 
 // Unified moderation queue: every project/event that hasn't been actioned yet.

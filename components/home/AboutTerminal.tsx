@@ -57,8 +57,8 @@ function clamp01(n: number): number {
 }
 
 function lineClass(type: TerminalLine["type"]): string {
-  // Commands glow green like a real shell prompt; comments dim; output neutral.
-  if (type === "input") return "text-emerald-300";
+  // Commands glow purple like a real shell prompt; comments dim; output neutral.
+  if (type === "input") return "text-brand-soft";
   if (type === "comment") return "text-muted-foreground/70";
   return "text-foreground/85";
 }
@@ -86,7 +86,7 @@ const TerminalLineView = memo(function TerminalLineView({
     <p className={cn("retro text-sm leading-relaxed", lineClass(type))}>
       {shown.length ? shown : " "}
       {typing && (
-        <span className="cursor-blink ml-0.5 inline-block text-emerald-300">
+        <span className="cursor-blink ml-0.5 inline-block text-brand-soft">
           ▋
         </span>
       )}
@@ -296,7 +296,7 @@ export function AboutTerminal({
                   <div className="flex gap-1.5">
                     <div className="size-2.5 bg-destructive" />
                     <div className="size-2.5 bg-yellow-500" />
-                    <div className="size-2.5 bg-green-500" />
+                    <div className="size-2.5 bg-brand" />
                   </div>
                   <CardTitle className="retro text-[10px] text-muted-foreground">
                     {title}
@@ -319,7 +319,7 @@ export function AboutTerminal({
                   <div className="space-y-1.5">
                     {renderedLines}
                     {allDone && (
-                      <p className="retro text-sm text-emerald-300">
+                      <p className="retro text-sm text-brand-soft">
                         {"> "}
                         <span className="cursor-blink inline-block">▋</span>
                       </p>

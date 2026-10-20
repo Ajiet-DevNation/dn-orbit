@@ -101,7 +101,7 @@ const SIZE_CLASS = {
 const TONE = {
   default: { border: "border-white/80", bar: "bg-white/[0.06]" },
   danger: { border: "border-red-500/80", bar: "bg-red-500/[0.08]" },
-  accent: { border: "border-[#22c55e]/80", bar: "bg-[#22c55e]/[0.08]" },
+  accent: { border: "border-brand/80", bar: "bg-brand/[0.08]" },
 } as const;
 
 export function PixelModal({
@@ -262,7 +262,7 @@ export function PixelModal({
                 aria-label="Close"
                 className="shrink-0 text-[10px]"
               >
-                <span aria-hidden>✕</span>
+                <span aria-hidden>×</span>
               </Button>
             )}
           </div>

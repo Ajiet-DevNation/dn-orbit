@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
+  CANVAS_SIZE,
   FLING_THRESHOLD,
+  LOADER_RING_CELLS,
   LOGO_HALF_H,
   LOGO_HALF_W,
+  loaderRingCells,
   MAX_FLING_SPEED,
   ORBIT_PERIOD_MS,
   ORBIT_RX,
@@ -15,12 +18,14 @@ import {
   REFORM_MS,
   reformProgressAt,
   reformSpinBoost,
+  ringCells,
   ringRevealAt,
   SCATTER_MS,
   SHATTER_TOTAL_MS,
   settleSpin,
   shatterPhaseAt,
   shatterVelocity,
+  spinPoint,
   stepReform,
   stepScatter,
 } from "./orbit-engine";
@@ -286,5 +291,100 @@ describe("geometry sanity", () => {
 
   test("the orbit fits inside the canvas", () => {
     expect(ORBIT_RX * 2).toBeLessThan(900);
+  });
+});
+
+describe("loaderRingCells", () => {
+  test("nothing at 0, the whole ring at 1", () => {
+    expect(loaderRingCells(0, 6)).toEqual([]);
+    expect(loaderRingCells(1, 6).length).toBe(LOADER_RING_CELLS);
+  });
+
+  test("grows monotonically and never past the full ring", () => {
+    let prev = 0;
+    for (let p = 0; p <= 1.2; p += 0.01) {
+      const n = loaderRingCells(p, 6).length;
+      expect(n).toBeGreaterThanOrEqual(prev);
+      expect(n).toBeLessThanOrEqual(LOADER_RING_CELLS);
+      prev = n;
+    }
+  });
+
+  test("cells sit on the pixel grid, inside the canvas, half in front", () => {
+    const cells = loaderRingCells(1, 6);
+    for (const c of cells) {
+      expect(c.x % 6).toBe(0);
+      expect(c.y % 6).toBe(0);
+      expect(c.x).toBeGreaterThanOrEqual(0);
+      expect(c.x).toBeLessThanOrEqual(CANVAS_SIZE);
+    }
+    const front = cells.filter((c) => c.front).length;
+    expect(front).toBeGreaterThan(cells.length * 0.4);
+    expect(front).toBeLessThan(cells.length * 0.6);
+  });
+});
+
+describe("ringCells", () => {
+  const shape = {
+    rx: ORBIT_RX,
+    ry: ORBIT_RY,
+    tilt: 0.4,
+    count: 100,
+    cell: 6,
+  };
+
+  test("cells stay on the pixel grid at any spin angle", () => {
+    for (const spin of [0, 0.1, 0.77, Math.PI / 4, 2]) {
+      for (const c of ringCells({ ...shape, tilt: shape.tilt + spin })) {
+        expect(c.x % 6).toBe(0);
+        expect(c.y % 6).toBe(0);
+      }
+    }
+  });
+
+  test("spinning in-plane keeps the near/far split (depth is untouched)", () => {
+    const a = ringCells(shape).map((c) => c.front);
+    const b = ringCells({ ...shape, tilt: shape.tilt + 1.3 }).map(
+      (c) => c.front,
+    );
+    expect(b).toEqual(a);
+  });
+
+  test("scale shrinks the ring about the centre", () => {
+    const span = (cells: { x: number }[]) =>
+      Math.max(...cells.map((c) => c.x)) - Math.min(...cells.map((c) => c.x));
+    expect(span(ringCells({ ...shape, scale: 0.5 }))).toBeLessThan(
+      span(ringCells(shape)) * 0.55,
+    );
+  });
+});
+
+describe("ringCells spacing", () => {
+  test("cells are evenly spaced along the curve, even at the flat tips", () => {
+    const cells = ringCells({
+      rx: ORBIT_RX,
+      ry: ORBIT_RY,
+      tilt: 0,
+      count: 120,
+      cell: 1,
+    });
+    const gaps = cells.map((c, i) => {
+      const n = cells[(i + 1) % cells.length];
+      return Math.hypot(n.x - c.x, n.y - c.y);
+    });
+    expect(Math.max(...gaps) / Math.min(...gaps)).toBeLessThan(1.25);
+  });
+});
+
+describe("spinPoint", () => {
+  test("planets and trails share one spin: a quarter turn maps x to y", () => {
+    const p = spinPoint(10, 0, Math.PI / 2);
+    expect(p.x).toBeCloseTo(0, 10);
+    expect(p.y).toBeCloseTo(10, 10);
+  });
+
+  test("spinning keeps distance from the centre", () => {
+    const p = spinPoint(3, 4, 1.234);
+    expect(Math.hypot(p.x, p.y)).toBeCloseTo(5, 10);
   });
 });

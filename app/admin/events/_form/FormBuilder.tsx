@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
+import { PixelArrow } from "@/components/ui/PixelIcons";
 import {
   audienceCollectsUsn,
   CHOICE_TYPES,
@@ -59,7 +60,7 @@ function IconBtn({
         "retro flex size-7 items-center justify-center border-2 text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-25",
         danger
           ? "border-[#ef4444]/50 text-[#ef4444] hover:bg-[#ef4444] hover:text-black"
-          : "border-white/25 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]",
+          : "border-white/25 text-white/70 hover:border-brand hover:text-brand-light",
       )}
     >
       {children}
@@ -111,8 +112,8 @@ export function FormBuilder({
   return (
     <div className="flex flex-col gap-5">
       {/* Always-collected default fields — locked, so they aren't duplicated. */}
-      <div className="flex flex-col gap-2.5 border-2 border-[#22c55e]/25 bg-[#22c55e]/[0.04] p-4">
-        <span className="retro text-[9px] tracking-widest text-[#22c55e]">
+      <div className="flex flex-col gap-2.5 border-2 border-brand/25 bg-brand/[0.04] p-4">
+        <span className="retro text-[9px] tracking-widest text-brand-light">
           ALWAYS COLLECTED
         </span>
         <div className="flex flex-wrap gap-2">
@@ -121,7 +122,7 @@ export function FormBuilder({
               key={d}
               className="retro inline-flex items-center gap-2 border-2 border-white/15 bg-black/40 px-3 py-2 text-[9px] text-white/60"
             >
-              <span aria-hidden className="text-[#22c55e]/70">
+              <span aria-hidden className="text-brand-light/70">
                 ▣
               </span>
               {d}
@@ -135,8 +136,8 @@ export function FormBuilder({
 
       {/* Branching primer — surfaces the conditional-display feature so admins
           know follow-up questions can be gated on an earlier answer. */}
-      <div className="flex flex-col gap-1.5 border-2 border-[#22c55e]/25 bg-black/30 p-4">
-        <span className="retro inline-flex items-center gap-2 text-[9px] tracking-widest text-[#22c55e]">
+      <div className="flex flex-col gap-1.5 border-2 border-brand/25 bg-black/30 p-4">
+        <span className="retro inline-flex items-center gap-2 text-[9px] tracking-widest text-brand-light">
           <span aria-hidden>⑂</span> BRANCHING SUPPORTED
         </span>
         <p className="retro text-[8px] leading-relaxed text-muted-foreground">
@@ -175,7 +176,7 @@ export function FormBuilder({
           >
             {/* Card header: index + reorder / delete */}
             <div className="flex items-center justify-between gap-2">
-              <span className="retro text-[9px] tracking-widest text-[#22c55e]">
+              <span className="retro text-[9px] tracking-widest text-brand-light">
                 QUESTION {idx + 1}
               </span>
               <div className="flex gap-2">
@@ -184,21 +185,21 @@ export function FormBuilder({
                   disabled={idx === 0}
                   aria-label="Move question up"
                 >
-                  ▲
+                  <PixelArrow dir="up" />
                 </IconBtn>
                 <IconBtn
                   onClick={() => move(idx, 1)}
                   disabled={idx === value.length - 1}
                   aria-label="Move question down"
                 >
-                  ▼
+                  <PixelArrow dir="down" />
                 </IconBtn>
                 <IconBtn
                   danger
                   onClick={() => remove(f.id)}
                   aria-label="Delete question"
                 >
-                  ✕
+                  ×
                 </IconBtn>
               </div>
             </div>
@@ -206,7 +207,9 @@ export function FormBuilder({
             {/* Label + type */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label className="text-[9px]">QUESTION *</Label>
+                <Label>
+                  QUESTION <span className="text-brand-light">*</span>
+                </Label>
                 <Input
                   value={f.label}
                   placeholder="e.g. T-shirt size"
@@ -214,7 +217,7 @@ export function FormBuilder({
                 />
               </div>
               <div className="grid gap-2">
-                <Label className="text-[9px]">TYPE</Label>
+                <Label>TYPE</Label>
                 <Select
                   value={f.type}
                   onValueChange={(type) =>
@@ -243,7 +246,7 @@ export function FormBuilder({
             {/* Help text + placeholder (placeholder only for free-text inputs) */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label className="text-[9px]">HELP TEXT</Label>
+                <Label>HELP TEXT</Label>
                 <Input
                   value={f.description ?? ""}
                   placeholder="Optional"
@@ -254,7 +257,7 @@ export function FormBuilder({
               </div>
               {!isChoice && (
                 <div className="grid gap-2">
-                  <Label className="text-[9px]">PLACEHOLDER</Label>
+                  <Label>PLACEHOLDER</Label>
                   <Input
                     value={f.placeholder ?? ""}
                     placeholder="Optional"
@@ -269,7 +272,7 @@ export function FormBuilder({
             {/* Options editor for choice-style fields */}
             {isChoice && (
               <div className="flex flex-col gap-2.5">
-                <Label className="text-[9px]">OPTIONS</Label>
+                <Label>OPTIONS</Label>
                 {(f.options ?? []).map((opt, oi) => (
                   <div key={oi} className="flex items-center gap-3">
                     <Input
@@ -292,13 +295,13 @@ export function FormBuilder({
                       }
                       aria-label="Remove option"
                     >
-                      ✕
+                      ×
                     </IconBtn>
                   </div>
                 ))}
                 <button
                   type="button"
-                  className="retro w-fit border-2 border-[#22c55e]/50 px-3 py-1.5 text-[8px] tracking-widest text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black"
+                  className="retro w-fit border-2 border-brand/50 px-3 py-1.5 text-[8px] tracking-widest text-brand-light transition-colors hover:bg-brand hover:text-black"
                   onClick={() =>
                     update(f.id, {
                       options: [
@@ -317,8 +320,8 @@ export function FormBuilder({
                 to an earlier choice question (branching forms). */}
             {condCandidates.length > 0 && (
               <div className="grid gap-2 border-t-2 border-white/10 pt-4">
-                <Label className="inline-flex items-center gap-2 text-[9px]">
-                  <span aria-hidden className="text-[#22c55e]">
+                <Label className="inline-flex items-center gap-2">
+                  <span aria-hidden className="text-brand-light">
                     ⑂
                   </span>
                   SHOW ONLY IF{" "}
@@ -418,14 +421,14 @@ export function FormBuilder({
       <Button
         type="button"
         onClick={add}
-        className="w-fit text-[9px] !bg-[#22c55e] !text-black hover:!bg-[#16a34a]"
+        className="w-fit text-[9px] !bg-brand !text-black hover:!bg-brand-light"
       >
         + ADD QUESTION
       </Button>
 
       {value.length > 0 && (
         <details className="border-2 border-white/15 bg-black/30 p-4">
-          <summary className="retro cursor-pointer text-[9px] tracking-widest text-[#22c55e]">
+          <summary className="retro cursor-pointer text-[9px] tracking-widest text-brand-light">
             LIVE PREVIEW
           </summary>
           <LivePreview fields={value} />

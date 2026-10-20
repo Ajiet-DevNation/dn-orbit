@@ -112,7 +112,7 @@ export function ApprovalsQueue({
         type="button"
         disabled={isPending}
         onClick={() => review(kind, id, "approve", title)}
-        className={`${btn} border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black`}
+        className={`${btn} border-brand text-brand-light hover:bg-brand hover:text-black`}
       >
         APPROVE
       </button>
@@ -194,7 +194,7 @@ export function ApprovalsQueue({
       header: "DRAFT?",
       render: (e) => (
         <span
-          className={`retro text-[8px] ${e.isPublished ? "text-[#22c55e]" : "text-amber-400"}`}
+          className={`retro text-[8px] ${e.isPublished ? "text-brand-light" : "text-amber-400"}`}
         >
           {e.isPublished ? "WILL GO LIVE" : "DRAFT"}
         </span>
@@ -214,8 +214,8 @@ export function ApprovalsQueue({
       onClick={() => setTab(t)}
       className={`retro border-2 px-4 py-2 text-[9px] tracking-widest transition-colors ${
         tab === t
-          ? "border-[#22c55e] bg-[#22c55e]/[0.08] text-[#22c55e]"
-          : "border-white/10 text-zinc-500 hover:border-[#22c55e]/30 hover:text-[#22c55e]"
+          ? "border-brand bg-brand/[0.08] text-brand-light"
+          : "border-white/10 text-zinc-500 hover:border-brand/30 hover:text-brand-light"
       }`}
     >
       {label} [{count}]

@@ -28,8 +28,8 @@ const ArrowButton = memo(function ArrowButton({
       className={[
         "retro absolute top-1/2 z-[1100] grid size-11 -translate-y-1/2 place-items-center",
         "border-2 border-white/15 bg-[#0a0a0a]/60 text-2xl leading-none text-white/65 backdrop-blur-sm",
-        "transition-colors duration-200 hover:border-[#22c55e] hover:text-[#22c55e]",
-        "focus-visible:border-[#22c55e] focus-visible:text-[#22c55e] focus-visible:outline-none",
+        "transition-colors duration-200 hover:border-brand hover:text-brand-light",
+        "focus-visible:border-brand focus-visible:text-brand-light focus-visible:outline-none",
         "disabled:pointer-events-none disabled:opacity-25",
         isPrev ? "left-1 sm:left-3" : "right-1 sm:right-3",
       ].join(" ")}
@@ -70,7 +70,7 @@ export const CoverflowControls = memo(function CoverflowControls({
         style={counterStyle}
       >
         <span className="retro text-[10px] tracking-[0.2em] text-muted-foreground">
-          <span className="text-[#22c55e]">
+          <span className="text-brand-light">
             {String(Math.min(index + 1, count)).padStart(2, "0")}
           </span>
           <span className="px-1.5 text-white/30">/</span>
@@ -90,7 +90,7 @@ export const CoverflowFloor = memo(function CoverflowFloor() {
       className="pointer-events-none absolute left-1/2 top-[58%] z-0 h-40 w-[80%] max-w-3xl -translate-x-1/2 -translate-y-1/2"
       style={{
         background:
-          "radial-gradient(ellipse at center, rgba(34,197,94,0.16), rgba(34,197,94,0.04) 45%, transparent 72%)",
+          "radial-gradient(ellipse at center, rgba(139,92,246,0.16), rgba(139,92,246,0.04) 45%, transparent 72%)",
       }}
     />
   );

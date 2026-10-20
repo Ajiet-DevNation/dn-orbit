@@ -42,11 +42,11 @@ const MemberFront = memo(function MemberFront({
   member: MemberData;
 }) {
   return (
-    <Card className="h-full justify-between gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(34,197,94,0.05)]">
+    <Card className="h-full justify-between gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(139,92,246,0.05)]">
       {/* Sizes in container units (cqw) of the card wrapper, so the chrome
           scales with the lens. */}
       <div className="border-b-[6px] border-white/10 px-3 py-[clamp(0.75rem,2.6cqw,1.25rem)] text-center">
-        <span className="retro text-[clamp(9px,2cqw,12px)] tracking-wider text-[#22c55e]">
+        <span className="retro text-[clamp(9px,2cqw,12px)] tracking-wider text-brand-light">
           {member.role}
         </span>
       </div>
@@ -82,7 +82,7 @@ const MemberFront = memo(function MemberFront({
             />
           ) : (
             <div className="dot-grid-bg flex h-full w-full items-center justify-center">
-              <span className="retro text-5xl text-[#22c55e]/25 select-none">
+              <span className="retro text-5xl text-brand-light/25 select-none">
                 {initials(member.name)}
               </span>
             </div>
@@ -110,12 +110,12 @@ const MemberBack = memo(function MemberBack({
 }) {
   const stop = (e: React.MouseEvent) => e.stopPropagation();
   return (
-    <Card className="h-full justify-start gap-4 border-[#22c55e]/30 py-6 shadow-[0_0_24px_rgba(34,197,94,0.14)]">
+    <Card className="h-full justify-start gap-4 border-brand/30 py-6 shadow-[0_0_24px_rgba(139,92,246,0.14)]">
       <div className="px-5">
         <p className="retro text-[clamp(12px,2.8cqw,17px)] leading-relaxed text-white">
           {toTitleCase(member.name)}
         </p>
-        <p className="retro mt-2 text-[clamp(9px,2cqw,12px)] tracking-wider text-[#22c55e]">
+        <p className="retro mt-2 text-[clamp(9px,2cqw,12px)] tracking-wider text-brand-light">
           {member.role}
           {member.isAlumni && <span className="text-amber-400"> · ALUMNI</span>}
         </p>
@@ -133,7 +133,7 @@ const MemberBack = memo(function MemberBack({
             rel="noopener noreferrer"
             onClick={stop}
             aria-label={`${member.name} on LinkedIn`}
-            className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-[#22c55e]"
+            className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-brand-light"
           >
             <FaLinkedin className="size-6" />
           </a>
@@ -145,7 +145,7 @@ const MemberBack = memo(function MemberBack({
             rel="noopener noreferrer"
             onClick={stop}
             aria-label={`${member.name} on GitHub`}
-            className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-[#22c55e]"
+            className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-brand-light"
           >
             <FaGithub className="size-6" />
           </a>
@@ -157,7 +157,7 @@ const MemberBack = memo(function MemberBack({
             rel="noopener noreferrer"
             onClick={stop}
             aria-label={`${member.name} on LeetCode`}
-            className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-[#22c55e]"
+            className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-brand-light"
           >
             <SiLeetcode className="size-6" />
           </a>
@@ -254,7 +254,7 @@ const MemberThumb = memo(function MemberThumb({
     <div
       aria-hidden
       onClick={() => onPick(index)}
-      className="group @container relative h-full w-full cursor-pointer overflow-hidden border-2 border-white/10 bg-[#0d0d0d] transition-colors duration-200 hover:border-[#22c55e]/60"
+      className="group @container relative h-full w-full cursor-pointer overflow-hidden border-2 border-white/10 bg-[#0d0d0d] transition-colors duration-200 hover:border-brand/60"
     >
       {member.imageUrl ? (
         // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
@@ -270,7 +270,7 @@ const MemberThumb = memo(function MemberThumb({
         />
       ) : (
         <div className="dot-grid-bg flex h-full w-full items-center justify-center">
-          <span className="retro text-2xl text-[#22c55e]/25 select-none">
+          <span className="retro text-2xl text-brand-light/25 select-none">
             {initials(member.name)}
           </span>
         </div>

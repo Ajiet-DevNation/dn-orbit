@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
-import { Input } from "@/components/ui/8bit-input";
+import {
+  FIELD_ERROR,
+  FIELD_FRAME,
+  FIELD_FRAME_SIDES,
+  Input,
+} from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
 import {
   Select,
@@ -13,7 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
+import { Textarea } from "@/components/ui/8bit-textarea";
 import { toast } from "@/components/ui/8bit-toast";
+import { PixelArrow, PixelCheck } from "@/components/ui/PixelIcons";
 import {
   ABOUT_MAX_WORDS,
   BRANCHES,
@@ -122,6 +129,10 @@ const SECTIONS: { title: string; keys: Key[]; cv?: true }[] = [
   { title: "IN YOUR WORDS", keys: ["about"] },
 ];
 
+// Review read-back: the form's label style, dimmed, above each answer.
+const REVIEW_LABEL =
+  "retro text-[10px] leading-relaxed tracking-[0.14em] text-muted-foreground";
+
 const REQUIRED = (Object.keys(FIELDS) as Key[]).filter(
   (k) => FIELDS[k].required,
 );
@@ -133,8 +144,15 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   const [submitting, setSubmitting] = useState(false);
   const [cv, setCv] = useState<File | null>(null);
 
-  const set = (key: Key) => (v: string) =>
+  // Editing a field clears its error; the full check runs again on REVIEW.
+  const set = (key: Key) => (v: string) => {
     setValues((p) => ({ ...p, [key]: v }));
+    setErrors((p) => {
+      if (!(key in p)) return p;
+      const { [key]: _, ...rest } = p;
+      return rest;
+    });
+  };
 
   // Checked on pick so a bad file never reaches review. The server re-checks
   // the actual bytes; this only catches the obvious cases early.
@@ -169,8 +187,8 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   if (step === "done") {
     return (
       <Layout step="done">
-        <Card className="w-full items-center gap-4 border-[#22c55e]/30 p-10 text-center">
-          <span className="retro text-4xl text-[#22c55e]">✓</span>
+        <Card className="w-full items-center gap-4 border-brand/30 p-10 text-center">
+          <PixelCheck className="text-4xl text-brand-light" />
           <p className="retro text-sm text-white">APPLICATION SENT!</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
             Thanks for applying. The team will review it and reach out on
@@ -239,7 +257,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
                     FIELDS[k].wide && "sm:col-span-2",
                   )}
                 >
-                  <dt className="retro text-[8px] tracking-widest text-muted-foreground">
+                  <dt className={REVIEW_LABEL}>
                     {k === "about" ? "ABOUT YOU" : FIELDS[k].label}
                   </dt>
                   <dd className="whitespace-pre-wrap break-words font-mono text-sm text-white">
@@ -249,9 +267,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
               ))}
               {s.cv && (
                 <div className="flex flex-col gap-1 sm:col-span-2">
-                  <dt className="retro text-[8px] tracking-widest text-muted-foreground">
-                    CV
-                  </dt>
+                  <dt className={REVIEW_LABEL}>CV</dt>
                   <dd className="break-all font-mono text-sm text-white">
                     {cv ? cv.name : "—"}
                   </dd>
@@ -268,13 +284,13 @@ export function RecruitmentForm({ open }: { open: boolean }) {
             onClick={() => setStep("form")}
             className="text-[11px] sm:px-8"
           >
-            ◂ EDIT
+            <PixelArrow dir="left" /> EDIT
           </Button>
           <Button
             type="button"
             disabled={submitting}
             onClick={submit}
-            className="text-[11px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black sm:px-10"
+            className="text-[11px] !bg-brand hover:!bg-brand-light !text-black sm:px-10"
           >
             {submitting ? "SUBMITTING…" : "SUBMIT APPLICATION"}
           </Button>
@@ -312,25 +328,18 @@ export function RecruitmentForm({ open }: { open: boolean }) {
       const words = countWords(values.about);
       return (
         <>
-          {/* Same pixel frame as the event form's paragraph field. */}
-          <div className="relative flex border-y-[6px] border-foreground dark:border-ring">
-            <textarea
-              id={id}
-              value={values.about}
-              placeholder="I am a…"
-              aria-invalid={invalid}
-              onChange={(e) => set("about")(e.target.value)}
-              rows={6}
-              className="min-h-[160px] w-full resize-y rounded-none bg-transparent px-3 py-2.5 font-mono text-sm leading-relaxed text-white outline-none placeholder:text-zinc-600"
-            />
-            <div
-              className="pointer-events-none absolute inset-0 -mx-[6px] border-x-[6px] border-foreground dark:border-ring"
-              aria-hidden="true"
-            />
-          </div>
+          <Textarea
+            id={id}
+            value={values.about}
+            placeholder="I am a…"
+            aria-invalid={invalid}
+            onChange={(e) => set("about")(e.target.value)}
+            rows={6}
+            className="[&_textarea]:min-h-[160px]"
+          />
           <p
             className={cn(
-              "retro text-right text-[8px]",
+              "text-right font-mono text-xs",
               words > ABOUT_MAX_WORDS
                 ? "text-[#ef4444]"
                 : "text-muted-foreground",
@@ -345,7 +354,6 @@ export function RecruitmentForm({ open }: { open: boolean }) {
     return (
       <Input
         id={id}
-        font="normal"
         type={f.type ?? "text"}
         value={values[k]}
         autoComplete={f.autoComplete}
@@ -389,14 +397,14 @@ export function RecruitmentForm({ open }: { open: boolean }) {
         ))}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="retro text-[8px] tracking-widest text-muted-foreground">
-            <span className="text-[#ef4444]">*</span> REQUIRED
+          <p className="retro text-[9px] tracking-[0.14em] text-muted-foreground">
+            <span className="text-brand-light">*</span> REQUIRED
           </p>
           <Button
             type="submit"
-            className="w-full text-[11px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black sm:w-fit sm:px-10"
+            className="w-full text-[11px] !bg-brand hover:!bg-brand-light !text-black sm:w-fit sm:px-10"
           >
-            REVIEW INFORMATION ▸
+            REVIEW INFORMATION <PixelArrow />
           </Button>
         </div>
       </form>
@@ -420,9 +428,9 @@ function Layout({
     <div className="mx-auto w-full max-w-6xl px-5 py-24 sm:px-6 sm:py-28">
       <Link
         href="/"
-        className="retro flex w-fit items-center gap-2 text-[9px] text-[#22c55e] transition-colors duration-200 hover:text-white"
+        className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
       >
-        ◂ BACK TO ORBIT
+        <PixelArrow dir="left" /> BACK TO ORBIT
       </Link>
       {/* Full width, like the mock: the rail is too narrow for this card. */}
       <div className="mt-6">
@@ -447,7 +455,7 @@ function Layout({
                 "We reach out on WhatsApp or email.",
               ].map((text, i) => (
                 <li key={text} className="flex gap-3">
-                  <span className="retro shrink-0 text-[9px] leading-5 text-[#22c55e]">
+                  <span className="retro shrink-0 text-[9px] leading-5 text-brand-light">
                     0{i + 1}
                   </span>
                   <span className="text-xs leading-5 text-muted-foreground">
@@ -475,9 +483,9 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-2 border-white/10 bg-[#0a0a0a] transition-colors duration-200 focus-within:border-[#22c55e]/40">
+    <section className="border-2 border-white/10 bg-[#0a0a0a] transition-colors duration-200 focus-within:border-brand/40">
       <header className="flex items-center gap-3 border-b-2 border-white/10 px-5 py-3 sm:px-6">
-        <span className="retro text-[9px] text-[#22c55e]">0{index}</span>
+        <span className="retro text-[9px] text-brand-light">0{index}</span>
         <h2 className="retro text-[9px] tracking-widest text-white/80">
           {"// "}
           {title}
@@ -506,20 +514,13 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("flex flex-col gap-2.5", wide && "sm:col-span-2")}>
-      <Label
-        htmlFor={id}
-        className="font-mono text-sm font-semibold leading-relaxed tracking-wide text-[#22c55e]"
-      >
+    <div className={cn("flex flex-col gap-3", wide && "sm:col-span-2")}>
+      <Label htmlFor={id}>
         {label}
-        {required && <span className="text-[#ef4444]"> *</span>}
+        {required && <span className="text-brand-light">*</span>}
       </Label>
       {children}
-      {error && (
-        <p className="font-mono text-[11px] leading-relaxed text-[#ef4444]">
-          {error}
-        </p>
-      )}
+      {error && <p className={FIELD_ERROR}>{error}</p>}
     </div>
   );
 }
@@ -533,9 +534,46 @@ function CvPicker({
   file: File | null;
   onPick: (file: File | null) => void;
 }) {
+  // Same frame and height as every other field: the file name sits where typed
+  // text would, and the actions are segments joined on the right edge, split
+  // off by the frame's own 4px bar (which turns purple with it on focus).
+  const segment =
+    "retro flex shrink-0 cursor-pointer items-center border-l-4 border-ring px-4 text-[8px] transition-colors duration-150 group-focus-within/field:border-brand group-has-[[aria-invalid=true]]/field:border-[#ef4444]";
   return (
-    <div className="flex flex-wrap items-center gap-3 border-2 border-dashed border-white/15 bg-black/40 px-4 py-3 has-[:focus-visible]:border-[#22c55e]/70">
-      <label className="retro cursor-pointer border-2 border-[#22c55e] px-3 py-2 text-[8px] text-[#22c55e] transition-colors hover:bg-[#22c55e] hover:text-black">
+    <div className={cn(FIELD_FRAME, "h-11 items-stretch dark:bg-input/30")}>
+      <span
+        className={cn(
+          "flex min-w-0 flex-1 items-center px-3.5 font-mono text-base md:text-sm",
+          file ? "text-foreground" : "text-muted-foreground",
+        )}
+      >
+        <span className="truncate">
+          {file ? file.name : "Optional · no file chosen"}
+        </span>
+        {file && (
+          <span className="ml-2 shrink-0 text-muted-foreground">
+            {(file.size / 1024).toFixed(0)} KB
+          </span>
+        )}
+      </span>
+      {file && (
+        <button
+          type="button"
+          onClick={() => onPick(null)}
+          className={cn(
+            segment,
+            "text-[#f87171] hover:bg-[#ef4444]/15 focus-visible:bg-[#ef4444]/15 focus-visible:outline-none",
+          )}
+        >
+          REMOVE
+        </button>
+      )}
+      <label
+        className={cn(
+          segment,
+          "text-brand-light hover:bg-brand hover:text-[#0a0a0a] has-[:focus-visible]:bg-brand has-[:focus-visible]:text-[#0a0a0a]",
+        )}
+      >
         {file ? "CHANGE PDF" : "CHOOSE PDF"}
         <input
           id="rec-cv"
@@ -549,27 +587,7 @@ function CvPicker({
           }}
         />
       </label>
-      {file ? (
-        <>
-          <span className="min-w-0 flex-1 truncate font-mono text-xs text-white">
-            {file.name}
-            <span className="ml-2 text-muted-foreground">
-              {(file.size / 1024).toFixed(0)} KB
-            </span>
-          </span>
-          <button
-            type="button"
-            onClick={() => onPick(null)}
-            className="retro text-[8px] text-red-400 transition-colors hover:text-red-300"
-          >
-            REMOVE
-          </button>
-        </>
-      ) : (
-        <span className="font-mono text-xs text-muted-foreground">
-          Optional · no file chosen
-        </span>
-      )}
+      <div className={FIELD_FRAME_SIDES} aria-hidden="true" />
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { canAccessAdmin } from "@/lib/roles";
 import { EventTable } from "./EventTable";
 
 export const metadata = {
-  title: "EVENTS // ORBIT ADMIN",
+  title: "EVENTS // ADMIN",
 };
 
 export default async function AdminEventsPage() {
@@ -45,7 +45,7 @@ export default async function AdminEventsPage() {
           <Button
             asChild
             size="sm"
-            className="text-[9px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+            className="text-[9px] !bg-brand hover:!bg-brand-light !text-black"
           >
             <Link href="/admin/events/new">+ NEW EVENT</Link>
           </Button>

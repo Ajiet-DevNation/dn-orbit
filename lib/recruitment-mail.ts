@@ -42,11 +42,11 @@ export function decisionMail(
     "\n\n",
   );
   // Inline styles only: mail clients strip <style> blocks and classes.
-  const html = `<div style="font-family:monospace;max-width:520px;margin:0 auto;padding:24px;background:#050505;color:#e4e4e7;border:2px solid #22c55e">
-<p style="margin:0 0 16px;color:#22c55e;font-weight:bold;letter-spacing:2px">DEVNATION</p>
+  const html = `<div style="font-family:monospace;max-width:520px;margin:0 auto;padding:24px;background:#050505;color:#e4e4e7;border:2px solid #8b5cf6">
+<p style="margin:0 0 16px;color:#a78bfa;font-weight:bold;letter-spacing:2px">DEVNATION</p>
 <p>Hi ${escapeHtml(name)},</p>
 ${lines.map((l) => `<p style="line-height:1.6">${escapeHtml(l)}</p>`).join("\n")}
-<p>— Team DevNation<br><a href="${SITE_URL}" style="color:#22c55e">devnation.club</a></p>
+<p>— Team DevNation<br><a href="${SITE_URL}" style="color:#a78bfa">devnation.club</a></p>
 </div>`;
   return { subject, text, html };
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { toast } from "@/components/ui/8bit-toast";
+import { PixelArrow, PixelCheck } from "@/components/ui/PixelIcons";
 import { errorMessage } from "@/lib/utils";
 
 export interface RosterEntry {
@@ -53,7 +54,7 @@ function statusChip(
   if (reviewStatus === "rejected")
     return { label: "REJECTED", className: "border-red-500/50 text-red-400" };
   return isPublished
-    ? { label: "APPROVED · LIVE", className: "border-[#22c55e] text-[#22c55e]" }
+    ? { label: "APPROVED · LIVE", className: "border-brand text-brand-light" }
     : { label: "APPROVED · DRAFT", className: "border-white/25 text-zinc-300" };
 }
 
@@ -120,11 +121,17 @@ function AttendButton({
       onClick={onClick}
       className={`${attendBtn} ${
         attended
-          ? "border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e]/10"
-          : "border-white/15 text-white/60 hover:border-[#22c55e] hover:text-[#22c55e]"
+          ? "border-brand text-brand-light hover:bg-brand/10"
+          : "border-white/15 text-white/60 hover:border-brand hover:text-brand-light"
       }`}
     >
-      {attended ? "✓ ATTENDED" : "MARK ATTENDED"}
+      {attended ? (
+        <span className="inline-flex items-center gap-2">
+          <PixelCheck /> ATTENDED
+        </span>
+      ) : (
+        "MARK ATTENDED"
+      )}
     </button>
   );
 }
@@ -310,7 +317,7 @@ function Roster({ event }: { event: MyEvent }) {
         {/* Server-side authorization scopes this to events the caller created. */}
         <a
           href={`/api/events/${event.id}/registrations.csv`}
-          className="retro border-2 border-[#22c55e]/40 px-3 py-2 text-[8px] tracking-wider text-[#22c55e] transition-colors hover:bg-[#22c55e]/10"
+          className="retro border-2 border-brand/40 px-3 py-2 text-[8px] tracking-wider text-brand-light transition-colors hover:bg-brand/10"
         >
           ↓ EXPORT CSV
         </a>
@@ -337,7 +344,7 @@ function EventCard({ event }: { event: MyEvent }) {
   const chip = statusChip(event.reviewStatus, event.isPublished);
 
   return (
-    <div className="border-2 border-white/10 bg-[#0d0d0d] p-5 transition-colors hover:border-[#22c55e]/40 sm:p-6">
+    <div className="border-2 border-white/10 bg-[#0d0d0d] p-5 transition-colors hover:border-brand/40 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="retro text-sm break-words text-white">
@@ -357,19 +364,22 @@ function EventCard({ event }: { event: MyEvent }) {
       </div>
 
       <p className="retro mt-4 text-[10px] text-zinc-300">
-        <span className="text-[#22c55e]">{event.registeredCount}</span>{" "}
+        <span className="text-brand-light">{event.registeredCount}</span>{" "}
         REGISTERED
         {" · "}
-        <span className="text-[#22c55e]">{event.attendedCount}</span> ATTENDED
+        <span className="text-brand-light">{event.attendedCount}</span> ATTENDED
       </p>
 
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="retro mt-4 cursor-pointer text-[9px] tracking-widest text-[#22c55e] transition-colors hover:text-white"
+        className="retro mt-4 cursor-pointer text-[9px] tracking-widest text-brand-light transition-colors hover:text-white"
       >
-        {open ? "▾ HIDE ROSTER" : `▸ VIEW ROSTER (${event.registeredCount})`}
+        <span className="inline-flex items-center gap-2">
+          <PixelArrow dir={open ? "down" : "right"} />
+          {open ? "HIDE ROSTER" : `VIEW ROSTER (${event.registeredCount})`}
+        </span>
       </button>
 
       {open && <Roster event={event} />}
@@ -387,7 +397,7 @@ export function MyEventsList({ events }: { events: MyEvent[] }) {
           </h1>
           <span
             aria-hidden="true"
-            className="mt-3 block h-[3px] w-24 bg-[#22c55e]"
+            className="mt-3 block h-[3px] w-24 bg-brand"
           />
         </div>
         <p className="retro text-[9px] tracking-widest text-muted-foreground">
@@ -397,14 +407,16 @@ export function MyEventsList({ events }: { events: MyEvent[] }) {
 
       {events.length === 0 ? (
         <div className="mx-auto max-w-md border-2 border-white/10 p-12 text-center">
-          <span className="retro text-3xl text-[#22c55e]/30">▞▚</span>
+          <span className="retro text-3xl text-brand-light/30">▞▚</span>
           <h2 className="retro mt-4 text-sm text-white">NO EVENTS YET</h2>
           <p className="retro mt-3 text-[9px] leading-relaxed text-muted-foreground">
             CREATE ONE WITH THE NEW EVENT BUTTON ON THE HOME PAGE · IT&apos;LL
             SHOW UP HERE WITH ITS REGISTRATIONS.
           </p>
           <Button asChild size="sm" className="mt-6 text-[9px]">
-            <Link href="/">← BACK HOME</Link>
+            <Link href="/">
+              <PixelArrow dir="left" /> BACK HOME
+            </Link>
           </Button>
         </div>
       ) : (

@@ -218,7 +218,7 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
                 type="button"
                 onClick={handleAdd}
                 disabled={isPending}
-                className="mb-1.5 text-[9px] !bg-[#22c55e] !text-black hover:!bg-[#16a34a]"
+                className="mb-1.5 text-[9px] !bg-brand !text-black hover:!bg-brand-light"
               >
                 {isPending ? "…" : "GRANT ACCESS"}
               </Button>

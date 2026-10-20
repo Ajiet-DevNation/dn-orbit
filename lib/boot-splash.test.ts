@@ -3,7 +3,9 @@ import {
   __resetBootSplash,
   isBootSplashDone,
   markBootSplashDone,
+  markLoaderDrawn,
   onBootSplashDone,
+  onLoaderDrawn,
 } from "./boot-splash";
 
 beforeEach(() => {
@@ -102,5 +104,35 @@ describe("boot splash coordination", () => {
   test("isBootSplashDone latches", () => {
     markBootSplashDone();
     expect(isBootSplashDone()).toBe(true);
+  });
+});
+
+describe("loading orbit latch", () => {
+  test("a waiter runs once the orbit is drawn, and only once", () => {
+    let calls = 0;
+    onLoaderDrawn(() => calls++);
+    expect(calls).toBe(0);
+    markLoaderDrawn();
+    markLoaderDrawn();
+    expect(calls).toBe(1);
+  });
+
+  test("a waiter that arrives after the draw runs straight away", () => {
+    markLoaderDrawn();
+    let ran = false;
+    onLoaderDrawn(() => {
+      ran = true;
+    });
+    expect(ran).toBe(true);
+  });
+
+  test("cleanup before the draw means it never runs", () => {
+    let ran = false;
+    const stop = onLoaderDrawn(() => {
+      ran = true;
+    });
+    stop();
+    markLoaderDrawn();
+    expect(ran).toBe(false);
   });
 });

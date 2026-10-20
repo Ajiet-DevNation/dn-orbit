@@ -21,14 +21,20 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 import { PixelModal } from "@/components/ui/PixelModal";
 import { isRole, ROLE_LABELS } from "@/lib/roles";
 import { LeetCodeConnect } from "./LeetCodeConnect";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
-  const color = kind === "success" ? "text-green-500" : "text-red-500";
-  toast(<span className={color}>{message}</span>);
+  const color = kind === "success" ? "text-brand-light" : "text-red-500";
+  toast(
+    <span className={`inline-flex items-center gap-2 ${color}`}>
+      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
+      {message}
+    </span>,
+  );
 }
 
 const BRANCHES = ["CSE", "ISE", "ECE", "MECH", "CIVIL", "AIDS", "AIML", "CSD"];
@@ -108,10 +114,10 @@ export function ProfileModal({
     setConfirmOpen(false);
 
     if (res?.error) {
-      notify("error", `✗ ${res.error}`);
+      notify("error", `${res.error}`);
       return;
     }
-    notify("success", "✓ Profile updated");
+    notify("success", "Profile updated");
     onOpenChange(false);
     router.refresh();
   }
@@ -166,7 +172,7 @@ export function ProfileModal({
               <span
                 className={`retro inline-block border-2 px-3 py-1.5 text-[9px] tracking-widest uppercase ${
                   isAdmin
-                    ? "border-[#22c55e] bg-[#22c55e]/[0.08] text-[#22c55e]"
+                    ? "border-brand bg-brand/[0.08] text-brand-light"
                     : "border-white/25 bg-white/[0.04] text-zinc-300"
                 }`}
               >
@@ -199,7 +205,7 @@ export function ProfileModal({
 
               {isAdmin && (
                 <Button
-                  className="w-full text-[10px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+                  className="w-full text-[10px] !bg-brand hover:!bg-brand-light !text-black"
                   onClick={() => {
                     onOpenChange(false);
                     router.push("/admin");
@@ -214,9 +220,7 @@ export function ProfileModal({
           {/* ── Right: editable details ── */}
           <div className="grid gap-5">
             <div className="grid gap-2">
-              <Label htmlFor="pm-name" className="text-[10px]">
-                NAME
-              </Label>
+              <Label htmlFor="pm-name">NAME</Label>
               <Input
                 id="pm-name"
                 value={name}
@@ -225,9 +229,7 @@ export function ProfileModal({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="pm-usn" className="text-[10px]">
-                USN
-              </Label>
+              <Label htmlFor="pm-usn">USN</Label>
               <Input
                 id="pm-usn"
                 value={usn}
@@ -236,9 +238,7 @@ export function ProfileModal({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="pm-lc" className="text-[10px]">
-                LEETCODE
-              </Label>
+              <Label htmlFor="pm-lc">LEETCODE</Label>
               <LeetCodeConnect
                 id="pm-lc"
                 value={lcUsername}
@@ -249,7 +249,7 @@ export function ProfileModal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="grid gap-2">
-                <Label className="text-[10px]">BRANCH</Label>
+                <Label>BRANCH</Label>
                 <Select value={branch} onValueChange={setBranch}>
                   <SelectTrigger>
                     <SelectValue placeholder="SELECT" />
@@ -264,7 +264,7 @@ export function ProfileModal({
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label className="text-[10px]">YEAR</Label>
+                <Label>YEAR</Label>
                 <Select value={year} onValueChange={setYear}>
                   <SelectTrigger>
                     <SelectValue placeholder="SELECT" />
@@ -281,9 +281,7 @@ export function ProfileModal({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="pm-bio" className="text-[10px]">
-                BIO
-              </Label>
+              <Label htmlFor="pm-bio">BIO</Label>
               <Input
                 id="pm-bio"
                 value={bio}

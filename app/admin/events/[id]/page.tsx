@@ -6,7 +6,7 @@ import { parseFormSchema } from "@/lib/forms";
 import { canAccessAdmin } from "@/lib/roles";
 import EventRosterClient from "./EventRosterClient";
 
-export const metadata = { title: "EVENT ROSTER // ORBIT ADMIN" };
+export const metadata = { title: "EVENT ROSTER // ADMIN" };
 
 export default async function AdminEventRosterPage({
   params,

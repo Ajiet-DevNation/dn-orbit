@@ -3,7 +3,7 @@
 import { useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-// 8-bit slider: a chunky pixel track with a square green handle. Replaces the
+// 8-bit slider: a chunky pixel track with a square purple handle. Replaces the
 // browser-native range input so it stays on-theme. Fully controllable by
 // pointer (click + drag, touch-safe) and keyboard (arrows), with proper
 // role="slider" ARIA.
@@ -86,19 +86,19 @@ export function PixelSlider({
       onPointerMove={onPointerMove}
       onKeyDown={onKeyDown}
       className={cn(
-        "relative h-3 w-full touch-none select-none border-2 border-white/20 bg-black outline-none focus-visible:border-[#22c55e]",
+        "relative h-3 w-full touch-none select-none border-2 border-white/20 bg-black outline-none focus-visible:border-brand",
         disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
       )}
     >
       {/* Filled portion */}
       <div
-        className="absolute inset-y-0 left-0 bg-[#22c55e]/30"
+        className="absolute inset-y-0 left-0 bg-brand/30"
         style={{ width: `${pct}%` }}
         aria-hidden="true"
       />
       {/* Square pixel handle */}
       <div
-        className="pointer-events-none absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 border-2 border-white/80 bg-[#22c55e] shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+        className="pointer-events-none absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 border-2 border-white/80 bg-brand shadow-[0_0_8px_rgba(139,92,246,0.5)]"
         style={{ left: `${pct}%` }}
         aria-hidden="true"
       />

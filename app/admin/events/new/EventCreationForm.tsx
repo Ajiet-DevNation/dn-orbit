@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
+import { Textarea } from "@/components/ui/8bit-textarea";
 import { toast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import {
@@ -128,7 +129,9 @@ export default function EventCreationForm({
       <PixelPanel title="01 · DETAILS">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label className="text-[10px]">EVENT TITLE *</Label>
+            <Label>
+              EVENT TITLE <span className="text-brand-light">*</span>
+            </Label>
             <Input
               value={f.title}
               placeholder="Enter title…"
@@ -137,7 +140,7 @@ export default function EventCreationForm({
             />
           </div>
           <div className="grid gap-2">
-            <Label className="text-[10px]">TYPE</Label>
+            <Label>TYPE</Label>
             <Select
               value={f.eventType}
               onValueChange={(v) => set("eventType", v)}
@@ -158,10 +161,11 @@ export default function EventCreationForm({
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label className="text-[10px]">DATE &amp; TIME *</Label>
+            <Label>
+              DATE &amp; TIME <span className="text-brand-light">*</span>
+            </Label>
             <Input
               type="datetime-local"
-              className="text-[10px]"
               style={{ colorScheme: "dark" }}
               value={f.eventDate}
               onChange={(e) => set("eventDate", e.target.value)}
@@ -169,7 +173,7 @@ export default function EventCreationForm({
             />
           </div>
           <div className="grid gap-2">
-            <Label className="text-[10px]">LOCATION</Label>
+            <Label>LOCATION</Label>
             <Input
               value={f.location}
               placeholder="Room or URL…"
@@ -179,29 +183,21 @@ export default function EventCreationForm({
           </div>
         </div>
         <div className="mt-4 grid gap-2">
-          <Label className="text-[10px]">DESCRIPTION</Label>
-          {/* Multiline pixel-frame textarea — matches the 8bit Input border. */}
-          <div className="relative flex border-y-[4px] border-foreground dark:border-ring">
-            <textarea
-              value={f.description}
-              placeholder="What is this event about?"
-              rows={5}
-              onChange={(e) => set("description", e.target.value)}
-              disabled={isPending}
-              className="retro w-full resize-none rounded-none bg-transparent px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50"
-            />
-            <div
-              className="pointer-events-none absolute inset-0 -mx-1 border-x-[4px] border-foreground dark:border-ring"
-              aria-hidden="true"
-            />
-          </div>
+          <Label>DESCRIPTION</Label>
+          <Textarea
+            value={f.description}
+            placeholder="What is this event about?"
+            rows={5}
+            onChange={(e) => set("description", e.target.value)}
+            disabled={isPending}
+          />
         </div>
       </PixelPanel>
 
       <PixelPanel title="02 · AUDIENCE & CAPACITY">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label className="text-[10px]">WHO CAN REGISTER</Label>
+            <Label>WHO CAN REGISTER</Label>
             <Select
               value={f.audience}
               onValueChange={(v) => set("audience", v)}
@@ -220,7 +216,7 @@ export default function EventCreationForm({
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label className="text-[10px]">CAPACITY (INF IF BLANK)</Label>
+            <Label>CAPACITY (INF IF BLANK)</Label>
             <Input
               type="number"
               min={1}
@@ -231,10 +227,9 @@ export default function EventCreationForm({
             />
           </div>
           <div className="grid gap-2">
-            <Label className="text-[10px]">REG. DEADLINE</Label>
+            <Label>REG. DEADLINE</Label>
             <Input
               type="datetime-local"
-              className="text-[10px]"
               style={{ colorScheme: "dark" }}
               value={f.registrationDeadline}
               onChange={(e) => set("registrationDeadline", e.target.value)}
@@ -245,7 +240,7 @@ export default function EventCreationForm({
       </PixelPanel>
 
       <PixelPanel title="03 · BANNER">
-        <Label className="mb-2 block text-[10px]">BANNER IMAGE (16:9)</Label>
+        <Label className="mb-2 block">BANNER IMAGE (16:9)</Label>
         <ImageCropUpload
           aspect={16 / 9}
           kind="event"
@@ -264,7 +259,7 @@ export default function EventCreationForm({
 
       <PixelPanel title="05 · DEPLOYMENT">
         <div className="grid gap-2">
-          <Label className="text-[10px]">INITIAL STATE</Label>
+          <Label>INITIAL STATE</Label>
           <Select
             value={f.isPublished}
             onValueChange={(v) => set("isPublished", v)}

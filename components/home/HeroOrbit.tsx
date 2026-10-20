@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { OrbitStage } from "@/components/home/OrbitStage";
+import { PixelArrow } from "@/components/ui/PixelIcons";
 import { onBootSplashDone } from "@/lib/boot-splash";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +52,7 @@ const CURSOR_HOLD_MS = 1500;
 const DROP_EM = 0.18;
 
 const WORD = "DEVNATION";
-/** Index at which the colour switches from white to accent green. */
+/** Index at which the colour switches from white to accent purple. */
 const SPLIT = 3;
 
 function Wordmark() {
@@ -183,7 +184,7 @@ function Wordmark() {
             }}
             className={cn(
               "inline-block",
-              i >= SPLIT ? "text-[#22c55e]" : "text-white",
+              i >= SPLIT ? "text-brand-light" : "text-white",
             )}
             style={{ opacity: 0 }}
           >
@@ -192,7 +193,7 @@ function Wordmark() {
         ))}
         <span
           ref={cursorRef}
-          className="ml-1 inline-block text-[#22c55e]"
+          className="ml-1 inline-block text-brand-light"
           style={{ opacity: 0 }}
         >
           █
@@ -264,13 +265,13 @@ function ScrollCue() {
       className={cn(
         "pointer-events-auto flex flex-col items-center gap-1.5",
         "retro text-[8px] tracking-widest text-muted-foreground",
-        "transition-colors hover:text-[#22c55e]",
+        "transition-colors hover:text-brand-light",
       )}
       aria-label="Scroll to learn about DevNation"
     >
       SCROLL
       <span ref={ref} aria-hidden className="text-sm leading-none">
-        ▼
+        <PixelArrow dir="down" />
       </span>
     </a>
   );

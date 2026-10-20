@@ -94,7 +94,7 @@ function ProgressInput({
             e.currentTarget.blur();
           }
         }}
-        className="retro w-12 border-2 border-white/15 bg-black/40 px-1.5 py-1 text-[9px] tabular-nums text-zinc-200 outline-none focus:border-[#22c55e]/50 disabled:opacity-50"
+        className="retro w-12 border-2 border-white/15 bg-black/40 px-1.5 py-1 text-[9px] tabular-nums text-zinc-200 outline-none focus:border-brand/50 disabled:opacity-50"
       />
       <span className="retro text-[9px] text-zinc-500">%</span>
     </div>
@@ -332,7 +332,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
             onValueChange={(v) => handleStatus(p.id, v as ProjectStatus)}
             disabled={isPending}
           >
-            <SelectTrigger className="h-auto min-w-[8.5rem] py-1 text-[8px]">
+            <SelectTrigger className="min-w-[8.5rem] data-[size=default]:h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="z-[200] dark">
@@ -362,7 +362,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
         <span
           className={`retro inline-block border-2 px-2 py-1 text-[8px] uppercase ${
             p.reviewStatus === "approved"
-              ? "border-[#22c55e]/30 text-[#22c55e]"
+              ? "border-brand/30 text-brand-light"
               : p.reviewStatus === "rejected"
                 ? "border-red-900 bg-red-900/20 italic text-red-500"
                 : "border-amber-500/40 text-amber-400"
@@ -383,7 +383,7 @@ export function ProjectTable({ initialProjects }: ProjectTableProps) {
               type="button"
               disabled={isPending}
               onClick={() => handleReview(p.id, "approve")}
-              className={`${btn} border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black`}
+              className={`${btn} border-brand text-brand-light hover:bg-brand hover:text-black`}
             >
               APPROVE
             </button>

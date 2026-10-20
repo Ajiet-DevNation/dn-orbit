@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
-import { Input } from "@/components/ui/8bit-input";
+import { FIELD_ERROR, Input } from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
 import { PixelModal } from "@/components/ui/PixelModal";
 
@@ -62,7 +62,7 @@ export function CoverImageDialog({
             CANCEL
           </Button>
           <Button
-            className="flex-1 text-[10px] !bg-[#22c55e] !text-black hover:!bg-[#16a34a]"
+            className="flex-1 text-[10px] !bg-brand !text-black hover:!bg-brand-light"
             onClick={() => onSave(trimmed === "" ? null : trimmed)}
             disabled={busy || !valid}
           >
@@ -73,9 +73,7 @@ export function CoverImageDialog({
     >
       <div className="flex flex-col gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="cover-url" className="text-[10px]">
-            IMAGE URL
-          </Label>
+          <Label htmlFor="cover-url">IMAGE URL</Label>
           <Input
             id="cover-url"
             type="url"
@@ -85,9 +83,7 @@ export function CoverImageDialog({
             autoFocus
           />
           {!valid && (
-            <p className="text-[10px] text-red-500">
-              Must start with http:// or https://
-            </p>
+            <p className={FIELD_ERROR}>Must start with http:// or https://</p>
           )}
           <p className="retro text-[8px] leading-relaxed text-muted-foreground">
             OPTIONAL — leave empty to show the default placeholder card.

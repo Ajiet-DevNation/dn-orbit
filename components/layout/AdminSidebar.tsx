@@ -67,7 +67,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open admin menu"
-        className="retro fixed left-3 top-3 z-50 flex items-center gap-2 border-2 border-[#22c55e]/40 bg-black px-3 py-2 text-[9px] text-[#22c55e] md:hidden"
+        className="retro fixed left-3 top-3 z-50 flex items-center gap-2 border-2 border-brand/40 bg-black px-3 py-2 text-[9px] text-brand-light md:hidden"
       >
         <Menu className="h-4 w-4" /> MENU
       </button>
@@ -98,7 +98,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close menu"
-            className="mr-4 text-[#22c55e] md:hidden"
+            className="mr-4 text-brand-light md:hidden"
           >
             <X className="h-5 w-5" />
           </button>
@@ -108,10 +108,10 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
           <Button
             asChild
             size="sm"
-            className="mb-6 w-full text-[9px] !bg-[#22c55e] hover:!bg-[#16a34a] !text-black"
+            className="mb-6 w-full text-[9px] !bg-brand hover:!bg-brand-light !text-black"
           >
             <Link href="/" onClick={() => setOpen(false)}>
-              <Home className="h-4 w-4" /> ← EXIT TO ORBIT
+              <Home className="h-4 w-4" /> EXIT TO ORBIT
             </Link>
           </Button>
           {navItems.map((item) => {
@@ -124,11 +124,11 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
                 className={cn(
                   "retro group flex items-center gap-4 border-2 px-4 py-3 text-[9px] tracking-widest transition-colors",
                   active
-                    ? "border-[#22c55e]/40 bg-[#22c55e]/[0.08] text-[#22c55e]"
-                    : "border-white/10 text-zinc-500 hover:border-[#22c55e]/30 hover:bg-[#22c55e]/[0.06] hover:text-[#22c55e]",
+                    ? "border-brand/40 bg-brand/[0.08] text-brand-light"
+                    : "border-white/10 text-zinc-500 hover:border-brand/30 hover:bg-brand/[0.06] hover:text-brand-light",
                 )}
               >
-                <item.icon className="h-4 w-4 opacity-40 transition-[color,opacity] group-hover:text-[#22c55e] group-hover:opacity-100" />
+                <item.icon className="h-4 w-4 opacity-40 transition-[color,opacity] group-hover:text-brand-light group-hover:opacity-100" />
                 {item.label}
               </Link>
             );
@@ -141,7 +141,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
               <span className="retro text-[7px] tracking-[0.2em] text-zinc-600">
                 ADM_SESSION
               </span>
-              <div className="h-1 w-1 animate-pulse bg-[#22c55e]" />
+              <div className="h-1 w-1 animate-pulse bg-brand" />
             </div>
             <div className="retro truncate text-[9px] uppercase tracking-tighter text-white">
               {userName || "COMMANDER"}

@@ -17,7 +17,7 @@ export function SidebarBrand() {
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <span className="retro text-sm leading-none text-white">ORBIT</span>
-          <span className="retro text-[8px] tracking-widest text-[#22c55e]/70">
+          <span className="retro text-[8px] tracking-widest text-brand-light/70">
             ADMIN
           </span>
         </div>

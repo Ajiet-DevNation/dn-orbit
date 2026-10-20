@@ -8,13 +8,18 @@ export interface LabelProps
   font?: "normal" | "retro";
 }
 
+// Every form label on the site: pixel font, 10px, tracked out, soft white.
 const Label8Bit = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   LabelProps
 >(({ className, font, ...props }, ref) => (
   <Label
     ref={ref}
-    className={cn(className, font !== "normal" && "retro")}
+    className={cn(
+      "text-[10px] leading-relaxed tracking-[0.14em] text-white/85",
+      className,
+      font !== "normal" && "retro",
+    )}
     {...props}
   />
 ));

@@ -20,7 +20,7 @@ export function SectionHeading({ text, className }: SectionHeadingProps) {
       >
         {text}
       </h2>
-      <span aria-hidden="true" className="block h-[3px] w-24 bg-[#22c55e]" />
+      <span aria-hidden="true" className="block h-[3px] w-24 bg-brand" />
     </PixelReveal>
   );
 }

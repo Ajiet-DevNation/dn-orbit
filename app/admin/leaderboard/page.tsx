@@ -8,7 +8,7 @@ import { LeaderboardPreview } from "./LeaderboardPreview";
 import { WeightForm } from "./WeightForm";
 
 export const metadata = {
-  title: "LEADERBOARD // ORBIT ADMIN",
+  title: "LEADERBOARD // ADMIN",
 };
 
 export default async function AdminLeaderboardPage() {

@@ -96,7 +96,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
       key: "audience",
       header: "AUDIENCE",
       render: (e) => (
-        <span className="retro text-[8px] text-[#22c55e]">
+        <span className="retro text-[8px] text-brand-light">
           {AUDIENCE_BADGE_LABELS[e.audience as EventAudience] ??
             e.audience.toUpperCase()}
         </span>
@@ -114,7 +114,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
         <span
           className={`retro inline-block border-2 px-2 py-1 text-[8px] uppercase ${
             e.reviewStatus === "approved"
-              ? "border-[#22c55e]/30 text-[#22c55e]"
+              ? "border-brand/30 text-brand-light"
               : e.reviewStatus === "rejected"
                 ? "border-red-900 bg-red-900/20 text-red-500"
                 : "border-amber-500/40 text-amber-400"
@@ -129,7 +129,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
       header: "PUBLISH",
       render: (e) => (
         <span
-          className={`retro inline-block border-2 px-2 py-1 text-[8px] ${e.isPublished ? "border-[#22c55e] text-[#22c55e]" : "border-white/15 text-zinc-500"}`}
+          className={`retro inline-block border-2 px-2 py-1 text-[8px] ${e.isPublished ? "border-brand text-brand-light" : "border-white/15 text-zinc-500"}`}
         >
           {e.isPublished ? "PUBLISHED" : "DRAFT"}
         </span>
@@ -144,14 +144,14 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
           <button
             type="button"
             onClick={() => router.push(`/admin/events/${e.id}`)}
-            className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}
+            className={`${btn} border-white/15 text-white/70 hover:border-brand hover:text-brand-light`}
           >
             ROSTER
           </button>
           <button
             type="button"
             onClick={() => router.push(`/admin/events/${e.id}/edit`)}
-            className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}
+            className={`${btn} border-white/15 text-white/70 hover:border-brand hover:text-brand-light`}
           >
             EDIT
           </button>
@@ -159,7 +159,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
             type="button"
             disabled={isPending}
             onClick={() => togglePublish(e.id, e.isPublished)}
-            className={`${btn} border-white/15 text-white/70 hover:border-[#22c55e] hover:text-[#22c55e]`}
+            className={`${btn} border-white/15 text-white/70 hover:border-brand hover:text-brand-light`}
           >
             {e.isPublished ? "UNPUBLISH" : "PUBLISH"}
           </button>

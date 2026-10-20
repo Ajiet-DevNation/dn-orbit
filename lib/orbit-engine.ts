@@ -95,6 +95,18 @@ export function orbitPosition(
   };
 }
 
+// turn a point in the ring's own frame by the ring's spin about the view axis;
+// planets AND their trails go through this, so the two can never drift apart
+export function spinPoint(
+  x: number,
+  y: number,
+  angle: number,
+): { x: number; y: number } {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return { x: x * cos - y * sin, y: x * sin + y * cos };
+}
+
 /** All three planets at once. */
 export function orbitPositions(
   accumulatedTime: number,
@@ -239,4 +251,127 @@ export function ringRevealAt(elapsedMs: number): {
 
 export function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3;
+}
+
+// ─── Pixel rings ─────────────────────────────────────────────────────────────
+// Both landing rings and the loading ring are chains of square pixel cells
+// rather than stroked ellipses. Spin is applied here, in maths, instead of by
+// rotating the painted canvas, so every cell stays an axis-aligned square on
+// the pixel grid at any angle.
+
+export interface RingCell {
+  /** Canvas coords (0..CANVAS_SIZE), snapped to the pixel grid. */
+  x: number;
+  y: number;
+  /** On the near half of the ring (drawn in front of the logo). */
+  front: boolean;
+}
+
+export interface RingShape {
+  rx: number;
+  ry: number;
+  /** In-plane rotation of the ellipse (tilt plus any spin), radians. */
+  tilt: number;
+  /** Cells around the full ring. */
+  count: number;
+  /** Pixel grid the cells snap to. */
+  cell: number;
+  /** Uniform scale about the canvas centre (entrance / shatter reveal). */
+  scale?: number;
+  /** Centre of the ring; defaults to the canvas centre. */
+  cx?: number;
+  cy?: number;
+}
+
+// ellipse parameters for `count` points spaced evenly by ARC LENGTH. Evenly
+// spaced angles bunch up at the two tips of a flat ellipse (there the curve
+// covers little ground per radian), which drew the pixel rings as solid bars.
+const arcCache = new Map<string, number[]>();
+const ARC_SAMPLES = 2048;
+function evenArcParams(
+  rx: number,
+  ry: number,
+  count: number,
+  start: number,
+): number[] {
+  const key = `${rx}|${ry}|${count}|${start}`;
+  const hit = arcCache.get(key);
+  if (hit) return hit;
+  const lengths = [0];
+  let prevX = rx * Math.cos(start);
+  let prevY = ry * Math.sin(start);
+  for (let j = 1; j <= ARC_SAMPLES; j++) {
+    const a = start + (j / ARC_SAMPLES) * Math.PI * 2;
+    const x = rx * Math.cos(a);
+    const y = ry * Math.sin(a);
+    lengths.push(lengths[j - 1] + Math.hypot(x - prevX, y - prevY));
+    prevX = x;
+    prevY = y;
+  }
+  const total = lengths[ARC_SAMPLES];
+  const params: number[] = [];
+  let j = 0;
+  for (let i = 0; i < count; i++) {
+    const want = (i / count) * total;
+    while (lengths[j + 1] < want) j++;
+    const seg = lengths[j + 1] - lengths[j] || 1;
+    const t = (j + (want - lengths[j]) / seg) / ARC_SAMPLES;
+    params.push(start + t * Math.PI * 2);
+  }
+  arcCache.set(key, params);
+  return params;
+}
+
+// cells of a tilted ellipse, evenly spaced along the curve, starting at
+// parameter `start` and going round; `progress` 0..1 says how much exists
+export function ringCells(
+  {
+    rx,
+    ry,
+    tilt,
+    count,
+    cell,
+    scale = 1,
+    cx = CANVAS_SIZE / 2,
+    cy = CANVAS_SIZE / 2,
+  }: RingShape,
+  progress = 1,
+  start = 0,
+): RingCell[] {
+  const shown = Math.round(Math.min(1, Math.max(0, progress)) * count);
+  const params = evenArcParams(rx, ry, count, start);
+  const cos = Math.cos(tilt);
+  const sin = Math.sin(tilt);
+  const cells: RingCell[] = [];
+  for (let i = 0; i < shown; i++) {
+    const a = params[i];
+    const ux = rx * Math.cos(a);
+    const uy = ry * Math.sin(a);
+    cells.push({
+      x: Math.round((cx + (ux * cos - uy * sin) * scale) / cell) * cell,
+      y: Math.round((cy + (ux * sin + uy * cos) * scale) / cell) * cell,
+      front: Math.sin(a) > 0,
+    });
+  }
+  return cells;
+}
+
+/** Cells around the full loading ring (the main orbit). */
+export const LOADER_RING_CELLS = 120;
+/** Where the loading ring starts drawing: the far left of the ellipse. */
+const LOADER_START = Math.PI;
+
+// the main ring as the loader draws it, from the far left round the back
+export function loaderRingCells(progress: number, cell: number): RingCell[] {
+  return ringCells(
+    {
+      rx: ORBIT_RX,
+      ry: ORBIT_RY,
+      tilt: ORBIT_TILT,
+      count: LOADER_RING_CELLS,
+      cell,
+    },
+    progress,
+    LOADER_START,
+  );
 }

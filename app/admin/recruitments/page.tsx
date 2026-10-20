@@ -9,7 +9,7 @@ import { ApplicationsQueue } from "./ApplicationsQueue";
 import { RecruitmentToggle } from "./RecruitmentToggle";
 
 export const metadata = {
-  title: "RECRUITMENTS // ORBIT ADMIN",
+  title: "RECRUITMENTS // ADMIN",
 };
 
 export default async function AdminRecruitmentsPage() {

@@ -1,18 +1,18 @@
 "use client";
 
+import { PixelArrow } from "@/components/ui/PixelIcons";
 import { useLensScroll } from "@/hooks/useLensScroll";
 import {
   ENTRANCE_PIN_SVH,
   LENS_FROST,
   pinLengthSvh,
-  viewfinderSide,
 } from "@/lib/lens-entrance";
 import { cn } from "@/lib/utils";
 import { CoverflowFloor } from "./CoverflowControls";
 
 // Shared shell for the Projects and Members lens carousels: the pinned section,
-// the viewfinder/lens frame, the giant title and the HUD reticle that make up
-// the scroll entrance (hooks/useLensScroll.ts), plus
+// the self-drawing lens frame and the giant title that make up the scroll
+// entrance (hooks/useLensScroll.ts), plus
 // the thumb layer and nav chrome the carousel itself drives (useCoverflow).
 // The sections own their data, cards and carousel options; this owns the stage.
 
@@ -24,11 +24,13 @@ export const LENS_COUNTER_STYLE = { bottom: 36, top: "auto" } as const;
 /** Frame border + inner gap around the lens, px. */
 export const LENS_PAD = 6;
 
+const EDGE_SLOTS = [0, 1, 2, 3, 4, 5, 6, 7];
+
 const GIANT_BLOOM =
-  "0 0 24px rgba(255,255,255,0.55), 0 0 60px rgba(34,197,94,0.5), 0 0 120px rgba(34,197,94,0.3)";
+  "0 0 24px rgba(255,255,255,0.55), 0 0 60px rgba(139,92,246,0.5), 0 0 120px rgba(139,92,246,0.3)";
 
 const GIANT_GLOW =
-  "0 0 18px rgba(34,197,94,0.55), 0 0 48px rgba(34,197,94,0.28), 0 0 2px rgba(255,255,255,0.8)";
+  "0 0 18px rgba(139,92,246,0.55), 0 0 48px rgba(139,92,246,0.28), 0 0 2px rgba(255,255,255,0.8)";
 
 interface LensSectionProps {
   id: string;
@@ -86,8 +88,6 @@ export function LensSection({
     navigateRef,
   });
 
-  const side = viewfinderSide(lensWidth, lensHeight);
-
   return (
     <section
       ref={sectionRef}
@@ -103,24 +103,25 @@ export function LensSection({
         } as React.CSSProperties
       }
     >
-      {/* Oryzo proportions: the lens fills ~80% of the screen height, centred;
-          the title sits to its left (above it on phones). */}
+      {/* Oryzo proportions: the lens fills ~80% of the screen height, centred
+          between the nav and the counter; the title sits to its left (above
+          it on phones). */}
       <div className="sticky top-0 h-svh w-full overflow-hidden motion-reduce:relative">
-        {/* The giant title flies into this label, which then takes over. The
-            kicker is there from the start, like oryzo's "SO PORTABLE,". */}
-        <div className="pointer-events-none absolute inset-x-0 top-[92px] z-30 flex flex-col items-center gap-3 md:inset-x-auto md:left-[max(24px,3.5vw)] md:top-[24%] md:items-start">
-          <p className="retro text-[9px] tracking-[0.3em] text-[#22c55e] md:text-[clamp(10px,0.8vw,14px)]">
-            {kicker}
-          </p>
+        {/* The giant title flies into this label, which then takes over,
+            kicker and all. */}
+        <div className="pointer-events-none absolute inset-x-0 top-[92px] z-30 flex flex-col items-center md:inset-x-auto md:left-[max(24px,3.5vw)] md:top-[24%] md:items-start">
           <div
             ref={entrance.headingRef}
-            className="flex flex-col items-center gap-4 md:items-start"
+            className="flex flex-col items-center gap-3 md:items-start"
             style={{ opacity: 0 }}
           >
+            <p className="retro text-[9px] tracking-[0.3em] text-brand-light md:text-[clamp(10px,0.8vw,14px)]">
+              {kicker}
+            </p>
             <h2 className="retro text-xl tracking-wider text-white md:text-[clamp(20px,1.8vw,32px)]">
               {title}
             </h2>
-            <span aria-hidden className="block h-[3px] w-16 bg-[#22c55e]" />
+            <span aria-hidden className="mt-1 block h-[3px] w-16 bg-brand" />
           </div>
         </div>
 
@@ -130,7 +131,9 @@ export function LensSection({
         <div
           ref={entrance.stageRef}
           className={cn(
-            "absolute inset-x-0 bottom-0 top-[150px] select-none md:top-0",
+            // md:top nudges the centre line 15px down: the lens then sits
+            // midway between the nav and the counter instead of touching the nav.
+            "absolute inset-x-0 bottom-0 top-[150px] select-none md:top-[30px]",
             stageClassName,
           )}
           style={stageStyle}
@@ -141,20 +144,28 @@ export function LensSection({
 
           <div className="absolute inset-0">{thumbs}</div>
 
-          {/* Viewfinder → lens. Its size is scrubbed by the entrance; the lens
-              content stays full size and centred, clipped by the frame. */}
+          {/* The lens frame: empty until the entrance draws its edges, frosts
+              its glass and blurs the first card in. The lens content stays
+              full size and centred, clipped by the frame. */}
           <div
             ref={entrance.frameRef}
-            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 overflow-hidden border-2 border-dashed border-[#22c55e]/40 shadow-[0_0_40px_rgba(0,0,0,0.6)]"
-            // Frosted glass until the entrance ends (the hook turns it solid).
+            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 overflow-hidden"
             style={{
-              width: side + LENS_PAD * 2,
-              height: side + LENS_PAD * 2,
-              backgroundColor: "rgba(10, 10, 10, 0.3)",
-              backdropFilter: LENS_FROST,
-              WebkitBackdropFilter: LENS_FROST,
+              width: lensWidth + LENS_PAD * 2,
+              height: lensHeight + LENS_PAD * 2,
             }}
           >
+            <div
+              ref={entrance.frostRef}
+              aria-hidden
+              className="absolute inset-0 bg-[#0a0a0a]/30 shadow-[0_0_40px_rgba(0,0,0,0.6)]"
+              style={{
+                opacity: 0,
+                display: "none",
+                backdropFilter: LENS_FROST,
+                WebkitBackdropFilter: LENS_FROST,
+              }}
+            />
             <div
               ref={entrance.contentRef}
               className="absolute left-1/2 top-1/2"
@@ -163,7 +174,6 @@ export function LensSection({
                 height: lensHeight,
                 marginLeft: -lensWidth / 2,
                 marginTop: -lensHeight / 2,
-                // Starts hidden: the viewfinder opens as an empty box.
                 opacity: 0,
               }}
             >
@@ -175,38 +185,38 @@ export function LensSection({
               </div>
             </div>
 
-            {/* HUD reticle while the viewfinder is still "scanning". */}
+            {/* The eight half-sides of the frame line, placed by the hook. */}
             <div
-              ref={entrance.reticleRef}
               aria-hidden
               className="pointer-events-none absolute inset-0 z-10"
             >
-              <span className="absolute left-1/2 top-1/2 h-[2px] w-5 -translate-x-1/2 -translate-y-1/2 bg-[#22c55e]/70" />
-              <span className="absolute left-1/2 top-1/2 h-5 w-[2px] -translate-x-1/2 -translate-y-1/2 bg-[#22c55e]/70" />
-              <span className="absolute left-1/2 top-0 h-2.5 w-[2px] -translate-x-1/2 bg-[#22c55e]/60" />
-              <span className="absolute bottom-0 left-1/2 h-2.5 w-[2px] -translate-x-1/2 bg-[#22c55e]/60" />
-              <span className="absolute left-0 top-1/2 h-[2px] w-2.5 -translate-y-1/2 bg-[#22c55e]/60" />
-              <span className="absolute right-0 top-1/2 h-[2px] w-2.5 -translate-y-1/2 bg-[#22c55e]/60" />
-              <span className="retro absolute left-2 top-2 text-[6px] tracking-widest text-[#22c55e]/80">
-                SCAN
-              </span>
-              <span className="cursor-blink absolute right-2 top-2 size-1.5 bg-[#22c55e]" />
+              {EDGE_SLOTS.map((slot) => (
+                <span
+                  key={slot}
+                  ref={(el) => {
+                    entrance.edgeRefs.current[slot] = el;
+                  }}
+                  className="absolute left-0 top-0 bg-brand shadow-[0_0_10px_rgba(139,92,246,0.55)]"
+                  style={{ visibility: "hidden" }}
+                />
+              ))}
             </div>
           </div>
 
           {/* Giant title, BEHIND the lens like oryzo's: the frosted lens blurs
-              whatever part of it passes underneath. Parked with its left edge
-              on the label's left edge, it later shrinks from that edge into
-              the label. The line wrapper is a zero-height row on the stage's
+              whatever part of it passes underneath. Parked dead centre, it
+              later shrinks from its left edge into the label. The line wrapper is a zero-height row on the stage's
               vertical centre, so the title's rest box is easy to measure. */}
           <div
             ref={entrance.giantLineRef}
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-1/2 z-[5] flex h-0 items-center justify-center md:justify-start md:pl-[max(24px,3.5vw)]"
+            className="pointer-events-none absolute inset-x-0 top-1/2 z-[5] flex h-0 items-center justify-center"
           >
             <div
               ref={entrance.giantRef}
-              className="retro relative whitespace-nowrap tracking-wider text-white"
+              // The negative margin cancels the trailing letter-space, so the
+              // glyphs themselves sit on the centre line.
+              className="retro relative mr-[-0.05em] whitespace-nowrap tracking-wider text-white"
               style={{
                 fontSize: "clamp(32px, 9vw, 170px)",
                 textShadow: GIANT_GLOW,
@@ -232,8 +242,10 @@ export function LensSection({
             aria-hidden
             className="pointer-events-none absolute inset-x-0 bottom-7 z-10 flex items-center justify-center gap-3"
           >
-            <span className="grid size-6 place-items-center border-2 border-[#22c55e]/60 text-[9px] text-[#22c55e]">
-              <span className="hint-bob">▼</span>
+            <span className="grid size-6 place-items-center border-2 border-brand/60 text-[9px] text-brand-light">
+              <span className="hint-bob">
+                <PixelArrow dir="down" />
+              </span>
             </span>
             <span className="retro text-[8px] tracking-[0.3em] text-white/70">
               SCROLL TO CONTINUE
