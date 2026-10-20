@@ -278,6 +278,9 @@ export interface RingShape {
   cell: number;
   /** Uniform scale about the canvas centre (entrance / shatter reveal). */
   scale?: number;
+  /** Centre of the ring; defaults to the canvas centre. */
+  cx?: number;
+  cy?: number;
 }
 
 // ellipse parameters for `count` points spaced evenly by ARC LENGTH. Evenly
@@ -322,13 +325,21 @@ function evenArcParams(
 // cells of a tilted ellipse, evenly spaced along the curve, starting at
 // parameter `start` and going round; `progress` 0..1 says how much exists
 export function ringCells(
-  { rx, ry, tilt, count, cell, scale = 1 }: RingShape,
+  {
+    rx,
+    ry,
+    tilt,
+    count,
+    cell,
+    scale = 1,
+    cx = CANVAS_SIZE / 2,
+    cy = CANVAS_SIZE / 2,
+  }: RingShape,
   progress = 1,
   start = 0,
 ): RingCell[] {
   const shown = Math.round(Math.min(1, Math.max(0, progress)) * count);
   const params = evenArcParams(rx, ry, count, start);
-  const c = CANVAS_SIZE / 2;
   const cos = Math.cos(tilt);
   const sin = Math.sin(tilt);
   const cells: RingCell[] = [];
@@ -337,8 +348,8 @@ export function ringCells(
     const ux = rx * Math.cos(a);
     const uy = ry * Math.sin(a);
     cells.push({
-      x: Math.round((c + (ux * cos - uy * sin) * scale) / cell) * cell,
-      y: Math.round((c + (ux * sin + uy * cos) * scale) / cell) * cell,
+      x: Math.round((cx + (ux * cos - uy * sin) * scale) / cell) * cell,
+      y: Math.round((cy + (ux * sin + uy * cos) * scale) / cell) * cell,
       front: Math.sin(a) > 0,
     });
   }

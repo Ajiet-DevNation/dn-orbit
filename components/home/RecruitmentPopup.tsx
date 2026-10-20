@@ -35,9 +35,16 @@ const ENTER_MS = 1150;
 const EXIT_MS = 320;
 const LINE_SCALE = 0.012;
 
-// Shared shape for the two CTAs: same size and press, different fill.
+// Shared shape for the two CTAs: same size, same press, and the site's notched
+// pixel frame — four 3px bars pushed out from each edge (box-shadows, so they
+// sit outside the box) leave the corners open, like the nav tabs and buttons.
 const CTA =
-  "retro inline-flex items-center justify-center px-5 py-3.5 text-[10px] transition-[background-color,color,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-[6px] focus-visible:outline-brand-light active:scale-[0.97]";
+  "retro m-[3px] inline-flex items-center justify-center px-5 py-3.5 text-[10px] transition-[background-color,color,box-shadow,transform] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-[7px] focus-visible:outline-brand-light active:scale-[0.97]";
+// Written out in full: Tailwind only generates classes it can read verbatim.
+const CTA_PRIMARY =
+  "bg-brand text-[#0a0a0a] shadow-[0_-3px_0_0_#8b5cf6,0_3px_0_0_#8b5cf6,-3px_0_0_0_#8b5cf6,3px_0_0_0_#8b5cf6] hover:bg-brand-light hover:shadow-[0_-3px_0_0_#a78bfa,0_3px_0_0_#a78bfa,-3px_0_0_0_#a78bfa,3px_0_0_0_#a78bfa]";
+const CTA_SECONDARY =
+  "text-brand-soft shadow-[0_-3px_0_0_rgba(139,92,246,0.55),0_3px_0_0_rgba(139,92,246,0.55),-3px_0_0_0_rgba(139,92,246,0.55),3px_0_0_0_rgba(139,92,246,0.55)] hover:bg-brand/10 hover:text-white hover:shadow-[0_-3px_0_0_#8b5cf6,0_3px_0_0_#8b5cf6,-3px_0_0_0_#8b5cf6,3px_0_0_0_#8b5cf6]";
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const steps = (p: number, n: number) => Math.ceil(clamp01(p) * n) / n;
@@ -225,8 +232,6 @@ export function RecruitmentPopup() {
 
           <div className="p-2 md:p-2.5">
             <div className="relative max-h-[78vh] overflow-y-auto border-2 border-[#8b5cf6]/30 bg-[radial-gradient(ellipse_at_78%_50%,rgba(139,92,246,0.2),transparent_60%)] px-5 py-6 md:px-9 md:py-8">
-              <InnerCorners />
-
               <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-[1.15fr_1fr] md:gap-8">
                 <div className="order-2 flex flex-col gap-6 md:order-1">
                   <h3 data-reveal className="retro leading-tight">
@@ -258,7 +263,7 @@ export function RecruitmentPopup() {
                           height={32}
                           className="pixelated size-8"
                         />
-                        <span className="retro text-[7px] leading-relaxed text-white/85 sm:text-[8px]">
+                        <span className="retro text-[8px] leading-relaxed text-white/85 sm:text-[9px]">
                           {f.label}
                         </span>
                       </li>
@@ -269,20 +274,14 @@ export function RecruitmentPopup() {
                     <Link
                       href="/recruitments"
                       onClick={markSeen}
-                      className={cn(
-                        CTA,
-                        "m-1.5 bg-brand text-[#0a0a0a] shadow-[0_0_0_3px_#0b0714,0_0_0_6px_#8b5cf6] hover:bg-brand-light",
-                      )}
+                      className={cn(CTA, CTA_PRIMARY)}
                     >
                       JOIN THE CREW <PixelArrow className="ml-2.5" />
                     </Link>
                     <button
                       type="button"
                       onClick={() => onOpenChange(false)}
-                      className={cn(
-                        CTA,
-                        "m-1.5 text-brand-soft shadow-[inset_0_0_0_3px_rgba(139,92,246,0.6)] hover:bg-brand/10 hover:text-white",
-                      )}
+                      className={cn(CTA, CTA_SECONDARY)}
                     >
                       EXPLORE DEVNATION
                     </button>
@@ -330,29 +329,6 @@ function FrameBrackets() {
           <span className="absolute left-[6px] top-[6px] size-[5px] bg-[#a78bfa]" />
           {/* Tick along the horizontal edge, just past the bracket. */}
           <span className="absolute left-12 top-0 h-[6px] w-3 bg-[#a78bfa]" />
-        </span>
-      ))}
-    </div>
-  );
-}
-
-/** Thin L marks inside the content panel's corners. */
-function InnerCorners() {
-  const corners = [
-    "left-1.5 top-1.5",
-    "right-1.5 top-1.5 -scale-x-100",
-    "bottom-1.5 left-1.5 -scale-y-100",
-    "bottom-1.5 right-1.5 -scale-100",
-  ];
-  return (
-    <div aria-hidden>
-      {corners.map((pos) => (
-        <span
-          key={pos}
-          className={cn("pointer-events-none absolute size-3", pos)}
-        >
-          <span className="absolute left-0 top-0 h-[2px] w-full bg-[#c4b5fd]" />
-          <span className="absolute left-0 top-0 h-full w-[2px] bg-[#c4b5fd]" />
         </span>
       ))}
     </div>
