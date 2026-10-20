@@ -8,7 +8,7 @@ import { AllowlistManager } from "./AllowlistManager";
 import { MemberTable } from "./MemberTable";
 
 export const metadata = {
-  title: "MEMBERS // ORBIT ADMIN",
+  title: "MEMBERS // ADMIN",
 };
 
 export default async function AdminMembersPage() {

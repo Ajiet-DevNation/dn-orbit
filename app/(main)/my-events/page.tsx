@@ -6,7 +6,7 @@ import { parseFormSchema } from "@/lib/forms";
 import { type MyEvent, MyEventsList } from "./MyEventsList";
 
 export const metadata = {
-  title: "Your Events · ORBIT",
+  title: "Your Events",
 };
 
 // Bounds on what one page render will pull. The roster now carries every custom

@@ -2,7 +2,7 @@ import { isRecruitmentOpen } from "@/lib/recruitment-config";
 import { RecruitmentForm } from "./RecruitmentForm";
 
 export const metadata = {
-  title: "Join DevNation · ORBIT",
+  title: "Join DevNation",
 };
 
 // Server Component: the open/closed check runs here so a closed drive never

@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
 
 export const metadata = {
-  title: "DASHBOARD // ORBIT ADMIN",
+  title: "DASHBOARD // ADMIN",
 };
 
 export default async function AdminDashboardPage() {

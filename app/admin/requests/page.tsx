@@ -6,7 +6,7 @@ import { canAccessAdmin } from "@/lib/roles";
 import { RequestsTable } from "./RequestsTable";
 
 export const metadata = {
-  title: "ACCESS REQUESTS // ORBIT ADMIN",
+  title: "ACCESS REQUESTS // ADMIN",
 };
 
 export default async function AdminRequestsPage() {

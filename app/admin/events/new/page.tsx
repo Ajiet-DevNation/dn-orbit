@@ -5,7 +5,7 @@ import { canAccessAdmin } from "@/lib/roles";
 import EventCreationForm from "./EventCreationForm";
 
 export const metadata = {
-  title: "NEW EVENT // ORBIT ADMIN",
+  title: "NEW EVENT // ADMIN",
 };
 
 export default async function AdminNewEventPage() {

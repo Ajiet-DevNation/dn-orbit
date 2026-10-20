@@ -14,7 +14,7 @@ import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
 
 export const metadata = {
-  title: "SETTINGS // ORBIT ADMIN",
+  title: "SETTINGS // ADMIN",
 };
 
 // This page reports live configuration state, never decoration.

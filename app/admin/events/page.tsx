@@ -9,7 +9,7 @@ import { canAccessAdmin } from "@/lib/roles";
 import { EventTable } from "./EventTable";
 
 export const metadata = {
-  title: "EVENTS // ORBIT ADMIN",
+  title: "EVENTS // ADMIN",
 };
 
 export default async function AdminEventsPage() {

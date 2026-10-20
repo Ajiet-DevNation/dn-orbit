@@ -6,7 +6,7 @@ import { parseFormSchema } from "@/lib/forms";
 import { canAccessAdmin } from "@/lib/roles";
 import EventCreationForm from "../../new/EventCreationForm";
 
-export const metadata = { title: "EDIT EVENT // ORBIT ADMIN" };
+export const metadata = { title: "EDIT EVENT // ADMIN" };
 
 export default async function EditEventPage({
   params,
