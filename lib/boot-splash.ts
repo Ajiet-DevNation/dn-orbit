@@ -20,6 +20,30 @@
 
 let done = false;
 const waiters = new Set<() => void>();
+// The loading orbit finishing its draw. The splash must not lift before it,
+// or the ring is cut off half-drawn on a fast load.
+let loaderDrawn = false;
+const drawnWaiters = new Set<() => void>();
+
+/** Called by the loading stage once its orbit has fully drawn. Idempotent. */
+export function markLoaderDrawn(): void {
+  if (loaderDrawn) return;
+  loaderDrawn = true;
+  for (const fn of [...drawnWaiters]) fn();
+  drawnWaiters.clear();
+}
+
+/** Run `callback` once the loading orbit is drawn — immediately if it is. */
+export function onLoaderDrawn(callback: () => void): () => void {
+  if (loaderDrawn) {
+    callback();
+    return () => {};
+  }
+  drawnWaiters.add(callback);
+  return () => {
+    drawnWaiters.delete(callback);
+  };
+}
 
 /** Called by BootSplash once the overlay is actually gone. Idempotent. */
 export function markBootSplashDone(): void {
@@ -76,4 +100,6 @@ export function onBootSplashDone(
 export function __resetBootSplash(): void {
   done = false;
   waiters.clear();
+  loaderDrawn = false;
+  drawnWaiters.clear();
 }

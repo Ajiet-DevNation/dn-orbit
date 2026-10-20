@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { markBootSplashDone } from "@/lib/boot-splash";
+import { markBootSplashDone, onLoaderDrawn } from "@/lib/boot-splash";
 import { BootOverlay } from "./BootOverlay";
 
 // Client boot-splash that guarantees the pixel DN-logo draw plays on every full
@@ -20,7 +20,8 @@ import { BootOverlay } from "./BootOverlay";
 
 const MIN_VISIBLE_MS = 2200; // long enough for the pixel draw to finish
 const EXIT_MS = 720;
-const MAX_WAIT_MS = 4000; // lift even if `load` never fires (slow images)
+// Lift even if `load` never fires (slow images) or the orbit never reports.
+const MAX_WAIT_MS = 4500;
 
 // Smooth, eased ramp (no overshoot) for the exit so it reads as a deliberate
 // "settle into the app" rather than a flat linear dim.
@@ -78,8 +79,22 @@ export function BootSplash() {
       }, wait);
     };
 
-    if (document.readyState === "complete") dismiss();
-    else window.addEventListener("load", dismiss, { once: true });
+    // Lift only once the page has loaded AND the loading orbit has finished
+    // drawing, so a fast load never cuts the ring off half-drawn.
+    let loaded = document.readyState === "complete";
+    let drawn = false;
+    const maybeDismiss = () => {
+      if (loaded && drawn) dismiss();
+    };
+    const onLoad = () => {
+      loaded = true;
+      maybeDismiss();
+    };
+    if (!loaded) window.addEventListener("load", onLoad, { once: true });
+    const stopDrawn = onLoaderDrawn(() => {
+      drawn = true;
+      maybeDismiss();
+    });
     // `load` waits for every image, including third-party GitHub avatars; one
     // stalled request would keep the splash up forever. Cap the wait.
     const cap = window.setTimeout(dismiss, MAX_WAIT_MS);
@@ -87,7 +102,8 @@ export function BootSplash() {
     return () => {
       cancelAnimationFrame(raf);
       window.clearTimeout(cap);
-      window.removeEventListener("load", dismiss);
+      stopDrawn();
+      window.removeEventListener("load", onLoad);
     };
   }, []);
 

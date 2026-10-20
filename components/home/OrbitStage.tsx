@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PixelStarfield } from "@/components/ui/PixelStarfield";
+import { markLoaderDrawn } from "@/lib/boot-splash";
 import {
   CANVAS_SIZE,
   easeOutCubic,
@@ -16,8 +17,10 @@ import {
   PLANET_ICON_SIZE,
   PLANET_KEYS,
   type PlanetKey,
+  type RingCell,
   reformProgressAt,
   reformSpinBoost,
+  ringCells,
   ringRevealAt,
   settleSpin,
   shatterPhaseAt,
@@ -45,6 +48,37 @@ const BLOCKS_PER_FRAME = 20;
 /** Loading ring: pixel grid it snaps to, and the square drawn per cell. */
 const LOADER_CELL = 9;
 const LOADER_DOT = 9;
+/** Landing rings, as pixel cells. Main = the planets' ring; outer = the
+ *  fainter, wider plane drifting against it. */
+const MAIN_RING = { count: 120, cell: 9, dot: 9 } as const;
+const OUTER_RING = { count: 150, cell: 6, dot: 5 } as const;
+/** Re-plot the rings once the spin has moved them this far (rad). */
+const RING_REDRAW_RAD = 0.0015;
+
+// Paint one half of a pixel ring: a soft square glow under each cell, the cell
+// itself, and on the near half a small white core so it reads as lit.
+function paintRingCells(
+  ctx: CanvasRenderingContext2D,
+  cells: RingCell[],
+  dot: number,
+  alpha: number,
+  core: boolean,
+) {
+  const half = dot / 2;
+  const glow = dot * 2;
+  ctx.fillStyle = `rgba(139, 92, 246, ${0.14 * alpha})`;
+  for (const c of cells)
+    ctx.fillRect(c.x - glow / 2, c.y - glow / 2, glow, glow);
+  ctx.fillStyle = `rgba(139, 92, 246, ${alpha})`;
+  for (const c of cells) ctx.fillRect(c.x - half, c.y - half, dot, dot);
+  if (!core) return;
+  const k = Math.max(2, Math.round(dot / 3));
+  ctx.fillStyle = `rgba(255, 255, 255, ${0.55 * alpha})`;
+  for (const c of cells) ctx.fillRect(c.x - k / 2, c.y - k / 2, k, k);
+}
+
+/** How long the loading ring takes to draw itself round, once the logo is in. */
+const LOADER_DRAW_MS = 950;
 /** Once formed, a bright pixel laps the loading ring this often (ms). */
 const LOADER_LAP_MS = 1800;
 const ORBIT_FADE_IN_MS = 800;
@@ -438,22 +472,36 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
           // rests at HERO_START_SCALE. The grow + orbit reveal belongs to the
           // landing page (hero mode), so the hand-off is one continuous motion.
           setDrawProgress(100);
-          paintLoaderRing(1, LOADER_RING_CELLS - 1);
-          if (reducedMotionRef.current) return;
-          // Formed: a bright pixel laps the ring until the splash lifts.
-          const lapStart = performance.now();
-          let lastHead = -1;
+          if (reducedMotionRef.current) {
+            paintLoaderRing(1, LOADER_RING_CELLS - 1);
+            markLoaderDrawn();
+            return;
+          }
+          // Logo in: now the orbit draws itself round it like a pen line, a
+          // bright head leading; then that head keeps lapping the ring.
+          const drawStart = performance.now();
+          let lastHead = -2;
           const lap = (now: number) => {
             if (!isMountedRef.current) return;
-            const head =
-              (LOADER_RING_CELLS -
-                1 +
-                Math.floor(
-                  ((now - lapStart) / LOADER_LAP_MS) * LOADER_RING_CELLS,
-                )) %
-              LOADER_RING_CELLS;
-            if (head !== lastHead) {
-              paintLoaderRing(1, head);
+            const t = (now - drawStart) / LOADER_DRAW_MS;
+            let progress = 1;
+            let head: number;
+            if (t < 1) {
+              progress = t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
+              head = Math.round(progress * LOADER_RING_CELLS) - 1;
+            } else {
+              markLoaderDrawn();
+              head =
+                (LOADER_RING_CELLS -
+                  1 +
+                  Math.floor(
+                    ((now - drawStart - LOADER_DRAW_MS) / LOADER_LAP_MS) *
+                      LOADER_RING_CELLS,
+                  )) %
+                LOADER_RING_CELLS;
+            }
+            if (head !== lastHead || t < 1) {
+              paintLoaderRing(progress, head);
               lastHead = head;
             }
             animFrameRef.current = requestAnimationFrame(lap);
@@ -481,9 +529,9 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
           }
         }
 
-        const fraction = currentBlock / Math.max(blocks.length, 1);
-        paintLoaderRing(fraction, Math.round(fraction * LOADER_RING_CELLS) - 1);
-        const raw = Math.floor(fraction * 100);
+        const raw = Math.floor(
+          (currentBlock / Math.max(blocks.length, 1)) * 100,
+        );
         setDrawProgress(Math.floor(raw / 5) * 5);
         animFrameRef.current = requestAnimationFrame(animate);
       };
@@ -533,97 +581,26 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
   const orbitCanvasFrontRef = useRef<HTMLCanvasElement>(null);
 
   // The second, wider orbital plane gets its OWN pair of canvases rather than
-  // sharing the main ring's, so the two planes can rotate at different rates.
+  // sharing the main ring's, so the two planes can spin at different rates.
   // Both pairs sandwich the logo the same way (far half behind, near half in
   // front), which is what makes each read as an orbit rather than a decoration.
   const outerCanvasBackRef = useRef<HTMLCanvasElement>(null);
   const outerCanvasFrontRef = useRef<HTMLCanvasElement>(null);
 
-  // Rotation wrappers. The rings spin by rotating already-painted canvases on
-  // the compositor — NOT by re-stroking the ellipses every frame. That matters:
-  // the ring is a static shape, and the draw loop below is deliberately cached
-  // so it only re-strokes when something actually changed, because a
-  // shadowBlur'd ellipse per frame is expensive. Rotating about the view axis
-  // also leaves depth untouched, so the near/far split baked into which canvas
-  // each arc lives on stays correct at every angle.
-  // A plane's far and near halves live on separate canvases either side of the
-  // logo, so BOTH wrappers of a plane must carry the same angle — otherwise the
-  // two halves shear apart and the ring visibly breaks where it crosses.
-  const mainSpinRef = useRef<HTMLDivElement>(null);
-  const mainSpinFrontRef = useRef<HTMLDivElement | null>(null);
-  const outerSpinRef = useRef<HTMLDivElement>(null);
-  const outerSpinFrontRef = useRef<HTMLDivElement | null>(null);
+  // The rings spin about the view axis by `ringAngleRef`. They are re-plotted
+  // as pixel cells at the current angle (lib/orbit-engine ringCells) rather
+  // than by rotating a painted canvas, so each cell stays a crisp, upright
+  // square. Spinning about the view axis leaves depth alone, so a cell's
+  // near/far half — and with it which canvas it is painted on — never changes.
   const ringAngleRef = useRef(0);
-
-  // Paint the outer ring once per phase change; it never changes afterwards.
-  useEffect(() => {
-    if (phase !== "orbiting") return;
-    const back = outerCanvasBackRef.current?.getContext("2d");
-    const front = outerCanvasFrontRef.current?.getContext("2d");
-    if (!back || !front) return;
-
-    const cx = CANVAS_SIZE / 2;
-    const cy = CANVAS_SIZE / 2;
-    const RX = ORBIT_RX * 1.16;
-    const RY = ORBIT_RY * 0.62;
-    const TILT = -ORBIT_TILT * 1.5;
-    const MOTES = 46;
-
-    const paint = (ctx: CanvasRenderingContext2D, isBack: boolean) => {
-      ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-      // Faint by design: this is the far plane and must not compete with the
-      // inner ring the planets travel. The near half is a touch brighter and
-      // thicker purely so the two halves read as different distances.
-      ctx.beginPath();
-      ctx.ellipse(
-        cx,
-        cy,
-        RX,
-        RY,
-        TILT,
-        isBack ? Math.PI : 0,
-        isBack ? 2 * Math.PI : Math.PI,
-      );
-      ctx.strokeStyle = `rgba(139, 92, 246, ${isBack ? 0.1 : 0.32})`;
-      ctx.lineWidth = isBack ? 1.5 : 2.25;
-      ctx.stroke();
-
-      // Chunky dust motes along the path — pixel squares, not a smooth band, so
-      // it reads 8-bit. Deterministic (no Math.random) so it can't shimmer.
-      ctx.imageSmoothingEnabled = false;
-      for (let i = 0; i < MOTES; i++) {
-        const a = (i / MOTES) * Math.PI * 2;
-        // Same near/far convention as everything else orbiting here:
-        // sin(a) > 0 is the half that swings toward the viewer.
-        if (Math.sin(a) > 0 === isBack) continue;
-
-        const ux = RX * Math.cos(a);
-        const uy = RY * Math.sin(a);
-        const x = ux * Math.cos(TILT) - uy * Math.sin(TILT);
-        const y = ux * Math.sin(TILT) + uy * Math.cos(TILT);
-
-        const jitter = ((i * 2654435761) % 100) / 100;
-        const size = 2 + Math.round(jitter * 2) * 2;
-        ctx.fillStyle = `rgba(139, 92, 246, ${(isBack ? 0.14 : 0.4) + jitter * 0.2})`;
-        ctx.fillRect(
-          Math.round((cx + x) / 4) * 4,
-          Math.round((cy + y) / 4) * 4,
-          size,
-          size,
-        );
-      }
-    };
-
-    paint(back, true);
-    paint(front, false);
-  }, [phase]);
 
   useEffect(() => {
     if (phase !== "orbiting" || !onScreen) return;
 
     const backCanvas = orbitCanvasBackRef.current;
     const frontCanvas = orbitCanvasFrontRef.current;
+    const outerBackCanvas = outerCanvasBackRef.current;
+    const outerFrontCanvas = outerCanvasFrontRef.current;
     if (!backCanvas || !frontCanvas) return;
 
     let frame: number;
@@ -638,6 +615,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
     // Trails invalidate the cache too: redraw every frame while any particle is
     // alive, plus one final frame after the last one expires to clear it.
     let lastTrailsAlive = false;
+    let lastAngle = Number.NaN;
 
     const drawOrbitRing = () => {
       const w = backCanvas.width;
@@ -670,10 +648,13 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
         (k) => trailsRef.current[k].length > 0,
       );
 
-      // Nothing visibly changed since the last stroke → don't touch the canvas.
+      // The rings spin in maths (so their pixels stay square), which means a
+      // redraw whenever the spin has moved them; otherwise skip the canvas.
+      const angle = ringAngleRef.current;
       if (
         ringOpacity === lastOpacity &&
         ringScale === lastScale &&
+        Math.abs(angle - lastAngle) < RING_REDRAW_RAD &&
         !trailsAlive &&
         !lastTrailsAlive
       ) {
@@ -682,58 +663,59 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
       }
       lastOpacity = ringOpacity;
       lastScale = ringScale;
+      lastAngle = angle;
       lastTrailsAlive = trailsAlive;
+
+      const main = ringCells({
+        rx: ORBIT_RX,
+        ry: ORBIT_RY,
+        tilt: ORBIT_TILT + angle,
+        count: MAIN_RING.count,
+        cell: MAIN_RING.cell,
+        scale: ringScale,
+      });
+      // Opposite direction and slower, so the two planes drift against each
+      // other instead of moving as one rigid object.
+      const outer = ringCells({
+        rx: ORBIT_RX * 1.16,
+        ry: ORBIT_RY * 0.62,
+        tilt: -ORBIT_TILT * 1.5 - angle * OUTER_SPIN_RATIO,
+        count: OUTER_RING.count,
+        cell: OUTER_RING.cell,
+      });
+      const obctx = outerBackCanvas?.getContext("2d");
+      const ofctx = outerFrontCanvas?.getContext("2d");
+      if (obctx && ofctx) {
+        obctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        ofctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        // Faint by design: the far plane must not compete with the planets'.
+        paintRingCells(
+          obctx,
+          outer.filter((c) => !c.front),
+          OUTER_RING.dot,
+          0.16,
+          false,
+        );
+        paintRingCells(
+          ofctx,
+          outer.filter((c) => c.front),
+          OUTER_RING.dot,
+          0.42,
+          false,
+        );
+      }
 
       const bctx = backCanvas.getContext("2d");
       const fctx = frontCanvas.getContext("2d");
 
-      const drawSaturnRing = (
-        ctx: CanvasRenderingContext2D,
-        isBack: boolean,
-      ) => {
-        const startAngle = isBack ? Math.PI : 0;
-        const endAngle = isBack ? 2 * Math.PI : Math.PI;
-
-        ctx.save();
-
-        ctx.translate(cx, cy);
-        ctx.scale(ringScale, ringScale);
-        ctx.translate(-cx, -cy);
-
-        ctx.shadowColor = `rgba(139, 92, 246, ${0.85 * ringOpacity})`;
-        ctx.shadowBlur = 18;
-
-        // Slightly thicker ring for more presence.
-        ctx.beginPath();
-        ctx.ellipse(
-          cx,
-          cy,
-          ORBIT_RX,
-          ORBIT_RY,
-          ORBIT_TILT,
-          startAngle,
-          endAngle,
+      const drawSaturnRing = (ctx: CanvasRenderingContext2D, isBack: boolean) =>
+        paintRingCells(
+          ctx,
+          main.filter((c) => c.front !== isBack),
+          MAIN_RING.dot,
+          (isBack ? 0.5 : 0.95) * ringOpacity,
+          !isBack,
         );
-        ctx.strokeStyle = `rgba(139, 92, 246, ${(isBack ? 0.22 : 0.45) * ringOpacity})`;
-        ctx.lineWidth = 6;
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.ellipse(
-          cx,
-          cy,
-          ORBIT_RX,
-          ORBIT_RY,
-          ORBIT_TILT,
-          startAngle,
-          endAngle,
-        );
-        ctx.strokeStyle = `rgba(255, 255, 255, ${(isBack ? 0.12 : 0.32) * ringOpacity})`;
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-
-        ctx.restore();
-      };
 
       // Ghost squares, split across the two canvases so a trail laid on the far
       // side of the ring stays behind the logo, like the planets themselves.
@@ -848,23 +830,6 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
     const angle = ringAngleRef.current;
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
-
-    const mainTransform = `rotate(${angle}rad)`;
-    // Opposite direction and slower, so the two planes drift against each other
-    // instead of moving as one rigid object.
-    const outerTransform = `rotate(${angle * -OUTER_SPIN_RATIO}rad)`;
-
-    if (mainSpinRef.current)
-      mainSpinRef.current.style.transform = mainTransform;
-    if (mainSpinFrontRef.current) {
-      mainSpinFrontRef.current.style.transform = mainTransform;
-    }
-    if (outerSpinRef.current) {
-      outerSpinRef.current.style.transform = outerTransform;
-    }
-    if (outerSpinFrontRef.current) {
-      outerSpinFrontRef.current.style.transform = outerTransform;
-    }
 
     for (const key of PLANET_KEYS) {
       const el = planetElsRef.current[key];
@@ -1183,14 +1148,12 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
-          {/* Far halves. Both planes' wrappers are rotated imperatively; the
-              canvases keep their React-owned entrance scale/opacity. */}
+          {/* Far halves, behind the logo. The canvases keep their React-owned
+              entrance scale/opacity; the spin is plotted into them. */}
           {showOrbit && (
             <div
-              ref={outerSpinRef}
               aria-hidden
               className="pointer-events-none absolute inset-0 z-0"
-              style={{ willChange: "transform" }}
             >
               <canvas
                 ref={outerCanvasBackRef}
@@ -1208,10 +1171,8 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
 
           {showOrbit && (
             <div
-              ref={mainSpinRef}
               aria-hidden
               className="pointer-events-none absolute inset-0 z-[1]"
-              style={{ willChange: "transform" }}
             >
               <canvas
                 ref={orbitCanvasBackRef}
@@ -1274,16 +1235,11 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
           )}
 
           {/* Near halves — above the logo, so both planes visibly cross in
-              front of it. Each is rotated by its own wrapper, mirroring the far
-              halves above so a plane never shears apart across the logo. */}
+              front of it. */}
           {showOrbit && (
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 z-20"
-              style={{ willChange: "transform" }}
-              ref={(el) => {
-                outerSpinFrontRef.current = el;
-              }}
             >
               <canvas
                 ref={outerCanvasFrontRef}
@@ -1303,10 +1259,6 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 z-[21]"
-              style={{ willChange: "transform" }}
-              ref={(el) => {
-                mainSpinFrontRef.current = el;
-              }}
             >
               <canvas
                 ref={orbitCanvasFrontRef}

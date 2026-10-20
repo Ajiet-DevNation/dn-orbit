@@ -18,6 +18,7 @@ import {
   REFORM_MS,
   reformProgressAt,
   reformSpinBoost,
+  ringCells,
   ringRevealAt,
   SCATTER_MS,
   SHATTER_TOTAL_MS,
@@ -319,5 +320,40 @@ describe("loaderRingCells", () => {
     const front = cells.filter((c) => c.front).length;
     expect(front).toBeGreaterThan(cells.length * 0.4);
     expect(front).toBeLessThan(cells.length * 0.6);
+  });
+});
+
+describe("ringCells", () => {
+  const shape = {
+    rx: ORBIT_RX,
+    ry: ORBIT_RY,
+    tilt: 0.4,
+    count: 100,
+    cell: 6,
+  };
+
+  test("cells stay on the pixel grid at any spin angle", () => {
+    for (const spin of [0, 0.1, 0.77, Math.PI / 4, 2]) {
+      for (const c of ringCells({ ...shape, tilt: shape.tilt + spin })) {
+        expect(c.x % 6).toBe(0);
+        expect(c.y % 6).toBe(0);
+      }
+    }
+  });
+
+  test("spinning in-plane keeps the near/far split (depth is untouched)", () => {
+    const a = ringCells(shape).map((c) => c.front);
+    const b = ringCells({ ...shape, tilt: shape.tilt + 1.3 }).map(
+      (c) => c.front,
+    );
+    expect(b).toEqual(a);
+  });
+
+  test("scale shrinks the ring about the centre", () => {
+    const span = (cells: { x: number }[]) =>
+      Math.max(...cells.map((c) => c.x)) - Math.min(...cells.map((c) => c.x));
+    expect(span(ringCells({ ...shape, scale: 0.5 }))).toBeLessThan(
+      span(ringCells(shape)) * 0.55,
+    );
   });
 });
