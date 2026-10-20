@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --no-server-fast-refresh",
     "build": "bunx prisma generate && bunx prisma migrate deploy && next build",
     "start": "next start",
     "lint": "biome check .",
