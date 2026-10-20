@@ -112,7 +112,8 @@ export function V2Header({
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-transparent">
+      {/* Named so route view transitions keep it pinned (globals.css). */}
+      <header className="sticky top-0 z-50 w-full bg-transparent [view-transition-name:site-header]">
         <div className="relative flex items-center justify-between px-6 pt-6 pb-3 gap-4">
           {/* Left: Logo + Brand — links home (smooth-scrolls to top when already on
             the landing page). Dark-grey pixel fill draws in on hover. */}

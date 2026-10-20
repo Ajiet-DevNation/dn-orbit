@@ -275,6 +275,7 @@ export function RecruitmentPopup() {
                   <div data-reveal className="flex flex-col gap-3 sm:flex-row">
                     <Link
                       href="/recruitments"
+                      transitionTypes={["recruit-in"]}
                       onClick={markSeen}
                       className={cn(CTA, CTA_PRIMARY)}
                     >

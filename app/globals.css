@@ -116,6 +116,110 @@ body {
   }
 }
 
+/* ── Route transitions: landing ⇄ /recruitments ──
+   React <ViewTransition> + Link transitionTypes ("recruit-in" going to the
+   form, "recruit-out" coming back). The RECRUITING strip morphs into the JOIN
+   DEVNATION card, the page underneath crossfades, and the form rises in. The
+   header is pinned so the eye keeps an anchor. Exits are quicker than enters:
+   the old page should get out of the way, the new one should arrive gently.
+   These pseudo-elements are not matched by the `*` reduced-motion reset above,
+   so they carry their own reduced-motion block below. */
+:root {
+  --vt-exit: 160ms;
+  --vt-enter: 280ms;
+  --vt-morph: 420ms;
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* Clicks during the ~0.4s transition reach the live page, not the overlay. */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-group(site-header) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(site-header) {
+  display: none;
+}
+::view-transition-new(site-header) {
+  animation: none;
+}
+
+:root:active-view-transition-type(recruit-in, recruit-out)::view-transition-old(
+  root
+) {
+  animation: var(--vt-exit) var(--ease-out-quart) both vt-fade-out;
+}
+:root:active-view-transition-type(recruit-in, recruit-out)::view-transition-new(
+  root
+) {
+  animation: var(--vt-enter) var(--ease-out-quart) both vt-fade-in;
+}
+
+/* Strip ⇄ card: the frame travels and resizes on one strong in-out curve; the
+   old snapshot leaves early and a light blur bridges the two shapes. */
+::view-transition-group(.recruit-morph) {
+  animation-duration: var(--vt-morph);
+  animation-timing-function: var(--ease-in-out-strong);
+  z-index: 50;
+}
+::view-transition-image-pair(.recruit-morph) {
+  animation: var(--vt-morph) var(--ease-in-out-strong) both vt-via-blur;
+}
+::view-transition-old(.recruit-morph) {
+  animation: calc(var(--vt-morph) * 0.45) var(--ease-out-quart) both vt-fade-out;
+}
+::view-transition-new(.recruit-morph) {
+  animation: var(--vt-morph) var(--ease-out-quart) both vt-fade-in;
+}
+
+::view-transition-new(.recruit-rise) {
+  animation: var(--vt-enter) var(--ease-out-quart) 90ms both vt-rise;
+}
+::view-transition-old(.recruit-sink) {
+  animation: var(--vt-exit) var(--ease-out-quart) both vt-fade-out;
+}
+
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(3px);
+  }
+}
+@keyframes vt-via-blur {
+  35% {
+    filter: blur(3px);
+  }
+}
+
+/* Reduced motion: keep the crossfades (they aid orientation), drop the
+   travel, the rise and the blur. Same specificity as the rules above, so
+   being later is enough. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(.recruit-morph) {
+    animation: none;
+  }
+  ::view-transition-image-pair(.recruit-morph) {
+    animation: none;
+  }
+  ::view-transition-new(.recruit-rise) {
+    animation-name: vt-fade-in;
+  }
+}
+
 /* ── Dot Grid Background Pattern ── */
 
 .dot-grid-bg {

@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, ViewTransition } from "react";
+import {
+  RECRUIT_CARD_TRANSITION,
+  RECRUIT_MORPH,
+} from "@/components/home/RecruitmentBanner";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import {
@@ -425,51 +429,67 @@ function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 pt-6 pb-24 sm:px-6 sm:pt-8 sm:pb-28">
-      <Link
-        href="/"
-        className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
-      >
-        <PixelArrow dir="left" /> BACK TO ORBIT
-      </Link>
-      {/* Full width, like the mock: the rail is too narrow for this card. */}
-      <div className="mt-6">
-        <RecruitHeaderCard current={step} />
-      </div>
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-10">
-        <aside className="flex flex-col gap-6 lg:sticky lg:top-28 lg:col-span-2 lg:self-start">
-          {filled !== undefined && (
-            // Desktop only, like before: on phones the form should start fast.
-            <div className="hidden lg:block">
-              <MissionProgress filled={filled} total={REQUIRED.length} />
-            </div>
-          )}
-          <div className="hidden flex-col gap-4 border-2 border-white/10 bg-[#0a0a0a] p-6 lg:flex">
-            <span className="retro text-[9px] tracking-widest text-white/80">
-              HOW IT WORKS
-            </span>
-            <ol className="flex flex-col gap-3">
-              {[
-                "Fill in the form and review your answers.",
-                "The core team reviews every application.",
-                "We reach out on WhatsApp or email.",
-              ].map((text, i) => (
-                <li key={text} className="flex gap-3">
-                  <span className="retro shrink-0 text-[9px] leading-5 text-brand-light">
-                    0{i + 1}
-                  </span>
-                  <span className="text-xs leading-5 text-muted-foreground">
-                    {text}
-                  </span>
-                </li>
-              ))}
-            </ol>
+    // Arriving from the landing page's RECRUITING strip, the page rises in
+    // under the card's morph; leaving by BACK TO ORBIT it fades out fast.
+    // Every other navigation leaves it alone (default="none").
+    <ViewTransition
+      enter={{ "recruit-in": "recruit-rise", default: "none" }}
+      exit={{ "recruit-out": "recruit-sink", default: "none" }}
+      default="none"
+    >
+      <div className="mx-auto w-full max-w-6xl px-5 pt-6 pb-24 sm:px-6 sm:pt-8 sm:pb-28">
+        <Link
+          href="/"
+          transitionTypes={["recruit-out"]}
+          className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
+        >
+          <PixelArrow dir="left" /> BACK TO ORBIT
+        </Link>
+        {/* Full width, like the mock: the rail is too narrow for this card. */}
+        <ViewTransition
+          name={RECRUIT_CARD_TRANSITION}
+          share={RECRUIT_MORPH}
+          default="none"
+        >
+          <div className="mt-6">
+            <RecruitHeaderCard current={step} />
           </div>
-        </aside>
+        </ViewTransition>
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-10">
+          <aside className="flex flex-col gap-6 lg:sticky lg:top-28 lg:col-span-2 lg:self-start">
+            {filled !== undefined && (
+              // Desktop only, like before: on phones the form should start fast.
+              <div className="hidden lg:block">
+                <MissionProgress filled={filled} total={REQUIRED.length} />
+              </div>
+            )}
+            <div className="hidden flex-col gap-4 border-2 border-white/10 bg-[#0a0a0a] p-6 lg:flex">
+              <span className="retro text-[9px] tracking-widest text-white/80">
+                HOW IT WORKS
+              </span>
+              <ol className="flex flex-col gap-3">
+                {[
+                  "Fill in the form and review your answers.",
+                  "The core team reviews every application.",
+                  "We reach out on WhatsApp or email.",
+                ].map((text, i) => (
+                  <li key={text} className="flex gap-3">
+                    <span className="retro shrink-0 text-[9px] leading-5 text-brand-light">
+                      0{i + 1}
+                    </span>
+                    <span className="text-xs leading-5 text-muted-foreground">
+                      {text}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </aside>
 
-        <div className="flex flex-col gap-6 lg:col-span-3">{children}</div>
+          <div className="flex flex-col gap-6 lg:col-span-3">{children}</div>
+        </div>
       </div>
-    </div>
+    </ViewTransition>
   );
 }
 
