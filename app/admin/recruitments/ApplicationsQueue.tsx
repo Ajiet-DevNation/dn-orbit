@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "@/components/ui/8bit-toast";
 import { useConfirm } from "@/components/ui/PixelConfirm";
+import { PixelArrow } from "@/components/ui/PixelIcons";
 import type { ApprovalStatus } from "@/lib/status";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +35,7 @@ const STATUS_TEXT: Record<string, string> = {
 
 const STATUS_CHIP: Record<string, string> = {
   pending: "border-zinc-600 text-zinc-400",
-  approved: "border-[#22c55e] bg-[#22c55e]/10 text-[#22c55e]",
+  approved: "border-brand bg-brand/10 text-brand-light",
   rejected: "border-red-500/50 bg-red-500/10 text-red-400",
 };
 
@@ -53,7 +54,7 @@ const btn =
 const chip =
   "retro border-2 border-white/10 px-2.5 py-1.5 text-[8px] tracking-widest";
 
-const profileChip = `${chip} text-[#22c55e] transition-colors hover:border-[#22c55e] hover:bg-[#22c55e]/10`;
+const profileChip = `${chip} text-brand-light transition-colors hover:border-brand hover:bg-brand/10`;
 
 function ProfileLink({ href, children }: { href: string; children: string }) {
   return (
@@ -174,8 +175,8 @@ export function ApplicationsQueue({
             onClick={() => setFilter(f.key)}
             className={`retro border-2 px-4 py-2 text-[9px] tracking-widest transition-colors ${
               filter === f.key
-                ? "border-[#22c55e] bg-[#22c55e]/[0.08] text-[#22c55e]"
-                : "border-white/10 text-zinc-500 hover:border-[#22c55e]/30 hover:text-[#22c55e]"
+                ? "border-brand bg-brand/[0.08] text-brand-light"
+                : "border-white/10 text-zinc-500 hover:border-brand/30 hover:text-brand-light"
             }`}
           >
             {f.label} [{count(f.key)}]
@@ -198,7 +199,7 @@ export function ApplicationsQueue({
                 key={a.id}
                 className={cn(
                   "flex flex-col gap-4 border-2 border-white/10 bg-black/60 p-5",
-                  a.status === "pending" && "border-l-[6px] border-l-[#22c55e]",
+                  a.status === "pending" && "border-l-[6px] border-l-brand",
                 )}
               >
                 <header className="flex flex-wrap items-start justify-between gap-3">
@@ -229,7 +230,7 @@ export function ApplicationsQueue({
                 <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-zinc-400">
                   <a
                     href={`mailto:${a.email}`}
-                    className="break-all hover:text-[#22c55e]"
+                    className="break-all hover:text-brand-light"
                   >
                     {a.email}
                   </a>
@@ -272,9 +273,10 @@ export function ApplicationsQueue({
                     type="button"
                     aria-expanded={open}
                     onClick={() => toggleAbout(a.id)}
-                    className="retro mt-2 text-[8px] tracking-widest text-zinc-500 hover:text-[#22c55e]"
+                    className="retro mt-2 inline-flex items-center gap-2 text-[8px] tracking-widest text-zinc-500 hover:text-brand-light"
                   >
-                    {open ? "LESS ▴" : "MORE ▾"}
+                    {open ? "LESS" : "MORE"}
+                    <PixelArrow dir={open ? "up" : "down"} />
                   </button>
                 </div>
 
@@ -283,7 +285,7 @@ export function ApplicationsQueue({
                     type="button"
                     disabled={isPending || a.status === "approved"}
                     onClick={() => setStatus(a, "approved")}
-                    className={`${btn} border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black`}
+                    className={`${btn} border-brand text-brand-light hover:bg-brand hover:text-black`}
                   >
                     ACCEPT
                   </button>
