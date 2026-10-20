@@ -19,7 +19,10 @@ import { CV_BUCKET, getSupabaseAdmin } from "@/lib/supabase";
 // rides in the same request (no separate public upload endpoint), so a file is
 // only ever stored for an application that passed every check below.
 export async function POST(req: NextRequest) {
-  const limit = rateLimit(rateLimitKey(req, "recruitment-apply"), 5, 60_000);
+  // Anonymous form (applicants needn't have an account), keyed by IP. The
+  // ceiling allows a recruitment drive on campus Wi-Fi, where everyone shares
+  // one egress IP, while still stopping a loop uploading CVs.
+  const limit = rateLimit(rateLimitKey(req, "recruitment-apply"), 20, 60_000);
   if (!limit.ok) return tooManyRequests(limit);
 
   if (!(await isRecruitmentOpen())) {

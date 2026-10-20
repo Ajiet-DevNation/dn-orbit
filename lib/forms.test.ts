@@ -3,6 +3,8 @@ import {
   type EventAudience,
   type FormFieldDef,
   isFieldVisible,
+  isSafePattern,
+  MAX_PATTERN_LEN,
   usnRequiredFor,
   validateSubmission,
 } from "./forms";
@@ -255,5 +257,38 @@ describe("isFieldVisible", () => {
   test("checkbox (array) controller matches on includes", () => {
     expect(isFieldVisible(cond, { c: ["No", "Yes"] })).toBe(true);
     expect(isFieldVisible(cond, { c: ["No"] })).toBe(false);
+  });
+});
+
+describe("isSafePattern", () => {
+  test("accepts ordinary validation patterns", () => {
+    for (const p of [
+      "^[0-9]{10}$",
+      "^4JK\\d{2}[A-Z]{2}\\d{3}$",
+      "^https?://",
+      "^(jpg|png)$",
+      "^[a-z]+(-[a-z]+)?$",
+    ]) {
+      expect(isSafePattern(p)).toBe(true);
+    }
+  });
+
+  test("rejects catastrophic backtracking shapes", () => {
+    for (const p of [
+      "(a+)+$",
+      "^(\\w+\\s?)*$",
+      "(a*)*b",
+      "(a|aa)+$",
+      "(x+x+)+y",
+      "^(a+){2,}$",
+      "(a)\\1",
+    ]) {
+      expect(isSafePattern(p)).toBe(false);
+    }
+  });
+
+  test("rejects invalid and over-long patterns", () => {
+    expect(isSafePattern("(")).toBe(false);
+    expect(isSafePattern("a".repeat(MAX_PATTERN_LEN + 1))).toBe(false);
   });
 });

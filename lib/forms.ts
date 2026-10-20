@@ -161,6 +161,31 @@ const MAX_EMAIL_LEN = 254; // RFC 5321 practical limit
 const MAX_USN_LEN = 32;
 const MAX_TEXT_LEN = 2000;
 
+/** Longest organizer-supplied validation regex we will run. */
+export const MAX_PATTERN_LEN = 200;
+
+// Patterns run against anonymous input, so a catastrophic one — nested
+// quantifiers like (a+)+ or (a|aa)* — would let any registrant pin the
+// server's event loop. Reject: over-long patterns, a repeated group that holds
+// a quantifier or an alternation, and backreferences. Shortcut: a heuristic, not a full
+// ReDoS analyser; if organizers ever need richer patterns, move to RE2.
+const NESTED_QUANTIFIER =
+  /\((?:[^()\\]|\\.)*[*+?}](?:[^()\\]|\\.)*\)\s*(?:[*+]|\{\d)/;
+const REPEATED_ALTERNATION =
+  /\((?:[^()\\]|\\.)*\|(?:[^()\\]|\\.)*\)\s*(?:[*+]|\{\d)/;
+export function isSafePattern(pattern: string): boolean {
+  if (pattern.length > MAX_PATTERN_LEN) return false;
+  if (NESTED_QUANTIFIER.test(pattern)) return false;
+  if (REPEATED_ALTERNATION.test(pattern)) return false;
+  if (/\\[1-9]/.test(pattern)) return false;
+  try {
+    new RegExp(pattern);
+  } catch {
+    return false;
+  }
+  return true;
+}
+
 // USN format is deliberately NOT validated unless an admin sets `usnPattern`
 // on the event: college ID formats vary by cohort, and a hard-coded default
 // would reject legitimate registrations for the sake of a hint.
@@ -219,7 +244,7 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
       errors.usn = "USN / College ID is required";
     } else if (usn.length > MAX_USN_LEN) {
       errors.usn = "USN is too long";
-    } else if (args.usnPattern) {
+    } else if (args.usnPattern && isSafePattern(args.usnPattern)) {
       try {
         if (!new RegExp(args.usnPattern).test(usn)) {
           errors.usn = "USN format is invalid";
@@ -282,7 +307,8 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
           errors[f.id] = `${f.label} is too long`;
           break;
         }
-        if (f.pattern) {
+        // An unsafe pattern (see isSafePattern) is ignored, like an invalid one.
+        if (f.pattern && isSafePattern(f.pattern)) {
           try {
             if (!new RegExp(f.pattern).test(s))
               errors[f.id] = `${f.label} format is invalid`;

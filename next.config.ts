@@ -1,9 +1,26 @@
 import type { NextConfig } from "next";
 
-// Applied to every route. CSP is intentionally absent for now: the app inlines
-// styles/scripts in several places (8-bit components, canvas hero) and a lax
-// CSP is worse than none — revisit with nonces if that changes.
+// Applied to every route. The CSP is a baseline of directives that don't touch
+// scripts or styles: the app inlines both (8-bit components, canvas hero), so a
+// script-src policy needs nonces first. These still close framing, plugin
+// objects, <base> hijacks and form posts to foreign origins (GitHub is the
+// OAuth sign-in redirect).
+const contentSecurityPolicy = [
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self' https://github.com",
+].join("; ");
+
+// Only this project's public `media` bucket may go through the image
+// optimizer — `**.supabase.co` let anyone proxy any Supabase project's images
+// on this site's bill.
+const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+  : null;
+
 const securityHeaders = [
+  { key: "Content-Security-Policy", value: contentSecurityPolicy },
   // 2y HSTS incl. subdomains; safe because the site is HTTPS-only on Vercel.
   {
     key: "Strict-Transport-Security",
@@ -35,7 +52,15 @@ const nextConfig: NextConfig = {
       // Member avatars come from GitHub via the OAuth profile.
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
       // Event/project images live in the Supabase `media` bucket (public read).
-      { protocol: "https", hostname: "**.supabase.co" },
+      ...(supabaseHost
+        ? [
+            {
+              protocol: "https" as const,
+              hostname: supabaseHost,
+              pathname: "/storage/v1/object/public/media/**",
+            },
+          ]
+        : []),
     ],
   },
   experimental: {

@@ -19,7 +19,16 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   // Public-audience events accept registrations from anonymous callers, so this
   // is the app's most exposed write. Throttle before touching the database.
-  const limit = rateLimit(rateLimitKey(req, "event-register"), 10, 60_000);
+  // Signed-in callers are keyed by account. Anonymous ones by IP, with a higher
+  // ceiling: a whole class registering from campus Wi-Fi shares one egress IP.
+  const session = await auth();
+  const limit = session
+    ? rateLimit(
+        rateLimitKey(req, "event-register", session.user.id),
+        10,
+        60_000,
+      )
+    : rateLimit(rateLimitKey(req, "event-register"), 30, 60_000);
   if (!limit.ok) return tooManyRequests(limit);
 
   const event = await db.event.findUnique({ where: { id: eventId } });
@@ -29,7 +38,6 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Event not available" }, { status: 403 });
 
   const audience = event.audience as EventAudience;
-  const session = await auth();
 
   // Members-only events require an approved, signed-in member. The combined
   // members+AJIET tier doesn't gate on an account (AJIET students register by
