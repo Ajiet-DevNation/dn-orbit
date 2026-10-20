@@ -203,15 +203,15 @@ body {
   animation: hint-bob 1.2s linear infinite;
 }
 
-/* Recruiting strip's live dot: a ring that steps outward and fades. */
-@keyframes recruit-ping {
-  0% {
-    opacity: 0.9;
-    transform: scale(0.6);
+/* Recruiting strip's live dot: on, then dim, in hard steps. */
+@keyframes recruit-blink {
+  0%,
+  60% {
+    opacity: 1;
   }
+  61%,
   100% {
-    opacity: 0;
-    transform: scale(1.6);
+    opacity: 0.25;
   }
 }
 
