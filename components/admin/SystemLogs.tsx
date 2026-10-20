@@ -77,7 +77,8 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
             onValueChange={setQuery}
             placeholder="SEARCH · DATE, USER, ACTION…"
             aria-label="Search logs"
-            className="text-[10px] uppercase tracking-wider"
+            // 16px on phones so iOS Safari doesn't zoom into the field.
+            className="text-base uppercase tracking-wider md:text-[10px]"
           />
         </Command>
       </div>

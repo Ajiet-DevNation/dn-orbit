@@ -89,6 +89,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: "#000000",
   colorScheme: "dark",
+  // Android Chrome: the on-screen keyboard shrinks the layout viewport, as on
+  // iOS, so dvh-sized sheets and forms stay above it.
+  interactiveWidget: "resizes-content",
 };
 
 export default async function RootLayout({

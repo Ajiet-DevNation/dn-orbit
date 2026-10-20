@@ -82,6 +82,22 @@
 
 html {
   scroll-behavior: smooth;
+  /* Native-feeling taps: no grey flash, no font inflation in landscape. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Controls answer a tap immediately (no double-tap-zoom wait) and a long
+   press doesn't select their label. Links stay selectable — they sit in prose. */
+button,
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+a {
+  touch-action: manipulation;
 }
 
 body {
@@ -368,7 +384,7 @@ body {
   /* Only the cheap border-color animates here; the rest glow is static. The
      brighter hover glow lives on ::after and cross-fades via opacity
      (compositor) instead of animating box-shadow blur (paint-bound). */
-  transition: border-color 0.4s ease;
+  transition: border-color 0.2s ease;
   /* Faint purple terminal glow at rest, tying the card to the orbit accent. */
   box-shadow:
     0 0 24px rgba(139, 92, 246, 0.05),
@@ -383,14 +399,17 @@ body {
   z-index: -1;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.2s ease;
   box-shadow: 0 0 28px rgba(139, 92, 246, 0.12);
 }
-.about-card:hover {
-  border-color: rgba(139, 92, 246, 0.35);
-}
-.about-card:hover::after {
-  opacity: 1;
+/* Gated: a tap on a touch screen would otherwise leave the glow stuck on. */
+@media (hover: hover) and (pointer: fine) {
+  .about-card:hover {
+    border-color: rgba(139, 92, 246, 0.35);
+  }
+  .about-card:hover::after {
+    opacity: 1;
+  }
 }
 
 /* CRT-style scanlines + soft phosphor glow over the terminal transcript. The
