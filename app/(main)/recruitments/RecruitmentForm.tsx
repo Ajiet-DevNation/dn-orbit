@@ -425,7 +425,7 @@ function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 py-24 sm:px-6 sm:py-28">
+    <div className="mx-auto w-full max-w-6xl px-5 pt-6 pb-24 sm:px-6 sm:pt-8 sm:pb-28">
       <Link
         href="/"
         className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
