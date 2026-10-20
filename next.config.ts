@@ -22,6 +22,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // AGENTS.md is hand-written and already points at node_modules/next/dist/docs;
+  // stop `next dev` appending its own copy of that block on every start.
+  agentRules: false,
   compress: true,
   images: {
     formats: ["image/avif", "image/webp"],
