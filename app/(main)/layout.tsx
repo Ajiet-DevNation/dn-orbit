@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { AsciiBackground } from "@/components/home/AsciiBackground";
 import { PendingBanner } from "@/components/home/PendingBanner";
 import type { ProfileData } from "@/components/home/ProfileModal";
 import { SmoothScroll } from "@/components/layout/SmoothScroll";
 import { V2Header } from "@/components/layout/V2Header";
 import { BootSplash } from "@/components/ui/BootSplash";
+import { PixelStarfield } from "@/components/ui/PixelStarfield";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
@@ -58,12 +58,12 @@ export default async function V2Layout({
   return (
     // `--font-pixel` is already defined on <html> by the root layout, so this
     // tree inherits it — no second Press_Start_2P load needed here.
-    <div data-v2 className="dark relative bg-[#0a0a0a] min-h-screen">
+    <div data-v2 className="dark relative bg-black min-h-screen">
       {/* Boot-splash overlay: paints with the initial shell and guarantees the
           pixel DN-logo draw plays before fading (see BootSplash). */}
       <BootSplash />
       <SmoothScroll />
-      <AsciiBackground />
+      <PixelStarfield className="z-[1]" />
       <div className="relative" style={{ zIndex: 2 }}>
         {session?.user?.status === "pending" && <PendingBanner />}
         <V2Header

@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Press_Start_2P } from "next/font/google";
-import { DotGridBackground } from "@/components/ui/DotGridBackground";
 import "./globals.css";
 import { Toaster } from "@/components/ui/8bit-toast";
 import { auth } from "@/lib/auth";
@@ -88,7 +87,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#000000",
   colorScheme: "dark",
 };
 
@@ -107,7 +106,6 @@ export default async function RootLayout({
       className={cn("h-full", ibmPlexMono.variable, pressStart.variable)}
     >
       <body className="min-h-full flex flex-col bg-bg text-text">
-        <DotGridBackground />
         <Providers session={session}>{children}</Providers>
         {/* Single global Toaster. `className="dark"` is forwarded to the portaled
             <ol>, so the 8-bit Toast2 (bg-background / bg-destructive) resolves to the
