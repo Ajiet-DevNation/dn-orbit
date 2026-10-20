@@ -145,13 +145,14 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
             </span>
           ))}
 
+          {/* 208×128 frames (13:8), centred; scaled 1.25× / 1.5× / 2×. */}
           <div
             ref={floatRef}
-            className="absolute -bottom-2 right-[12%] size-[192px] sm:size-[256px]"
+            className="absolute -bottom-2 left-1/2 -ml-[130px] h-[160px] w-[260px] md:-ml-[156px] md:h-[192px] md:w-[312px] lg:-ml-[208px] lg:h-[256px] lg:w-[416px]"
           >
             <div
               ref={spriteRef}
-              className="pixelated size-full bg-[url(/assets/pluton/pluton-laptop.png)] bg-[length:900%_100%] bg-no-repeat"
+              className="pixelated size-full bg-[url(/assets/pluton/pluton-laptop-v2.png)] bg-[length:900%_100%] bg-no-repeat"
             />
           </div>
         </div>

@@ -261,6 +261,8 @@ export function RecruitmentPopup() {
                           alt=""
                           width={32}
                           height={32}
+                          // Tiny sprite, served as-is (see PixelBubble).
+                          unoptimized
                           className="pixelated size-8"
                         />
                         <span className="retro text-[8px] leading-relaxed text-white/85 sm:text-[9px]">
