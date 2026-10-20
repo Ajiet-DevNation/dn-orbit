@@ -116,6 +116,10 @@ const customAdapter: Adapter = {
 };
 
 export const { handlers, auth, signIn } = NextAuth({
+  secret:
+    process.env.AUTH_SECRET ??
+    process.env.NEXTAUTH_SECRET ??
+    "orbit-build-secret",
   adapter: customAdapter,
   session: {
     strategy: "jwt",
