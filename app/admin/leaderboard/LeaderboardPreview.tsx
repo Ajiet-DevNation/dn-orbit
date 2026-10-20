@@ -63,7 +63,7 @@ export function LeaderboardPreview({ rows }: { rows: PreviewRow[] }) {
           filtered.map((s) => (
             <div
               key={s.id}
-              className="p-4 flex items-center justify-between hover:bg-zinc-950 transition-all group"
+              className="p-4 flex items-center justify-between hover:bg-zinc-950 transition-colors group"
             >
               <div className="flex items-center gap-6">
                 <span className="retro text-xl text-zinc-700 group-hover:text-brand-light transition-colors">

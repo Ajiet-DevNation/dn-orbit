@@ -23,7 +23,7 @@ const LENS_SIZING = {
   thumbRatio: 0.36, // thumb height / lens height (oryzo ~0.35)
 };
 // Flip easing: smooth ease-in-out, no overshoot, so it reads as a real card turn.
-const FLIP_EASE = "transform 560ms cubic-bezier(0.4, 0.0, 0.2, 1)";
+const FLIP_EASE = "transform 480ms cubic-bezier(0.4, 0.0, 0.2, 1)";
 
 function initials(name: string): string {
   return name

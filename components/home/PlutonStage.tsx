@@ -111,9 +111,13 @@ export function PlutonStage({ className }: { className?: string }) {
     stage.addEventListener("pointermove", onMove);
     stage.addEventListener("pointerleave", onLeave);
 
-    // The bubble starts hidden and pops in after a beat, in 4 hard steps.
+    // The bubble starts hidden and pops in after a beat, in 4 hard steps —
+    // from 60% size, never from nothing.
     const bubble = bubbleRef.current;
-    if (bubble) bubble.style.transform = "scale(0)";
+    if (bubble) {
+      bubble.style.opacity = "0";
+      bubble.style.transform = "scale(0.6)";
+    }
 
     const start = performance.now();
     let raf = 0;
@@ -159,7 +163,9 @@ export function PlutonStage({ className }: { className?: string }) {
       if (bubble) {
         // After the popup's own entrance has revealed Pluton (~1.1s).
         const p = Math.min(1, Math.max(0, (t - 1250) / 240));
-        bubble.style.transform = `scale(${Math.ceil(p * 4) / 4})`;
+        const q = Math.ceil(p * 4) / 4;
+        bubble.style.opacity = q > 0 ? "1" : "0";
+        bubble.style.transform = `scale(${0.6 + 0.4 * q})`;
       }
 
       raf = requestAnimationFrame(tick);

@@ -94,7 +94,7 @@ function AnnouncementSlide({
     // percentage, so it resolves against each parent's content box and fits.
     <Card
       className={cn(
-        "h-full gap-4 py-8 border-white/10 shadow-[0_0_15px_rgba(139,92,246,0.05)] transition-colors duration-500",
+        "h-full gap-4 py-8 border-white/10 shadow-[0_0_15px_rgba(139,92,246,0.05)] transition-colors duration-200",
         // Linked cards get a stronger hover cue than passive ones.
         item.href ? "hover:border-brand/70" : "hover:border-brand/40",
       )}

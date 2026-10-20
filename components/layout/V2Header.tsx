@@ -138,8 +138,7 @@ export function V2Header({
                   ? "translateY(0)"
                   : "translateY(-16px)",
                 transition:
-                  "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1)",
-                willChange: "opacity, transform",
+                  "opacity 700ms var(--ease-out-quart), transform 700ms var(--ease-out-quart)",
                 pointerEvents: headerVisible ? "auto" : "none",
               }}
             >

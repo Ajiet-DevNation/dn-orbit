@@ -195,7 +195,7 @@ const ProjectCard = memo(function ProjectCard({
             aria-hidden
           >
             <div
-              className="h-full transition-[width] duration-500 ease-out"
+              className="h-full"
               style={{
                 width: `${Math.max(0, Math.min(100, project.progressPct))}%`,
                 backgroundColor: color,
@@ -222,8 +222,10 @@ function ProjectDetail({
       style={{
         opacity: open ? 1 : 0,
         transform: `translateX(${open ? 0 : 40}px)`,
-        transition:
-          "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)",
+        // Arrive gently, leave fast: closing is the system getting out of the way.
+        transition: open
+          ? "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)"
+          : "opacity 200ms var(--ease-out-quart), transform 200ms var(--ease-out-quart)",
       }}
     >
       {/* Status badge intentionally omitted here — the card that flies in beside
@@ -509,7 +511,7 @@ export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
         >
           <ProjectCard
             project={project}
-            className="transition-colors duration-300 group-hover:border-brand/50"
+            className="transition-colors duration-200 group-hover:border-brand/50"
           />
           <HudCardFrame variant="full" />
         </div>
