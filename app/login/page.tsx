@@ -20,7 +20,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     : null;
 
   return (
-    <main className="dark relative flex min-h-screen w-full items-center justify-center bg-black p-8 retro overflow-hidden">
+    <main className="dark relative flex min-h-svh w-full items-center justify-center bg-black p-8 retro overflow-hidden">
       <PixelStarfield className="z-0" />
       <div className="relative z-10 w-full max-w-md">
         <LoginForm errorMessage={errorMessage} />

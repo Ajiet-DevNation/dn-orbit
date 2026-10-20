@@ -220,7 +220,10 @@ export default async function V2Page() {
   }
 
   return (
-    <div className="min-h-screen">
+    // relative: the RECRUITING strip is positioned against the page, i.e.
+    // against the bottom of the 100px header — not the layout wrapper, whose
+    // top also holds the pending-member banner when one is shown.
+    <div className="relative min-h-screen">
       {/* Kicks off a background stats refresh when the cache is stale — the
           SWR replacement for the old GitHub Actions cron (see lib/sync.ts). */}
       <StatsSyncPing />

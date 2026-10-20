@@ -137,8 +137,11 @@ export function V2Header({
 
   return (
     <>
-      {/* Named so route view transitions keep it pinned (globals.css). */}
-      <header className="sticky top-0 z-50 w-full bg-transparent [view-transition-name:site-header]">
+      {/* Named so route view transitions keep it pinned (globals.css). The
+          fade to black keeps scrolled content from colliding with the logo and
+          controls (it read as overlapping text on phones); over the black
+          hero it is invisible. */}
+      <header className="sticky top-0 z-50 w-full bg-linear-to-b from-black/90 via-black/60 to-transparent [view-transition-name:site-header]">
         {/* min-h pins the row at 100px on every screen (the button-only phone
             row was 92px): the hero and boot splash are laid out against
             exactly this height (OrbitStage HEADER_OFFSET). */}

@@ -4,7 +4,9 @@ import { PixelArrow } from "@/components/ui/PixelIcons";
 
 // Thin "we're hiring" tab floated over the top of the hero. Rendered by the
 // landing page only while an admin has recruitment switched on. Absolute so it
-// doesn't push the full-height orbit down. It shares the top row with the
+// doesn't push the full-height orbit down. Offsets are from the page top, which
+// is the bottom of the 100px header row: 12px below it on phones, and -64px
+// (= 36px from the header's top) to centre on the logo row from md up. It shares the top row with the
 // sticky header (z-50), so it sits above it (z-60), centred on the logo row;
 // the wrapper is click-through so the gaps beside it don't block the logo or
 // avatar. On phones it drops below the header row.
@@ -27,7 +29,7 @@ export function RecruitmentBanner() {
   // Landscape phones (short + wide enough) also get the header-row slot:
   // below the header it sat on top of the hero logo.
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-28 z-[60] flex justify-center px-4 md:top-[36px] [@media(max-height:500px)_and_(min-width:640px)]:top-[36px]">
+    <div className="pointer-events-none absolute inset-x-0 top-3 z-[60] flex justify-center px-4 md:-top-16 [@media(max-height:500px)_and_(min-width:640px)]:-top-16">
       <ViewTransition
         name={RECRUIT_CARD_TRANSITION}
         share={RECRUIT_MORPH}

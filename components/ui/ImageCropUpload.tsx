@@ -238,7 +238,7 @@ export function ImageCropUpload({
         }
       >
         <div className="flex flex-col gap-4">
-          <div className="relative h-[52vh] w-full bg-[#0d0d0d]">
+          <div className="relative h-[52dvh] w-full bg-[#0d0d0d]">
             {src && (
               <Cropper
                 image={src}

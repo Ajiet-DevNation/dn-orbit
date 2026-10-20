@@ -391,7 +391,8 @@ export function StatsSection({
         <Card className="items-center justify-center gap-6 py-8 border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
           <div className="w-full space-y-6 px-7 text-center">
             <h3 className="retro text-base text-white">RANK</h3>
-            <p className="retro text-6xl text-white">
+            {/* 36px on phones: "#100" at 60px is wider than a 320px card. */}
+            <p className="retro text-4xl text-white sm:text-6xl">
               {rank?.rank != null ? `#${rank.rank}` : "—"}
             </p>
             <p className="retro text-[9px] text-muted-foreground">
@@ -444,7 +445,9 @@ function DifficultyTile({
 }) {
   return (
     <div className="border border-white/10 py-5 text-center">
-      <p className={`retro text-2xl ${color}`}>{value}</p>
+      {/* Three across: a three-digit count at 24px overflowed its tile on
+          a 320px phone. */}
+      <p className={`retro text-lg sm:text-2xl ${color}`}>{value}</p>
       <p className="mt-2 text-[9px] tracking-wider text-muted-foreground">
         {label}
       </p>

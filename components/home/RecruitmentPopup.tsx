@@ -224,14 +224,17 @@ export function RecruitmentPopup() {
               type="button"
               aria-label="Close"
               onClick={() => onOpenChange(false)}
-              className="retro grid size-9 shrink-0 place-items-center border-2 border-brand/50 text-[11px] text-brand-soft transition-[border-color,color,transform] duration-150 ease-out hover:border-brand hover:text-white focus-visible:border-brand-light focus-visible:text-white focus-visible:outline-none active:scale-95"
+              className="retro grid size-11 shrink-0 place-items-center border-2 border-brand/50 text-[11px] text-brand-soft transition-[border-color,color,transform] duration-150 ease-out hover:border-brand hover:text-white focus-visible:border-brand-light focus-visible:text-white focus-visible:outline-none active:scale-95"
             >
               <span aria-hidden>×</span>
             </button>
           </div>
 
           <div className="p-2 md:p-2.5">
-            <div className="relative max-h-[78vh] overflow-y-auto border-2 border-[#8b5cf6]/30 bg-[radial-gradient(ellipse_at_78%_50%,rgba(139,92,246,0.2),transparent_60%)] px-5 py-6 md:px-9 md:py-8">
+            {/* Scroll area = the visible viewport minus the frame chrome (title
+                bar, paddings ≈ 9rem), so the close button stays on screen even
+                on a landscape phone; dvh tracks the iOS toolbar. */}
+            <div className="relative max-h-[calc(100dvh_-_9rem)] overflow-y-auto border-2 border-[#8b5cf6]/30 bg-[radial-gradient(ellipse_at_78%_50%,rgba(139,92,246,0.2),transparent_60%)] px-5 py-6 md:px-9 md:py-8">
               <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-[1.15fr_1fr] md:gap-8">
                 <div className="order-2 flex flex-col gap-6 md:order-1">
                   <h3 data-reveal className="retro leading-tight">

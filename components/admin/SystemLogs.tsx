@@ -101,7 +101,7 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
           NO LOGS MATCH THAT SEARCH.
         </p>
       ) : (
-        <div className="no-scrollbar max-h-[60vh] space-y-2 overflow-y-auto">
+        <div className="no-scrollbar max-h-[60dvh] space-y-2 overflow-y-auto">
           {filtered.map((log) => (
             <div
               key={log.id}

@@ -102,7 +102,8 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close menu"
-            className="mr-4 text-brand-light md:hidden"
+            // 44px tap target around the 20px glyph.
+            className="mr-2 grid size-11 place-items-center text-brand-light md:hidden"
           >
             <X className="h-5 w-5" />
           </button>
