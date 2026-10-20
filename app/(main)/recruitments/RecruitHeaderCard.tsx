@@ -69,8 +69,20 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
       });
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // Paused once the card scrolls away (the form below is where people
+    // spend their time).
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !raf) raf = requestAnimationFrame(tick);
+      if (!entry.isIntersecting && raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    });
+    if (floatRef.current) io.observe(floatRef.current);
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
   const at = current ? STEPS.indexOf(current) : -1;

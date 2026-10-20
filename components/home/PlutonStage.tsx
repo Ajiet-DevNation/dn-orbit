@@ -68,6 +68,7 @@ export function PlutonStage({ className }: { className?: string }) {
   const ringRef = useRef<HTMLDivElement>(null);
   const asteroidLayerRef = useRef<HTMLDivElement>(null);
   const asteroidRef = useRef<HTMLDivElement>(null);
+  const rockRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const sparkleRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -78,13 +79,16 @@ export function PlutonStage({ className }: { className?: string }) {
     // Asteroid start: front-right of the ring, so the static frame reads well.
     const placeAsteroid = (t: number) => {
       const layer = asteroidLayerRef.current;
-      const rock = asteroidRef.current;
-      if (!layer || !rock) return;
+      const mover = asteroidRef.current;
+      const rock = rockRef.current;
+      if (!layer || !mover || !rock) return;
       const x = RING.cx + RING.rx * Math.cos(t);
       const y = RING.cy + RING.ry * Math.sin(t);
       const front = Math.sin(t) > 0; // lower half of the ring faces the viewer
-      rock.style.left = `${x}%`;
-      rock.style.top = `${y}%`;
+      // The mover is the layer's size, so translate(%) of it is % of the
+      // stage — a compositor-only stand-in for the left/top it used to set
+      // (layout) on every frame.
+      mover.style.transform = `translate(${x}%, ${y}%)`;
       rock.style.transform = `translate(-50%, -50%) scale(${front ? 1.15 : 0.75})`;
       rock.style.opacity = front ? "1" : "0.6";
       layer.style.zIndex = front ? "30" : "10";
@@ -249,14 +253,16 @@ export function PlutonStage({ className }: { className?: string }) {
         className="pointer-events-none absolute inset-0 z-10"
         style={{ transform: `rotate(${TILT}deg)` }}
       >
-        <div ref={asteroidRef} className="absolute">
-          <Image
-            src="/assets/pluton/asteroid.png"
-            alt=""
-            width={32}
-            height={32}
-            className="pixelated"
-          />
+        <div ref={asteroidRef} className="absolute inset-0">
+          <div ref={rockRef} className="absolute top-0 left-0">
+            <Image
+              src="/assets/pluton/asteroid.png"
+              alt=""
+              width={32}
+              height={32}
+              className="pixelated"
+            />
+          </div>
         </div>
       </div>
 
