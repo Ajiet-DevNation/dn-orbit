@@ -5,6 +5,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fetchGitHubStats } from "@/lib/github";
+import { githubAccessToken } from "@/lib/github-token";
 import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
 import { canAccessAdmin } from "@/lib/roles";
 
@@ -86,15 +87,7 @@ export async function GET(
   // stats we fall back to the ADMIN's own token, which can only see that
   // person's public repos.
   const tokenOwnerId = isSelf ? userId : session.user.id;
-  const ghAccount = await db.account.findFirst({
-    where: {
-      userId: tokenOwnerId,
-      provider: "github",
-      access_token: { not: null },
-    },
-    select: { access_token: true },
-  });
-  const accessToken = ghAccount?.access_token;
+  const accessToken = await githubAccessToken(tokenOwnerId);
 
   if (!accessToken) {
     return NextResponse.json(
@@ -136,6 +129,16 @@ export async function GET(
     topLanguages: stats.topLanguages,
     fetchedAt: new Date(),
   };
+
+  // An admin's view was fetched with the ADMIN's token, so it only saw the
+  // member's public repos. Saving it would overwrite the member's private-repo
+  // stats until their next refresh — show it, don't store it.
+  if (!isSelf) {
+    return NextResponse.json({
+      data: { userId, ...statsData, githubUsername: user.githubUsername },
+      source: "fresh-public",
+    });
+  }
 
   const existing = await db.githubStats.findFirst({ where: { userId } });
 

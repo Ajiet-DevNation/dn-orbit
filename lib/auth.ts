@@ -1,13 +1,15 @@
 //updated
 
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import type { DefaultSession } from "next-auth";
+import type { DefaultSession, Session } from "next-auth";
 import NextAuth from "next-auth";
 import type { Adapter, AdapterUser } from "next-auth/adapters";
 import GitHub from "next-auth/providers/github";
+import { cache } from "react";
 import { db } from "@/lib/db";
 import type { Role } from "@/lib/roles";
 import type { ApprovalStatus } from "@/lib/status";
+import { encryptToken } from "@/lib/token-crypto";
 
 declare module "next-auth" {
   interface Session {
@@ -85,6 +87,14 @@ async function isRejected(
 
 const customAdapter: Adapter = {
   ...baseAdapter,
+  // GitHub tokens are stored encrypted (lib/token-crypto.ts); read them back
+  // through lib/github-token.ts, never straight off the Account row.
+  linkAccount: (account) =>
+    baseAdapter.linkAccount?.({
+      ...account,
+      access_token: encryptToken(account.access_token) ?? undefined,
+      refresh_token: encryptToken(account.refresh_token) ?? undefined,
+    }),
   createUser: async (user) => {
     const u = user as unknown as AdapterUser & {
       githubId: string;
@@ -115,11 +125,11 @@ const customAdapter: Adapter = {
   },
 };
 
-export const { handlers, auth, signIn } = NextAuth({
-  secret:
-    process.env.AUTH_SECRET ??
-    process.env.NEXTAUTH_SECRET ??
-    "orbit-build-secret",
+// No fallback secret: a hard-coded one is public in this repo, so a deploy that
+// lost its env var would accept forged JWTs (any role). Unset, Auth.js refuses
+// to sign or read sessions instead — sign-in fails closed.
+const nextAuth = NextAuth({
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   adapter: customAdapter,
   session: {
     strategy: "jwt",
@@ -223,19 +233,22 @@ export const { handlers, auth, signIn } = NextAuth({
               name: true,
             },
           });
-          if (fresh) {
-            token.role = fresh.role;
-            token.status = fresh.status;
-            token.usn = fresh.usn;
-            token.branch = fresh.branch;
-            token.lcUsername = fresh.lcUsername;
-            token.name = fresh.name;
-          }
+          // Deleted or rejected since sign-in: end the session now rather
+          // than letting the cookie ride out its 30 days. (Returning null
+          // makes Auth.js treat the request as signed out.)
+          if (!fresh || fresh.status === "rejected") return null;
+          token.role = fresh.role;
+          token.status = fresh.status;
+          token.usn = fresh.usn;
+          token.branch = fresh.branch;
+          token.lcUsername = fresh.lcUsername;
+          token.name = fresh.name;
           token.roleSyncedAt = Date.now();
         }
       }
       if (account) {
-        token.accessToken = account.access_token;
+        // The token itself never goes into the JWT — nothing reads it there,
+        // and the cookie is not where a repo-scoped credential should live.
         // Persist the freshest GitHub token + granted scope back to the DB.
         // The background leaderboard cron (lib/statsSync.ts) reads the token
         // from the Account row, not this JWT — so when a member re-authorizes
@@ -248,7 +261,7 @@ export const { handlers, auth, signIn } = NextAuth({
           await db.account.updateMany({
             where: { userId: token.id as string, provider: "github" },
             data: {
-              access_token: account.access_token ?? null,
+              access_token: encryptToken(account.access_token) ?? null,
               scope: account.scope ?? null,
             },
           });
@@ -265,10 +278,26 @@ export const { handlers, auth, signIn } = NextAuth({
       session.user.lcUsername = token.lcUsername as string | null;
       // NOTE: the GitHub access token deliberately stays OUT of the session.
       // `/api/auth/session` is readable by client JS, so exposing it there would
-      // leak the token to the browser. It lives only in the encrypted httpOnly
-      // JWT (token.accessToken, server-side) and the DB Account row, which the
-      // stats routes read directly. Never add accessToken to `session.user`.
+      // leak the token to the browser. It lives only in the DB Account row,
+      // encrypted, read via lib/github-token.ts. Never add it to `session.user`.
       return session;
     },
   },
+});
+
+export const { handlers, signIn } = nextAuth;
+
+/**
+ * The current session, or null. Two things on top of Auth.js's own auth():
+ *
+ * - Fails closed: only a session that carries a user id counts. A
+ *   misconfigured Auth.js can hand back an object without one, and every
+ *   caller here treats "truthy session" as signed in.
+ * - Memoised per request with React cache(): layouts, pages and the root
+ *   layout each call auth(), and every call past the 30s sync window re-read
+ *   the user from the DB.
+ */
+export const auth = cache(async (): Promise<Session | null> => {
+  const session = await nextAuth.auth();
+  return session?.user?.id ? session : null;
 });

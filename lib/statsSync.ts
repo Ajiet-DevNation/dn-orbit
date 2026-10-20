@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { fetchGitHubStats } from "@/lib/github";
+import { githubAccessToken } from "@/lib/github-token";
 import { fetchLeetCodeStats } from "@/lib/lc-fetcher";
 
 type SyncResult = {
@@ -13,17 +14,9 @@ export async function syncGitHubStatsForUser(
   userId: string,
   openSourceMinStars: number,
 ): Promise<SyncResult> {
-  const account = await db.account.findFirst({
-    where: {
-      userId,
-      provider: "github",
-      access_token: {
-        not: null,
-      },
-    },
-  });
+  const accessToken = await githubAccessToken(userId);
 
-  if (!account?.access_token) {
+  if (!accessToken) {
     return {
       provider: "github" as const,
       userId,
@@ -49,14 +42,10 @@ export async function syncGitHubStatsForUser(
   try {
     // The account token belongs to this same user, so we can safely read their
     // private repositories for the leaderboard.
-    const stats = await fetchGitHubStats(
-      user.githubUsername,
-      account.access_token,
-      {
-        includePrivate: true,
-        openSourceMinStars,
-      },
-    );
+    const stats = await fetchGitHubStats(user.githubUsername, accessToken, {
+      includePrivate: true,
+      openSourceMinStars,
+    });
     const existing = await db.githubStats.findFirst({ where: { userId } });
     const statsData = {
       reposCount: stats.reposCount,
