@@ -202,7 +202,7 @@ const PLANETS: {
   },
   {
     key: "linkedin",
-    href: "https://www.linkedin.com/company/devnationajiet/",
+    href: "https://www.linkedin.com/company/devnationajiet/posts/?feedView=all",
     label: "DevNation on LinkedIn",
     Icon: LinkedInIcon,
     hoverScale: 1.7,
@@ -1007,6 +1007,9 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (physics.current.isShattered || phase !== "orbiting") return;
+    // A press on a planet is a link click, not a drag. Capturing it here
+    // retargets pointerup/click to the stage, so the link never opened.
+    if ((e.target as Element).closest("a")) return;
     physics.current.isDragging = true;
     physics.current.lastMouseY = e.clientY;
     physics.current.spinVelocity = 0;
