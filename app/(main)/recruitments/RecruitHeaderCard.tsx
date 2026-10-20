@@ -84,14 +84,16 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
             RECRUITMENT
             <span aria-hidden className="h-[2px] flex-1 bg-white/15" />
           </span>
-          <h1 className="retro text-3xl leading-tight sm:text-4xl lg:text-5xl">
+          {/* 24px below 380px: nine pixel-font glyphs of DEVNATION at 30px are
+              wider than the card on a 320px phone. */}
+          <h1 className="retro text-2xl leading-tight min-[380px]:text-3xl sm:text-4xl lg:text-5xl">
             <span className="block text-white">JOIN</span>
             <span className="mt-2 block text-brand-light">DEVNATION</span>
           </h1>
           <p className="font-mono text-sm leading-relaxed text-[#d4d0ea] sm:text-base">
-            Think you could be part of DevNation?
+            Think you could be part of DevNation?{" "}
             <br className="hidden sm:block" />
-            Tell us who you are and what you build.
+            Tell us who you are and what you build.{" "}
             <br className="hidden sm:block" />
             Open to AJIET students.
           </p>

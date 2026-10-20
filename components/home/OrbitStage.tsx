@@ -176,14 +176,17 @@ const HERO_START_SCALE = 0.7;
 
 // Base upward nudge applied to the logo/orbit cluster (matches the old
 // `-translate-y-20`). Shared by both modes so the internal layout is identical.
-const LOGO_BASE_OFFSET_Y = -80;
+// It eases to 0 on short screens (360px tall → 0, 600px+ → the full -80px):
+// on a landscape phone the stage already fills the height, and the nudge
+// pushed the logo up under the header.
+const LOGO_BASE_OFFSET_Y = "clamp(-80px, calc((360px - 100svh) / 3), 0px)";
 
-// On the landing page the hero is pushed down by the sticky V2Header. The
-// loading overlay is a full-viewport fixed layer with no header, so its logo
-// would sit ~one header-height too high. Nudging the loading logo down by the
-// header height lands it exactly where the hero logo settles — a seamless
-// hand-off. Keep this in sync with the V2Header height (px-6 pt-6 pb-3 + ~64px
-// logo ≈ 100px).
+// On the landing page the hero sits below the sticky V2Header and is one
+// header shorter than the viewport, so its centre is half a header lower than
+// the viewport's. The loading overlay is a full-viewport fixed layer with no
+// header, so its logo is nudged down by half the header height to land exactly
+// where the hero logo settles — a seamless hand-off. Keep this in sync with the
+// V2Header height (px-6 pt-6 pb-3 + ~64px logo ≈ 100px).
 const HEADER_OFFSET = 100;
 
 // ── 8-bit ghost trail ────────────────────────────────────────────────────────
@@ -1210,17 +1213,25 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
       ? // Fully opaque: a translucent + backdrop-blurred bg let the landing
         // hero logo behind the overlay bleed through as a soft white halo.
         "fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-bg"
-      : "relative flex min-h-[100vh] w-full items-center justify-center overflow-hidden";
+      : // Sized by heroMinHeight below.
+        "relative flex w-full items-center justify-center overflow-hidden";
+  // The hero is the first screen: the viewport minus the sticky header above
+  // it, so the wordmark and scroll cue sit inside it. A full 100vh *below* the
+  // header ran 100px past the fold (on a landscape phone that hid the
+  // wordmark), and svh rather than vh because on phones vh is the taller
+  // "URL bar hidden" height.
+  const heroMinHeight =
+    mode === "hero" ? `calc(100svh - ${HEADER_OFFSET}px)` : undefined;
 
   // Loading overlay has no header, so push its logo down by the header height to
   // align with where the hero logo lands once the header is present.
   const contentOffsetY =
     mode === "loading"
-      ? LOGO_BASE_OFFSET_Y + HEADER_OFFSET
+      ? `calc(${LOGO_BASE_OFFSET_Y} + ${HEADER_OFFSET / 2}px)`
       : LOGO_BASE_OFFSET_Y;
 
   return (
-    <div className={wrapperClass}>
+    <div className={wrapperClass} style={{ minHeight: heroMinHeight }}>
       <div
         className="pointer-events-none absolute inset-0 z-[60] opacity-[0.03]"
         style={{
@@ -1243,8 +1254,12 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
       />
 
       <div
-        className="relative z-10 flex w-full max-w-[700px] flex-col items-center"
-        style={{ transform: `translateY(${contentOffsetY}px)` }}
+        // Capped by height too: the square stage must leave room for the
+        // header and the wordmark (≈180px), or on a landscape phone (740×360)
+        // and short laptops it ran under both. Both modes share this cap, so
+        // the boot → hero hand-off stays aligned.
+        className="relative z-10 flex w-full max-w-[min(700px,calc(100svh-180px))] flex-col items-center"
+        style={{ transform: `translateY(${contentOffsetY})` }}
       >
         <div
           ref={stageRef}

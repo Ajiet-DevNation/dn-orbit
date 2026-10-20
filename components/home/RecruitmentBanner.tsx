@@ -24,8 +24,10 @@ export const RECRUIT_MORPH = {
 };
 
 export function RecruitmentBanner() {
+  // Landscape phones (short + wide enough) also get the header-row slot:
+  // below the header it sat on top of the hero logo.
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-28 z-[60] flex justify-center px-4 md:top-[36px]">
+    <div className="pointer-events-none absolute inset-x-0 top-28 z-[60] flex justify-center px-4 md:top-[36px] [@media(max-height:500px)_and_(min-width:640px)]:top-[36px]">
       <ViewTransition
         name={RECRUIT_CARD_TRANSITION}
         share={RECRUIT_MORPH}

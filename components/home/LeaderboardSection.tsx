@@ -323,6 +323,21 @@ function relativeAge(iso: string): string {
 
 // ─── Ranked list (arrives in phase B) — paginated 10 per page ─────────────────
 const PAGE_SIZE = 10;
+// The stacked (non-wide) stage shows the list alone in one pinned screen; ten
+// rows plus the header and pager need ~630px, so shorter screens page by 5.
+const SHORT_PAGE_SIZE = 5;
+
+function usePageSize(): number {
+  const [size, setSize] = useState(PAGE_SIZE);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px), (min-height: 820px)");
+    const on = () => setSize(mq.matches ? PAGE_SIZE : SHORT_PAGE_SIZE);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return size;
+}
 
 function LeaderboardList({
   entries,
@@ -334,12 +349,13 @@ function LeaderboardList({
   syncedAt?: string | null;
 }) {
   const [page, setPage] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
+  const pageSize = usePageSize();
+  const pageCount = Math.max(1, Math.ceil(entries.length / pageSize));
   // Guard against the page falling out of range if the dataset shrinks.
   const safePage = Math.min(page, pageCount - 1);
-  const startIndex = safePage * PAGE_SIZE;
-  const pageEntries = entries.slice(startIndex, startIndex + PAGE_SIZE);
-  const hasPages = entries.length > PAGE_SIZE;
+  const startIndex = safePage * pageSize;
+  const pageEntries = entries.slice(startIndex, startIndex + pageSize);
+  const hasPages = entries.length > pageSize;
   const rangeStart = startIndex + 1;
   const rangeEnd = startIndex + pageEntries.length;
 
@@ -364,7 +380,7 @@ function LeaderboardList({
           <span className="retro w-6 shrink-0 text-right text-[8px] tracking-[0.1em] text-muted-foreground/80">
             POS
           </span>
-          <span className="w-7 shrink-0" aria-hidden="true" />
+          <span className="w-6 shrink-0 sm:w-7" aria-hidden="true" />
           <span className="retro min-w-0 flex-1 text-[8px] tracking-[0.15em] text-muted-foreground/80">
             NAME
           </span>
@@ -384,7 +400,7 @@ function LeaderboardList({
             return (
               <div
                 key={`${e.rank}-${e.name}`}
-                className="flex items-center gap-2 border-b border-white/5 px-1.5 py-2 last:border-b-0 sm:gap-3"
+                className="flex items-center gap-2 border-b border-white/5 px-1.5 py-1.5 last:border-b-0 sm:gap-3 sm:py-2"
                 style={{
                   opacity: rp,
                   transform: `translateX(${(1 - rp) * -24}px)`,
@@ -397,7 +413,7 @@ function LeaderboardList({
                 >
                   {e.rank}
                 </span>
-                <Avatar className="size-7 shrink-0">
+                <Avatar className="size-6 shrink-0 sm:size-7">
                   {e.image ? (
                     <AvatarImage
                       src={githubAvatarAt(e.image, 64)}
@@ -484,7 +500,9 @@ function ScoreHead({ label, title }: { label: string; title: string }) {
   return (
     <span
       title={title}
-      className="retro w-9 shrink-0 text-right text-[8px] tracking-[0.12em] text-muted-foreground/80"
+      // Per-category columns need ~110px a phone row doesn't have; phones
+      // show the total only, the breakdown appears from `sm` up.
+      className="retro hidden w-9 shrink-0 text-right text-[8px] tracking-[0.12em] text-muted-foreground/80 sm:block"
     >
       {label}
     </span>
@@ -495,7 +513,7 @@ function ScoreHead({ label, title }: { label: string; title: string }) {
 // the clear focal point of each row).
 function ScoreCell({ value }: { value: number }) {
   return (
-    <span className="w-9 shrink-0 text-right font-mono text-xs tabular-nums text-white/55">
+    <span className="hidden w-9 shrink-0 text-right font-mono text-xs tabular-nums text-white/55 sm:block">
       {value}
     </span>
   );
@@ -554,9 +572,11 @@ export function LeaderboardSection({
   const phaseB = seg(progress, BEATS.phaseB[0], BEATS.phaseB[1]);
   const phaseBE = easeOutCubic(phaseB);
 
-  // Phase B: the podium slides aside and the ranked list arrives. On narrow
-  // screens the podium rises and the list drops in beneath it; on wide screens
-  // the two sit side-by-side.
+  // Phase B: the podium slides aside and the ranked list arrives. On wide
+  // screens the two sit side-by-side. Below that the podium steps back and
+  // fades while the list takes the same spot — stacking them (podium raised,
+  // list beneath) overlapped both on any phone, since ten rows plus a podium
+  // don't fit one screen.
   //
   // The wide layout treats list + podium as ONE unit and centres that unit in
   // the container (the list used to be pinned to the left edge, which left the
@@ -590,17 +610,18 @@ export function LeaderboardSection({
 
   const podiumTransform = wide
     ? `translate(calc(-50% + ${phaseBE * groupShift}px), calc(-50% - ${RAISE}px)) scale(${1 - phaseBE * (1 - podiumScaleEnd)})`
-    : `translate(-50%, calc(-50% - ${phaseBE * 150}px)) scale(${1 - phaseBE * 0.28})`;
+    : `translate(-50%, calc(-50% - ${phaseBE * 40}px)) scale(${1 - phaseBE * 0.15})`;
+  const podiumOpacity = wide ? 1 : 1 - phaseBE;
 
   const listWrapperClass = wide
     ? "absolute left-0 top-1/2"
-    : "absolute bottom-[4%] left-1/2 w-[92%] max-w-md";
+    : "absolute left-1/2 top-1/2 w-full max-w-md";
   // Computed px (not a calc string) so it stays in lock-step with the centring
   // math above, which also reads containerWidth.
   const listWidth = wide ? `${listW}px` : undefined;
   const listTransform = wide
     ? `translateY(calc(-50% - ${RAISE}px)) translateX(${groupOffset - (1 - phaseB) * 30}px)`
-    : `translateX(-50%) translateY(${(1 - phaseB) * 36}px)`;
+    : `translate(-50%, calc(-50% + ${(1 - phaseB) * 36}px))`;
 
   return (
     <section
@@ -609,9 +630,11 @@ export function LeaderboardSection({
       className="relative w-full scroll-mt-24"
       style={{ height: `${SECTION_VH}vh` }}
     >
-      <div className="sticky top-0 flex h-screen w-full flex-col overflow-hidden px-6">
+      {/* svh: on phones 100vh is the height with the URL bar hidden, which
+          pushed the bottom of the stage under the browser chrome. */}
+      <div className="sticky top-0 flex h-svh w-full flex-col overflow-hidden px-4 sm:px-6">
         {/* Title gets its own row at the top so the podium never covers it. */}
-        <div className="shrink-0 pt-28">
+        <div className="shrink-0 pt-20 md:pt-28">
           <SectionHeading text="LEADERBOARD" />
         </div>
 
@@ -625,7 +648,9 @@ export function LeaderboardSection({
             className="absolute left-1/2 top-1/2 flex w-full max-w-3xl items-end justify-center gap-4 sm:gap-8"
             style={{
               transform: podiumTransform,
-              willChange: "transform",
+              opacity: podiumOpacity,
+              pointerEvents: podiumOpacity < 0.5 ? "none" : undefined,
+              willChange: "transform, opacity",
             }}
           >
             {visualOrder.map((rank) => (
