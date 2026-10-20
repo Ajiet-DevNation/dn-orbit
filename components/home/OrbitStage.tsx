@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Progress } from "@/components/ui/8bit-progress";
+import { PixelStarfield } from "@/components/ui/PixelStarfield";
 import {
   CANVAS_SIZE,
   easeOutCubic,
   FLING_THRESHOLD,
+  LOADER_RING_CELLS,
+  loaderRingCells,
   ORBIT_RX,
   ORBIT_RY,
   ORBIT_TILT,
@@ -40,6 +42,11 @@ import { cn } from "@/lib/utils";
 
 const BLOCK_SIZE = 18;
 const BLOCKS_PER_FRAME = 20;
+/** Loading ring: pixel grid it snaps to, and the square drawn per cell. */
+const LOADER_CELL = 9;
+const LOADER_DOT = 9;
+/** Once formed, a bright pixel laps the loading ring this often (ms). */
+const LOADER_LAP_MS = 1800;
 const ORBIT_FADE_IN_MS = 800;
 
 // Tumble of the whole ring system, in radians per ms at the resting spin (1x).
@@ -327,6 +334,46 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
     [],
   );
 
+  // ── Loading ring: a purple pixel orbit that forms as the logo draws ───────
+  // Two canvases sandwich the logo like the hero rings (far half behind, near
+  // half in front), so it reads as an orbit wrapping the DN, not a halo.
+
+  const loaderBackRef = useRef<HTMLCanvasElement>(null);
+  const loaderFrontRef = useRef<HTMLCanvasElement>(null);
+
+  // `head` = index of the brightest cell (the leading edge while forming, the
+  // lapping pixel once complete); the two cells behind it glow a little too.
+  const paintLoaderRing = useCallback((progress: number, head: number) => {
+    const back = loaderBackRef.current?.getContext("2d");
+    const front = loaderFrontRef.current?.getContext("2d");
+    if (!back || !front) return;
+    back.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    front.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    const cells = loaderRingCells(progress, LOADER_CELL);
+    const half = LOADER_DOT / 2;
+    cells.forEach((c, i) => {
+      const ctx = c.front ? front : back;
+      const lag = (head - i + LOADER_RING_CELLS) % LOADER_RING_CELLS;
+      if (lag === 0) {
+        ctx.fillStyle = "#ede9fe";
+        ctx.shadowColor = "rgba(196, 181, 253, 0.95)";
+        ctx.shadowBlur = 18;
+      } else if (lag <= 2) {
+        ctx.fillStyle = "#c4b5fd";
+        ctx.shadowColor = "rgba(167, 139, 250, 0.8)";
+        ctx.shadowBlur = 12;
+      } else {
+        // The far half is dimmer, like the hero rings, to sell the depth.
+        ctx.fillStyle = c.front
+          ? "rgba(139, 92, 246, 0.95)"
+          : "rgba(139, 92, 246, 0.5)";
+        ctx.shadowColor = "rgba(139, 92, 246, 0.6)";
+        ctx.shadowBlur = c.front ? 8 : 4;
+      }
+      ctx.fillRect(c.x - half, c.y - half, LOADER_DOT, LOADER_DOT);
+    });
+  }, []);
+
   // ── Phase 1: Pixel-by-pixel logo drawing ──────────────────────────────────
 
   const drawLogo = useCallback(() => {
@@ -391,6 +438,27 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
           // rests at HERO_START_SCALE. The grow + orbit reveal belongs to the
           // landing page (hero mode), so the hand-off is one continuous motion.
           setDrawProgress(100);
+          paintLoaderRing(1, LOADER_RING_CELLS - 1);
+          if (reducedMotionRef.current) return;
+          // Formed: a bright pixel laps the ring until the splash lifts.
+          const lapStart = performance.now();
+          let lastHead = -1;
+          const lap = (now: number) => {
+            if (!isMountedRef.current) return;
+            const head =
+              (LOADER_RING_CELLS -
+                1 +
+                Math.floor(
+                  ((now - lapStart) / LOADER_LAP_MS) * LOADER_RING_CELLS,
+                )) %
+              LOADER_RING_CELLS;
+            if (head !== lastHead) {
+              paintLoaderRing(1, head);
+              lastHead = head;
+            }
+            animFrameRef.current = requestAnimationFrame(lap);
+          };
+          animFrameRef.current = requestAnimationFrame(lap);
           return;
         }
 
@@ -413,9 +481,9 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
           }
         }
 
-        const raw = Math.floor(
-          (currentBlock / Math.max(blocks.length, 1)) * 100,
-        );
+        const fraction = currentBlock / Math.max(blocks.length, 1);
+        paintLoaderRing(fraction, Math.round(fraction * LOADER_RING_CELLS) - 1);
+        const raw = Math.floor(fraction * 100);
         setDrawProgress(Math.floor(raw / 5) * 5);
         animFrameRef.current = requestAnimationFrame(animate);
       };
@@ -434,7 +502,7 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
     };
 
     img.src = "/assets/DNLogoTransparent.png";
-  }, [mode, runTween]);
+  }, [mode, runTween, paintLoaderRing]);
 
   useEffect(() => {
     drawLogo();
@@ -1073,14 +1141,9 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
         }}
       />
 
-      <div
-        className="pointer-events-none absolute inset-0 z-0 opacity-20"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, #333333 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
-        }}
-      />
+      {/* The page's own starfield shows through behind the hero; the
+          opaque loading overlay draws its own so the two match. */}
+      {mode === "loading" && <PixelStarfield className="z-0" />}
 
       <div
         className="pointer-events-none absolute inset-0 z-[5] opacity-40"
@@ -1164,6 +1227,16 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
             </div>
           )}
 
+          {mode === "loading" && (
+            <canvas
+              ref={loaderBackRef}
+              aria-hidden
+              width={CANVAS_SIZE}
+              height={CANVAS_SIZE}
+              className="pointer-events-none absolute inset-0 z-[1] h-full w-full"
+            />
+          )}
+
           <div
             className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
             style={{
@@ -1189,6 +1262,16 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
               style={{ imageRendering: "pixelated" }}
             />
           </div>
+
+          {mode === "loading" && (
+            <canvas
+              ref={loaderFrontRef}
+              aria-hidden
+              width={CANVAS_SIZE}
+              height={CANVAS_SIZE}
+              className="pointer-events-none absolute inset-0 z-[21] h-full w-full"
+            />
+          )}
 
           {/* Near halves — above the logo, so both planes visibly cross in
               front of it. Each is rotated by its own wrapper, mirroring the far
@@ -1307,27 +1390,20 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
                 ? "translateY(0) scale(1)"
                 : "translateY(16px) scale(0.95)",
             filter: isMounted && showProgress ? "blur(0)" : "blur(4px)",
-            transition: "all 600ms cubic-bezier(0.16, 1, 0.3, 1)",
+            transition:
+              "opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1), filter 600ms cubic-bezier(0.16, 1, 0.3, 1)",
             pointerEvents: showProgress ? "auto" : "none",
           }}
         >
-          <p className="text-[10px] uppercase tracking-widest text-accent pixel-pulse-text">
-            LOADING...
+          <p
+            role="status"
+            className="text-[10px] uppercase tracking-widest text-brand-light"
+          >
+            <span className="pixel-pulse-text">LOADING</span>
+            <span className="ml-3 tabular-nums text-white/50">
+              {drawProgress}%
+            </span>
           </p>
-
-          <div className="w-full space-y-1">
-            <div className="flex justify-end">
-              <span className="text-[8px] tabular-nums text-text-muted">
-                {drawProgress}%
-              </span>
-            </div>
-            <Progress
-              value={drawProgress}
-              variant="retro"
-              progressBg="bg-accent"
-              className="h-4"
-            />
-          </div>
         </div>
       </div>
 

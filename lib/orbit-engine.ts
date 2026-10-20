@@ -240,3 +240,39 @@ export function ringRevealAt(elapsedMs: number): {
 export function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3;
 }
+
+// ─── Loading ring ────────────────────────────────────────────────────────────
+
+/** Cells around the full loading ring. */
+export const LOADER_RING_CELLS = 120;
+/** Where the ring starts drawing: the far left of the ellipse. */
+const LOADER_START = Math.PI;
+
+export interface RingCell {
+  /** Canvas coords (0..CANVAS_SIZE), snapped to the pixel grid. */
+  x: number;
+  y: number;
+  /** In front of the logo (near half of the tilted ring). */
+  front: boolean;
+}
+
+// the main ring as a chain of pixel cells, drawn from the far left round the
+// back and the front; `progress` 0..1 says how much of it has formed so far
+export function loaderRingCells(progress: number, cell: number): RingCell[] {
+  const shown = Math.round(
+    Math.min(1, Math.max(0, progress)) * LOADER_RING_CELLS,
+  );
+  const cells: RingCell[] = [];
+  for (let i = 0; i < shown; i++) {
+    const p = orbitPosition(
+      0,
+      LOADER_START + (i / LOADER_RING_CELLS) * Math.PI * 2,
+    );
+    cells.push({
+      x: Math.round((CANVAS_SIZE / 2 + p.x) / cell) * cell,
+      y: Math.round((CANVAS_SIZE / 2 + p.y) / cell) * cell,
+      front: p.z > 0,
+    });
+  }
+  return cells;
+}

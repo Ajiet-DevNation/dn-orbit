@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
+  CANVAS_SIZE,
   FLING_THRESHOLD,
+  LOADER_RING_CELLS,
   LOGO_HALF_H,
   LOGO_HALF_W,
+  loaderRingCells,
   MAX_FLING_SPEED,
   ORBIT_PERIOD_MS,
   ORBIT_RX,
@@ -286,5 +289,35 @@ describe("geometry sanity", () => {
 
   test("the orbit fits inside the canvas", () => {
     expect(ORBIT_RX * 2).toBeLessThan(900);
+  });
+});
+
+describe("loaderRingCells", () => {
+  test("nothing at 0, the whole ring at 1", () => {
+    expect(loaderRingCells(0, 6)).toEqual([]);
+    expect(loaderRingCells(1, 6).length).toBe(LOADER_RING_CELLS);
+  });
+
+  test("grows monotonically and never past the full ring", () => {
+    let prev = 0;
+    for (let p = 0; p <= 1.2; p += 0.01) {
+      const n = loaderRingCells(p, 6).length;
+      expect(n).toBeGreaterThanOrEqual(prev);
+      expect(n).toBeLessThanOrEqual(LOADER_RING_CELLS);
+      prev = n;
+    }
+  });
+
+  test("cells sit on the pixel grid, inside the canvas, half in front", () => {
+    const cells = loaderRingCells(1, 6);
+    for (const c of cells) {
+      expect(c.x % 6).toBe(0);
+      expect(c.y % 6).toBe(0);
+      expect(c.x).toBeGreaterThanOrEqual(0);
+      expect(c.x).toBeLessThanOrEqual(CANVAS_SIZE);
+    }
+    const front = cells.filter((c) => c.front).length;
+    expect(front).toBeGreaterThan(cells.length * 0.4);
+    expect(front).toBeLessThan(cells.length * 0.6);
   });
 });
