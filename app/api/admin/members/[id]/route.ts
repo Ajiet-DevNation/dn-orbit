@@ -4,6 +4,7 @@ import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db, isRecordNotFound } from "@/lib/db";
 import { toTitleCase } from "@/lib/names";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { canAccessAdmin, canManageRoles, canModerate } from "@/lib/roles";
 import { memberUpdateSchema, parseBody } from "@/lib/validation";
 
@@ -81,6 +82,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       where: { id },
       data: updateData,
     });
+    // Visibility and status decide who is on the public board.
+    invalidatePublic(PUBLIC_TAG.leaderboard);
 
     // Log the meaningful member mutations (role / membership status changes).
     const who = toTitleCase(updatedUser.name) || "a member";

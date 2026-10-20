@@ -6,6 +6,7 @@ import {
   fetchGithubProjectDrafts,
   type GithubProjectDraft,
 } from "@/lib/github-projects";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { canAccessAdmin } from "@/lib/roles";
 
 export const runtime = "nodejs";
@@ -110,6 +111,9 @@ export async function POST() {
       if (reopening) summary.reopened++;
       else summary.updated++;
     }
+
+    // Synced rows go back to review, so they leave the public carousel.
+    invalidatePublic(PUBLIC_TAG.projects);
 
     void logAudit({
       action: "project.sync_github",

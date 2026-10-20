@@ -4,6 +4,7 @@ import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { eventCreateData } from "@/lib/event-payload";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { canAccessAdmin } from "@/lib/roles";
 import { createEventSchema, parseBody } from "@/lib/validation";
 
@@ -74,6 +75,8 @@ export async function POST(req: NextRequest) {
       isAdmin,
     }),
   });
+  // An admin's event publishes straight away.
+  invalidatePublic(PUBLIC_TAG.events);
 
   void logAudit({
     action: "event.create",

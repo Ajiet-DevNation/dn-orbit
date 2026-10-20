@@ -31,10 +31,15 @@ import { orderForDisplay, registrationClosesAt } from "@/lib/event-order";
 import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
 import type { ProjectData } from "@/lib/projects";
-import { isRecruitmentOpen } from "@/lib/recruitment-config";
+import {
+  publicEvents,
+  publicLeaderboard,
+  publicProjects,
+  publicRecruitmentOpen,
+  publicSyncedAt,
+} from "@/lib/public-data";
 import { canAccessAdmin } from "@/lib/roles";
 import { languagesFromRecord } from "@/lib/stats-utils";
-import { lastSyncedAt } from "@/lib/sync";
 
 export const metadata = {
   // Absolute title so the home page reads cleanly (no "%s — ORBIT" template).
@@ -84,12 +89,9 @@ export default async function V2Page() {
     syncedAt,
     recruiting,
   ] = await Promise.all([
-    db.event.findMany({
-      where: { reviewStatus: "approved", isPublished: true },
-      orderBy: { eventDate: "desc" },
-      take: 100,
-      include: { _count: { select: { registrations: true } } },
-    }),
+    // Public data comes from the cross-request cache (lib/public-data.ts);
+    // only the signed-in member's own rows are read live.
+    publicEvents(),
     userId
       ? Promise.all([
           db.githubStats.findFirst({
@@ -107,24 +109,11 @@ export default async function V2Page() {
           }),
         ])
       : [null, null, null, null],
-    db.leaderboardScore.findMany({
-      where: { user: LEADERBOARD_VISIBLE_USER_FILTER },
-      orderBy: [{ totalScore: "desc" }],
-      take: 100,
-      include: {
-        user: { select: { name: true, image: true, githubUsername: true } },
-      },
-    }),
-    db.project.findMany({
-      where: { reviewStatus: "approved" },
-      orderBy: { submittedAt: "desc" },
-      // Bounded like the events and leaderboard queries above — this page is the
-      // most-requested route in the app and must not grow an unbounded payload.
-      take: 100,
-    }),
+    publicLeaderboard(),
+    publicProjects(),
     // Only the leaderboard's freshness readout needs this.
-    lastSyncedAt(),
-    isRecruitmentOpen(),
+    publicSyncedAt(),
+    publicRecruitmentOpen(),
   ]);
   const events = orderForDisplay(eventRows);
 
