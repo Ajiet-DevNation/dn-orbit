@@ -111,7 +111,7 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
             className="mb-6 w-full text-[9px] !bg-brand hover:!bg-brand-light !text-black"
           >
             <Link href="/" onClick={() => setOpen(false)}>
-              <Home className="h-4 w-4" /> ← EXIT TO ORBIT
+              <Home className="h-4 w-4" /> EXIT TO ORBIT
             </Link>
           </Button>
           {navItems.map((item) => {

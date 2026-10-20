@@ -1,12 +1,18 @@
 import { cn } from "@/lib/utils";
 
-// Pixel-art glyphs. Press Start 2P has no ▸ ◂ ▾ ✓ ✗ ✕, so those fell back to a
-// system font (the arrows even rendered as a stray dot). These draw the same
-// shapes in crisp squares, sized in em so they track the text around them.
+// Pixel-art glyphs. Press Start 2P has no ▸ ◂ ▾ ▲ ▼ ← → ✓ ✗ ✕, so those fell
+// back to a system font (the arrows even rendered as a stray dot). These draw
+// the same shapes in crisp squares, sized in em so they track the text around
+// them.
 
 const BASE = "inline-block shrink-0 fill-current";
 
-const ROTATE = { right: "", left: "rotate-180", down: "rotate-90" } as const;
+const ROTATE = {
+  right: "",
+  left: "rotate-180",
+  down: "rotate-90",
+  up: "-rotate-90",
+} as const;
 
 export function PixelArrow({
   dir = "right",

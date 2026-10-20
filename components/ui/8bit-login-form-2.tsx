@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/8bit-card";
+import { PixelCross } from "@/components/ui/PixelIcons";
 import { signIn } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -33,8 +34,8 @@ function LoginForm({
             <div className="grid gap-6">
               {errorMessage && (
                 <div className="border border-red-900 px-4 py-3 bg-red-950/20">
-                  <p className="font-mono text-[10px] text-red-500 font-black tracking-wider uppercase text-center">
-                    ▲ {errorMessage}
+                  <p className="flex items-center justify-center gap-2 font-mono text-[10px] text-red-500 font-black tracking-wider uppercase text-center">
+                    <PixelCross /> {errorMessage}
                   </p>
                 </div>
               )}

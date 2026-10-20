@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { OrbitStage } from "@/components/home/OrbitStage";
+import { PixelArrow } from "@/components/ui/PixelIcons";
 import { onBootSplashDone } from "@/lib/boot-splash";
 import { cn } from "@/lib/utils";
 
@@ -270,7 +271,7 @@ function ScrollCue() {
     >
       SCROLL
       <span ref={ref} aria-hidden className="text-sm leading-none">
-        ▼
+        <PixelArrow dir="down" />
       </span>
     </a>
   );

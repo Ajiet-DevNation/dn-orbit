@@ -1,5 +1,6 @@
 "use client";
 
+import { PixelArrow } from "@/components/ui/PixelIcons";
 import { useLensScroll } from "@/hooks/useLensScroll";
 import {
   ENTRANCE_PIN_SVH,
@@ -242,7 +243,9 @@ export function LensSection({
             className="pointer-events-none absolute inset-x-0 bottom-7 z-10 flex items-center justify-center gap-3"
           >
             <span className="grid size-6 place-items-center border-2 border-brand/60 text-[9px] text-brand-light">
-              <span className="hint-bob">▼</span>
+              <span className="hint-bob">
+                <PixelArrow dir="down" />
+              </span>
             </span>
             <span className="retro text-[8px] tracking-[0.3em] text-white/70">
               SCROLL TO CONTINUE

@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
+import { PixelArrow } from "@/components/ui/PixelIcons";
 import {
   audienceCollectsUsn,
   CHOICE_TYPES,
@@ -184,14 +185,14 @@ export function FormBuilder({
                   disabled={idx === 0}
                   aria-label="Move question up"
                 >
-                  ▲
+                  <PixelArrow dir="up" />
                 </IconBtn>
                 <IconBtn
                   onClick={() => move(idx, 1)}
                   disabled={idx === value.length - 1}
                   aria-label="Move question down"
                 >
-                  ▼
+                  <PixelArrow dir="down" />
                 </IconBtn>
                 <IconBtn
                   danger

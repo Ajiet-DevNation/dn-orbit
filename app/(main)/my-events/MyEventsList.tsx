@@ -414,7 +414,9 @@ export function MyEventsList({ events }: { events: MyEvent[] }) {
             SHOW UP HERE WITH ITS REGISTRATIONS.
           </p>
           <Button asChild size="sm" className="mt-6 text-[9px]">
-            <Link href="/">← BACK HOME</Link>
+            <Link href="/">
+              <PixelArrow dir="left" /> BACK HOME
+            </Link>
           </Button>
         </div>
       ) : (
