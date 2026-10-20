@@ -25,6 +25,7 @@ import {
   settleSpin,
   shatterPhaseAt,
   shatterVelocity,
+  spinPoint,
   stepReform,
   stepScatter,
 } from "./orbit-engine";
@@ -355,5 +356,35 @@ describe("ringCells", () => {
     expect(span(ringCells({ ...shape, scale: 0.5 }))).toBeLessThan(
       span(ringCells(shape)) * 0.55,
     );
+  });
+});
+
+describe("ringCells spacing", () => {
+  test("cells are evenly spaced along the curve, even at the flat tips", () => {
+    const cells = ringCells({
+      rx: ORBIT_RX,
+      ry: ORBIT_RY,
+      tilt: 0,
+      count: 120,
+      cell: 1,
+    });
+    const gaps = cells.map((c, i) => {
+      const n = cells[(i + 1) % cells.length];
+      return Math.hypot(n.x - c.x, n.y - c.y);
+    });
+    expect(Math.max(...gaps) / Math.min(...gaps)).toBeLessThan(1.25);
+  });
+});
+
+describe("spinPoint", () => {
+  test("planets and trails share one spin: a quarter turn maps x to y", () => {
+    const p = spinPoint(10, 0, Math.PI / 2);
+    expect(p.x).toBeCloseTo(0, 10);
+    expect(p.y).toBeCloseTo(10, 10);
+  });
+
+  test("spinning keeps distance from the centre", () => {
+    const p = spinPoint(3, 4, 1.234);
+    expect(Math.hypot(p.x, p.y)).toBeCloseTo(5, 10);
   });
 });

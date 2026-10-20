@@ -25,6 +25,7 @@ import {
   settleSpin,
   shatterPhaseAt,
   shatterVelocity,
+  spinPoint,
   stepReform,
   stepScatter,
 } from "@/lib/orbit-engine";
@@ -721,6 +722,9 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
       // side of the ring stays behind the logo, like the planets themselves.
       // Deliberately NOT scaled by ringOpacity: during the shatter beat the
       // ring fades out but the flung planets (and their trails) stay visible.
+      // Trail points are stored in the ring's own frame (like the planets'
+      // physics positions), so turn them by the current spin exactly as
+      // paintPlanets turns the planets; otherwise a trail lags off its planet.
       const drawTrails = (ctx: CanvasRenderingContext2D, isBack: boolean) => {
         ctx.save();
         ctx.imageSmoothingEnabled = false;
@@ -732,9 +736,10 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
             if (alpha <= 0) continue;
             const size = trailSize(age, TRAIL_CELL);
             ctx.fillStyle = `rgba(${TRAIL_COLORS[k]}, ${alpha})`;
+            const at = spinPoint(p.x, p.y, angle);
             ctx.fillRect(
-              snapToGrid(cx + p.x, TRAIL_CELL) - size / 2,
-              snapToGrid(cy + p.y, TRAIL_CELL) - size / 2,
+              snapToGrid(cx + at.x, TRAIL_CELL) - size / 2,
+              snapToGrid(cy + at.y, TRAIL_CELL) - size / 2,
               size,
               size,
             );
@@ -828,17 +833,14 @@ export function OrbitStage({ mode = "loading" }: OrbitStageProps) {
     // computed it. Spin the ring canvases by the same angle and the planets
     // stay locked to their ring at every orientation.
     const angle = ringAngleRef.current;
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
 
     for (const key of PLANET_KEYS) {
       const el = planetElsRef.current[key];
       if (!el) continue;
       const p = planetPositionsRef.current[key];
-      const rx = p.x * cos - p.y * sin;
-      const ry = p.x * sin + p.y * cos;
+      const at = spinPoint(p.x, p.y, angle);
 
-      el.style.transform = `translate3d(${rx * k}px, ${ry * k}px, 0) scale(${p.scale})`;
+      el.style.transform = `translate3d(${at.x * k}px, ${at.y * k}px, 0) scale(${p.scale})`;
 
       const z = p.z > 0 ? 30 : 5;
       if (lastZIndexRef.current[key] !== z) {

@@ -95,6 +95,18 @@ export function orbitPosition(
   };
 }
 
+// turn a point in the ring's own frame by the ring's spin about the view axis;
+// planets AND their trails go through this, so the two can never drift apart
+export function spinPoint(
+  x: number,
+  y: number,
+  angle: number,
+): { x: number; y: number } {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return { x: x * cos - y * sin, y: x * sin + y * cos };
+}
+
 /** All three planets at once. */
 export function orbitPositions(
   accumulatedTime: number,
@@ -268,20 +280,60 @@ export interface RingShape {
   scale?: number;
 }
 
-// cells of a tilted ellipse, starting at parameter `start` and going round;
-// `progress` 0..1 says how much of the ring exists so far
+// ellipse parameters for `count` points spaced evenly by ARC LENGTH. Evenly
+// spaced angles bunch up at the two tips of a flat ellipse (there the curve
+// covers little ground per radian), which drew the pixel rings as solid bars.
+const arcCache = new Map<string, number[]>();
+const ARC_SAMPLES = 2048;
+function evenArcParams(
+  rx: number,
+  ry: number,
+  count: number,
+  start: number,
+): number[] {
+  const key = `${rx}|${ry}|${count}|${start}`;
+  const hit = arcCache.get(key);
+  if (hit) return hit;
+  const lengths = [0];
+  let prevX = rx * Math.cos(start);
+  let prevY = ry * Math.sin(start);
+  for (let j = 1; j <= ARC_SAMPLES; j++) {
+    const a = start + (j / ARC_SAMPLES) * Math.PI * 2;
+    const x = rx * Math.cos(a);
+    const y = ry * Math.sin(a);
+    lengths.push(lengths[j - 1] + Math.hypot(x - prevX, y - prevY));
+    prevX = x;
+    prevY = y;
+  }
+  const total = lengths[ARC_SAMPLES];
+  const params: number[] = [];
+  let j = 0;
+  for (let i = 0; i < count; i++) {
+    const want = (i / count) * total;
+    while (lengths[j + 1] < want) j++;
+    const seg = lengths[j + 1] - lengths[j] || 1;
+    const t = (j + (want - lengths[j]) / seg) / ARC_SAMPLES;
+    params.push(start + t * Math.PI * 2);
+  }
+  arcCache.set(key, params);
+  return params;
+}
+
+// cells of a tilted ellipse, evenly spaced along the curve, starting at
+// parameter `start` and going round; `progress` 0..1 says how much exists
 export function ringCells(
   { rx, ry, tilt, count, cell, scale = 1 }: RingShape,
   progress = 1,
   start = 0,
 ): RingCell[] {
   const shown = Math.round(Math.min(1, Math.max(0, progress)) * count);
+  const params = evenArcParams(rx, ry, count, start);
   const c = CANVAS_SIZE / 2;
   const cos = Math.cos(tilt);
   const sin = Math.sin(tilt);
   const cells: RingCell[] = [];
   for (let i = 0; i < shown; i++) {
-    const a = start + (i / count) * Math.PI * 2;
+    const a = params[i];
     const ux = rx * Math.cos(a);
     const uy = ry * Math.sin(a);
     cells.push({
