@@ -1,6 +1,13 @@
 "use client";
 
-import { memo, useRef, useState } from "react";
+import {
+  createContext,
+  memo,
+  type ReactNode,
+  useContext,
+  useRef,
+  useState,
+} from "react";
 import { FaExternalLinkAlt, FaGithub } from "react-icons/fa";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
@@ -16,16 +23,20 @@ import type { ProjectData } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 import { HudCardFrame } from "./HudCardFrame";
 import { SectionHeading } from "./SectionHeading";
-import { TECH_BY_NAME } from "./techStack";
+
+// Tech icons arrive pre-rendered from the server page (name → <svg>), so the
+// ~100-icon catalogue in ./techStack never ships in the landing bundle — only
+// the icons the listed projects actually use do, as plain markup.
+const TechIcons = createContext<Record<string, ReactNode>>({});
 
 // Read-only tech chip: dark background + purple pixel border + purple tech icon,
 // matching the chips in the "new project" form (TechStackSelect) where the icons
 // pop against the dark fill.
 const TechChip = memo(function TechChip({ name }: { name: string }) {
-  const Icon = TECH_BY_NAME[name]?.Icon;
+  const icon = useContext(TechIcons)[name];
   return (
     <span className="retro inline-flex items-center gap-2 border-2 border-brand bg-[#0a0a0a] px-2.5 py-1.5 text-[9px] text-white">
-      {Icon && <Icon className="size-3.5 shrink-0 text-brand-light" />}
+      {icon}
       {name}
     </span>
   );
@@ -364,7 +375,21 @@ const ProjectThumb = memo(function ProjectThumb({
   );
 });
 
-export function ProjectsSection({ projects }: { projects: ProjectData[] }) {
+export function ProjectsSection({
+  projects,
+  techIcons,
+}: {
+  projects: ProjectData[];
+  techIcons: Record<string, ReactNode>;
+}) {
+  return (
+    <TechIcons.Provider value={techIcons}>
+      <ProjectsSectionInner projects={projects} />
+    </TechIcons.Provider>
+  );
+}
+
+function ProjectsSectionInner({ projects }: { projects: ProjectData[] }) {
   // FLIP shared-element transition: the centre card flies from its on-screen
   // rect into the detail slot. Keyed by carousel index.
   const { selected, detailOpen, flipRef, open, close } =

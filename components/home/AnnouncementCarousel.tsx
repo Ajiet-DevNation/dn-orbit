@@ -188,8 +188,17 @@ export function AnnouncementCarousel({
       setFillCount(Math.max(items.length, needed));
     };
     calc();
-    window.addEventListener("resize", calc);
-    return () => window.removeEventListener("resize", calc);
+    // At most once per frame: resize fires in bursts and each call set state.
+    let raf = 0;
+    const onResize = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(calc);
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
   }, [items.length]);
 
   const fillSet = Array.from(
@@ -204,7 +213,7 @@ export function AnnouncementCarousel({
   const draggingRef = useRef(false);
   const dragStartXRef = useRef(0);
   const dragStartOffsetRef = useRef(0);
-  const onScreenRef = useRef(true);
+  const [onScreen, setOnScreen] = useState(true);
   // True once a pointer-down has moved far enough to count as a drag — used to
   // cancel the click that would otherwise follow and open a card's link.
   const movedRef = useRef(false);
@@ -226,19 +235,21 @@ export function AnnouncementCarousel({
     }
   }, []);
 
-  // Auto-drift loop. Pauses while dragging, when scrolled off-screen, or when
-  // the user prefers reduced motion (the strip then holds still; drag still works).
+  // Auto-drift loop. Not scheduled at all while scrolled off-screen or under
+  // reduced motion (the strip then holds still; drag still works) — it used to
+  // keep requesting frames just to return early. Pauses while dragging.
   useEffect(() => {
     const reduce =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || !onScreen) return;
     let last = performance.now();
     let rafId = 0;
     const frame = (now: number) => {
       rafId = requestAnimationFrame(frame);
       const dt = now - last;
       last = now;
-      if (draggingRef.current || !onScreenRef.current || reduce) return;
+      if (draggingRef.current) return;
       offsetRef.current -= SPEED * dt;
       normalize();
       applyTransform();
@@ -247,7 +258,7 @@ export function AnnouncementCarousel({
     return () => cancelAnimationFrame(rafId);
     // normalize is recreated when copyWidth changes, so the loop re-subscribes
     // with the right span after a resize.
-  }, [normalize, applyTransform]);
+  }, [normalize, applyTransform, onScreen]);
 
   // Pause the drift when the carousel isn't visible (saves cycles).
   useEffect(() => {
@@ -255,7 +266,7 @@ export function AnnouncementCarousel({
     if (!el) return;
     const io = new IntersectionObserver(
       ([entry]) => {
-        onScreenRef.current = entry.isIntersecting;
+        setOnScreen(entry.isIntersecting);
         // Promote the marquee track to its own layer only while it's visible
         // (and therefore drifting); demote off-screen so it's not held idle.
         if (trackRef.current)

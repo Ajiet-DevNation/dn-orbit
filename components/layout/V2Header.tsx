@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/8bit-button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
 import { smoothScrollTo } from "@/lib/smooth-scroll";
+import { githubAvatarAt } from "@/lib/utils";
 import { BrandLink } from "./BrandLink";
 
 // Split out of the header chunk: the modal (and the vaul drawer it pulls in)
@@ -177,7 +178,9 @@ export function V2Header({
               <Avatar className="size-16">
                 {userImage ? (
                   <AvatarImage
-                    src={userImage}
+                    src={githubAvatarAt(userImage, 128)}
+                    // Above the fold, in the header on every page.
+                    loading="eager"
                     alt={userName ?? "User"}
                     className="object-cover"
                   />

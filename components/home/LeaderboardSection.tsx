@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { useScrubProgress } from "@/hooks/useScrubProgress";
-import { cn } from "@/lib/utils";
+import { cn, githubAvatarAt } from "@/lib/utils";
 import { SectionHeading } from "./SectionHeading";
 
 // Plain, serializable row — mapped server-side from leaderboard_scores.
@@ -224,7 +224,8 @@ function PodiumColumn({
           <Avatar className={avatarSize}>
             {entry.image ? (
               <AvatarImage
-                src={entry.image}
+                // Up to size-40 (160px) at 2x.
+                src={githubAvatarAt(entry.image, 320)}
                 alt={entry.name}
                 className="object-cover"
               />
@@ -399,7 +400,7 @@ function LeaderboardList({
                 <Avatar className="size-7 shrink-0">
                   {e.image ? (
                     <AvatarImage
-                      src={e.image}
+                      src={githubAvatarAt(e.image, 64)}
                       alt={e.name}
                       className="object-cover"
                     />

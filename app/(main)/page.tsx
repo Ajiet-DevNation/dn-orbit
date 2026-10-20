@@ -18,6 +18,7 @@ import { RecruitmentBanner } from "@/components/home/RecruitmentBanner";
 import { RecruitmentPopup } from "@/components/home/RecruitmentPopup";
 import { StatsSection } from "@/components/home/StatsSection";
 import { StatsSyncPing } from "@/components/home/StatsSyncPing";
+import { TECH_BY_NAME } from "@/components/home/techStack";
 import { Footer } from "@/components/layout/Footer";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -209,6 +210,15 @@ export default async function V2Page() {
     progressPct: p.progressPct,
   }));
 
+  // Rendered here, on the server, so the client bundle carries only these SVGs
+  // and not the whole icon catalogue (see ProjectsSection's TechIcons).
+  const techIcons: Record<string, React.ReactNode> = {};
+  for (const name of new Set(projects.flatMap((p) => p.techStack))) {
+    const Icon = TECH_BY_NAME[name]?.Icon;
+    if (Icon)
+      techIcons[name] = <Icon className="size-3.5 shrink-0 text-brand-light" />;
+  }
+
   return (
     <div className="min-h-screen">
       {/* Kicks off a background stats refresh when the cache is stale — the
@@ -274,7 +284,7 @@ export default async function V2Page() {
         entries={leaderboard}
         syncedAt={syncedAt?.toISOString() ?? null}
       />
-      <ProjectsSection projects={projects} />
+      <ProjectsSection projects={projects} techIcons={techIcons} />
       <MembersSection />
       <Footer />
     </div>

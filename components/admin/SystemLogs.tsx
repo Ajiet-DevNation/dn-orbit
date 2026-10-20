@@ -49,10 +49,19 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
         // transient network error — next tick retries
       }
     };
-    const id = setInterval(poll, 12000);
+    // Poll only while the tab is visible, and catch up as soon as it is again
+    // — a dashboard left open in a background tab hit the DB every 12s.
+    const id = setInterval(() => {
+      if (!document.hidden) void poll();
+    }, 12000);
+    const onVisible = () => {
+      if (!document.hidden) void poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       active = false;
       clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
