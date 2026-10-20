@@ -6,6 +6,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fetchLeetCodeProfile } from "@/lib/lc-fetcher";
+import { rateLimit } from "@/lib/rate-limit";
 
 const profileSchema = z.object({
   name: z
@@ -23,6 +24,7 @@ const profileSchema = z.object({
   lc_username: z
     .string()
     .min(1, "LeetCode username is required")
+    .max(40, "LeetCode username is too long")
     .regex(/^[a-zA-Z0-9_.-]+$/, "Invalid LeetCode username format"),
   bio: z.string().max(160, "Bio must be 160 characters or less").optional(),
 });
@@ -32,6 +34,11 @@ export async function updateProfile(formData: FormData) {
 
   if (!session?.user?.id) {
     return { error: "Unauthorized" };
+  }
+
+  // A changed LeetCode handle is verified against LeetCode's unofficial API.
+  if (!rateLimit(`profile:user:${session.user.id}`, 10, 60_000).ok) {
+    return { error: "Too many attempts. Please wait a minute and retry." };
   }
 
   const rawData = {
@@ -94,8 +101,6 @@ export async function updateProfile(formData: FormData) {
       });
     }
 
-    revalidatePath("/profile");
-    revalidatePath("/members");
     revalidatePath("/", "layout");
 
     // We return the updated fields so the client can call NextAuth's `update()` method

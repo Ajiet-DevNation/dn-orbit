@@ -20,7 +20,9 @@ const MIME_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
 };
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+// 4 MB: under Vercel's 4.5 MB request-body cap, so an oversize file gets
+// this route's clear error instead of the platform's bare 413.
+const MAX_BYTES = 4 * 1024 * 1024;
 const UPLOADS_PER_WINDOW = 20;
 const UPLOAD_WINDOW_MS = 10 * 60_000;
 
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   }
 
-  // Each call can publish 5 MB to the public bucket; cap it per account.
+  // Each call can publish 4 MB to the public bucket; cap it per account.
   const limit = rateLimit(
     rateLimitKey(req, "upload", session.user.id),
     UPLOADS_PER_WINDOW,
@@ -71,8 +73,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  // Project submissions are gated on approval (same as POST /api/projects).
-  if (kind === "project" && !(await isApproved(session.user.id))) {
+  // Uploads land in a PUBLIC bucket and aren't tied to any record, so only
+  // approved members may publish there (same gate as POST /api/projects and
+  // POST /api/events) — otherwise any pending account is free image hosting.
+  if (!(await isApproved(session.user.id))) {
     return NextResponse.json({ error: "Pending approval" }, { status: 403 });
   }
 
@@ -85,7 +89,7 @@ export async function POST(req: NextRequest) {
   }
   if (file.size > MAX_BYTES) {
     return NextResponse.json(
-      { error: "Image too large (max 5 MB)" },
+      { error: "Image too large (max 4 MB)" },
       { status: 413 },
     );
   }

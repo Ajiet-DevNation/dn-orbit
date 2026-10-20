@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatEventDateLong } from "@/lib/event-format";
 import { parseFormSchema } from "@/lib/forms";
+import { canAccessAdmin } from "@/lib/roles";
 import { type MyEvent, MyEventsList } from "./MyEventsList";
 
 export const metadata = {
@@ -92,5 +93,10 @@ export default async function MyEventsPage() {
     })),
   }));
 
-  return <MyEventsList events={myEvents} />;
+  return (
+    <MyEventsList
+      events={myEvents}
+      canMarkAttendance={canAccessAdmin(session.user.role)}
+    />
+  );
 }

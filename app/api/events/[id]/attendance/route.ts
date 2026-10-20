@@ -12,15 +12,19 @@ export async function POST(
     const { id: eventId } = await params;
     const session = await auth();
 
-    // Admins may mark attendance on any event; an organizer only on the events
-    // they created. Previously admin-only, which left organizers unable to run
-    // their own door list.
+    // Admins only. Attendance is the event-score numerator on the leaderboard,
+    // and any member can create an event — an organizer marking their own
+    // events (themselves, friends) attended would be a self-serve score boost.
+    // Organizers still see their roster and attendance on /my-events.
     const access = await canManageEventRoster(eventId, session?.user);
     if (!access.ok) {
       return new NextResponse(
         access.status === 404 ? "EVENT_NOT_FOUND" : "UNAUTHORIZED_ACCESS",
         { status: access.status },
       );
+    }
+    if (!access.isAdmin) {
+      return new NextResponse("UNAUTHORIZED_ACCESS", { status: 403 });
     }
 
     const body = await req.json();

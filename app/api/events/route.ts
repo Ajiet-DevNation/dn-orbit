@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { isApproved } from "@/lib/access";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -56,6 +57,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
 
   const isAdmin = canAccessAdmin(session.user.role);
+  // Same gate as project submissions: only approved members propose events.
+  if (!isAdmin && !(await isApproved(session.user.id))) {
+    return NextResponse.json({ error: "Pending approval" }, { status: 403 });
+  }
 
   const parsed = await parseBody(req, createEventSchema);
   if (!parsed.ok) {
