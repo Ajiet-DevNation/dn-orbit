@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FaGithub } from "react-icons/fa";
-import { PixelArrow } from "@/components/ui/PixelArrow";
+import { PixelArrow } from "@/components/ui/PixelIcons";
 import { BrandLink } from "./BrandLink";
 
 // Footer links. Internal anchors scroll the landing page; external links open in

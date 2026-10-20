@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { PlutonStage } from "@/components/home/PlutonStage";
-import { PixelArrow } from "@/components/ui/PixelArrow";
+import { PixelArrow } from "@/components/ui/PixelIcons";
 import { Z_MODAL } from "@/components/ui/PixelModal";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { onBootSplashDone } from "@/lib/boot-splash";
@@ -219,7 +219,7 @@ export function RecruitmentPopup() {
               onClick={() => onOpenChange(false)}
               className="retro grid size-9 shrink-0 place-items-center border-2 border-brand/50 text-[11px] text-brand-soft transition-[border-color,color,transform] duration-150 ease-out hover:border-brand hover:text-white focus-visible:border-brand-light focus-visible:text-white focus-visible:outline-none active:scale-95"
             >
-              <span aria-hidden>✕</span>
+              <span aria-hidden>×</span>
             </button>
           </div>
 

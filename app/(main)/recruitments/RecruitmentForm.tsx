@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { toast } from "@/components/ui/8bit-toast";
-import { PixelArrow } from "@/components/ui/PixelArrow";
+import { PixelArrow, PixelCheck } from "@/components/ui/PixelIcons";
 import {
   ABOUT_MAX_WORDS,
   BRANCHES,
@@ -171,7 +171,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
     return (
       <Layout step="done">
         <Card className="w-full items-center gap-4 border-brand/30 p-10 text-center">
-          <span className="retro text-4xl text-brand-light">✓</span>
+          <PixelCheck className="text-4xl text-brand-light" />
           <p className="retro text-sm text-white">APPLICATION SENT!</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
             Thanks for applying. The team will review it and reach out on

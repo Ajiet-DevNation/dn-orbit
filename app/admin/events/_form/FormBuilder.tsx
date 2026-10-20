@@ -198,7 +198,7 @@ export function FormBuilder({
                   onClick={() => remove(f.id)}
                   aria-label="Delete question"
                 >
-                  ✕
+                  ×
                 </IconBtn>
               </div>
             </div>
@@ -292,7 +292,7 @@ export function FormBuilder({
                       }
                       aria-label="Remove option"
                     >
-                      ✕
+                      ×
                     </IconBtn>
                   </div>
                 ))}

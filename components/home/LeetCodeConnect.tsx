@@ -6,11 +6,17 @@ import { SiLeetcode } from "react-icons/si";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
   const color = kind === "success" ? "text-brand-light" : "text-red-500";
-  toast(<span className={color}>{message}</span>);
+  toast(
+    <span className={`inline-flex items-center gap-2 ${color}`}>
+      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
+      {message}
+    </span>,
+  );
 }
 
 interface LcPreview {
@@ -72,12 +78,12 @@ export function LeetCodeConnect({
       setPreview(data);
       // Store the canonical handle LeetCode reports (fixes casing differences).
       if (data.username && data.username !== value) onChange(data.username);
-      notify("success", `✓ Connected as ${data.username}`);
+      notify("success", `Connected as ${data.username}`);
     } catch (err) {
       setPreview(null);
       notify(
         "error",
-        `✗ ${err instanceof Error ? err.message : "Verification failed"}`,
+        `${err instanceof Error ? err.message : "Verification failed"}`,
       );
     } finally {
       setLoading(false);
@@ -135,7 +141,8 @@ export function LeetCodeConnect({
               {preview.realName || preview.username}
             </p>
             <p className="retro mt-1 truncate text-[8px] tracking-widest text-brand-light">
-              ✓ {preview.totalSolved} SOLVED
+              <PixelCheck className="mr-1.5" />
+              {preview.totalSolved} SOLVED
               {preview.ranking != null
                 ? ` · #${preview.ranking.toLocaleString()}`
                 : ""}

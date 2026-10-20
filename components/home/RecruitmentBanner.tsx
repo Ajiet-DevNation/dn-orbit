@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PixelArrow } from "@/components/ui/PixelArrow";
+import { PixelArrow } from "@/components/ui/PixelIcons";
 
 // Thin "we're hiring" tab floated over the top of the hero. Rendered by the
 // landing page only while an admin has recruitment switched on. Absolute so it

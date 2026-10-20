@@ -262,7 +262,7 @@ export function PixelModal({
                 aria-label="Close"
                 className="shrink-0 text-[10px]"
               >
-                <span aria-hidden>✕</span>
+                <span aria-hidden>×</span>
               </Button>
             )}
           </div>

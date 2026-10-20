@@ -8,6 +8,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/8bit-command";
+import { PixelCheck } from "@/components/ui/PixelIcons";
 import { TECH_BY_NAME, TECH_STACK } from "./techStack";
 
 interface TechStackSelectProps {
@@ -81,7 +82,7 @@ export function TechStackSelect({ value, onChange }: TechStackSelectProps) {
                 >
                   <Icon className="size-4 shrink-0" />
                   <span className="flex-1">{name}</span>
-                  {isSel && <span className="text-brand-light">✓</span>}
+                  {isSel && <PixelCheck className="text-brand-light" />}
                 </CommandItem>
               );
             })}

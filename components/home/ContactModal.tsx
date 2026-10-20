@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 import { PixelModal } from "@/components/ui/PixelModal";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
@@ -25,10 +26,18 @@ export function ContactModal({ open, onOpenChange }: ContactModalProps) {
     try {
       await navigator.clipboard.writeText(email);
       setCopied(email);
-      toast(<span className="text-brand-light">✓ Copied {email}</span>);
+      toast(
+        <span className="inline-flex items-center gap-2 text-brand-light">
+          <PixelCheck /> Copied {email}
+        </span>,
+      );
       setTimeout(() => setCopied((c) => (c === email ? null : c)), 1500);
     } catch {
-      toast(<span className="text-red-500">✗ Couldn&apos;t copy</span>);
+      toast(
+        <span className="inline-flex items-center gap-2 text-red-500">
+          <PixelCross /> Couldn&apos;t copy
+        </span>,
+      );
     }
   }
 

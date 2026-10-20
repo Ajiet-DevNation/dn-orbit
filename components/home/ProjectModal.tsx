@@ -15,13 +15,19 @@ import {
 } from "@/components/ui/8bit-select";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 import { PixelModal } from "@/components/ui/PixelModal";
 import { TechStackSelect } from "./TechStackSelect";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
   const color = kind === "success" ? "text-brand-light" : "text-red-500";
-  toast(<span className={color}>{message}</span>);
+  toast(
+    <span className={`inline-flex items-center gap-2 ${color}`}>
+      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
+      {message}
+    </span>,
+  );
 }
 
 // DB enum (prisma ProjectStatus) paired with the same friendly labels the admin
@@ -66,11 +72,11 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
 
   async function handleCreate() {
     if (!title.trim()) {
-      notify("error", "✗ Title is required");
+      notify("error", "Title is required");
       return;
     }
     if (!githubRepoUrl.trim()) {
-      notify("error", "✗ GitHub repo URL is required");
+      notify("error", "GitHub repo URL is required");
       return;
     }
     setSaving(true);
@@ -96,12 +102,12 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
 
-      notify("success", "✓ Project submitted for review");
+      notify("success", "Project submitted for review");
       reset();
       onOpenChange(false);
       router.refresh();
     } catch (err) {
-      notify("error", `✗ ${err instanceof Error ? err.message : "Failed"}`);
+      notify("error", `${err instanceof Error ? err.message : "Failed"}`);
     } finally {
       setSaving(false);
     }

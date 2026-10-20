@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 import { PixelModal } from "@/components/ui/PixelModal";
 import { isRole, ROLE_LABELS } from "@/lib/roles";
 import { LeetCodeConnect } from "./LeetCodeConnect";
@@ -28,7 +29,12 @@ import { LeetCodeConnect } from "./LeetCodeConnect";
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
   const color = kind === "success" ? "text-brand-light" : "text-red-500";
-  toast(<span className={color}>{message}</span>);
+  toast(
+    <span className={`inline-flex items-center gap-2 ${color}`}>
+      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
+      {message}
+    </span>,
+  );
 }
 
 const BRANCHES = ["CSE", "ISE", "ECE", "MECH", "CIVIL", "AIDS", "AIML", "CSD"];
@@ -108,10 +114,10 @@ export function ProfileModal({
     setConfirmOpen(false);
 
     if (res?.error) {
-      notify("error", `✗ ${res.error}`);
+      notify("error", `${res.error}`);
       return;
     }
-    notify("success", "✓ Profile updated");
+    notify("success", "Profile updated");
     onOpenChange(false);
     router.refresh();
   }

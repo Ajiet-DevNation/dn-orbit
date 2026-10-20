@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
 import { toast } from "@/components/ui/8bit-toast";
-import { PixelArrow } from "@/components/ui/PixelArrow";
+import { PixelArrow, PixelCheck } from "@/components/ui/PixelIcons";
 import {
   AUDIENCE_BADGE_LABELS,
   type EventAudience,
@@ -81,7 +81,7 @@ export function RegistrationForm({
     return (
       <Shell title={title} meta={meta}>
         <Card className="w-full items-center gap-4 border-brand/30 p-10 text-center">
-          <span className="retro text-4xl text-brand-light">✓</span>
+          <PixelCheck className="text-4xl text-brand-light" />
           <p className="retro text-sm text-white">YOU&apos;RE REGISTERED!</p>
           <p className="text-xs leading-relaxed text-muted-foreground">
             We&apos;ve saved your spot. See you there.

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { toast } from "@/components/ui/8bit-toast";
-import { PixelArrow } from "@/components/ui/PixelArrow";
+import { PixelArrow, PixelCheck } from "@/components/ui/PixelIcons";
 import { errorMessage } from "@/lib/utils";
 
 export interface RosterEntry {
@@ -125,7 +125,13 @@ function AttendButton({
           : "border-white/15 text-white/60 hover:border-brand hover:text-brand-light"
       }`}
     >
-      {attended ? "✓ ATTENDED" : "MARK ATTENDED"}
+      {attended ? (
+        <span className="inline-flex items-center gap-2">
+          <PixelCheck /> ATTENDED
+        </span>
+      ) : (
+        "MARK ATTENDED"
+      )}
     </button>
   );
 }

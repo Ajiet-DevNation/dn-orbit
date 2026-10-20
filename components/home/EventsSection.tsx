@@ -9,7 +9,7 @@ import {
   DetailOverlay,
   DetailOverlayContent,
 } from "@/components/ui/DetailOverlay";
-import { PixelArrow } from "@/components/ui/PixelArrow";
+import { PixelArrow } from "@/components/ui/PixelIcons";
 import { useFlipDetail } from "@/hooks/useFlipDetail";
 import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
 import { smoothScrollTo } from "@/lib/smooth-scroll";

@@ -17,6 +17,7 @@ import {
 import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 import { PixelModal } from "@/components/ui/PixelModal";
 import {
   AUDIENCE_OPTIONS,
@@ -29,7 +30,12 @@ import {
 const toast = rawToast as unknown as (message: ReactNode) => void;
 function notify(kind: "success" | "error", message: string) {
   const color = kind === "success" ? "text-brand-light" : "text-red-500";
-  toast(<span className={color}>{message}</span>);
+  toast(
+    <span className={`inline-flex items-center gap-2 ${color}`}>
+      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
+      {message}
+    </span>,
+  );
 }
 
 interface EventModalProps {
@@ -80,21 +86,21 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
 
   async function handleCreate() {
     if (!title.trim() || !eventDate) {
-      notify("error", "✗ Title and date are required");
+      notify("error", "Title and date are required");
       return;
     }
     // Every builder question needs a label; an "Untitled question" left in the
     // schema produces a confusing registration field, so block on it early.
     const blankLabel = schema.find((f) => !f.label.trim());
     if (blankLabel) {
-      notify("error", "✗ Every custom question needs a label");
+      notify("error", "Every custom question needs a label");
       return;
     }
     if (
       capacity &&
       (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)
     ) {
-      notify("error", "✗ Capacity must be a whole number ≥ 1");
+      notify("error", "Capacity must be a whole number ≥ 1");
       return;
     }
     if (
@@ -102,7 +108,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
       eventDate &&
       new Date(registrationDeadline) > new Date(eventDate)
     ) {
-      notify("error", "✗ Registration deadline can't be after the event");
+      notify("error", "Registration deadline can't be after the event");
       return;
     }
 
@@ -131,19 +137,19 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
       notify(
         "success",
         isAdmin && publishNow
-          ? "✓ Event published"
-          : "✓ Event submitted for admin review",
+          ? "Event published"
+          : "Event submitted for admin review",
       );
       // First-ever event: point the user to where they can track it and see who
       // registers, since that page isn't obvious. Shown once (server flag).
       if (body.isFirstEvent) {
-        notify("success", "✓ Find it under YOUR EVENTS in your profile");
+        notify("success", "Find it under YOUR EVENTS in your profile");
       }
       reset();
       onOpenChange(false);
       router.refresh();
     } catch (err) {
-      notify("error", `✗ ${err instanceof Error ? err.message : "Failed"}`);
+      notify("error", `${err instanceof Error ? err.message : "Failed"}`);
     } finally {
       setSaving(false);
     }

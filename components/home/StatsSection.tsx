@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Progress } from "@/components/ui/8bit-progress";
 import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 import { Reveal } from "@/components/ui/Reveal";
 import { type LanguageStat, languagesFromRecord } from "@/lib/stats-utils";
 import { ContactModal } from "./ContactModal";
@@ -37,7 +38,12 @@ function notify(kind: "success" | "warn" | "error", message: string) {
       : kind === "warn"
         ? "text-yellow-500"
         : "text-red-500";
-  toast(<span className={color}>{message}</span>);
+  toast(
+    <span className={`inline-flex items-center gap-2 ${color}`}>
+      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
+      {message}
+    </span>,
+  );
 }
 
 // All serializable — plain numbers/strings, no Date objects cross the boundary.
@@ -196,11 +202,11 @@ export function StatsSection({
     }
 
     if (anyOk && failures.length === 0) {
-      notify("success", "✓ Stats refreshed");
+      notify("success", "Stats refreshed");
     } else if (anyOk) {
       notify("warn", `Partial refresh · ${failures.join(" · ")}`);
     } else {
-      notify("error", `✗ Refresh failed · ${failures.join(" · ")}`);
+      notify("error", `Refresh failed · ${failures.join(" · ")}`);
     }
 
     if (anyOk) startTransition(() => router.refresh());
