@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
-import { FIELD_ERROR, FIELD_FRAME, Input } from "@/components/ui/8bit-input";
+import {
+  FIELD_ERROR,
+  FIELD_FRAME,
+  FIELD_FRAME_SIDES,
+  Input,
+} from "@/components/ui/8bit-input";
 import { Label } from "@/components/ui/8bit-label";
 import {
   Select,
@@ -529,14 +534,46 @@ function CvPicker({
   file: File | null;
   onPick: (file: File | null) => void;
 }) {
+  // Same frame and height as every other field: the file name sits where typed
+  // text would, and the actions are segments joined on the right edge, split
+  // off by the frame's own 4px bar (which turns purple with it on focus).
+  const segment =
+    "retro flex shrink-0 cursor-pointer items-center border-l-4 border-ring px-4 text-[8px] transition-colors duration-150 group-focus-within/field:border-brand group-has-[[aria-invalid=true]]/field:border-[#ef4444]";
   return (
-    <div
-      className={cn(
-        FIELD_FRAME,
-        "min-h-11 flex-wrap gap-3 py-1.5 pr-1.5 pl-3.5 dark:bg-input/30",
+    <div className={cn(FIELD_FRAME, "h-11 items-stretch dark:bg-input/30")}>
+      <span
+        className={cn(
+          "flex min-w-0 flex-1 items-center px-3.5 font-mono text-base md:text-sm",
+          file ? "text-foreground" : "text-muted-foreground",
+        )}
+      >
+        <span className="truncate">
+          {file ? file.name : "Optional · no file chosen"}
+        </span>
+        {file && (
+          <span className="ml-2 shrink-0 text-muted-foreground">
+            {(file.size / 1024).toFixed(0)} KB
+          </span>
+        )}
+      </span>
+      {file && (
+        <button
+          type="button"
+          onClick={() => onPick(null)}
+          className={cn(
+            segment,
+            "text-[#f87171] hover:bg-[#ef4444]/15 focus-visible:bg-[#ef4444]/15 focus-visible:outline-none",
+          )}
+        >
+          REMOVE
+        </button>
       )}
-    >
-      <label className="retro order-last ml-auto cursor-pointer border-2 border-brand px-3 py-2 text-[8px] text-brand-light transition-colors duration-150 hover:bg-brand hover:text-black has-[:focus-visible]:bg-brand has-[:focus-visible]:text-black">
+      <label
+        className={cn(
+          segment,
+          "text-brand-light hover:bg-brand hover:text-[#0a0a0a] has-[:focus-visible]:bg-brand has-[:focus-visible]:text-[#0a0a0a]",
+        )}
+      >
         {file ? "CHANGE PDF" : "CHOOSE PDF"}
         <input
           id="rec-cv"
@@ -550,27 +587,7 @@ function CvPicker({
           }}
         />
       </label>
-      {file ? (
-        <>
-          <span className="min-w-0 flex-1 truncate font-mono text-sm text-foreground">
-            {file.name}
-            <span className="ml-2 text-muted-foreground">
-              {(file.size / 1024).toFixed(0)} KB
-            </span>
-          </span>
-          <button
-            type="button"
-            onClick={() => onPick(null)}
-            className="retro text-[8px] text-[#f87171] transition-colors duration-150 hover:text-red-300"
-          >
-            REMOVE
-          </button>
-        </>
-      ) : (
-        <span className="min-w-0 flex-1 font-mono text-sm text-muted-foreground">
-          Optional · no file chosen
-        </span>
-      )}
+      <div className={FIELD_FRAME_SIDES} aria-hidden="true" />
     </div>
   );
 }
