@@ -70,7 +70,7 @@ branch `feat/orbit-polish-hardening` unless its status says otherwise.
 
 1. **Feel-breaking regressions** — the dead planet links (#1), the splash in front of every form (#3), the bounce on every card change (#4), and the iOS input zoom (#6). All fixed.
 2. **Missed simplifications** — the progress-bar transition (#9) deleted; framer-motion (#16) deleted.
-3. **Performance** — per-frame React renders in the hero (#2), `transition-all` (#19), `width` animation (#9). Fixed. Off-screen rAF loops are handled in the performance pass (`docs/SECURITY.md` lists the rest of Task 6).
+3. **Performance** — per-frame React renders in the hero (#2), `transition-all` (#19), `width` animation (#9). Fixed. Off-screen and idle rAF loops (announcement strip, sprite sheets, recruitment card, Mission Progress, Pluton) were fixed in the Task 6 performance pass.
 4. **Interruptibility & timing** — symmetric detail panels (#8) and drawer (#13) made asymmetric.
 5. **Origin, physicality & cohesion** — `scale(0)` bubble (#18), card press feedback (#7), token reuse (#20).
 6. **Accessibility** — ungated hover (#10), orbit reduced-motion path (#14), view transitions get their own reduced-motion block (the global reset does not reach `::view-transition-*`).
