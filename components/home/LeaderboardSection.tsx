@@ -667,6 +667,9 @@ export function LeaderboardSection({
           {/* Top-20 list */}
           <div
             className={cn(listWrapperClass)}
+            // Same gate as pointerEvents: a faded-out list keeps its PREV/NEXT
+            // out of the tab order too.
+            inert={phaseB <= 0.5}
             style={{
               width: listWidth,
               transform: listTransform,

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -9,6 +10,21 @@ import {
 import { registrationClosesAt } from "@/lib/event-order";
 import { type EventAudience, parseFormSchema } from "@/lib/forms";
 import { RegistrationForm } from "./RegistrationForm";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const event = await db.event.findUnique({
+    where: { id },
+    select: { title: true, reviewStatus: true, isPublished: true },
+  });
+  // Never leak an unpublished event's title through the tab.
+  if (event?.reviewStatus !== "approved" || !event.isPublished) return {};
+  return { title: `Register · ${event.title}` };
+}
 
 export default async function RegisterPage({
   params,

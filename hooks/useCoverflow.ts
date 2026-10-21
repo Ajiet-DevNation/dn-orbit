@@ -251,7 +251,12 @@ export function useCoverflow({
 
   // Scroll hook → thumb strips.
   const setIntro = useCallback(
-    (value: number) => {
+    (raw: number) => {
+      // Anchor jumps land on the entrance's end rounded down to a whole pixel
+      // (e.g. 1704 of 1704.6), leaving intro at ~0.998 — and every `< 1` gate
+      // below shut: arrows, keys and card taps were dead right where the
+      // MEMBERS tab parks the page.
+      const value = raw > 0.99 ? 1 : raw;
       if (introRef.current === value) return;
       introRef.current = value;
       applyCards();

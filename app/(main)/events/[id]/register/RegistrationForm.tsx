@@ -287,7 +287,8 @@ function Shell({
           </p>
         )}
         {meta.description && (
-          <p className="text-sm leading-relaxed text-muted-foreground">
+          // pre-line: organizers write these in a textarea (bullets, breaks).
+          <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
             {meta.description}
           </p>
         )}

@@ -203,12 +203,22 @@ export function RecruitmentForm({ open }: { open: boolean }) {
     );
   }
 
+  // Keyboard and screen-reader users land on the first field to fix, after
+  // the errors have rendered.
+  const focusFirstError = () =>
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>('form [aria-invalid="true"]')
+        ?.focus(),
+    );
+
   const review = (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = recruitmentApplicationSchema.safeParse(values);
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error));
       toast.error("Please fix the highlighted fields");
+      focusFirstError();
       return;
     }
     setErrors({});
@@ -235,6 +245,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
         setErrors(data.fields);
         setStep("form");
         toast.error("Please fix the highlighted fields");
+        focusFirstError();
       } else {
         toast.error(data.error ?? "Could not submit your application");
       }
@@ -306,6 +317,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   const control = (k: Key) => {
     const id = `rec-${k}`;
     const invalid = !!errors[k];
+    const describedBy = invalid ? `${id}-error` : undefined;
     if (k === "branch" || k === "year") {
       const options =
         k === "branch"
@@ -313,7 +325,11 @@ export function RecruitmentForm({ open }: { open: boolean }) {
           : YEARS.map((y) => ({ value: String(y), label: `YEAR ${y}` }));
       return (
         <Select value={values[k]} onValueChange={set(k)}>
-          <SelectTrigger id={id} aria-invalid={invalid}>
+          <SelectTrigger
+            id={id}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+          >
             <SelectValue
               placeholder={k === "branch" ? "Select branch" : "Select year"}
             />
@@ -337,6 +353,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
             value={values.about}
             placeholder="I am a…"
             aria-invalid={invalid}
+            aria-describedby={describedBy}
             onChange={(e) => set("about")(e.target.value)}
             rows={6}
             className="[&_textarea]:min-h-[160px]"
@@ -363,6 +380,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
         autoComplete={f.autoComplete}
         placeholder={f.placeholder}
         aria-invalid={invalid}
+        aria-describedby={describedBy}
         onChange={(e) => set(k)(e.target.value)}
       />
     );
@@ -540,7 +558,11 @@ function Field({
         {required && <span className="text-brand-light">*</span>}
       </Label>
       {children}
-      {error && <p className={FIELD_ERROR}>{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className={FIELD_ERROR}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

@@ -162,7 +162,10 @@ export function V2Header({
             differing logo/avatar widths don't push it off-centre. */}
           <div className="absolute inset-x-0 top-6 flex justify-center pointer-events-none">
             <div
-              className="hidden md:block mt-3"
+              className="hidden lg:block mt-3"
+              // Faded-out tabs must also leave the tab order and a11y tree, or
+              // keyboard focus lands on invisible controls over the hero.
+              inert={!headerVisible}
               style={{
                 opacity: headerVisible ? 1 : 0,
                 transform: headerVisible
@@ -198,9 +201,10 @@ export function V2Header({
 
           {/* Right: signed-in members get the 8bit avatar (click to edit profile);
             anonymous visitors get a SIGN IN button into the members-only login.
-            Below md the section tabs don't fit, so a menu sits beside it. */}
+            Below lg the section tabs don't fit (at md they overlapped the
+            wordmark and SIGN IN), so a menu sits beside it. */}
           <div className="flex shrink-0 items-center gap-3">
-            <div ref={menuRef} className="relative md:hidden">
+            <div ref={menuRef} className="relative lg:hidden">
               <button
                 type="button"
                 aria-label="Sections"

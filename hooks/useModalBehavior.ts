@@ -1,6 +1,6 @@
 "use client";
 
-import { type RefObject, useEffect, useId } from "react";
+import { type RefObject, useEffect, useId, useRef } from "react";
 import { isTopModal, modalDepth, popModal, pushModal } from "@/lib/modal-stack";
 import { setScrollLocked } from "@/lib/smooth-scroll";
 
@@ -48,6 +48,14 @@ export function useModalBehavior(
   // Stable per-instance identity for the stack.
   const id = useId();
 
+  // Read through a ref: as an effect dependency, an inline callback (as
+  // DetailOverlay passes) tore the whole modal down and rebuilt it on every
+  // render — restoring focus to the opener and flickering the scroll lock.
+  const onOpenChangeRef = useRef(onOpenChange);
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  });
+
   useEffect(() => {
     if (!open) return;
 
@@ -72,7 +80,7 @@ export function useModalBehavior(
 
       if (e.key === "Escape" && closeOnEscape) {
         e.stopPropagation();
-        onOpenChange(false);
+        onOpenChangeRef.current(false);
         return;
       }
 
@@ -130,5 +138,5 @@ export function useModalBehavior(
         previouslyFocused.focus({ preventScroll: true });
       }
     };
-  }, [open, onOpenChange, id, containerRef, closeOnEscape]);
+  }, [open, id, containerRef, closeOnEscape]);
 }
