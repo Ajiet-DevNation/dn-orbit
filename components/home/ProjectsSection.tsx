@@ -5,6 +5,7 @@ import {
   memo,
   type ReactNode,
   useContext,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -43,9 +44,9 @@ const TechChip = memo(function TechChip({ name }: { name: string }) {
 });
 
 import { useViewportSize } from "@/hooks/useViewportSize";
-import { lensSize } from "@/lib/lens-layout";
+import { LENS_BREAKPOINT, lensSize } from "@/lib/lens-layout";
 import { CoverflowControls } from "./CoverflowControls";
-import { LENS_COUNTER_STYLE, LensSection } from "./LensSection";
+import { LENS_COUNTER_STYLE, LENS_PAD, LensSection } from "./LensSection";
 
 // ─── tuning (desktop reference; scaled to the viewport by lensSize) ──────────
 const DETAIL_MAX_W = 560; // card width inside the detail overlay
@@ -54,6 +55,9 @@ const LENS_SIZING = {
   ratio: 600 / 680, // height / width
   share: 0.46, // lens width / viewport on wider screens
   phoneShare: 0.8,
+  // Taller on phones: the landscape desktop card left a portrait screen mostly
+  // empty above and below it.
+  phoneRatio: 1.15,
   thumbRatio: 0.36, // thumb height / lens height (oryzo ~0.35)
 };
 
@@ -129,7 +133,7 @@ const ProjectCard = memo(function ProjectCard({
           size container, so the chrome scales with the lens instead of
           sitting tiny in a big card. */}
       <div className="flex items-center justify-between gap-3 border-b-[6px] border-white/10 px-[clamp(1.25rem,3cqw,2rem)] py-[clamp(1rem,2.4cqw,1.5rem)]">
-        <h3 className="retro truncate text-[clamp(0.875rem,2.2cqw,1.25rem)] text-white">
+        <h3 className="retro line-clamp-2 min-w-0 break-words text-[clamp(0.75rem,2.2cqw,1.25rem)] leading-snug text-white">
           {project.title}
         </h3>
         <span
@@ -162,7 +166,7 @@ const ProjectCard = memo(function ProjectCard({
               className="pixelated h-full w-full object-cover select-none [-webkit-user-drag:none]"
             />
           ) : (
-            <div className="dot-grid-bg relative flex h-full w-full flex-col items-center justify-center gap-[clamp(1.75rem,4cqw,2.75rem)] p-8">
+            <div className="dot-grid-bg relative flex h-full w-full flex-col items-center justify-center gap-[clamp(1.75rem,4cqw,2.75rem)] p-8 @max-sm:gap-5 @max-sm:p-5">
               {/* Oversized monogram watermark for depth behind the tile. */}
               <span
                 aria-hidden
@@ -173,17 +177,17 @@ const ProjectCard = memo(function ProjectCard({
 
               {/* Cartridge tile: status-colored pixel border + monogram. */}
               <div
-                className="relative z-10 flex size-[clamp(7rem,17cqw,10.5rem)] items-center justify-center border-4 bg-[#0a0a0a]"
+                className="relative z-10 flex size-[clamp(7rem,17cqw,10.5rem)] items-center justify-center border-4 bg-[#0a0a0a] @max-sm:size-24"
                 style={{ borderColor: color, boxShadow: `0 0 24px ${color}22` }}
               >
-                <span className="retro text-[clamp(2.25rem,6cqw,3.75rem)] text-white select-none">
+                <span className="retro text-[clamp(2.25rem,6cqw,3.75rem)] text-white select-none @max-sm:text-3xl">
                   {monogram}
                 </span>
               </div>
 
               {/* Tech stack chips — the glanceable substance that fills the card. */}
               {project.techStack.length > 0 && (
-                <div className="z-10 flex max-w-[85%] flex-wrap justify-center gap-[clamp(0.75rem,1.6cqw,1rem)] [&>span]:px-[clamp(0.625rem,1.4cqw,0.9rem)] [&>span]:py-[clamp(0.375rem,0.9cqw,0.6rem)] [&>span]:text-[clamp(9px,1.4cqw,12px)]">
+                <div className="z-10 flex max-w-[85%] flex-wrap justify-center gap-[clamp(0.75rem,1.6cqw,1rem)] [&>span]:px-[clamp(0.625rem,1.4cqw,0.9rem)] [&>span]:py-[clamp(0.375rem,0.9cqw,0.6rem)] [&>span]:text-[clamp(9px,1.4cqw,12px)] @max-sm:gap-2">
                   {project.techStack.map((tech) => (
                     <TechChip key={tech} name={tech} />
                   ))}
@@ -403,11 +407,29 @@ function ProjectsSectionInner({ projects }: { projects: ProjectData[] }) {
     thumbW: THUMB_W,
     thumbH: THUMB_H,
   } = lensSize(viewport.width, viewport.height, LENS_SIZING);
+  // Portrait phones get the stacked layout; a landscape phone has no height
+  // for a row under the card, so it keeps the side arrows.
+  const phone =
+    viewport.width < LENS_BREAKPOINT && viewport.height > viewport.width;
 
   // The detail view leaves room for its text column: the card there is capped
-  // well below the (now viewport-sized) lens. The FLIP scales between the two.
+  // well below the (now viewport-sized) lens. The FLIP scales between the two,
+  // so it keeps the lens card's own aspect (taller on phones) or it would squash.
   const DETAIL_W = Math.min(CARD_W, DETAIL_MAX_W);
-  const DETAIL_H = Math.round(DETAIL_W * LENS_SIZING.ratio);
+  const DETAIL_H = Math.round((DETAIL_W * CARD_H) / CARD_W);
+
+  // Phones: arrows + counter in one row just under the lens (the stage's 50%
+  // is the lens centre), but never pushed off a short landscape screen.
+  const counterStyle = useMemo(
+    () =>
+      phone
+        ? {
+            top: `min(calc(50% + ${CARD_H / 2 + LENS_PAD + 14}px), calc(100% - 56px))`,
+            bottom: "auto",
+          }
+        : LENS_COUNTER_STYLE,
+    [phone, CARD_H],
+  );
 
   // The lens's clipped window; the bracket power-on looks for cards in here.
   const lensRef = useRef<HTMLDivElement>(null);
@@ -498,13 +520,20 @@ function ProjectsSectionInner({ projects }: { projects: ProjectData[] }) {
       setIntro={setIntro}
       setFocus={setFocus}
       navigateRef={navigateRef}
-      stageClassName={cn(selected !== null && "pointer-events-none opacity-0")}
+      // Lifts the lens centre so the card + control row sit midway between
+      // the heading and the screen's bottom edge on portrait phones.
+      stageClassName={cn(
+        "max-md:portrait:bottom-10",
+        selected !== null && "pointer-events-none opacity-0",
+      )}
       stageStyle={{ transition: "opacity 300ms var(--ease-out-quart)" }}
       thumbs={projects.map((project, i) => (
         <div
           key={project.id}
           ref={registerThumb(i)}
-          className="absolute left-1/2 top-1/2"
+          // Portrait phones: hidden. Beside a near-full-width lens only slivers of them
+          // fit, cut off at the screen edges; the arrows navigate instead.
+          className="absolute left-1/2 top-1/2 max-md:portrait:hidden"
           style={{
             width: THUMB_W,
             height: THUMB_H,
@@ -550,7 +579,8 @@ function ProjectsSectionInner({ projects }: { projects: ProjectData[] }) {
           // Sit the counter just below the lens's bottom edge, so it never
           // overlaps the card chrome.
           counterClassName=""
-          counterStyle={LENS_COUNTER_STYLE}
+          counterStyle={counterStyle}
+          inline={phone}
         />
       }
     >
