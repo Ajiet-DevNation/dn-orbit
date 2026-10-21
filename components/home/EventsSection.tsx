@@ -493,6 +493,7 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
         open={!!active}
         onClose={close}
         closeLabel="Close event details"
+        label="Event details"
       >
         {active && (
           <>

@@ -207,17 +207,18 @@ export function FormBuilder({
             {/* Label + type */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label>
+                <Label htmlFor={`${f.id}-label`}>
                   QUESTION <span className="text-brand-light">*</span>
                 </Label>
                 <Input
+                  id={`${f.id}-label`}
                   value={f.label}
                   placeholder="e.g. T-shirt size"
                   onChange={(e) => update(f.id, { label: e.target.value })}
                 />
               </div>
               <div className="grid gap-2">
-                <Label>TYPE</Label>
+                <Label htmlFor={`${f.id}-type`}>TYPE</Label>
                 <Select
                   value={f.type}
                   onValueChange={(type) =>
@@ -229,7 +230,7 @@ export function FormBuilder({
                     })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={`${f.id}-type`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="z-[200] dark">
@@ -246,8 +247,9 @@ export function FormBuilder({
             {/* Help text + placeholder (placeholder only for free-text inputs) */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label>HELP TEXT</Label>
+                <Label htmlFor={`${f.id}-help`}>HELP TEXT</Label>
                 <Input
+                  id={`${f.id}-help`}
                   value={f.description ?? ""}
                   placeholder="Optional"
                   onChange={(e) =>
@@ -257,8 +259,9 @@ export function FormBuilder({
               </div>
               {!isChoice && (
                 <div className="grid gap-2">
-                  <Label>PLACEHOLDER</Label>
+                  <Label htmlFor={`${f.id}-placeholder`}>PLACEHOLDER</Label>
                   <Input
+                    id={`${f.id}-placeholder`}
                     value={f.placeholder ?? ""}
                     placeholder="Optional"
                     onChange={(e) =>
@@ -346,7 +349,7 @@ export function FormBuilder({
                       })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger aria-label="Show only if question">
                       <SelectValue placeholder="Always shown" />
                     </SelectTrigger>
                     <SelectContent className="z-[200] dark">
@@ -376,7 +379,7 @@ export function FormBuilder({
                         })
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="Show only if answer is">
                         <SelectValue placeholder="Select an answer" />
                       </SelectTrigger>
                       <SelectContent className="z-[200] dark">

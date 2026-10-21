@@ -126,6 +126,8 @@ export default function EventRosterClient({
           type="button"
           disabled={pending.has(r.id)}
           onClick={() => toggle(r.id, r.attended)}
+          aria-label={`${r.name} attended`}
+          aria-pressed={r.attended}
           className="retro border-2 border-white/15 px-3 py-1 text-[8px] text-white/70 transition-colors hover:border-brand hover:text-brand-light disabled:opacity-50"
         >
           {r.attended ? "REVOKE" : "MARK ATTENDED"}

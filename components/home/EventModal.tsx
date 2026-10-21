@@ -204,9 +204,9 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
               clip instead of overflowing the modal. */}
         <div className="grid grid-cols-2 gap-5 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label>TYPE</Label>
+            <Label htmlFor="ev-type">TYPE</Label>
             <Select value={eventType} onValueChange={setEventType}>
-              <SelectTrigger>
+              <SelectTrigger id="ev-type">
                 <SelectValue placeholder="SELECT" />
               </SelectTrigger>
               <SelectContent className="z-[200] dark">
@@ -259,9 +259,9 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label>WHO CAN REGISTER</Label>
+            <Label htmlFor="ev-audience">WHO CAN REGISTER</Label>
             <Select value={audience} onValueChange={setAudience}>
-              <SelectTrigger>
+              <SelectTrigger id="ev-audience">
                 <SelectValue placeholder="SELECT" />
               </SelectTrigger>
               <SelectContent className="z-[200] dark">

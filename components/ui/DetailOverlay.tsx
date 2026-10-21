@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { OverlayCloseButton } from "@/components/ui/OverlayCloseButton";
 import { Z_MODAL } from "@/components/ui/PixelModal";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
@@ -22,6 +22,8 @@ interface DetailOverlayProps {
   onClose: () => void;
   /** Accessible name for the close control, e.g. "Close project details". */
   closeLabel: string;
+  /** Accessible name for the overlay itself, e.g. "Project details". */
+  label: string;
   children: ReactNode;
 }
 
@@ -29,6 +31,7 @@ export function DetailOverlay({
   open,
   onClose,
   closeLabel,
+  label,
   children,
 }: DetailOverlayProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -40,15 +43,25 @@ export function DetailOverlay({
     if (!next) onClose();
   });
 
+  // Still no trap, but focus has to enter: it used to stay on the card behind
+  // the overlay, so Tab walked the hidden page. Runs after useModalBehavior
+  // captured that card for focus-restore; preventScroll keeps the FLIP still.
+  useEffect(() => {
+    if (open) panelRef.current?.focus({ preventScroll: true });
+  }, [open]);
+
   if (!open) return null;
 
   return (
     // Escape is wired through useModalBehavior and the close button is always
     // visible, so backdrop dismissal is a convenience, not the only way out.
-    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop dismissal with a keyboard path
     <div
       ref={panelRef}
-      className="fixed inset-0 overflow-y-auto bg-[#0a0a0a]"
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      tabIndex={-1}
+      className="fixed inset-0 overflow-y-auto bg-[#0a0a0a] outline-none"
       style={{ zIndex: Z_MODAL.base - 40 }}
       // Anything that reaches this element came from the background: the card,
       // the detail panel and the close button all stop propagation themselves.

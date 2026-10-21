@@ -220,7 +220,9 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
                 disabled={isPending}
                 className="mb-1.5 text-[9px] !bg-brand !text-black hover:!bg-brand-light"
               >
-                {isPending ? "…" : "GRANT ACCESS"}
+                {/* Same-width label: a bare "…" collapsed the button and
+                    reflowed the input row while the request was in flight. */}
+                {isPending ? "GRANTING…" : "GRANT ACCESS"}
               </Button>
             </div>
           </div>

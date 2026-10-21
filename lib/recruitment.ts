@@ -33,7 +33,7 @@ export function countWords(text: string): number {
 }
 
 // GitHub's own rule: alphanumerics and single inner hyphens, max 39 chars.
-const GITHUB_USERNAME_RE = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;
+export const GITHUB_USERNAME_RE = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;
 const LC_USERNAME_RE = /^[\w.-]{1,40}$/;
 const X_HANDLE_RE = /^\w{1,15}$/;
 // Optional leading +, then 10–15 digits once spaces and dashes are stripped.

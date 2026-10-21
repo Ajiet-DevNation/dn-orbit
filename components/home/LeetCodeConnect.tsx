@@ -143,7 +143,7 @@ export function LeetCodeConnect({
               <PixelCheck className="mr-1.5" />
               {preview.totalSolved} SOLVED
               {preview.ranking != null
-                ? ` · #${preview.ranking.toLocaleString()}`
+                ? ` · #${preview.ranking.toLocaleString("en-US")}`
                 : ""}
             </p>
           </div>

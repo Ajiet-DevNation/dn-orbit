@@ -11,7 +11,10 @@ import { parseBody } from "@/lib/validation";
 // first toggle on a fresh database creates the row.
 export async function PATCH(req: NextRequest) {
   const session = await auth();
-  if (!session || !canAccessAdmin(session.user.role)) {
+  if (!session) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (!canAccessAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

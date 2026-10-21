@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { FaCode } from "react-icons/fa";
 import {
   Command,
@@ -28,6 +28,21 @@ const CATALOGUE_NAMES = TECH_STACK.map((t) => t.name);
 export function TechStackSelect({ value, onChange }: TechStackSelectProps) {
   const selected = new Set(value);
   const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // cmdk auto-selects the first item on mount and calls scrollIntoView on it,
+  // which scrolls every scrollable ancestor too: the project modal opened
+  // scrolled ~800px down, past TITLE. Undo that one mount-time jump; rAF runs
+  // before the next paint, so it never shows.
+  useLayoutEffect(() => {
+    const saved: [Element, number][] = [];
+    for (let el = rootRef.current?.parentElement; el; el = el.parentElement)
+      saved.push([el, el.scrollTop]);
+    const id = requestAnimationFrame(() => {
+      for (const [el, top] of saved) el.scrollTop = top;
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const full = value.length >= MAX_TECH_ITEMS;
   const typed = normalizeTechName(query);
@@ -72,7 +87,7 @@ export function TechStackSelect({ value, onChange }: TechStackSelectProps) {
   );
 
   return (
-    <div className="space-y-5">
+    <div ref={rootRef} className="space-y-5">
       {/* Selected chips */}
       {value.length > 0 && (
         <div className="space-y-3">

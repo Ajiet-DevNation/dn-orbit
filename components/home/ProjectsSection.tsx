@@ -470,6 +470,7 @@ function ProjectsSectionInner({ projects }: { projects: ProjectData[] }) {
       open={!!activeProject}
       onClose={close}
       closeLabel="Close project details"
+      label="Project details"
     >
       {activeProject && (
         <>

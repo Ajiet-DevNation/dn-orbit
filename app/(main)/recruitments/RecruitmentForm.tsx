@@ -203,12 +203,22 @@ export function RecruitmentForm({ open }: { open: boolean }) {
     );
   }
 
+  // Keyboard and screen-reader users land on the first field to fix, after
+  // the errors have rendered.
+  const focusFirstError = () =>
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>('form [aria-invalid="true"]')
+        ?.focus(),
+    );
+
   const review = (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = recruitmentApplicationSchema.safeParse(values);
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error));
       toast.error("Please fix the highlighted fields");
+      focusFirstError();
       return;
     }
     setErrors({});
@@ -235,6 +245,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
         setErrors(data.fields);
         setStep("form");
         toast.error("Please fix the highlighted fields");
+        focusFirstError();
       } else {
         toast.error(data.error ?? "Could not submit your application");
       }
@@ -248,6 +259,11 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   const filled = REQUIRED.filter((k) => values[k].trim()).length;
 
   if (step === "review") {
+    // Read back what will be stored (USN uppercased, email lowercased, "@"
+    // dropped from the X handle), not the raw keystrokes. review() already
+    // proved the parse succeeds.
+    const parsed = recruitmentApplicationSchema.safeParse(values);
+    const shown = parsed.success ? parsed.data : values;
     return (
       <Layout step="review" filled={filled}>
         {SECTIONS.map((s, i) => (
@@ -265,7 +281,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
                     {k === "about" ? "ABOUT YOU" : FIELDS[k].label}
                   </dt>
                   <dd className="whitespace-pre-wrap break-words font-mono text-sm text-white">
-                    {values[k].trim() || "—"}
+                    {String(shown[k] ?? "").trim() || "—"}
                   </dd>
                 </div>
               ))}
@@ -306,6 +322,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   const control = (k: Key) => {
     const id = `rec-${k}`;
     const invalid = !!errors[k];
+    const describedBy = invalid ? `${id}-error` : undefined;
     if (k === "branch" || k === "year") {
       const options =
         k === "branch"
@@ -313,7 +330,11 @@ export function RecruitmentForm({ open }: { open: boolean }) {
           : YEARS.map((y) => ({ value: String(y), label: `YEAR ${y}` }));
       return (
         <Select value={values[k]} onValueChange={set(k)}>
-          <SelectTrigger id={id} aria-invalid={invalid}>
+          <SelectTrigger
+            id={id}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+          >
             <SelectValue
               placeholder={k === "branch" ? "Select branch" : "Select year"}
             />
@@ -337,6 +358,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
             value={values.about}
             placeholder="I am a…"
             aria-invalid={invalid}
+            aria-describedby={describedBy}
             onChange={(e) => set("about")(e.target.value)}
             rows={6}
             className="[&_textarea]:min-h-[160px]"
@@ -363,6 +385,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
         autoComplete={f.autoComplete}
         placeholder={f.placeholder}
         aria-invalid={invalid}
+        aria-describedby={describedBy}
         onChange={(e) => set(k)(e.target.value)}
       />
     );
@@ -441,7 +464,9 @@ function Layout({
         <Link
           href="/"
           transitionTypes={["recruit-out"]}
-          className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
+          // 14px of text; the pseudo-element grows the hit area to 44px tall
+          // without moving the layout (same trick as the 8-bit Button).
+          className="retro relative flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 before:absolute before:-inset-x-2 before:-inset-y-[15px] before:content-[''] hover:text-white"
         >
           <PixelArrow dir="left" /> BACK TO ORBIT
         </Link>
@@ -540,7 +565,11 @@ function Field({
         {required && <span className="text-brand-light">*</span>}
       </Label>
       {children}
-      {error && <p className={FIELD_ERROR}>{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className={FIELD_ERROR}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

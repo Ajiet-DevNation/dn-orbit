@@ -358,7 +358,7 @@ export function StatsSection({
               label="RANKING"
               value={
                 leetcode?.lcRanking != null
-                  ? `#${leetcode.lcRanking.toLocaleString()}`
+                  ? `#${leetcode.lcRanking.toLocaleString("en-US")}`
                   : "—"
               }
             />

@@ -110,10 +110,12 @@ const attendBtn =
   "retro border-2 px-2 py-1 text-[8px] tracking-wider transition-colors disabled:opacity-50";
 
 function AttendButton({
+  name,
   attended,
   disabled,
   onClick,
 }: {
+  name: string;
   attended: boolean;
   disabled: boolean;
   onClick: () => void;
@@ -143,6 +145,9 @@ function AttendButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
+      // Every row's button read the same; name the row and expose the state.
+      aria-label={`${name} attended`}
+      aria-pressed={attended}
       className={`${attendBtn} ${
         attended
           ? "border-brand text-brand-light hover:bg-brand/10"
@@ -202,6 +207,7 @@ function RosterCards({
 
           <div className="mt-4">
             <AttendButton
+              name={r.name}
               attended={r.attended}
               disabled={isPending}
               onClick={() => onToggle(r.id, r.attended)}
@@ -298,6 +304,7 @@ function RosterTable({
               </td>
               <td className="px-3 py-2 text-right">
                 <AttendButton
+                  name={r.name}
                   attended={r.attended}
                   disabled={isPending}
                   onClick={() => onToggle(r.id, r.attended)}

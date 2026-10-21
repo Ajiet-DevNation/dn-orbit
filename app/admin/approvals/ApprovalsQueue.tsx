@@ -8,6 +8,7 @@ import {
 } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
 import { useConfirm } from "@/components/ui/PixelConfirm";
+import { formatEventDateLong } from "@/lib/event-format";
 import { errorMessage } from "@/lib/utils";
 
 interface ProjectRow {
@@ -150,7 +151,7 @@ export function ApprovalsQueue({
       header: "SUBMITTED",
       render: (p) => (
         <span className="text-[9px] text-zinc-500">
-          {new Date(p.submittedAt).toLocaleDateString()}
+          {formatEventDateLong(new Date(p.submittedAt))}
         </span>
       ),
     },
@@ -185,7 +186,7 @@ export function ApprovalsQueue({
       header: "EVENT DATE",
       render: (e) => (
         <span className="text-[9px] text-zinc-500">
-          {new Date(e.eventDate).toLocaleDateString()}
+          {formatEventDateLong(new Date(e.eventDate))}
         </span>
       ),
     },
@@ -211,6 +212,7 @@ export function ApprovalsQueue({
   const tabBtn = (t: Tab, label: string, count: number) => (
     <button
       type="button"
+      aria-pressed={tab === t}
       onClick={() => setTab(t)}
       className={`retro border-2 px-4 py-2 text-[9px] tracking-widest transition-colors ${
         tab === t

@@ -195,12 +195,12 @@ export function ProjectModal({ open, onOpenChange }: ProjectModalProps) {
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div className="grid gap-2">
-            <Label>STATUS</Label>
+            <Label htmlFor="pj-status">STATUS</Label>
             <Select
               value={status}
               onValueChange={(v) => setStatus(v as ProjectStatus)}
             >
-              <SelectTrigger>
+              <SelectTrigger id="pj-status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="z-[200] dark">

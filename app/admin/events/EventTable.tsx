@@ -8,6 +8,7 @@ import {
 } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
 import { useConfirm } from "@/components/ui/PixelConfirm";
+import { formatEventDateLong } from "@/lib/event-format";
 import { AUDIENCE_BADGE_LABELS, type EventAudience } from "@/lib/forms";
 import { errorMessage } from "@/lib/utils";
 
@@ -88,7 +89,7 @@ export function EventTable({ initialEvents }: { initialEvents: EventRow[] }) {
       header: "DATE",
       render: (e) => (
         <span className="text-white/70">
-          {new Date(e.eventDate).toLocaleDateString()}
+          {formatEventDateLong(new Date(e.eventDate))}
         </span>
       ),
     },

@@ -287,7 +287,8 @@ function Shell({
           </p>
         )}
         {meta.description && (
-          <p className="text-sm leading-relaxed text-muted-foreground">
+          // pre-line: organizers write these in a textarea (bullets, breaks).
+          <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
             {meta.description}
           </p>
         )}
@@ -310,7 +311,9 @@ function Back() {
   return (
     <Link
       href="/#events"
-      className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
+      // 14px of text; the pseudo-element grows the hit area to 44px tall
+      // without moving the layout (same trick as the 8-bit Button).
+      className="retro relative flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 before:absolute before:-inset-x-2 before:-inset-y-[15px] before:content-[''] hover:text-white"
     >
       <PixelArrow dir="left" /> BACK TO EVENTS
     </Link>

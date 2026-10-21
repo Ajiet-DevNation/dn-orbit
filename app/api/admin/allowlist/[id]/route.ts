@@ -16,7 +16,10 @@ type Params = { params: Promise<{ id: string }> };
 export async function DELETE(_req: Request, { params }: Params) {
   try {
     const session = await auth();
-    if (!session || !canAccessAdmin(session.user.role)) {
+    if (!session) {
+      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    }
+    if (!canAccessAdmin(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

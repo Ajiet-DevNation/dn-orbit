@@ -250,9 +250,9 @@ export function ProfileModal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="grid gap-2">
-                <Label>BRANCH</Label>
+                <Label htmlFor="pf-branch">BRANCH</Label>
                 <Select value={branch} onValueChange={setBranch}>
-                  <SelectTrigger>
+                  <SelectTrigger id="pf-branch">
                     <SelectValue placeholder="SELECT" />
                   </SelectTrigger>
                   <SelectContent className="z-[200] dark">
@@ -265,9 +265,9 @@ export function ProfileModal({
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>YEAR</Label>
+                <Label htmlFor="pf-year">YEAR</Label>
                 <Select value={year} onValueChange={setYear}>
-                  <SelectTrigger>
+                  <SelectTrigger id="pf-year">
                     <SelectValue placeholder="SELECT" />
                   </SelectTrigger>
                   <SelectContent className="z-[200] dark">

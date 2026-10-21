@@ -1,6 +1,7 @@
 import { $Enums } from "@prisma/client";
 import { z } from "zod";
 import { isSafePattern, MAX_PATTERN_LEN } from "@/lib/forms";
+import { GITHUB_USERNAME_RE } from "@/lib/recruitment";
 import { MAX_TECH_ITEMS, MAX_TECH_NAME_LEN } from "@/lib/tech-name";
 
 // Shared request-body schemas for the Route Handlers.
@@ -72,7 +73,14 @@ const dateish = z
   )
   // Piping into the original coercion keeps unparseable input rejected exactly
   // as before; the transform above only disambiguates the zone-less form.
-  .pipe(z.coerce.date());
+  // Bounded: epoch 0 / -1 or a 15-digit timestamp parse fine but put an event
+  // in 1970 or the year 33658.
+  .pipe(
+    z.coerce
+      .date()
+      .min(new Date("2000-01-01T00:00:00Z"), "Date must be in 2000–2099")
+      .max(new Date("2099-12-31T23:59:59Z"), "Date must be in 2000–2099"),
+  );
 
 // ── Events ───────────────────────────────────────────────────────────────────
 
@@ -236,6 +244,36 @@ export const memberUpdateSchema = z.object({
   status: z.nativeEnum($Enums.ApprovalStatus).optional(),
   role: z.nativeEnum($Enums.Role).optional(),
 });
+
+// ── Allowlist ────────────────────────────────────────────────────────────────
+
+/** Blank optional inputs ("" / whitespace / null) skip validation entirely. */
+const blankToUndefined = (v: unknown) =>
+  v == null || (typeof v === "string" && !v.trim()) ? undefined : v;
+
+/** Admin invite. Previously any string was stored, so a typo'd URL or a
+ *  malformed email became an entry that could never match a sign-in. */
+export const allowlistEntrySchema = z
+  .object({
+    githubUsername: z.preprocess(
+      blankToUndefined,
+      z
+        .string()
+        .trim()
+        .regex(GITHUB_USERNAME_RE, "Enter a GitHub username, not a URL")
+        .toLowerCase()
+        .optional(),
+    ),
+    email: z.preprocess(
+      blankToUndefined,
+      z.string().trim().toLowerCase().email().max(254).optional(),
+    ),
+    note: optionalText(500),
+  })
+  .refine(
+    (v) => v.githubUsername || v.email,
+    "Provide a GitHub username or an email",
+  );
 
 // ── Event registration / attendance ──────────────────────────────────────────
 
