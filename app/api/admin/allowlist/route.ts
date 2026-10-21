@@ -4,7 +4,7 @@ import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
-import { jsonObjectSchema, parseBody } from "@/lib/validation";
+import { allowlistEntrySchema, parseBody } from "@/lib/validation";
 
 // GET — list allowlist entries (newest first). POST — add an entry by GitHub
 // username and/or email. Both require an admin session. Values are normalized to
@@ -31,31 +31,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const parsed = await parseBody(req, jsonObjectSchema);
+    const parsed = await parseBody(req, allowlistEntrySchema);
     if (!parsed.ok) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
-    const body = parsed.data;
-
-    const githubUsername =
-      typeof body.githubUsername === "string" && body.githubUsername.trim()
-        ? body.githubUsername.trim().toLowerCase()
-        : null;
-    const email =
-      typeof body.email === "string" && body.email.trim()
-        ? body.email.trim().toLowerCase()
-        : null;
-    const note =
-      typeof body.note === "string" && body.note.trim()
-        ? body.note.trim()
-        : null;
-
-    if (!githubUsername && !email) {
-      return NextResponse.json(
-        { error: "Provide a GitHub username or an email" },
-        { status: 400 },
-      );
-    }
+    const { githubUsername, email, note } = parsed.data;
 
     const entry = await db.allowlist.create({
       data: { githubUsername, email, note, addedBy: session.user.id },
