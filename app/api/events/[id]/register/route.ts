@@ -12,6 +12,7 @@ import {
 } from "@/lib/forms";
 import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
+import { parseBody, registrationBodySchema } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -70,9 +71,28 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Event is full" }, { status: 409 });
   }
 
-  const body = await req.json().catch(() => null);
-  if (!body)
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  // parseBody also requires the JSON content type: this route is open to
+  // anonymous callers, and a cross-site text/plain form could otherwise make
+  // visitors' browsers register addresses of an attacker's choosing.
+  const parsed = await parseBody(req, registrationBodySchema);
+  if (!parsed.ok)
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
+  const body = parsed.data;
+
+  // One registration per account. The (eventId, email) key alone let a
+  // signed-in user register again under other emails, and every attended row
+  // counts toward their leaderboard event score.
+  if (session) {
+    const existing = await db.registration.findFirst({
+      where: { eventId, userId: session.user.id },
+      select: { id: true },
+    });
+    if (existing)
+      return NextResponse.json(
+        { error: "You are already registered for this event" },
+        { status: 409 },
+      );
+  }
 
   // Members submit under their account identity (email locked server-side).
   const input =

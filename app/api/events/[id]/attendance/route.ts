@@ -3,6 +3,7 @@ import { canManageEventRoster } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { recomputeLeaderboardAfterResponse } from "@/lib/leaderboard";
+import { attendanceSchema, parseBody } from "@/lib/validation";
 
 export async function POST(
   req: Request,
@@ -27,12 +28,11 @@ export async function POST(
       return new NextResponse("UNAUTHORIZED_ACCESS", { status: 403 });
     }
 
-    const body = await req.json();
-    const { registrationId, attended } = body;
-
-    if (typeof registrationId !== "string" || typeof attended !== "boolean") {
+    const parsed = await parseBody(req, attendanceSchema);
+    if (!parsed.ok) {
       return new NextResponse("INVALID_PAYLOAD", { status: 400 });
     }
+    const { registrationId, attended } = parsed.data;
 
     // Scoped by eventId as well as registrationId so a caller authorized for
     // one event cannot flip attendance on a registration belonging to another.

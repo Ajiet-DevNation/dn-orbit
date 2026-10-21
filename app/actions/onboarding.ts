@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { lcHandleTaken } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fetchLeetCodeStats } from "@/lib/lc-fetcher";
@@ -73,6 +74,12 @@ export async function submitOnboarding(formData: FormData) {
     }
     if (existingUser.status === "rejected") {
       return { error: "Your membership request was not approved." };
+    }
+
+    if (await lcHandleTaken(parsed.data.lc_username, session.user.id)) {
+      return {
+        error: "That LeetCode username is already linked to another member.",
+      };
     }
 
     try {

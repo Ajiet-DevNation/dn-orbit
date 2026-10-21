@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { lcHandleTaken } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fetchLeetCodeProfile } from "@/lib/lc-fetcher";
@@ -73,6 +74,11 @@ export async function updateProfile(formData: FormData) {
     // LeetCode profile, or the leaderboard would silently score zero.
     const lcChanged = parsed.data.lc_username !== existingUser.lcUsername;
     if (lcChanged) {
+      if (await lcHandleTaken(parsed.data.lc_username, session.user.id)) {
+        return {
+          error: "That LeetCode username is already linked to another member.",
+        };
+      }
       try {
         await fetchLeetCodeProfile(parsed.data.lc_username);
       } catch {

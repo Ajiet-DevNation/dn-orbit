@@ -233,6 +233,26 @@ export const memberUpdateSchema = z.object({
   role: z.nativeEnum($Enums.Role).optional(),
 });
 
+// ── Event registration / attendance ──────────────────────────────────────────
+
+/** Shape-only: lib/forms.ts validateSubmission does the length and per-field
+ *  checks, against the event's own form schema. */
+export const registrationBodySchema = z.object({
+  name: z.string().optional(),
+  email: z.string().optional(),
+  usn: z.string().optional(),
+  responses: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const attendanceSchema = z.object({
+  registrationId: z.string().min(1).max(100),
+  attended: z.boolean(),
+});
+
+/** Any JSON object, for routes that validate their own fields. Going through
+ *  parseBody still enforces the JSON content type. */
+export const jsonObjectSchema = z.record(z.string(), z.unknown());
+
 // ── Project members ──────────────────────────────────────────────────────────
 
 export const projectMemberSchema = z.object({
