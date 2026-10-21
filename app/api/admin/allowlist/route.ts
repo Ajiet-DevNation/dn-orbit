@@ -12,7 +12,10 @@ import { allowlistEntrySchema, parseBody } from "@/lib/validation";
 
 export async function GET() {
   const session = await auth();
-  if (!session || !canAccessAdmin(session.user.role)) {
+  if (!session) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (!canAccessAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -27,7 +30,10 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session || !canAccessAdmin(session.user.role)) {
+    if (!session) {
+      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    }
+    if (!canAccessAdmin(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

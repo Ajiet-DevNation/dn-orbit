@@ -11,7 +11,10 @@ type Params = { params: Promise<{ id: string }> };
 // exposes a lasting address to the file.
 export async function GET(_req: NextRequest, { params }: Params) {
   const session = await auth();
-  if (!session || !canAccessAdmin(session.user.role)) {
+  if (!session) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (!canAccessAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
