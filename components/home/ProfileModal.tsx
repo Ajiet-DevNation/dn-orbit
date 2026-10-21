@@ -24,6 +24,7 @@ import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 import { PixelModal } from "@/components/ui/PixelModal";
 import { isRole, ROLE_LABELS } from "@/lib/roles";
+import { githubAvatarAt } from "@/lib/utils";
 import { LeetCodeConnect } from "./LeetCodeConnect";
 
 const toast = rawToast as unknown as (message: ReactNode) => void;
@@ -159,7 +160,7 @@ export function ProfileModal({
             <Avatar className="size-44">
               {userImage ? (
                 <AvatarImage
-                  src={userImage}
+                  src={githubAvatarAt(userImage, 352)}
                   alt={name}
                   className="object-cover"
                 />

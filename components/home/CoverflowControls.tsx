@@ -12,11 +12,14 @@ const ArrowButton = memo(function ArrowButton({
   dir,
   onClick,
   disabled,
+  inline = false,
 }: {
   dir: "prev" | "next";
   onClick: () => void;
   /** At either end of the row (no loop): dimmed and inert. */
   disabled: boolean;
+  /** Sits in the counter row instead of on the stage's side edges. */
+  inline?: boolean;
 }) {
   const isPrev = dir === "prev";
   return (
@@ -26,12 +29,14 @@ const ArrowButton = memo(function ArrowButton({
       onClick={onClick}
       disabled={disabled}
       className={[
-        "retro absolute top-1/2 z-[1100] grid size-11 -translate-y-1/2 place-items-center",
+        inline
+          ? "retro relative grid size-11 shrink-0 place-items-center"
+          : "retro absolute top-1/2 z-[1100] grid size-11 -translate-y-1/2 place-items-center",
         "border-2 border-white/15 bg-[#0a0a0a]/60 text-2xl leading-none text-white/65 backdrop-blur-sm",
         "transition-colors duration-200 hover:border-brand hover:text-brand-light",
         "focus-visible:border-brand focus-visible:text-brand-light focus-visible:outline-none",
         "disabled:pointer-events-none disabled:opacity-25",
-        isPrev ? "left-1 sm:left-3" : "right-1 sm:right-3",
+        inline ? "" : isPrev ? "left-1 sm:left-3" : "right-1 sm:right-3",
       ].join(" ")}
     >
       <span className="-mt-1">{isPrev ? "‹" : "›"}</span>
@@ -49,6 +54,9 @@ export const CoverflowControls = memo(function CoverflowControls({
   // bottom edge (card-height aware) so it never overlaps the card.
   counterClassName = "bottom-2",
   counterStyle,
+  // Phones: the arrows join the counter in one row under the card, instead of
+  // sitting on the stage's side edges where they cover a near-full-width card.
+  inline = false,
 }: {
   onPrev: () => void;
   onNext: () => void;
@@ -56,19 +64,38 @@ export const CoverflowControls = memo(function CoverflowControls({
   count: number;
   counterClassName?: string;
   counterStyle?: React.CSSProperties;
+  inline?: boolean;
 }) {
   if (count <= 1) return null;
+  const prev = (
+    <ArrowButton
+      dir="prev"
+      onClick={onPrev}
+      disabled={index <= 0}
+      inline={inline}
+    />
+  );
+  const next = (
+    <ArrowButton
+      dir="next"
+      onClick={onNext}
+      disabled={index >= count - 1}
+      inline={inline}
+    />
+  );
   return (
     <>
-      <ArrowButton dir="prev" onClick={onPrev} disabled={index <= 0} />
-      <ArrowButton dir="next" onClick={onNext} disabled={index >= count - 1} />
+      {!inline && prev}
+      {!inline && next}
       <div
         className={cn(
           "pointer-events-none absolute inset-x-0 z-[1100] flex items-center justify-center",
+          inline && "gap-6",
           counterClassName,
         )}
         style={counterStyle}
       >
+        {inline && prev}
         <span className="retro text-[10px] tracking-[0.2em] text-muted-foreground">
           <span className="text-brand-light">
             {String(Math.min(index + 1, count)).padStart(2, "0")}
@@ -76,6 +103,7 @@ export const CoverflowControls = memo(function CoverflowControls({
           <span className="px-1.5 text-white/30">/</span>
           {String(count).padStart(2, "0")}
         </span>
+        {inline && next}
       </div>
     </>
   );

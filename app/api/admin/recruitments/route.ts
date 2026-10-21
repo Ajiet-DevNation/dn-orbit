@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { recruitmentConfigSchema } from "@/lib/recruitment";
 import { canAccessAdmin } from "@/lib/roles";
 import { parseBody } from "@/lib/validation";
@@ -25,6 +26,7 @@ export async function PATCH(req: NextRequest) {
     create: { id: 1, isOpen, updatedBy: session.user.id },
     update: { isOpen, updatedBy: session.user.id },
   });
+  invalidatePublic(PUBLIC_TAG.recruitment);
 
   void logAudit({
     action: isOpen ? "recruitment.open" : "recruitment.close",

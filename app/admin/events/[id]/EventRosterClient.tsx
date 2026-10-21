@@ -1,12 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState } from "react";
 import {
   type PixelColumn,
   PixelDataTable,
 } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
+import { PixelArrow } from "@/components/ui/PixelIcons";
 import { errorMessage } from "@/lib/utils";
 
 interface RosterEntry {
@@ -26,32 +26,51 @@ interface FormFieldMeta {
 
 export default function EventRosterClient({
   eventId,
-  registrations,
+  registrations: initial,
+  totalRegistrations,
   formFields,
 }: {
   eventId: string;
   registrations: RosterEntry[];
+  totalRegistrations: number;
   formFields: FormFieldMeta[];
 }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  // Optimistic: flip the row at once and only roll back on failure. Each click
+  // used to router.refresh() the whole roster, re-sending every row (answers
+  // included) on every tap at the door.
+  const [registrations, setRegistrations] = useState(initial);
+  const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
 
-  const toggle = (registrationId: string, current: boolean) => {
-    startTransition(async () => {
-      try {
-        const res = await fetch(`/api/events/${eventId}/attendance`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ registrationId, attended: !current }),
-        });
-        if (!res.ok) throw new Error(await errorMessage(res));
-        router.refresh();
-      } catch (err) {
-        toast.error(
-          `Attendance update failed: ${err instanceof Error ? err.message : "unknown"}`,
-        );
-      }
+  const setAttended = (id: string, attended: boolean) =>
+    setRegistrations((rows) =>
+      rows.map((r) => (r.id === id ? { ...r, attended } : r)),
+    );
+  const setRowPending = (id: string, on: boolean) =>
+    setPending((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
     });
+
+  const toggle = async (registrationId: string, current: boolean) => {
+    setAttended(registrationId, !current);
+    setRowPending(registrationId, true);
+    try {
+      const res = await fetch(`/api/events/${eventId}/attendance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ registrationId, attended: !current }),
+      });
+      if (!res.ok) throw new Error(await errorMessage(res));
+    } catch (err) {
+      setAttended(registrationId, current);
+      toast.error(
+        `Attendance update failed: ${err instanceof Error ? err.message : "unknown"}`,
+      );
+    } finally {
+      setRowPending(registrationId, false);
+    }
   };
 
   // Mirrors formatAnswer() on the organizer-facing roster so the same
@@ -105,7 +124,7 @@ export default function EventRosterClient({
       render: (r) => (
         <button
           type="button"
-          disabled={isPending}
+          disabled={pending.has(r.id)}
           onClick={() => toggle(r.id, r.attended)}
           className="retro border-2 border-white/15 px-3 py-1 text-[8px] text-white/70 transition-colors hover:border-brand hover:text-brand-light disabled:opacity-50"
         >
@@ -119,13 +138,15 @@ export default function EventRosterClient({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <span className="retro text-[9px] tracking-widest text-zinc-500">
-          TOTAL REGISTERED: {registrations.length}
+          TOTAL REGISTERED: {totalRegistrations}
+          {totalRegistrations > registrations.length &&
+            ` · SHOWING FIRST ${registrations.length} · FULL LIST IN CSV`}
         </span>
         <a
           href={`/api/events/${eventId}/registrations.csv`}
-          className="retro border-2 border-brand/40 px-3 py-2 text-[8px] text-brand-light transition-colors hover:bg-brand/10"
+          className="retro inline-flex items-center gap-2 border-2 border-brand/40 px-3 py-2 text-[8px] text-brand-light transition-colors hover:bg-brand/10"
         >
-          ↓ EXPORT CSV
+          <PixelArrow dir="down" /> EXPORT CSV
         </a>
       </div>
       <PixelDataTable

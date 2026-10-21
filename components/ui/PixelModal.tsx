@@ -217,7 +217,7 @@ export function PixelModal({
         aria-describedby={description ? descId : undefined}
         tabIndex={-1}
         className={cn(
-          "retro dark relative flex max-h-[90vh] w-full flex-col border-4 bg-[#0a0a0a] outline-none",
+          "retro dark relative flex max-h-[90dvh] w-full flex-col border-4 bg-[#0a0a0a] outline-none",
           toneStyle.border,
           SIZE_CLASS[size],
           className,

@@ -3,6 +3,7 @@ import { canManageEventRoster } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { recomputeLeaderboardAfterResponse } from "@/lib/leaderboard";
+import { attendanceSchema, parseBody } from "@/lib/validation";
 
 export async function POST(
   req: Request,
@@ -12,9 +13,10 @@ export async function POST(
     const { id: eventId } = await params;
     const session = await auth();
 
-    // Admins may mark attendance on any event; an organizer only on the events
-    // they created. Previously admin-only, which left organizers unable to run
-    // their own door list.
+    // Admins only. Attendance is the event-score numerator on the leaderboard,
+    // and any member can create an event — an organizer marking their own
+    // events (themselves, friends) attended would be a self-serve score boost.
+    // Organizers still see their roster and attendance on /my-events.
     const access = await canManageEventRoster(eventId, session?.user);
     if (!access.ok) {
       return new NextResponse(
@@ -22,13 +24,15 @@ export async function POST(
         { status: access.status },
       );
     }
+    if (!access.isAdmin) {
+      return new NextResponse("UNAUTHORIZED_ACCESS", { status: 403 });
+    }
 
-    const body = await req.json();
-    const { registrationId, attended } = body;
-
-    if (typeof registrationId !== "string" || typeof attended !== "boolean") {
+    const parsed = await parseBody(req, attendanceSchema);
+    if (!parsed.ok) {
       return new NextResponse("INVALID_PAYLOAD", { status: 400 });
     }
+    const { registrationId, attended } = parsed.data;
 
     // Scoped by eventId as well as registrationId so a caller authorized for
     // one event cannot flip attendance on a registration belonging to another.

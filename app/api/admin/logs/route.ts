@@ -13,8 +13,9 @@ export async function GET(req: NextRequest) {
   }
 
   const takeParam = Number(new URL(req.url).searchParams.get("take"));
+  // Floored: Prisma rejects a fractional `take` (?take=1.5) with a 500.
   const take = Math.min(
-    Number.isFinite(takeParam) && takeParam > 0 ? takeParam : 100,
+    Number.isFinite(takeParam) && takeParam >= 1 ? Math.floor(takeParam) : 100,
     200,
   );
 

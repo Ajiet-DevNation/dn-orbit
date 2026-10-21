@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { createContext, useContext, useState, useTransition } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { toast } from "@/components/ui/8bit-toast";
 import { PixelArrow, PixelCheck } from "@/components/ui/PixelIcons";
@@ -102,6 +102,10 @@ function useAttendance(eventId: string) {
   return { toggle, isPending };
 }
 
+// Attendance feeds the leaderboard's event score, so only admins mark it.
+// Organizers still see who attended; the control is read-only for them.
+const CanMarkAttendance = createContext(false);
+
 const attendBtn =
   "retro border-2 px-2 py-1 text-[8px] tracking-wider transition-colors disabled:opacity-50";
 
@@ -114,6 +118,26 @@ function AttendButton({
   disabled: boolean;
   onClick: () => void;
 }) {
+  const canMark = useContext(CanMarkAttendance);
+  if (!canMark) {
+    return (
+      <span
+        className={`${attendBtn} inline-flex items-center gap-2 ${
+          attended
+            ? "border-brand text-brand-light"
+            : "border-white/10 text-white/40"
+        }`}
+      >
+        {attended ? (
+          <>
+            <PixelCheck /> ATTENDED
+          </>
+        ) : (
+          "NOT MARKED"
+        )}
+      </span>
+    );
+  }
   return (
     <button
       type="button"
@@ -317,9 +341,9 @@ function Roster({ event }: { event: MyEvent }) {
         {/* Server-side authorization scopes this to events the caller created. */}
         <a
           href={`/api/events/${event.id}/registrations.csv`}
-          className="retro border-2 border-brand/40 px-3 py-2 text-[8px] tracking-wider text-brand-light transition-colors hover:bg-brand/10"
+          className="retro inline-flex items-center gap-2 border-2 border-brand/40 px-3 py-2 text-[8px] tracking-wider text-brand-light transition-colors hover:bg-brand/10"
         >
-          ↓ EXPORT CSV
+          <PixelArrow dir="down" /> EXPORT CSV
         </a>
       </div>
 
@@ -387,45 +411,53 @@ function EventCard({ event }: { event: MyEvent }) {
   );
 }
 
-export function MyEventsList({ events }: { events: MyEvent[] }) {
+export function MyEventsList({
+  events,
+  canMarkAttendance,
+}: {
+  events: MyEvent[];
+  canMarkAttendance: boolean;
+}) {
   return (
-    <section className="relative mx-auto min-h-screen w-full max-w-5xl px-6 pt-16 pb-24">
-      <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="retro text-xl tracking-wider text-white">
-            YOUR EVENTS
-          </h1>
-          <span
-            aria-hidden="true"
-            className="mt-3 block h-[3px] w-24 bg-brand"
-          />
-        </div>
-        <p className="retro text-[9px] tracking-widest text-muted-foreground">
-          {events.length} CREATED
-        </p>
-      </div>
-
-      {events.length === 0 ? (
-        <div className="mx-auto max-w-md border-2 border-white/10 p-12 text-center">
-          <span className="retro text-3xl text-brand-light/30">▞▚</span>
-          <h2 className="retro mt-4 text-sm text-white">NO EVENTS YET</h2>
-          <p className="retro mt-3 text-[9px] leading-relaxed text-muted-foreground">
-            CREATE ONE WITH THE NEW EVENT BUTTON ON THE HOME PAGE · IT&apos;LL
-            SHOW UP HERE WITH ITS REGISTRATIONS.
+    <CanMarkAttendance.Provider value={canMarkAttendance}>
+      <section className="relative mx-auto min-h-screen w-full max-w-5xl px-6 pt-16 pb-24">
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="retro text-xl tracking-wider text-white">
+              YOUR EVENTS
+            </h1>
+            <span
+              aria-hidden="true"
+              className="mt-3 block h-[3px] w-24 bg-brand"
+            />
+          </div>
+          <p className="retro text-[9px] tracking-widest text-muted-foreground">
+            {events.length} CREATED
           </p>
-          <Button asChild size="sm" className="mt-6 text-[9px]">
-            <Link href="/">
-              <PixelArrow dir="left" /> BACK HOME
-            </Link>
-          </Button>
         </div>
-      ) : (
-        <div className="space-y-6">
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
-      )}
-    </section>
+
+        {events.length === 0 ? (
+          <div className="mx-auto max-w-md border-2 border-white/10 p-12 text-center">
+            <span className="retro text-3xl text-brand-light/30">▞▚</span>
+            <h2 className="retro mt-4 text-sm text-white">NO EVENTS YET</h2>
+            <p className="retro mt-3 text-[9px] leading-relaxed text-muted-foreground">
+              CREATE ONE WITH THE NEW EVENT BUTTON ON THE HOME PAGE · IT&apos;LL
+              SHOW UP HERE WITH ITS REGISTRATIONS.
+            </p>
+            <Button asChild size="sm" className="mt-6 text-[9px]">
+              <Link href="/">
+                <PixelArrow dir="left" /> BACK HOME
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {events.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        )}
+      </section>
+    </CanMarkAttendance.Provider>
   );
 }

@@ -18,6 +18,7 @@ import { RecruitmentBanner } from "@/components/home/RecruitmentBanner";
 import { RecruitmentPopup } from "@/components/home/RecruitmentPopup";
 import { StatsSection } from "@/components/home/StatsSection";
 import { StatsSyncPing } from "@/components/home/StatsSyncPing";
+import { TECH_BY_NAME } from "@/components/home/techStack";
 import { Footer } from "@/components/layout/Footer";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -31,10 +32,15 @@ import { orderForDisplay, registrationClosesAt } from "@/lib/event-order";
 import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
 import type { ProjectData } from "@/lib/projects";
-import { isRecruitmentOpen } from "@/lib/recruitment-config";
+import {
+  publicEvents,
+  publicLeaderboard,
+  publicProjects,
+  publicRecruitmentOpen,
+  publicSyncedAt,
+} from "@/lib/public-data";
 import { canAccessAdmin } from "@/lib/roles";
 import { languagesFromRecord } from "@/lib/stats-utils";
-import { lastSyncedAt } from "@/lib/sync";
 
 export const metadata = {
   // Absolute title so the home page reads cleanly (no "%s — ORBIT" template).
@@ -84,12 +90,9 @@ export default async function V2Page() {
     syncedAt,
     recruiting,
   ] = await Promise.all([
-    db.event.findMany({
-      where: { reviewStatus: "approved", isPublished: true },
-      orderBy: { eventDate: "desc" },
-      take: 100,
-      include: { _count: { select: { registrations: true } } },
-    }),
+    // Public data comes from the cross-request cache (lib/public-data.ts);
+    // only the signed-in member's own rows are read live.
+    publicEvents(),
     userId
       ? Promise.all([
           db.githubStats.findFirst({
@@ -107,24 +110,11 @@ export default async function V2Page() {
           }),
         ])
       : [null, null, null, null],
-    db.leaderboardScore.findMany({
-      where: { user: LEADERBOARD_VISIBLE_USER_FILTER },
-      orderBy: [{ totalScore: "desc" }],
-      take: 100,
-      include: {
-        user: { select: { name: true, image: true, githubUsername: true } },
-      },
-    }),
-    db.project.findMany({
-      where: { reviewStatus: "approved" },
-      orderBy: { submittedAt: "desc" },
-      // Bounded like the events and leaderboard queries above — this page is the
-      // most-requested route in the app and must not grow an unbounded payload.
-      take: 100,
-    }),
+    publicLeaderboard(),
+    publicProjects(),
     // Only the leaderboard's freshness readout needs this.
-    lastSyncedAt(),
-    isRecruitmentOpen(),
+    publicSyncedAt(),
+    publicRecruitmentOpen(),
   ]);
   const events = orderForDisplay(eventRows);
 
@@ -220,8 +210,20 @@ export default async function V2Page() {
     progressPct: p.progressPct,
   }));
 
+  // Rendered here, on the server, so the client bundle carries only these SVGs
+  // and not the whole icon catalogue (see ProjectsSection's TechIcons).
+  const techIcons: Record<string, React.ReactNode> = {};
+  for (const name of new Set(projects.flatMap((p) => p.techStack))) {
+    const Icon = TECH_BY_NAME[name]?.Icon;
+    if (Icon)
+      techIcons[name] = <Icon className="size-3.5 shrink-0 text-brand-light" />;
+  }
+
   return (
-    <div className="min-h-screen">
+    // relative: the RECRUITING strip is positioned against the page, i.e.
+    // against the bottom of the 100px header — not the layout wrapper, whose
+    // top also holds the pending-member banner when one is shown.
+    <div className="relative min-h-screen">
       {/* Kicks off a background stats refresh when the cache is stale — the
           SWR replacement for the old GitHub Actions cron (see lib/sync.ts). */}
       <StatsSyncPing />
@@ -285,7 +287,7 @@ export default async function V2Page() {
         entries={leaderboard}
         syncedAt={syncedAt?.toISOString() ?? null}
       />
-      <ProjectsSection projects={projects} />
+      <ProjectsSection projects={projects} techIcons={techIcons} />
       <MembersSection />
       <Footer />
     </div>

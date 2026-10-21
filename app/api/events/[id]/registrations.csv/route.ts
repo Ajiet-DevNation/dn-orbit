@@ -12,7 +12,7 @@ function csvCell(v: unknown): string {
   // formula (leading = + - @ or tab/CR) is neutralised with a leading apostrophe
   // so registrant-supplied text can't execute when an admin opens the export.
   if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 export async function GET(_req: NextRequest, { params }: Params) {

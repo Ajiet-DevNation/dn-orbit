@@ -4,6 +4,7 @@ import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canAccessAdmin } from "@/lib/roles";
+import { jsonObjectSchema, parseBody } from "@/lib/validation";
 
 // GET — list allowlist entries (newest first). POST — add an entry by GitHub
 // username and/or email. Both require an admin session. Values are normalized to
@@ -30,7 +31,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({}));
+    const parsed = await parseBody(req, jsonObjectSchema);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    const body = parsed.data;
 
     const githubUsername =
       typeof body.githubUsername === "string" && body.githubUsername.trim()

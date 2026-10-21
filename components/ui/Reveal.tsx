@@ -1,7 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface RevealProps {
   children: ReactNode;
@@ -13,9 +13,12 @@ interface RevealProps {
 }
 
 /**
- * Subtle, once-only fade-up as the element scrolls into view. Honours
- * prefers-reduced-motion (renders static). Keeps the 8-bit theme — this only
- * eases entrances, it doesn't add any decorative motion.
+ * Subtle, once-only fade-up as the element scrolls into view. Keeps the 8-bit
+ * theme — this only eases entrances, it doesn't add any decorative motion.
+ *
+ * A CSS transition on an IntersectionObserver flag rather than framer-motion,
+ * which this one fade was the only user of. Under prefers-reduced-motion the
+ * globals.css reset flattens the transition, so it simply appears.
  */
 export function Reveal({
   children,
@@ -23,21 +26,38 @@ export function Reveal({
   y = 24,
   delay = 0,
 }: RevealProps) {
-  const reducedMotion = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
 
-  if (reducedMotion) {
-    return <div className={className}>{children}</div>;
-  }
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setShown(true);
+        io.disconnect();
+      },
+      { threshold: 0.2 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay }}
+    <div
+      ref={ref}
+      className={cn(
+        "transition-[opacity,translate] duration-500 ease-(--ease-out-quart)",
+        className,
+      )}
+      style={{
+        opacity: shown ? 1 : 0,
+        translate: shown ? "0 0" : `0 ${y}px`,
+        transitionDelay: `${delay}s`,
+      }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }

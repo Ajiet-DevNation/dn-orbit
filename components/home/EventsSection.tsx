@@ -66,19 +66,19 @@ function EventCard({ data }: { data: EventCardData }) {
           because the 8-bit Card spreads className onto both its frame and inner
           content; a transform there would double-apply and shift the pixel
           border off the content. `group` here so banner/title/chip can react. */}
-      <div className="group relative h-full transition-transform duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02]">
+      <div className="group relative h-full transition-[translate,scale] duration-200 ease-out hover:-translate-y-1.5 hover:scale-[1.02] active:scale-[0.99] active:duration-150">
         {/* Hover glow as a pre-rendered shadow faded via opacity (compositor),
             instead of animating box-shadow (paint-bound). pointer-events-none +
             outset-only shadow → never covers or blocks the card. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_30px_rgba(139,92,246,0.18)] transition-opacity duration-300 group-hover:opacity-100"
+          className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_30px_rgba(139,92,246,0.18)] transition-opacity duration-200 group-hover:opacity-100"
         />
-        <Card className="h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(139,92,246,0.04)] transition-colors duration-300 group-hover:border-brand/50">
+        <Card className="h-full justify-start gap-0 overflow-hidden border-white/10 py-0 shadow-[0_0_15px_rgba(139,92,246,0.04)] transition-colors duration-200 group-hover:border-brand/50">
           {/* Banner — plain <img> (pixelated) so arbitrary admin URLs render
               without next/image remote-pattern config. Falls back to a pixel
               placeholder when no banner is set. */}
-          <div className="relative aspect-video w-full overflow-hidden border-b-[6px] border-white/10 bg-[#0d0d0d] transition-colors duration-300 group-hover:border-brand/50">
+          <div className="relative aspect-video w-full overflow-hidden border-b-[6px] border-white/10 bg-[#0d0d0d] transition-colors duration-200 group-hover:border-brand/50">
             {banner ? (
               // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
               <img
@@ -87,16 +87,16 @@ function EventCard({ data }: { data: EventCardData }) {
                 loading="lazy"
                 draggable={false}
                 onError={() => setFailedSrc(banner)}
-                className="pixelated h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 select-none [-webkit-user-drag:none]"
+                className="pixelated h-full w-full object-cover transition-transform duration-250 ease-out group-hover:scale-105 select-none [-webkit-user-drag:none]"
               />
             ) : (
-              <div className="dot-grid-bg flex h-full w-full items-center justify-center transition-transform duration-500 ease-out group-hover:scale-110">
-                <span className="retro text-5xl text-brand-light/30 transition-colors duration-300 select-none group-hover:text-brand-light/60">
+              <div className="dot-grid-bg flex h-full w-full items-center justify-center transition-transform duration-250 ease-out group-hover:scale-105">
+                <span className="retro text-5xl text-brand-light/30 transition-colors duration-200 select-none group-hover:text-brand-light/60">
                   {bannerGlyph(data.type)}
                 </span>
               </div>
             )}
-            <span className="retro absolute left-3 top-3 inline-block border-2 border-brand bg-[#0a0a0a]/80 px-2 py-1 text-[8px] text-brand-light transition-colors duration-300 group-hover:bg-brand group-hover:text-[#0a0a0a]">
+            <span className="retro absolute left-3 top-3 inline-block border-2 border-brand bg-[#0a0a0a]/80 px-2 py-1 text-[8px] text-brand-light transition-colors duration-200 group-hover:bg-brand group-hover:text-[#0a0a0a]">
               {data.type}
             </span>
             {/* Who may register — set in the modal but previously only visible
@@ -119,7 +119,7 @@ function EventCard({ data }: { data: EventCardData }) {
               grid reads evenly across rows. The banner above is already a fixed
               aspect-video, so reserving the text block is all that's needed. */}
           <div className="flex flex-1 flex-col gap-3 p-6">
-            <h3 className="retro line-clamp-2 min-h-[2lh] text-sm leading-relaxed text-white transition-colors duration-300 group-hover:text-brand-light">
+            <h3 className="retro line-clamp-2 min-h-[2lh] text-sm leading-relaxed text-white transition-colors duration-200 group-hover:text-brand-light">
               {data.title}
             </h3>
 
@@ -192,8 +192,10 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
       style={{
         opacity: open ? 1 : 0,
         transform: `translateX(${open ? 0 : 40}px)`,
-        transition:
-          "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)",
+        // Arrive gently, leave fast: closing is the system getting out of the way.
+        transition: open
+          ? "opacity 400ms var(--ease-out-quart), transform 400ms var(--ease-out-quart)"
+          : "opacity 200ms var(--ease-out-quart), transform 200ms var(--ease-out-quart)",
       }}
     >
       <div className="flex flex-wrap items-center gap-3">
@@ -401,7 +403,8 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
                 onValueChange={handleSearch}
                 placeholder="SEARCH EVENTS..."
                 aria-label="Search events"
-                className="text-[10px] uppercase tracking-wider"
+                // 16px on phones so iOS Safari doesn't zoom into the field.
+                className="text-base uppercase tracking-wider md:text-[10px]"
               />
             </Command>
           </div>

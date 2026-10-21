@@ -74,8 +74,11 @@ export function MissionProgress({
     const sprite = spriteRef.current;
     if (!track || !pluton || !sprite) return;
 
+    // Track width, measured on resize only: reading clientWidth inside the
+    // per-frame loop forced a layout every frame while the user typed.
+    let trackW = track.clientWidth;
     const place = (pos: number, lift = 0) => {
-      const w = track.clientWidth;
+      const w = trackW;
       const half = PLUTON_PX / 2;
       // Clamped so he never hangs off either end of the bar.
       const x = Math.min(w - half, Math.max(half, pos * w)) - half;
@@ -96,6 +99,7 @@ export function MissionProgress({
     if (prefersReducedMotion()) {
       // No loop: re-place on resize so the static position stays right.
       const draw = () => {
+        trackW = track.clientWidth;
         place(goal.current.stop);
         show(goal.current.done ? "jump" : "walk", 0);
       };
@@ -104,6 +108,10 @@ export function MissionProgress({
       ro.observe(track);
       return () => ro.disconnect();
     }
+    const ro = new ResizeObserver(() => {
+      trackW = track.clientWidth;
+    });
+    ro.observe(track);
 
     let pos = goal.current.stop;
     let facingLeft = false;
@@ -142,13 +150,18 @@ export function MissionProgress({
 
       const pop = popRef.current;
       if (pop) {
-        const p = Math.min(1, (now - popAt.current) / 220);
-        pop.style.transform = `scale(${Math.ceil(p * 4) / 4})`;
+        // Pops in 4 hard steps from 60% — never from scale(0).
+        const q = Math.ceil(Math.min(1, (now - popAt.current) / 220) * 4) / 4;
+        pop.style.opacity = q > 0 ? "1" : "0";
+        pop.style.transform = `scale(${0.6 + 0.4 * q})`;
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
   }, []);
 
   return (

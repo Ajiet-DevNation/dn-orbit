@@ -18,8 +18,9 @@ const isProtectedRoute = (path: string) =>
  * `crypto` — that module is unavailable in the Edge Runtime that proxy
  * runs in. `getToken()` only decodes the JWT cookie via `jose` (Edge-safe).
  *
- * The JWT contains `id`, `role`, `usn`, `branch`, `lcUsername`, and
- * `accessToken` — set by the jwt callback in lib/auth.ts.
+ * The JWT contains `id`, `role`, `status`, `usn`, `branch` and
+ * `lcUsername` — set by the jwt callback in lib/auth.ts. (Never the GitHub
+ * token: that stays encrypted in the DB.)
  */
 export async function proxy(req: NextRequest) {
   // `getToken()` must read the session cookie with the same name + encryption

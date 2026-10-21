@@ -19,7 +19,10 @@ import { CV_BUCKET, getSupabaseAdmin } from "@/lib/supabase";
 // rides in the same request (no separate public upload endpoint), so a file is
 // only ever stored for an application that passed every check below.
 export async function POST(req: NextRequest) {
-  const limit = rateLimit(rateLimitKey(req, "recruitment-apply"), 5, 60_000);
+  // Anonymous form (applicants needn't have an account), keyed by IP. The
+  // ceiling allows a recruitment drive on campus Wi-Fi, where everyone shares
+  // one egress IP, while still stopping a loop uploading CVs.
+  const limit = rateLimit(rateLimitKey(req, "recruitment-apply"), 20, 60_000);
   if (!limit.ok) return tooManyRequests(limit);
 
   if (!(await isRecruitmentOpen())) {
@@ -104,17 +107,40 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let created: { id: string };
+  // The check above is only a fast path. Two submissions racing (two tabs, a
+  // script) would both pass it, so re-check under a per-USN advisory lock in
+  // the same transaction as the insert — the second one now waits, sees the
+  // first row and gets the 409.
+  let created: { id: string } | null;
   try {
-    created = await db.recruitmentApplication.create({
-      data: { ...data, cvPath },
-      select: { id: true },
+    created = await db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`recruit:${data.usn.toLowerCase()}`}))`;
+      const dup = await tx.recruitmentApplication.findFirst({
+        where: {
+          status: "pending",
+          OR: [{ usn: data.usn }, { email: data.email }],
+        },
+        select: { id: true },
+      });
+      if (dup) return null;
+      return tx.recruitmentApplication.create({
+        data: { ...data, cvPath },
+        select: { id: true },
+      });
     });
   } catch (e) {
     // Don't leave an orphaned CV behind when the row never got written.
     if (cvPath)
       await getSupabaseAdmin().storage.from(CV_BUCKET).remove([cvPath]);
     throw e;
+  }
+  if (!created) {
+    if (cvPath)
+      await getSupabaseAdmin().storage.from(CV_BUCKET).remove([cvPath]);
+    return NextResponse.json(
+      { error: "You already have an application under review" },
+      { status: 409 },
+    );
   }
 
   void logAudit({

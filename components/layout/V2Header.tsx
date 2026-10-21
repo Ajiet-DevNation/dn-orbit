@@ -2,8 +2,8 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { PixelTabFill } from "@/components/home/PixelTabFill";
 import type { ProfileData } from "@/components/home/ProfileModal";
 import {
@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/8bit-button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
 import { smoothScrollTo } from "@/lib/smooth-scroll";
+import { githubAvatarAt } from "@/lib/utils";
 import { BrandLink } from "./BrandLink";
 
 // Split out of the header chunk: the modal (and the vaul drawer it pulls in)
@@ -49,7 +50,27 @@ export function V2Header({
   isAdmin = false,
 }: V2HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const isLandingPage = pathname === "/";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close the phone menu on Escape or a press outside it.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onDown);
+    };
+  }, [menuOpen]);
 
   const [activeTab, setActiveTab] = useState("events");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -99,8 +120,12 @@ export function V2Header({
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    setMenuOpen(false);
     const target = document.getElementById(value);
     if (target) smoothScrollTo(target);
+    // The sections live on the landing page; from any other page the tabs
+    // used to do nothing at all.
+    else router.push(`/#${value}`);
   };
 
   const initials = (userName ?? "?")
@@ -112,8 +137,15 @@ export function V2Header({
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-transparent">
-        <div className="relative flex items-center justify-between px-6 pt-6 pb-3 gap-4">
+      {/* Named so route view transitions keep it pinned (globals.css). The
+          fade to black keeps scrolled content from colliding with the logo and
+          controls (it read as overlapping text on phones); over the black
+          hero it is invisible. */}
+      <header className="sticky top-0 z-50 w-full bg-linear-to-b from-black/90 via-black/60 to-transparent [view-transition-name:site-header]">
+        {/* min-h pins the row at 100px on every screen (the button-only phone
+            row was 92px): the hero and boot splash are laid out against
+            exactly this height (OrbitStage HEADER_OFFSET). */}
+        <div className="relative flex min-h-[100px] items-center justify-between gap-4 px-4 pt-6 pb-3 sm:px-6">
           {/* Left: Logo + Brand — links home (smooth-scrolls to top when already on
             the landing page). Dark-grey pixel fill draws in on hover. */}
           <BrandLink
@@ -137,8 +169,7 @@ export function V2Header({
                   ? "translateY(0)"
                   : "translateY(-16px)",
                 transition:
-                  "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1)",
-                willChange: "opacity, transform",
+                  "opacity 700ms var(--ease-out-quart), transform 700ms var(--ease-out-quart)",
                 pointerEvents: headerVisible ? "auto" : "none",
               }}
             >
@@ -166,31 +197,75 @@ export function V2Header({
           </div>
 
           {/* Right: signed-in members get the 8bit avatar (click to edit profile);
-            anonymous visitors get a SIGN IN button into the members-only login. */}
-          {isAuthenticated ? (
-            <button
-              type="button"
-              onClick={() => setProfileOpen(true)}
-              className="shrink-0 transition-transform duration-200 ease-out hover:scale-105 active:scale-95"
-              aria-label="Edit profile"
-            >
-              <Avatar className="size-16">
-                {userImage ? (
-                  <AvatarImage
-                    src={userImage}
-                    alt={userName ?? "User"}
-                    className="object-cover"
-                  />
-                ) : (
-                  <AvatarFallback>{initials}</AvatarFallback>
-                )}
-              </Avatar>
-            </button>
-          ) : (
-            <Link href="/login" className="shrink-0" aria-label="Sign in">
-              <Button className="text-[10px]">SIGN IN</Button>
-            </Link>
-          )}
+            anonymous visitors get a SIGN IN button into the members-only login.
+            Below md the section tabs don't fit, so a menu sits beside it. */}
+          <div className="flex shrink-0 items-center gap-3">
+            <div ref={menuRef} className="relative md:hidden">
+              <button
+                type="button"
+                aria-label="Sections"
+                aria-expanded={menuOpen}
+                aria-controls="section-menu"
+                onClick={() => setMenuOpen((o) => !o)}
+                className="grid size-11 place-items-center border-2 border-white/20 bg-black/60 text-white transition-[border-color,scale] duration-150 ease-out hover:border-brand active:scale-95"
+              >
+                <span aria-hidden className="flex w-5 flex-col gap-[3px]">
+                  <span className="h-[3px] bg-current" />
+                  <span className="h-[3px] bg-current" />
+                  <span className="h-[3px] bg-current" />
+                </span>
+              </button>
+              {menuOpen && (
+                <nav
+                  id="section-menu"
+                  aria-label="Sections"
+                  className="absolute right-0 top-full mt-3 flex w-52 origin-top-right flex-col border-2 border-white/15 bg-[#0a0a0a] p-1 shadow-[0_0_20px_rgba(139,92,246,0.15)] transition-[opacity,scale] duration-150 ease-out starting:scale-95 starting:opacity-0"
+                >
+                  {NAV_TABS.map((tab) => (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      onClick={() => handleTabChange(tab.value)}
+                      aria-current={
+                        isLandingPage && activeTab === tab.value
+                          ? "true"
+                          : undefined
+                      }
+                      className="retro min-h-11 px-4 text-left text-[10px] tracking-widest text-white/80 transition-colors duration-150 hover:bg-white/5 hover:text-brand-light aria-[current=true]:text-brand-light"
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </nav>
+              )}
+            </div>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => setProfileOpen(true)}
+                className="shrink-0 transition-transform duration-200 ease-out hover:scale-105 active:scale-95"
+                aria-label="Edit profile"
+              >
+                <Avatar className="size-16">
+                  {userImage ? (
+                    <AvatarImage
+                      src={githubAvatarAt(userImage, 128)}
+                      // Above the fold, in the header on every page.
+                      loading="eager"
+                      alt={userName ?? "User"}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  )}
+                </Avatar>
+              </button>
+            ) : (
+              <Link href="/login" className="shrink-0" aria-label="Sign in">
+                <Button className="text-[10px]">SIGN IN</Button>
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 

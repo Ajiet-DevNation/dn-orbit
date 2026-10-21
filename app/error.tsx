@@ -24,7 +24,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <main className="retro dark relative isolate flex min-h-screen flex-col items-center justify-center gap-7 bg-black px-6 text-center">
+    <main className="retro dark relative isolate flex min-h-svh flex-col items-center justify-center gap-7 bg-black px-6 text-center">
       <PixelStarfield className="-z-10" />
       <div className="flex flex-col items-center gap-3">
         <p className="retro text-xs tracking-widest text-red-400">

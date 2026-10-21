@@ -83,7 +83,13 @@ const TerminalLineView = memo(function TerminalLineView({
 }) {
   const shown = full.slice(0, revealed);
   return (
-    <p className={cn("retro text-sm leading-relaxed", lineClass(type))}>
+    <p
+      className={cn(
+        // 12px on phones: at 14px the pixel font fit ~21 characters a line.
+        "retro text-xs leading-relaxed sm:text-sm",
+        lineClass(type),
+      )}
+    >
       {shown.length ? shown : " "}
       {typing && (
         <span className="cursor-blink ml-0.5 inline-block text-brand-soft">
@@ -287,7 +293,7 @@ export function AboutTerminal({
     >
       {/* Pinned viewport-height stage — the card stays centred while the scroll
           scrubs the transcript through it. */}
-      <div className="sticky top-0 flex min-h-screen w-full items-center justify-center px-4">
+      <div className="sticky top-0 flex min-h-svh w-full items-center justify-center px-4">
         <div className="mx-auto w-full max-w-5xl">
           <Card className="about-card bg-background">
             <CardHeader className="pb-3">
@@ -314,12 +320,15 @@ export function AboutTerminal({
               <div className="terminal-screen">
                 <div
                   ref={scrollRef}
-                  className="no-scrollbar h-[clamp(22rem,58vh,36rem)] overflow-hidden"
+                  // Also bounded by what's left of a short screen (header +
+                  // card chrome ≈ 15rem): the old 22rem floor overflowed a
+                  // landscape phone.
+                  className="no-scrollbar h-[clamp(12rem,min(58svh,calc(100svh_-_15rem)),36rem)] overflow-hidden"
                 >
                   <div className="space-y-1.5">
                     {renderedLines}
                     {allDone && (
-                      <p className="retro text-sm text-brand-soft">
+                      <p className="retro text-xs text-brand-soft sm:text-sm">
                         {"> "}
                         <span className="cursor-blink inline-block">▋</span>
                       </p>

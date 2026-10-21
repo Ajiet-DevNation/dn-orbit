@@ -16,8 +16,11 @@ export default async function AdminRecruitmentsPage() {
   const session = await auth();
   if (!canAccessAdmin(session?.user?.role)) redirect("/");
 
-  const [open, applications] = await Promise.all([
+  const [open, statusCounts, applications] = await Promise.all([
     isRecruitmentOpen(),
+    // Tiles count in the DB: the list below is capped, so counting its rows
+    // under-reported every total once a drive passed 500 applications.
+    db.recruitmentApplication.groupBy({ by: ["status"], _count: true }),
     db.recruitmentApplication.findMany({
       // Bounded: one page view must never become an unbounded transfer.
       take: 500,
@@ -43,7 +46,8 @@ export default async function AdminRecruitmentsPage() {
   ]);
 
   const count = (status: string) =>
-    applications.filter((a) => a.status === status).length;
+    statusCounts.find((c) => c.status === status)?._count ?? 0;
+  const total = statusCounts.reduce((n, c) => n + c._count, 0);
   const pendingCount = count("pending");
 
   return (
@@ -54,7 +58,7 @@ export default async function AdminRecruitmentsPage() {
         code={`${pendingCount} PENDING`}
       />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <PixelStatTile label="TOTAL" value={applications.length} />
+        <PixelStatTile label="TOTAL" value={total} />
         <PixelStatTile label="PENDING" value={pendingCount} />
         <PixelStatTile label="ACCEPTED" value={count("approved")} />
         <PixelStatTile label="REJECTED" value={count("rejected")} />

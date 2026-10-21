@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { memo, useRef, useState } from "react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { SiLeetcode } from "react-icons/si";
@@ -23,7 +24,7 @@ const LENS_SIZING = {
   thumbRatio: 0.36, // thumb height / lens height (oryzo ~0.35)
 };
 // Flip easing: smooth ease-in-out, no overshoot, so it reads as a real card turn.
-const FLIP_EASE = "transform 560ms cubic-bezier(0.4, 0.0, 0.2, 1)";
+const FLIP_EASE = "transform 480ms cubic-bezier(0.4, 0.0, 0.2, 1)";
 
 function initials(name: string): string {
   return name
@@ -51,7 +52,7 @@ const MemberFront = memo(function MemberFront({
         </span>
       </div>
 
-      {/* Picture — ~70% of the card. Plain <img> (pixelated) or pixel placeholder. */}
+      {/* Picture — ~70% of the card, or a pixel placeholder. */}
       <div className="relative flex-1 overflow-hidden bg-[#0d0d0d]">
         {member.isAlumni && (
           <span className="retro absolute right-2 top-2 z-10 border-2 border-amber-400 bg-[#0a0a0a]/80 px-2 py-1 text-[7px] tracking-widest text-amber-400">
@@ -60,25 +61,21 @@ const MemberFront = memo(function MemberFront({
         )}
         {/* The lens carousel tilts + zooms this wrapper as the card slides
             through (see useCoverflow); the frame around it stays straight. */}
-        <div data-lens-tilt className="h-full w-full">
+        <div data-lens-tilt className="relative h-full w-full">
           {member.imageUrl ? (
-            // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
-            <img
+            // next/image: the photos are local files (public/members), so the
+            // optimizer serves them as AVIF/WebP at the card's real size —
+            // they shipped as ~50–110 KB JPEGs for a ~300px card. `sizes`
+            // mirrors LENS_SIZING (phoneShare 0.78, share 0.36, cap 620px).
+            <Image
               src={member.imageUrl}
               alt={member.name}
-              loading="lazy"
-              // Intrinsic size + async decode: without these the browser has no
-              // dimensions until the bytes land (so the card reflows) and decodes
-              // on the main thread, which lands as a dropped frame mid-drag. The
-              // numbers are the card's display size, not the file's — they only
-              // need to give the right aspect ratio and a sensible layout box.
-              width={520}
-              height={420}
-              decoding="async"
+              fill
+              sizes="(max-width: 768px) 78vw, min(36vw, 620px)"
               draggable={false}
               // object-top keeps faces in frame — most headshots sit in the upper
               // portion, and the card crops to a near-square portrait window.
-              className="pixelated h-full w-full object-cover object-top select-none [-webkit-user-drag:none]"
+              className="pixelated object-cover object-top select-none [-webkit-user-drag:none]"
             />
           ) : (
             <div className="dot-grid-bg flex h-full w-full items-center justify-center">
@@ -133,7 +130,7 @@ const MemberBack = memo(function MemberBack({
             rel="noopener noreferrer"
             onClick={stop}
             aria-label={`${member.name} on LinkedIn`}
-            className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-brand-light"
+            className="-m-2.5 grid size-11 cursor-pointer place-items-center text-white/70 transition-colors duration-200 hover:text-brand-light"
           >
             <FaLinkedin className="size-6" />
           </a>
@@ -145,7 +142,7 @@ const MemberBack = memo(function MemberBack({
             rel="noopener noreferrer"
             onClick={stop}
             aria-label={`${member.name} on GitHub`}
-            className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-brand-light"
+            className="-m-2.5 grid size-11 cursor-pointer place-items-center text-white/70 transition-colors duration-200 hover:text-brand-light"
           >
             <FaGithub className="size-6" />
           </a>
@@ -157,7 +154,7 @@ const MemberBack = memo(function MemberBack({
             rel="noopener noreferrer"
             onClick={stop}
             aria-label={`${member.name} on LeetCode`}
-            className="cursor-pointer text-white/70 transition-colors duration-200 hover:text-brand-light"
+            className="-m-2.5 grid size-11 cursor-pointer place-items-center text-white/70 transition-colors duration-200 hover:text-brand-light"
           >
             <SiLeetcode className="size-6" />
           </a>
@@ -257,16 +254,13 @@ const MemberThumb = memo(function MemberThumb({
       className="group @container relative h-full w-full cursor-pointer overflow-hidden border-2 border-white/10 bg-[#0d0d0d] transition-colors duration-200 hover:border-brand/60"
     >
       {member.imageUrl ? (
-        // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
-        <img
+        <Image
           src={member.imageUrl}
           alt=""
-          loading="lazy"
-          width={180}
-          height={246}
-          decoding="async"
+          fill
+          sizes="180px"
           draggable={false}
-          className="pixelated h-full w-full object-cover object-top opacity-80 transition-opacity duration-200 select-none group-hover:opacity-100 [-webkit-user-drag:none]"
+          className="pixelated object-cover object-top opacity-80 transition-opacity duration-200 select-none group-hover:opacity-100 [-webkit-user-drag:none]"
         />
       ) : (
         <div className="dot-grid-bg flex h-full w-full items-center justify-center">

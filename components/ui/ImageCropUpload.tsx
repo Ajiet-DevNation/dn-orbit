@@ -89,6 +89,9 @@ export function ImageCropUpload({
   const [minZoom, setMinZoom] = useState(1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Remembers WHICH value failed to load (a dead or pasted link), so a new
+  // upload or URL retries on its own.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
   function pickFile() {
     setError(null);
@@ -166,12 +169,22 @@ export function ImageCropUpload({
             className="relative w-full overflow-hidden border-2 border-white/15 bg-[#0d0d0d]"
             style={{ aspectRatio: String(aspect) }}
           >
-            {/* biome-ignore lint/performance/noImgElement: local object-URL preview — not optimizable */}
-            <img
-              src={value}
-              alt="Selected cover"
-              className="h-full w-full object-cover"
-            />
+            {failedSrc === value ? (
+              <div className="flex h-full items-center justify-center p-4">
+                <span className="retro text-center text-[8px] leading-relaxed text-zinc-600">
+                  PREVIEW UNAVAILABLE — THE URL DID NOT LOAD
+                </span>
+              </div>
+            ) : (
+              // biome-ignore lint/performance/noImgElement: arbitrary remote host — next/image would need per-host config
+              <img
+                key={value}
+                src={value}
+                alt="Selected cover"
+                onError={() => setFailedSrc(value)}
+                className="h-full w-full object-cover"
+              />
+            )}
           </div>
           <div className="flex gap-3">
             <button
@@ -238,7 +251,7 @@ export function ImageCropUpload({
         }
       >
         <div className="flex flex-col gap-4">
-          <div className="relative h-[52vh] w-full bg-[#0d0d0d]">
+          <div className="relative h-[52dvh] w-full bg-[#0d0d0d]">
             {src && (
               <Cropper
                 image={src}

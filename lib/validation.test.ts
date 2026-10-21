@@ -21,11 +21,35 @@ describe("parseBody", () => {
   test("returns a 400-able error for malformed JSON instead of throwing", async () => {
     const req = new Request("http://localhost/test", {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: "{not json",
     });
     const result = await parseBody(req, createEventSchema);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe("Invalid JSON body");
+  });
+
+  test("rejects a non-JSON content type (cross-site text/plain form)", async () => {
+    const req = new Request("http://localhost/test", {
+      method: "POST",
+      headers: { "content-type": "text/plain" },
+      body: JSON.stringify({ title: "x", eventDate: "2026-08-01" }),
+    });
+    const result = await parseBody(req, createEventSchema);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("application/json");
+  });
+
+  test("accepts a JSON content type with a charset", async () => {
+    const req = new Request("http://localhost/test", {
+      method: "POST",
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: JSON.stringify({
+        title: "Hack",
+        eventDate: "2026-08-01T18:00:00Z",
+      }),
+    });
+    expect((await parseBody(req, createEventSchema)).ok).toBe(true);
   });
 
   test("reports the offending field path", async () => {

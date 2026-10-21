@@ -28,11 +28,13 @@ export function useCardPowerOn(
       if (brackets.length) {
         gsap.fromTo(
           brackets,
-          { scale: 0.55 },
+          // Fires on every card change, arrow keys included, so it stays a
+          // short settle (no overshoot) rather than a bounce.
+          { scale: 0.9 },
           {
             scale: 1,
-            duration: 0.45,
-            ease: "back.out(2.2)",
+            duration: 0.2,
+            ease: "power3.out",
             transformOrigin: "center",
           },
         );

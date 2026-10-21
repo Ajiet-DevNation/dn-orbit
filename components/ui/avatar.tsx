@@ -22,14 +22,19 @@ const AvatarImage = React.forwardRef<
   HTMLImageElement,
   React.ImgHTMLAttributes<HTMLImageElement>
 >(({ className, ...props }, ref) => (
-  // Intentional <img>: avatar URLs are arbitrary remote hosts; next/image
-  // would need per-host config. The empty alt is a decorative-image default —
-  // callers that pass alt via {...props} override it.
+  // A plain <img>: avatars render tiny and come pre-sized from GitHub (see
+  // githubAvatarAt), so the optimizer adds a hop without saving bytes. Lazy +
+  // async by default: a dozen far-below-the-fold leaderboard avatars used to
+  // load eagerly and hold up `window.load`. The empty alt is a decorative-image
+  // default — callers override alt/loading via {...props}.
+  // biome-ignore lint/performance/noImgElement: see above
   <img
     ref={ref}
     data-slot="avatar-image"
     className={cn("aspect-square h-full w-full", className)}
     alt=""
+    loading="lazy"
+    decoding="async"
     {...props}
   />
 ));
