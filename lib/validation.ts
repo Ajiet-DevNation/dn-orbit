@@ -1,6 +1,7 @@
 import { $Enums } from "@prisma/client";
 import { z } from "zod";
 import { isSafePattern, MAX_PATTERN_LEN } from "@/lib/forms";
+import { MAX_TECH_ITEMS, MAX_TECH_NAME_LEN } from "@/lib/tech-name";
 
 // Shared request-body schemas for the Route Handlers.
 //
@@ -167,7 +168,10 @@ const projectFields = {
   imageUrl: optionalHttpUrl(),
   githubRepoUrl: httpUrl(),
   demoUrl: optionalHttpUrl(),
-  techStack: z.array(z.string().trim().min(1).max(60)).max(40).optional(),
+  techStack: z
+    .array(z.string().trim().min(1).max(MAX_TECH_NAME_LEN))
+    .max(MAX_TECH_ITEMS)
+    .optional(),
   milestones: z.array(milestoneSchema).max(100).optional(),
   status: projectStatus.optional(),
   progressPct: z.number().int().min(0).max(100).optional(),
