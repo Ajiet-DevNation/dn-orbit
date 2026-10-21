@@ -72,7 +72,8 @@ export function V2Header({
     };
   }, [menuOpen]);
 
-  const [activeTab, setActiveTab] = useState("events");
+  // "" = no tab highlighted: off the landing page, or between tabbed sections.
+  const [activeTab, setActiveTab] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(!isLandingPage);
 
@@ -108,6 +109,9 @@ export function V2Header({
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) setActiveTab(entry.target.id);
+          // Leaving the band with no tabbed section entering (announcements,
+          // stats, about) clears the highlight instead of leaving it stale.
+          else setActiveTab((cur) => (cur === entry.target.id ? "" : cur));
         }
       },
       // A 1px detection band at the viewport's middle — the section spanning the

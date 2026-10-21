@@ -42,20 +42,19 @@ Legend: `[PASS]` · `[FIXED]` (failed, fixed, re-verified in the browser) · `[F
 | B15 | Low | `/my-events` roster, admin roster | Every attendance toggle read "ATTENDED" / "MARK ATTENDED" with no row or state. Now `aria-label="<name> attended"` + `aria-pressed`. | [FIXED] |
 | B16 | Low | Admin allowlist GRANT ACCESS | Pending label `"…"` collapsed the button and reflowed the input row. Same-width "GRANTING…". | [FIXED] |
 | B17 | Low | Admin Approvals PROJECTS/EVENTS filter | Active filter not exposed; added `aria-pressed` (matches the Recruitments filter). | [FIXED] |
-| F1 | Low | Header scrollspy | Between observed sections (announcements, stats) the last-clicked tab stays highlighted. | [FLAG] |
-| F2 | Info | `DELETE /api/events/:id` anonymous | 403, not the 401 AGENTS.md specifies for unauthenticated callers. | [FLAG] |
-| F3 | Info | Event "DevNation Inauguration" (DB row) | `registrationDeadline 2026-11-10` is *after* `eventDate 2025-11-12` — legacy data the current schema would reject. Registration still reads closed (closes at the earlier of the two). | [FLAG] |
-| F4 | Info | `/recruitments` review step | Shows raw input (`4jk24cs999`, `QA@Example.com`); the server stores the normalised form (`4JK24CS999`, lowercase). | [FLAG] |
+| F1 | Low | Header scrollspy | Between observed sections (announcements, stats) the last-clicked tab stayed highlighted, and EVENTS showed as active on every non-landing page. The highlight now clears when the active section leaves the centre band, and starts empty. | [FIXED] |
+| F2 | Low | 17 admin-guarded route handlers (`app/api/admin/**`, `app/api/events/[id]`) | `!session \|\| !canAccessAdmin` returned 403 to anonymous callers; AGENTS.md says 401 for unauthenticated. Split into 401 `Unauthenticated` / 403 `Forbidden`; `scripts/test-api.mjs` expectations updated (17/17 pass). | [FIXED] |
+| F3 | Info | Event "DevNation Inauguration" (DB row) | `registrationDeadline 2026-11-10` was after `eventDate 2025-11-12`. Cleared to `null` via the admin `PATCH /api/events/:id` (approved by the owner); the page still reads closed, now without the stale "REGISTER BY". Previous value: `2026-11-10T18:29:00.000Z`. | [FIXED] |
+| F4 | Low | `/recruitments` review step | Showed raw input (`4jk24cs999`, `QA@Example.com`, `@devnation`); now reads back the parsed values the server stores (`4JK24CS999`, `qa@example.com`, `devnation`). | [FIXED] |
 | F5 | Info | `/recruitments` | A reload mid-form loses the draft (no per-viewer persistence). Enhancement, not a bug. | [FLAG] |
-| F6 | Info | `/admin/events/:bogus` | Renders the 404 UI but with HTTP 200 (streamed `notFound()`); `/admin/nope` is a real 404. | [FLAG] |
+| F6 | Info | `/events/<bad-id>/register`, `/admin/events/<bad-id>` | 404 UI with HTTP 200 + `noindex`. By design: `app/loading.tsx` starts streaming before `notFound()` runs (Next 16 docs, `not-found.md` "Status codes"). A real 404 needs a DB check in Proxy; the owner chose to keep it. | By design |
 | N1 | — | Profile modal avatar | One GitHub avatar URL stalled ~15 s in this Chrome profile (curl 1.5 s; other avatars 570 ms). Environment. | Not a bug |
 | N2 | — | `<html data-judo="1">` hydration warning on 404 | Attribute injected by a browser extension. | Not a bug |
 
 ### Side effect to know about
 B2 was found by the test itself: the payload was accepted and wrote an allowlist row. It was removed at
 once through the app's own `DELETE /api/admin/allowlist/:id` (verified: 0 matches remain), but it left an
-`allowlist.add` + `allowlist.remove` pair ("Added/Removed <script> …") in the admin audit log. Nothing else
-was written.
+`allowlist.add` + `allowlist.remove` pair ("Added/Removed <script> …") in the admin audit log. The only other write was the owner-approved F3 fix (one field on one event row).
 
 ---
 
@@ -63,7 +62,7 @@ was written.
 
 ### `/` — header
 - [FIXED] Tabs EVENTS / LEADERBOARD / PROJECTS / MEMBERS: `inert` at the hero (B8); from `lg` only (B7); each click scrolls its section in (`top ≈ 95px`; projects/members are pinned lens sections and land on card 1)
-- [PASS] `aria-selected` follows clicks (see F1)
+- [FIXED] `aria-selected` follows clicks and clears between tabbed sections (F1); all four tabs stay keyboard-reachable when none is selected
 - [PASS] Brand link, recruitment banner link → `/recruitments`, avatar → EDIT PROFILE
 - [PASS] Phone "Sections" menu (375 px, headless): opens with `aria-expanded`, closes on Escape and on outside press, MEMBERS item navigates and closes
 
@@ -118,7 +117,7 @@ was written.
 - [FIXED] Errors linked + focus to first invalid (B10)
 - [PASS] Type → clear → type again clears that field's error; selects via mouse and keyboard
 - [PASS] Valid dummy data → REVIEW step; EDIT returns with every value intact · [SKIP] final SUBMIT
-- [FLAG] F4, F5
+- [FIXED] F4 · [FLAG] F5
 
 ### `/events/:id/register`
 - [PASS] Past event → "REGISTRATION IS CLOSED", no form
@@ -148,7 +147,7 @@ events/:id (roster), events/:id/edit, projects, approvals, leaderboard, settings
 ### Navigation & responsiveness
 - [PASS] `/ → /recruitments → /my-events`, Back, Back, Forward — correct pages, titles and content, no console errors
 - [PASS] 375 / 768 / 1024 / 1440 px on `/`, `/recruitments`, `/login`, `/events/:id/register`, 404: no horizontal overflow, no covered controls, no runtime errors (after B7)
-- [FLAG] "BACK TO ORBIT" / "BACK TO EVENTS" links are 14 px tall (below the 24 px minimum target size)
+- [FIXED] "BACK TO ORBIT" / "BACK TO EVENTS" links were 14 px tall; a pseudo-element now gives them a 44 px hit area (the 8-bit Button's trick), layout unchanged
 
 ---
 
@@ -168,18 +167,18 @@ status bogus · malformed. Anonymous → 401.
 | GET `/api/events/:bogus`, `/api/events/' OR 1=1`, `/api/projects/:bogus` | [PASS] 404 |
 | GET `/api/stats/{github,lc}/:bogus` | [PASS] 404 |
 | PATCH `/api/events/:bogus` `{title:""}` | [PASS] 400 |
-| DELETE `/api/events/:bogus` anon | [PASS] 403 (F2) |
+| DELETE `/api/events/:bogus` anon | [FIXED] 401 (F2) |
 | POST register `:bogus` · closed event anon (JSON and `text/plain`) | [PASS] 404 · 409 |
 | POST feedback anon / rating 0 | [PASS] 401 / 400 |
 | GET registrations.csv anon | [PASS] 401 |
 | POST attendance anon / bad body / bogus registration | [PASS] 401 / 400 / 404 |
-| PATCH weights anon / negative / string | [PASS] 403 / 400 / 400 |
+| PATCH weights anon / negative / string | [FIXED] 401 (F2) / 400 / 400 |
 | PATCH members `:bogus` `{role:"god"}` / `{}` · POST refresh `:bogus` | [PASS] 400 / 404 / 404 |
 | POST allowlist `{}` / `<script>`+`nope` / URL / bad email / whitespace / `email:123` | [FIXED] all 400 (B2) |
 | DELETE allowlist `:bogus` | [PASS] 404 |
 | PATCH project approve `{action:"nuke"}` · event approve `:bogus` | [PASS] 400 · 404 |
 | PATCH recruitment config `{open:"yes"}` · review `{status:"weird"}` · GET cv `:bogus` | [PASS] 400 · 400 · 404 |
-| GET admin logs anon | [PASS] 403 |
+| GET admin logs anon | [FIXED] 401 (F2) |
 | POST lc/verify `{}` / anon | [PASS] 400 / 401 |
 | POST upload anon / no file / `kind=../../etc` / text as `image/png` | [PASS] 401 / 400 / 400 / 400 (magic bytes) |
 | POST project members `{userId:""}` | [PASS] 400 |

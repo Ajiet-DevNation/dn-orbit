@@ -259,6 +259,11 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   const filled = REQUIRED.filter((k) => values[k].trim()).length;
 
   if (step === "review") {
+    // Read back what will be stored (USN uppercased, email lowercased, "@"
+    // dropped from the X handle), not the raw keystrokes. review() already
+    // proved the parse succeeds.
+    const parsed = recruitmentApplicationSchema.safeParse(values);
+    const shown = parsed.success ? parsed.data : values;
     return (
       <Layout step="review" filled={filled}>
         {SECTIONS.map((s, i) => (
@@ -276,7 +281,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
                     {k === "about" ? "ABOUT YOU" : FIELDS[k].label}
                   </dt>
                   <dd className="whitespace-pre-wrap break-words font-mono text-sm text-white">
-                    {values[k].trim() || "—"}
+                    {String(shown[k] ?? "").trim() || "—"}
                   </dd>
                 </div>
               ))}
@@ -459,7 +464,9 @@ function Layout({
         <Link
           href="/"
           transitionTypes={["recruit-out"]}
-          className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
+          // 14px of text; the pseudo-element grows the hit area to 44px tall
+          // without moving the layout (same trick as the 8-bit Button).
+          className="retro relative flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 before:absolute before:-inset-x-2 before:-inset-y-[15px] before:content-[''] hover:text-white"
         >
           <PixelArrow dir="left" /> BACK TO ORBIT
         </Link>
