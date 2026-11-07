@@ -1,6 +1,6 @@
 "use client";
 
-import { type RefObject, useEffect, useId } from "react";
+import { type RefObject, useEffect, useId, useRef } from "react";
 import { isTopModal, modalDepth, popModal, pushModal } from "@/lib/modal-stack";
 import { setScrollLocked } from "@/lib/smooth-scroll";
 
@@ -47,6 +47,10 @@ export function useModalBehavior(
 ) {
   // Stable per-instance identity for the stack.
   const id = useId();
+  // Latest handler without re-running the effect: callers often pass an inline
+  // arrow, and each re-run used to bounce focus out of the field being typed in.
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
 
   useEffect(() => {
     if (!open) return;
@@ -72,7 +76,7 @@ export function useModalBehavior(
 
       if (e.key === "Escape" && closeOnEscape) {
         e.stopPropagation();
-        onOpenChange(false);
+        onOpenChangeRef.current(false);
         return;
       }
 
@@ -130,5 +134,5 @@ export function useModalBehavior(
         previouslyFocused.focus({ preventScroll: true });
       }
     };
-  }, [open, onOpenChange, id, containerRef, closeOnEscape]);
+  }, [open, id, containerRef, closeOnEscape]);
 }
