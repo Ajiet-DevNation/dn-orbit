@@ -269,9 +269,9 @@ export function V2Header({
                 </Avatar>
               </button>
             ) : (
-              <Link href="/login" className="shrink-0" aria-label="Sign in">
-                <Button className="text-[10px]">SIGN IN</Button>
-              </Link>
+              <Button asChild className="shrink-0 text-[10px]">
+                <Link href="/login">SIGN IN</Link>
+              </Button>
             )}
           </div>
         </div>

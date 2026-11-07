@@ -192,6 +192,7 @@ const MemberCard = memo(function MemberCard({
   if (flipped && !everFlipped) setEverFlipped(true);
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: 3D flip card holds links on its back face; a <button> can't nest them
     <div
       onClick={() => onActivate(index)}
       role="button"

@@ -351,6 +351,7 @@ export function AnnouncementCarousel({
           {/* Two identical sets back-to-back → seamless infinite loop. */}
           {[...fillSet, ...fillSet].map((item, i) => (
             <AnnouncementSlide
+              // biome-ignore lint/suspicious/noArrayIndexKey: the set is doubled for the loop, so ids repeat
               key={`${item.id}-${i}`}
               item={item}
               onNavGuard={onNavGuard}
