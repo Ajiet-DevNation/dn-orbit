@@ -17,6 +17,15 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=()",
   },
+  // Script-free CSP subset: no framing, no <base> hijack, no plugins. Safe
+  // without nonces, unlike script-src (see note above).
+  {
+    key: "Content-Security-Policy",
+    value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+  },
+  // OAuth is a full-page redirect, never a popup, so isolating the window
+  // costs nothing and blocks cross-window tampering.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 
 const nextConfig: NextConfig = {
