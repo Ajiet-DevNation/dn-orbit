@@ -316,7 +316,7 @@ export function MembersSection() {
       }),
   });
 
-  // GSAP power-on (bracket pop) on the card the row came to rest on — keyed off
+  // Power-on (bracket pop) on the card the row came to rest on — keyed off
   // the SETTLED index, not the live one, so a drag sweeping past ten cards
   // doesn't fire ten bracket animations mid-gesture.
   useCardPowerOn(lensRef, settledIndex);

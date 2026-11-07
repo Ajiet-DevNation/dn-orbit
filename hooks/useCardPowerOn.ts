@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { gsap } from "@/lib/gsap";
 
 // Pops the corner brackets on whichever card just became centred (a quick
 // scale-in "power-on"). Targets the card by data-cf-index inside `containerRef`
 // and animates only the bracket chrome — never the card's own transform, which
-// the coverflow engine owns — so the two can't fight. Skipped under reduced
-// motion; GSAP context reverts on change/unmount.
+// the coverflow engine owns — so the two can't fight. Web Animations API, not
+// CSS, so the global reduced-motion reset can't flatten it; that path is
+// skipped explicitly instead.
 export function useCardPowerOn(
   containerRef: React.RefObject<HTMLElement | null>,
   activeIndex: number,
@@ -22,25 +22,19 @@ export function useCardPowerOn(
     );
     if (!card) return;
 
-    const brackets = card.querySelectorAll<HTMLElement>(".hud-bracket");
+    // Fires on every card change, arrow keys included, so it stays a short
+    // settle (no overshoot) rather than a bounce.
+    const pops = Array.from(
+      card.querySelectorAll<HTMLElement>(".hud-bracket"),
+      (el) =>
+        el.animate([{ transform: "scale(0.9)" }, { transform: "scale(1)" }], {
+          duration: 200,
+          easing: "cubic-bezier(0.215, 0.61, 0.355, 1)", // power3.out
+        }),
+    );
 
-    const ctx = gsap.context(() => {
-      if (brackets.length) {
-        gsap.fromTo(
-          brackets,
-          // Fires on every card change, arrow keys included, so it stays a
-          // short settle (no overshoot) rather than a bounce.
-          { scale: 0.9 },
-          {
-            scale: 1,
-            duration: 0.2,
-            ease: "power3.out",
-            transformOrigin: "center",
-          },
-        );
-      }
-    }, root);
-
-    return () => ctx.revert();
+    return () => {
+      for (const a of pops) a.cancel();
+    };
   }, [containerRef, activeIndex]);
 }
