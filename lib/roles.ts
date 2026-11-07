@@ -42,6 +42,13 @@ export function isRole(value: unknown): value is Role {
   );
 }
 
+// alumni graduated out, so they neither rank nor set the curve for others
+export const LEADERBOARD_EXCLUDED_ROLES: Role[] = ["alumni"];
+
+export function isRankedRole(role: string | null | undefined): boolean {
+  return isRole(role) && !LEADERBOARD_EXCLUDED_ROLES.includes(role);
+}
+
 /** May this role open the admin panel / call admin APIs? */
 export function canAccessAdmin(role: string | null | undefined): boolean {
   return !!role && (ADMIN_ROLES as readonly string[]).includes(role);

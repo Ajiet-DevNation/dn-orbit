@@ -3,7 +3,9 @@ import {
   canAccessAdmin,
   canManageRoles,
   canModerate,
+  isRankedRole,
   isRole,
+  LEADERBOARD_EXCLUDED_ROLES,
   ROLES,
 } from "./roles";
 
@@ -67,4 +69,11 @@ test("canModerate: officers moderate those below; anyone moderates members", () 
 test("canModerate: non-admins moderate nobody", () => {
   expect(canModerate("member", "ajiet_student")).toBe(false);
   expect(canModerate(undefined, "member")).toBe(false);
+});
+
+test("alumni stay off the leaderboard, every other tier is ranked", () => {
+  expect(LEADERBOARD_EXCLUDED_ROLES).toEqual(["alumni"]);
+  for (const role of ROLES) {
+    expect(isRankedRole(role)).toBe(role !== "alumni");
+  }
 });
