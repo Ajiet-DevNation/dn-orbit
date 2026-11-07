@@ -305,7 +305,12 @@ function SyncedAgo({ iso }: { iso: string }) {
     return () => clearInterval(id);
   }, [iso]);
   return (
-    <span className="retro text-[8px] tracking-widest text-muted-foreground/70">
+    // Server and browser read the clock a moment apart; a minute can tick over
+    // between them, so the first paint may differ by design.
+    <span
+      suppressHydrationWarning
+      className="retro text-[8px] tracking-widest text-muted-foreground/70"
+    >
       SYNCED {label}
     </span>
   );
