@@ -89,9 +89,9 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
             <span className="mt-2 block text-brand-light">DEVNATION</span>
           </h1>
           <p className="font-mono text-sm leading-relaxed text-[#d4d0ea] sm:text-base">
-            Think you could be part of DevNation?
+            Think you could be part of DevNation?{" "}
             <br className="hidden sm:block" />
-            Tell us who you are and what you build.
+            Tell us who you are and what you build.{" "}
             <br className="hidden sm:block" />
             Open to AJIET students.
           </p>
