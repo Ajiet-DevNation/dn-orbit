@@ -98,10 +98,23 @@ const SIZE_CLASS = {
   xl: "max-w-5xl",
 } as const;
 
+// Purple by default, matching the site's pixel frames; red for destructive.
 const TONE = {
-  default: { border: "border-white/80", bar: "bg-white/[0.06]" },
-  danger: { border: "border-red-500/80", bar: "bg-red-500/[0.08]" },
-  accent: { border: "border-brand/80", bar: "bg-brand/[0.08]" },
+  default: {
+    border: "border-brand/70",
+    bar: "bg-brand/[0.06]",
+    corner: "bg-brand",
+  },
+  danger: {
+    border: "border-red-500/80",
+    bar: "bg-red-500/[0.08]",
+    corner: "bg-red-500",
+  },
+  accent: {
+    border: "border-brand/80",
+    bar: "bg-brand/[0.08]",
+    corner: "bg-brand-light",
+  },
 } as const;
 
 export function PixelModal({
@@ -224,7 +237,7 @@ export function PixelModal({
         )}
         style={{ opacity: 0, transformOrigin: "center" }}
       >
-        <PixelCorners />
+        <PixelCorners className={toneStyle.corner} />
 
         {(title || !hideClose) && (
           <div
@@ -275,7 +288,7 @@ export function PixelModal({
         {footer && (
           <div
             className={cn(
-              "flex shrink-0 flex-col gap-3 border-t-4 px-5 py-4 sm:flex-row sm:items-center md:px-7",
+              "flex shrink-0 flex-col gap-5 border-t-4 px-5 py-4 sm:flex-row sm:items-center md:px-7",
               toneStyle.border,
               toneStyle.bar,
             )}
@@ -292,8 +305,8 @@ export function PixelModal({
  * Four pixel blocks at the panel's corners — the same targeting-reticle motif
  * the coverflow cards use, so modals read as part of the same HUD.
  */
-function PixelCorners() {
-  const common = "pointer-events-none absolute size-2 bg-white/80";
+function PixelCorners({ className }: { className: string }) {
+  const common = cn("pointer-events-none absolute size-2", className);
   return (
     <div aria-hidden>
       <span className={cn(common, "-left-1 -top-1")} />
