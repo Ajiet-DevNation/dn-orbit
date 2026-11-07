@@ -23,8 +23,9 @@ export async function POST(
       );
     }
 
-    const body = await req.json();
-    const { registrationId, attended } = body;
+    // A malformed body is bad input (400), not a server error.
+    const body = await req.json().catch(() => null);
+    const { registrationId, attended } = body ?? {};
 
     if (typeof registrationId !== "string" || typeof attended !== "boolean") {
       return new NextResponse("INVALID_PAYLOAD", { status: 400 });
