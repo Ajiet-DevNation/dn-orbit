@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef } from "react";
 import { PixelBubble } from "@/components/ui/PixelBubble";
 import { PixelFrame } from "@/components/ui/PixelFrame";
+import { PixelCheck } from "@/components/ui/PixelIcons";
 import { useSpriteSheet } from "@/hooks/useSpriteSheet";
 import { pingPongFrame } from "@/lib/sprite";
 import { cn } from "@/lib/utils";
@@ -110,22 +111,50 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
             Open to AJIET students.
           </p>
           {current && (
-            <ol className="mt-1 flex items-center gap-3 border-t-2 border-white/15 pt-4">
+            // Numbered pixel chips joined by a rail that fills as you advance.
+            <ol className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-3 border-t-2 border-white/15 pt-4">
               {STEPS.map((s, i) => (
                 <li
                   key={s}
                   aria-current={i === at ? "step" : undefined}
-                  className={cn(
-                    "retro text-[10px] tracking-widest sm:text-xs",
-                    i === at
-                      ? "text-brand-light"
-                      : i < at
-                        ? "text-white/70"
-                        : "text-[#6d6a8a]",
-                  )}
+                  className="flex items-center gap-2"
                 >
-                  {i > 0 && <span className="mr-3 text-[#6d6a8a]">·</span>}
-                  {s.toUpperCase()}
+                  {i > 0 && (
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "h-[3px] w-4 sm:w-6",
+                        i <= at ? "bg-brand" : "bg-white/15",
+                      )}
+                    />
+                  )}
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "retro flex size-6 items-center justify-center text-[9px]",
+                      i === at
+                        ? "bg-brand text-[#0a0a0a]"
+                        : i < at
+                          ? "bg-brand/20 text-brand-light"
+                          : "border-2 border-white/15 text-[#6d6a8a]",
+                    )}
+                  >
+                    {i < at ? <PixelCheck /> : i + 1}
+                  </span>
+                  {/* Phones keep only the current step's label so the row fits. */}
+                  <span
+                    className={cn(
+                      "retro text-[10px] tracking-widest sm:inline sm:text-xs",
+                      i !== at && "hidden",
+                      i === at
+                        ? "text-brand-light"
+                        : i < at
+                          ? "text-white/70"
+                          : "text-[#6d6a8a]",
+                    )}
+                  >
+                    {s.toUpperCase()}
+                  </span>
                 </li>
               ))}
             </ol>
@@ -135,7 +164,7 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
         {/* Pluton scene — decorative. */}
         <div
           aria-hidden
-          className="relative flex min-h-[250px] flex-col items-end md:min-h-0"
+          className="relative flex min-h-[250px] flex-col items-end md:min-h-[330px]"
         >
           <PixelBubble tail="bottom-left" className="text-sm sm:text-base">
             Hey, cadet! Let&apos;s get to know you.
