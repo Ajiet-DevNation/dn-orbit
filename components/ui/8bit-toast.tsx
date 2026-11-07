@@ -366,6 +366,7 @@ function Button2({ children, asChild, ...props }) {
 // ../../../private/tmp/esbuild-batch7/node_modules/sonner/dist/index.mjs
 import React4 from "react";
 import ReactDOM from "react-dom";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 function __insertCSS(code) {
   if (!code || typeof document == "undefined") return;
   let head = document.head || document.getElementsByTagName("head")[0];
@@ -1448,38 +1449,36 @@ var Toaster = /* @__PURE__ */ React4.forwardRef<any, any>(function Toaster2(prop
 });
 
 // ../../../private/tmp/esbuild-batch7/toast-stage/src/components/ui/8bit/toast.tsx
-function toast2(toast3, options) {
-  return toast.custom((id) => <Toast2 id={id} title={toast3} variant={options?.variant} />);
+// One toast look for the whole site: the dark pixel card with notched bars,
+// tinted per kind, and a pixel glyph — same chrome as the nav tabs and modals.
+function toast2(message, options) {
+  return toast.custom((id) => <Toast2 id={id} title={message} variant={options?.variant} />);
 }
-toast2.error = (message) => toast2(message, { variant: "error" });
 toast2.success = (message) => toast2(message, { variant: "success" });
+toast2.error = (message) => toast2(message, { variant: "error" });
+toast2.warning = (message) => toast2(message, { variant: "warning" });
+
+const TOAST_TONE = {
+  success: { bar: "bg-brand", text: "text-brand-light", Icon: PixelCheck },
+  error: { bar: "bg-[#ef4444]", text: "text-[#f87171]", Icon: PixelCross },
+  warning: { bar: "bg-[#eab308]", text: "text-[#facc15]", Icon: null },
+  default: { bar: "bg-ring", text: "text-white", Icon: null },
+};
 
 function Toast2(props) {
   const { title, variant } = props;
-  const isError = variant === "error";
+  const tone = TOAST_TONE[variant] ?? TOAST_TONE.default;
+  const Icon = tone.Icon;
 
-  return <div className={`relative ${"retro"}`}>
-    <div className={`flex rounded-none shadow-lg ring-1 ring-black/5 w-full md:max-w-[364px] items-center p-4 ${isError ? "bg-[#ef4444] text-white" : "bg-background"}`}>
-      <div className="flex flex-1 items-center gap-3">
-        {isError && <span className="flex-shrink-0 bg-white text-[#ef4444] rounded-full w-5 h-5 flex items-center justify-center font-bold text-xs">X</span>}
-        <div className="w-full">
-          <p className="text-xs uppercase tracking-widest font-medium">{title}</p>
-        </div>
-      </div>
+  return <div role={variant === "error" ? "alert" : "status"} className="retro relative mx-1.5 w-[calc(100vw-48px)] max-w-[364px]">
+    <div className="flex items-center gap-3 bg-[#0a0a0a] px-4 py-3.5">
+      {Icon ? <Icon className={`shrink-0 text-base ${tone.text}`} /> : variant === "warning" && <span aria-hidden className={`shrink-0 text-base ${tone.text}`}>!</span>}
+      <p className={`min-w-0 flex-1 break-words text-[10px] uppercase leading-relaxed tracking-wider text-white`}>{title}</p>
     </div>
-
-    <div className="absolute -top-1.5 w-1/2 left-1.5 h-1.5 bg-foreground dark:bg-ring" />
-    <div className="absolute -top-1.5 w-1/2 right-1.5 h-1.5 bg-foreground dark:bg-ring" />
-    <div className="absolute -bottom-1.5 w-1/2 left-1.5 h-1.5 bg-foreground dark:bg-ring" />
-    <div className="absolute -bottom-1.5 w-1/2 right-1.5 h-1.5 bg-foreground dark:bg-ring" />
-    <div className="absolute top-0 left-0 size-1.5 bg-foreground dark:bg-ring" />
-    <div className="absolute top-0 right-0 size-1.5 bg-foreground dark:bg-ring" />
-    <div className="absolute bottom-0 left-0 size-1.5 bg-foreground dark:bg-ring" />
-    <div className="absolute bottom-0 right-0 size-1.5 bg-foreground dark:bg-ring" />
-    <div className="absolute top-1 -left-1.5 h-1/2 w-1.5 bg-foreground dark:bg-ring" />
-    <div className="absolute bottom-1 -left-1.5 h-1/2 w-1.5 bg-foreground dark:bg-ring" />
-    <div className="absolute top-1 -right-1.5 h-1/2 w-1.5 bg-foreground dark:bg-ring" />
-    <div className="absolute bottom-1 -right-1.5 h-1/2 w-1.5 bg-foreground dark:bg-ring" />
+    <div aria-hidden className={`absolute inset-x-0 -top-1.5 h-1.5 ${tone.bar}`} />
+    <div aria-hidden className={`absolute inset-x-0 -bottom-1.5 h-1.5 ${tone.bar}`} />
+    <div aria-hidden className={`absolute inset-y-0 -left-1.5 w-1.5 ${tone.bar}`} />
+    <div aria-hidden className={`absolute inset-y-0 -right-1.5 w-1.5 ${tone.bar}`} />
   </div>;
 }
 export {

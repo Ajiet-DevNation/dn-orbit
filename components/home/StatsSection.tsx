@@ -3,13 +3,11 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import type { ReactNode } from "react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Progress } from "@/components/ui/8bit-progress";
-import { toast as rawToast } from "@/components/ui/8bit-toast";
-import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
+import { toast } from "@/components/ui/8bit-toast";
 import { Reveal } from "@/components/ui/Reveal";
 import { type LanguageStat, languagesFromRecord } from "@/lib/stats-utils";
 import { ContactModal } from "./ContactModal";
@@ -25,26 +23,6 @@ const ProjectModal = dynamic(
   () => import("./ProjectModal").then((m) => m.ProjectModal),
   { ssr: false },
 );
-
-// The 8bit-toast bundle exports a single-arg `toast(title)` helper (no
-// .success/.error variants exported). It renders the title node as-is, so we
-// pass a colour-coded element: purple = success, amber = partial, red = fail.
-const toast = rawToast as unknown as (message: ReactNode) => void;
-
-function notify(kind: "success" | "warn" | "error", message: string) {
-  const color =
-    kind === "success"
-      ? "text-brand-light"
-      : kind === "warn"
-        ? "text-yellow-500"
-        : "text-red-500";
-  toast(
-    <span className={`inline-flex items-center gap-2 ${color}`}>
-      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
-      {message}
-    </span>,
-  );
-}
 
 // All serializable — plain numbers/strings, no Date objects cross the boundary.
 export interface GithubStatsData {
@@ -139,7 +117,7 @@ export function StatsSection({
     // their now-private stats on the way back (see the effect below). This is
     // a full-page redirect, so nothing after it runs.
     if (hasGithubToken && !hasRepoScope) {
-      notify("warn", "Connecting private repos · approve on GitHub…");
+      toast.warning("Connecting private repos · approve on GitHub…");
       const returnTo = `${window.location.pathname}?reauth=github`;
       await signIn("github", { redirectTo: returnTo });
       return;
@@ -202,11 +180,11 @@ export function StatsSection({
     }
 
     if (anyOk && failures.length === 0) {
-      notify("success", "Stats refreshed");
+      toast.success("Stats refreshed");
     } else if (anyOk) {
-      notify("warn", `Partial refresh · ${failures.join(" · ")}`);
+      toast.warning(`Partial refresh · ${failures.join(" · ")}`);
     } else {
-      notify("error", `Refresh failed · ${failures.join(" · ")}`);
+      toast.error(`Refresh failed · ${failures.join(" · ")}`);
     }
 
     if (anyOk) startTransition(() => router.refresh());
