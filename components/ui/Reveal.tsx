@@ -1,7 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 interface RevealProps {
   children: ReactNode;
@@ -14,8 +13,8 @@ interface RevealProps {
 
 /**
  * Subtle, once-only fade-up as the element scrolls into view. Honours
- * prefers-reduced-motion (renders static). Keeps the 8-bit theme — this only
- * eases entrances, it doesn't add any decorative motion.
+ * prefers-reduced-motion (renders static). Web Animations API, so no animation
+ * library ships for one entrance.
  */
 export function Reveal({
   children,
@@ -23,21 +22,46 @@ export function Reveal({
   y = 24,
   delay = 0,
 }: RevealProps) {
-  const reducedMotion = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
 
-  if (reducedMotion) {
-    return <div className={className}>{children}</div>;
-  }
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    el.style.opacity = "0";
+    let anim: Animation | null = null;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        io.disconnect();
+        anim = el.animate(
+          [
+            { opacity: 0, transform: `translateY(${y}px)` },
+            { opacity: 1, transform: "translateY(0)" },
+          ],
+          {
+            duration: 600,
+            delay: delay * 1000,
+            easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+            fill: "backwards",
+          },
+        );
+        el.style.opacity = "";
+      },
+      { threshold: 0.2 },
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      anim?.cancel();
+      el.style.opacity = "";
+    };
+  }, [y, delay]);
 
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay }}
-    >
+    <div ref={ref} className={className}>
       {children}
-    </motion.div>
+    </div>
   );
 }
