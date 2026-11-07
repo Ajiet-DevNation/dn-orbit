@@ -22,7 +22,6 @@ export function PixelArrow({
   className?: string;
 }) {
   return (
-    // biome-ignore lint/a11y/noSvgWithoutTitle: decorative glyph, aria-hidden keeps it out of the a11y tree
     <svg
       aria-hidden
       viewBox="0 0 4 7"
@@ -44,7 +43,6 @@ export function PixelArrow({
 
 export function PixelCheck({ className }: { className?: string }) {
   return (
-    // biome-ignore lint/a11y/noSvgWithoutTitle: decorative glyph, aria-hidden keeps it out of the a11y tree
     <svg
       aria-hidden
       viewBox="0 0 8 5"
@@ -64,7 +62,6 @@ export function PixelCheck({ className }: { className?: string }) {
 
 export function PixelCross({ className }: { className?: string }) {
   return (
-    // biome-ignore lint/a11y/noSvgWithoutTitle: decorative glyph, aria-hidden keeps it out of the a11y tree
     <svg
       aria-hidden
       viewBox="0 0 5 5"

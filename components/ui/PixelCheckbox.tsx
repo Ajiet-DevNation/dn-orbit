@@ -17,6 +17,7 @@ export function PixelCheckbox({
   "aria-label"?: string;
 }) {
   return (
+    // biome-ignore lint/a11y/useSemanticElements: pixel-drawn box; role + aria-checked give the native checkbox semantics
     <button
       type="button"
       role="checkbox"

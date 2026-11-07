@@ -25,6 +25,7 @@ const AvatarImage = React.forwardRef<
   // Intentional <img>: avatar URLs are arbitrary remote hosts; next/image
   // would need per-host config. The empty alt is a decorative-image default —
   // callers that pass alt via {...props} override it.
+  // biome-ignore lint/performance/noImgElement: arbitrary remote avatar hosts
   <img
     ref={ref}
     data-slot="avatar-image"

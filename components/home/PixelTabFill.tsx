@@ -8,6 +8,7 @@
 const COLS = 18;
 const ROWS = 4;
 const CELL_COUNT = COLS * ROWS;
+const CELLS = Array.from({ length: CELL_COUNT }, (_, i) => i);
 const SPREAD_MS = 170;
 
 function pseudoRandom(i: number): number {
@@ -25,7 +26,7 @@ export function PixelTabFill() {
         gridTemplateRows: `repeat(${ROWS}, 1fr)`,
       }}
     >
-      {Array.from({ length: CELL_COUNT }, (_, i) => (
+      {CELLS.map((i) => (
         <span
           key={i}
           className="pixel-tab-cell"

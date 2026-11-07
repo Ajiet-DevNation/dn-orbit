@@ -454,6 +454,7 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
                   {pageItems(currentPage, totalPages).map((item, i) =>
                     item === "…" ? (
                       <span
+                        // biome-ignore lint/suspicious/noArrayIndexKey: ellipsis slots have no id of their own
                         key={`gap-${i}`}
                         aria-hidden="true"
                         className="retro px-1 text-[9px] text-muted-foreground"

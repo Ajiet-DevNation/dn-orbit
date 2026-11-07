@@ -1,4 +1,3 @@
-import { cva } from "class-variance-authority";
 import type React from "react";
 import { forwardRef, useId } from "react";
 import {
@@ -8,24 +7,6 @@ import {
 } from "@/components/ui/avatar";
 
 import { cn } from "@/lib/utils";
-
-const avatarVariants = cva("", {
-  variants: {
-    font: {
-      normal: "",
-      retro: "retro",
-    },
-    variant: {
-      default: "",
-      retro: "",
-      pixel: "",
-    },
-  },
-  defaultVariants: {
-    font: "retro",
-    variant: "pixel",
-  },
-});
 
 const Avatar = forwardRef<
   HTMLDivElement,

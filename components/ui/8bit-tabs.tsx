@@ -2,7 +2,6 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type * as React from "react";
 import {
   Tabs as ShadcnTabs,
-  TabsContent as ShadcnTabsContent,
   TabsList as ShadcnTabsList,
   TabsTrigger as ShadcnTabsTrigger,
 } from "@/components/ui/tabs";
@@ -81,13 +80,6 @@ function TabsTrigger({
       {children}
     </ShadcnTabsTrigger>
   );
-}
-
-function TabsContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof ShadcnTabsContent>) {
-  return <ShadcnTabsContent className={cn("", className)} {...props} />;
 }
 
 export { Tabs, TabsList, TabsTrigger };

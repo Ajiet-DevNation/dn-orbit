@@ -274,6 +274,7 @@ export function FormBuilder({
               <div className="flex flex-col gap-2.5">
                 <Label>OPTIONS</Label>
                 {(f.options ?? []).map((opt, oi) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: options are plain controlled strings; position is their identity
                   <div key={oi} className="flex items-center gap-3">
                     <Input
                       className="flex-1"

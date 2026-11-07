@@ -73,6 +73,7 @@ function Progress({
                 const filledSquares = Math.round(((value || 0) / 100) * 20);
                 return (
                   <div
+                    // biome-ignore lint/suspicious/noArrayIndexKey: fixed 20-square bar, never reorders
                     key={i}
                     className={cn(
                       "flex-1 h-full mx-[1px]",

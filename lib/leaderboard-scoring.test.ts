@@ -73,8 +73,11 @@ describe("computeLeaderboard", () => {
       EQUAL_WEIGHTS,
       0,
     );
-    const a = result.find((r) => r.userId === "a")!;
-    const b = result.find((r) => r.userId === "b")!;
+    const [a, b] = ["a", "b"].map((id) => {
+      const row = result.find((r) => r.userId === id);
+      if (!row) throw new Error(`missing ${id}`);
+      return row;
+    });
     expect(a.lcScore).toBe(100);
     // Compression lifts the runner-up: sqrt(5)/sqrt(10) ≈ 0.707, not 0.5.
     expect(b.lcScore).toBeCloseTo(70.71, 2);
