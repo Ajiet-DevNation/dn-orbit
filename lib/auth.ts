@@ -5,6 +5,7 @@ import type { DefaultSession } from "next-auth";
 import NextAuth from "next-auth";
 import type { Adapter, AdapterUser } from "next-auth/adapters";
 import GitHub from "next-auth/providers/github";
+import { authSecret } from "@/lib/cookies";
 import { db } from "@/lib/db";
 import type { Role } from "@/lib/roles";
 import type { ApprovalStatus } from "@/lib/status";
@@ -116,10 +117,7 @@ const customAdapter: Adapter = {
 };
 
 export const { handlers, auth, signIn } = NextAuth({
-  secret:
-    process.env.AUTH_SECRET ??
-    process.env.NEXTAUTH_SECRET ??
-    "orbit-build-secret",
+  secret: authSecret(),
   adapter: customAdapter,
   session: {
     strategy: "jwt",

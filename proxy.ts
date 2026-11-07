@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { usesSecureCookies } from "@/lib/cookies";
+import { authSecret, usesSecureCookies } from "@/lib/cookies";
 import { canAccessAdmin } from "@/lib/roles";
 
 // Routes that require an authenticated (club-member) session. Everything else —
@@ -26,11 +26,11 @@ export async function proxy(req: NextRequest) {
   // salt Auth.js used to write it. On HTTPS (Vercel) that's the `__Secure-`
   // prefixed cookie; getToken defaults to the bare HTTP name, so we must tell it
   // explicitly or the session reads as null and every member is bounced to
-  // /login. The secret is resolved the same way lib/auth.ts resolves it
-  // (AUTH_SECRET ?? NEXTAUTH_SECRET) so the two sides can never diverge.
+  // /login. The secret comes from the same authSecret() lib/auth.ts uses, so
+  // the two sides can never diverge.
   const token = await getToken({
     req,
-    secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+    secret: authSecret(),
     secureCookie: usesSecureCookies(
       req.nextUrl.protocol,
       req.headers.get("x-forwarded-proto"),
