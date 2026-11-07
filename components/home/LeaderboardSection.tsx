@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { useScrubProgress } from "@/hooks/useScrubProgress";
-import { cn } from "@/lib/utils";
 import { SectionHeading } from "./SectionHeading";
 
 // Plain, serializable row — mapped server-side from leaderboard_scores.
@@ -33,8 +32,10 @@ interface LeaderboardSectionProps {
 
 // ─── tuning ──────────────────────────────────────────────────────────────────
 // Height of the scroll region (the pinned stage is one screen; the rest is the
-// scrub distance that drives the cinematic).
-const SECTION_VH = 380;
+// scrub distance that drives the cinematic) lives on the section as
+// `h-[200vh] xl:h-[380vh]`: below xl only the podium plays pinned and the list
+// follows in normal flow, because a 10-row list can't share one short phone
+// screen with a podium.
 
 // Scroll-progress windows [start, end] for each beat. Avatars spin in, then
 // their pillar rises beneath them, rank by rank — then the whole podium slides
@@ -425,6 +426,10 @@ function LeaderboardList({
                   <span className="retro truncate text-[8px] tracking-wider text-muted-foreground/70">
                     @{e.username}
                   </span>
+                  {/* Phones drop the score columns; the split rides here. */}
+                  <span className="mt-0.5 font-mono text-[10px] tabular-nums text-white/45 sm:hidden">
+                    GH {e.githubScore} · LC {e.lcScore} · EVT {e.eventScore}
+                  </span>
                 </div>
                 <ScoreCell value={e.githubScore} />
                 <ScoreCell value={e.lcScore} />
@@ -445,7 +450,7 @@ function LeaderboardList({
               disabled={safePage === 0}
               onClick={() => setPage(safePage - 1)}
             />
-            <span className="retro text-[9px] tracking-widest text-muted-foreground">
+            <span className="retro whitespace-nowrap text-[9px] tracking-widest text-muted-foreground">
               PAGE {safePage + 1} / {pageCount}
             </span>
             <PagerButton
@@ -489,7 +494,7 @@ function ScoreHead({ label, title }: { label: string; title: string }) {
   return (
     <span
       title={title}
-      className="retro w-9 shrink-0 text-right text-[8px] tracking-[0.12em] text-muted-foreground/80"
+      className="retro hidden w-9 shrink-0 text-right text-[8px] tracking-[0.12em] text-muted-foreground/80 sm:block"
     >
       {label}
     </span>
@@ -500,7 +505,7 @@ function ScoreHead({ label, title }: { label: string; title: string }) {
 // the clear focal point of each row).
 function ScoreCell({ value }: { value: number }) {
   return (
-    <span className="w-9 shrink-0 text-right font-mono text-xs tabular-nums text-white/55">
+    <span className="hidden w-9 shrink-0 text-right font-mono text-xs tabular-nums text-white/55 sm:block">
       {value}
     </span>
   );
@@ -596,76 +601,75 @@ export function LeaderboardSection({
   // composition by half that title band so it reads as vertically centred.
   const RAISE = 80;
 
+  // Below xl the podium just sits centred; the list lives below the section.
   const podiumTransform = wide
     ? `translate(calc(-50% + ${phaseBE * groupShift}px), calc(-50% - ${RAISE}px)) scale(${1 - phaseBE * (1 - podiumScaleEnd)})`
-    : `translate(-50%, calc(-50% - ${phaseBE * 150}px)) scale(${1 - phaseBE * 0.28})`;
+    : "translate(-50%, -50%)";
 
-  const listWrapperClass = wide
-    ? "absolute left-0 top-1/2"
-    : "absolute bottom-[4%] left-1/2 w-[92%] max-w-md";
   // Computed px (not a calc string) so it stays in lock-step with the centring
   // math above, which also reads containerWidth.
-  const listWidth = wide ? `${listW}px` : undefined;
-  const listTransform = wide
-    ? `translateY(calc(-50% - ${RAISE}px)) translateX(${groupOffset - (1 - phaseB) * 30}px)`
-    : `translateX(-50%) translateY(${(1 - phaseB) * 36}px)`;
+  const listTransform = `translateY(calc(-50% - ${RAISE}px)) translateX(${groupOffset - (1 - phaseB) * 30}px)`;
 
   return (
-    <section
-      ref={sectionRef}
-      id="leaderboard"
-      className="relative w-full scroll-mt-24"
-      style={{ height: `${SECTION_VH}vh` }}
-    >
-      <div className="sticky top-0 flex h-screen w-full flex-col overflow-hidden px-6">
-        {/* Title gets its own row at the top so the podium never covers it. */}
-        <div className="shrink-0 pt-28">
-          <SectionHeading text="LEADERBOARD" />
-        </div>
+    <>
+      <section
+        ref={sectionRef}
+        id="leaderboard"
+        className="relative h-[200vh] w-full scroll-mt-24 xl:h-[380vh]"
+      >
+        <div className="sticky top-0 flex h-svh w-full flex-col overflow-hidden px-6">
+          {/* Title gets its own row at the top so the podium never covers it. */}
+          <div className="shrink-0 pt-28">
+            <SectionHeading text="LEADERBOARD" />
+          </div>
 
-        {/* Podium + list centre within the area below the title. */}
-        <div
-          ref={containerRef}
-          className="relative mx-auto w-full max-w-[96rem] flex-1"
-        >
-          {/* Podium */}
+          {/* Podium + list centre within the area below the title. */}
           <div
-            className="absolute left-1/2 top-1/2 flex w-full max-w-3xl items-end justify-center gap-4 sm:gap-8"
-            style={{
-              transform: podiumTransform,
-              willChange: "transform",
-            }}
+            ref={containerRef}
+            className="relative mx-auto w-full max-w-[96rem] flex-1"
           >
-            {visualOrder.map(({ rank, entry }) => (
-              <PodiumColumn
-                key={rank}
-                rank={rank}
-                entry={entry}
-                progress={progress}
-                wide={wide}
+            {/* Podium */}
+            <div
+              className="absolute left-1/2 top-1/2 flex w-full max-w-3xl items-end justify-center gap-4 sm:gap-8"
+              style={{
+                transform: podiumTransform,
+                willChange: "transform",
+              }}
+            >
+              {visualOrder.map(({ rank, entry }) => (
+                <PodiumColumn
+                  key={rank}
+                  rank={rank}
+                  entry={entry}
+                  progress={progress}
+                  wide={wide}
+                />
+              ))}
+            </div>
+
+            {/* Ranked list beside the podium (xl+ only). */}
+            <div
+              className="absolute left-0 top-1/2 hidden xl:block"
+              style={{
+                width: `${listW}px`,
+                transform: listTransform,
+                opacity: phaseB,
+                pointerEvents: phaseB > 0.5 ? "auto" : "none",
+                willChange: "transform, opacity",
+              }}
+            >
+              <LeaderboardList
+                entries={entries}
+                phaseB={phaseB}
+                syncedAt={syncedAt}
               />
-            ))}
-          </div>
-
-          {/* Top-20 list */}
-          <div
-            className={cn(listWrapperClass)}
-            style={{
-              width: listWidth,
-              transform: listTransform,
-              opacity: phaseB,
-              pointerEvents: phaseB > 0.5 ? "auto" : "none",
-              willChange: "transform, opacity",
-            }}
-          >
-            <LeaderboardList
-              entries={entries}
-              phaseB={phaseB}
-              syncedAt={syncedAt}
-            />
+            </div>
           </div>
         </div>
+      </section>
+      <div className="mx-auto w-full max-w-xl px-4 pb-24 sm:px-6 xl:hidden">
+        <LeaderboardList entries={entries} phaseB={1} syncedAt={syncedAt} />
       </div>
-    </section>
+    </>
   );
 }
