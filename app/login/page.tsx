@@ -6,11 +6,11 @@ interface LoginPageProps {
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
-  OAuthAccountNotLinked: "ACCOUNT_CONFLICT: EMAIL_LINKED_TO_ANOTHER_PROVIDER",
-  OAuthSignin: "OAUTH_ERROR: FAILED_TO_INITIATE_CONNECTION",
-  OAuthCallback: "CALLBACK_ERROR: UNEXPECTED_RESPONSE_FROM_GITHUB",
-  AccessDenied: "ACCESS_DENIED: UNAUTHORIZED",
-  Default: "AUTH_ERROR: UNKNOWN_FAILURE",
+  OAuthAccountNotLinked: "THIS EMAIL IS ALREADY LINKED TO ANOTHER ACCOUNT",
+  OAuthSignin: "COULDN'T REACH GITHUB · TRY AGAIN",
+  OAuthCallback: "GITHUB SENT AN UNEXPECTED RESPONSE · TRY AGAIN",
+  AccessDenied: "ACCESS DENIED · THIS GITHUB ACCOUNT ISN'T ON THE MEMBER LIST",
+  Default: "SIGN-IN FAILED · TRY AGAIN",
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -20,7 +20,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     : null;
 
   return (
-    <main className="dark relative flex min-h-svh w-full items-center justify-center bg-black p-8 retro overflow-hidden">
+    <main
+      data-v2
+      className="dark relative flex min-h-svh w-full items-center justify-center overflow-hidden bg-black px-5 py-12"
+    >
       <PixelStarfield className="z-0" />
       <div className="relative z-10 w-full max-w-md">
         <LoginForm errorMessage={errorMessage} />
