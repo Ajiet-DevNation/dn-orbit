@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PixelTabFill } from "@/components/home/PixelTabFill";
 import type { ProfileData } from "@/components/home/ProfileModal";
@@ -49,6 +49,7 @@ export function V2Header({
   isAdmin = false,
 }: V2HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const isLandingPage = pathname === "/";
 
   const [activeTab, setActiveTab] = useState("events");
@@ -97,7 +98,12 @@ export function V2Header({
     return () => io.disconnect();
   }, [isLandingPage]);
 
+  // Off the landing page the sections don't exist here, so go home to them.
   const handleTabChange = (value: string) => {
+    if (!isLandingPage) {
+      router.push(`/#${value}`);
+      return;
+    }
     setActiveTab(value);
     const target = document.getElementById(value);
     if (target) smoothScrollTo(target);
@@ -142,7 +148,10 @@ export function V2Header({
                 pointerEvents: headerVisible ? "auto" : "none",
               }}
             >
-              <Tabs value={activeTab} onValueChange={handleTabChange}>
+              <Tabs
+                value={isLandingPage ? activeTab : ""}
+                onValueChange={handleTabChange}
+              >
                 {/*
                 TabsList background is bg-card (dark mode = #292929).
                 The pixel border divs inside use border-foreground / dark:border-ring.
