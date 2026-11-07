@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { recruitmentConfigSchema } from "@/lib/recruitment";
 import { canAccessAdmin } from "@/lib/roles";
 import { parseBody } from "@/lib/validation";
@@ -10,7 +11,10 @@ import { parseBody } from "@/lib/validation";
 // first toggle on a fresh database creates the row.
 export async function PATCH(req: NextRequest) {
   const session = await auth();
-  if (!session || !canAccessAdmin(session.user.role)) {
+  if (!session) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (!canAccessAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -25,6 +29,7 @@ export async function PATCH(req: NextRequest) {
     create: { id: 1, isOpen, updatedBy: session.user.id },
     update: { isOpen, updatedBy: session.user.id },
   });
+  invalidatePublic(PUBLIC_TAG.recruitment);
 
   void logAudit({
     action: isOpen ? "recruitment.open" : "recruitment.close",

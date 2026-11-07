@@ -14,3 +14,16 @@ export async function errorMessage(res: Response): Promise<string> {
   } catch {}
   return text.trim() || `Request failed (${res.status})`;
 }
+
+// GitHub serves avatars at any size via `s`; without it the profile image comes
+// back at full size (~460px) even when shown at 28px. Other hosts pass through.
+export function githubAvatarAt(url: string, px: number): string {
+  try {
+    const u = new URL(url);
+    if (u.hostname !== "avatars.githubusercontent.com") return url;
+    u.searchParams.set("s", String(Math.round(px)));
+    return u.toString();
+  } catch {
+    return url;
+  }
+}

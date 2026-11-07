@@ -8,13 +8,17 @@ import { canAccessAdmin } from "@/lib/roles";
 // the createdAt index keeps "newest N" fast regardless of total volume.
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session || !canAccessAdmin(session.user.role)) {
+  if (!session) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (!canAccessAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const takeParam = Number(new URL(req.url).searchParams.get("take"));
+  // Floored: Prisma rejects a fractional `take` (?take=1.5) with a 500.
   const take = Math.min(
-    Number.isFinite(takeParam) && takeParam > 0 ? takeParam : 100,
+    Number.isFinite(takeParam) && takeParam >= 1 ? Math.floor(takeParam) : 100,
     200,
   );
 

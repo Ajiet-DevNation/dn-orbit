@@ -87,8 +87,12 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
       {/* Fixed drawer on mobile, fixed rail on desktop */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-screen w-72 flex-col border-r-2 border-white/10 bg-black transition-transform duration-300",
-          open ? "translate-x-0" : "-translate-x-full",
+          // inset-y-0 sizes it to the visible viewport; h-screen (100vh) pushed
+          // the footer under the iOS toolbar. iOS drawer curve, quicker out.
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r-2 border-white/10 bg-black transition-transform ease-[cubic-bezier(0.32,0.72,0,1)]",
+          open
+            ? "translate-x-0 duration-300"
+            : "-translate-x-full duration-200",
           "md:translate-x-0",
         )}
       >
@@ -98,7 +102,8 @@ export function AdminSidebar({ userName }: { userName: string | null }) {
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close menu"
-            className="mr-4 text-brand-light md:hidden"
+            // 44px tap target around the 20px glyph.
+            className="mr-2 grid size-11 place-items-center text-brand-light md:hidden"
           >
             <X className="h-5 w-5" />
           </button>

@@ -145,7 +145,7 @@ export default function OnboardingPage() {
   if (showSuccess) return <SuccessOverlay />;
 
   return (
-    <div className="dark flex w-full min-h-screen items-center justify-center bg-black p-6 md:p-12 retro relative">
+    <div className="dark flex w-full min-h-svh items-center justify-center bg-black p-6 md:p-12 retro relative">
       <PixelStarfield className="z-0" />
       <div className="w-full max-w-lg relative z-10">
         <Card>

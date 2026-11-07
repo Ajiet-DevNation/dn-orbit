@@ -18,7 +18,10 @@ type Params = { params: Promise<{ id: string }> };
 // failed send doesn't undo the decision: the response reports `emailed`.
 export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await auth();
-  if (!session || !canAccessAdmin(session.user.role)) {
+  if (!session) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (!canAccessAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -75,7 +78,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 // case is an orphaned file in storage, never a row pointing at a missing CV.
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const session = await auth();
-  if (!session || !canAccessAdmin(session.user.role)) {
+  if (!session) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (!canAccessAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

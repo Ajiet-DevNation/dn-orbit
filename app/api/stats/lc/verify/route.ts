@@ -8,6 +8,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { fetchLeetCodeProfile } from "@/lib/lc-fetcher";
 import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
+import { jsonObjectSchema, parseBody } from "@/lib/validation";
 
 const LC_USERNAME_RE = /^[a-zA-Z0-9_.-]+$/;
 
@@ -29,7 +30,8 @@ export async function POST(req: NextRequest) {
   );
   if (!limit.ok) return tooManyRequests(limit);
 
-  const body = await req.json().catch(() => ({}));
+  const parsed = await parseBody(req, jsonObjectSchema);
+  const body = parsed.ok ? parsed.data : {};
   const username =
     typeof body.username === "string" ? body.username.trim() : "";
 

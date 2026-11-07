@@ -54,6 +54,12 @@ const ENV_CHECKS: {
     impact: "GitHub OAuth sign-in is unavailable.",
   },
   {
+    name: "TOKEN_ENCRYPTION_KEY",
+    required: true,
+    impact:
+      "Members' GitHub tokens are stored unencrypted (sign-in still works).",
+  },
+  {
     name: "NEXT_PUBLIC_SUPABASE_URL",
     required: false,
     impact: "Event and project image uploads are disabled.",

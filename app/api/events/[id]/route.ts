@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db, isRecordNotFound } from "@/lib/db";
 import { eventUpdateData } from "@/lib/event-payload";
 import { recomputeLeaderboardAfterResponse } from "@/lib/leaderboard";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { canAccessAdmin } from "@/lib/roles";
 import { parseBody, updateEventSchema } from "@/lib/validation";
 
@@ -68,7 +69,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await auth();
-  if (!session || !canAccessAdmin(session.user.role)) {
+  if (!session) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (!canAccessAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -84,6 +88,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     });
     // Publishing, unpublishing or re-dating changes the event-score denominator.
     recomputeLeaderboardAfterResponse();
+    invalidatePublic(PUBLIC_TAG.events);
     return NextResponse.json(updated);
   } catch (error) {
     if (isRecordNotFound(error)) {
@@ -95,13 +100,17 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const session = await auth();
-  if (!session || !canAccessAdmin(session.user.role)) {
+  if (!session) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (!canAccessAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
   try {
     await db.event.delete({ where: { id } });
+    invalidatePublic(PUBLIC_TAG.events);
   } catch (error) {
     if (isRecordNotFound(error)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });

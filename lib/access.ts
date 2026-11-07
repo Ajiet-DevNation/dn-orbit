@@ -12,6 +12,24 @@ export async function isApproved(userId: string): Promise<boolean> {
   return u?.status === "approved";
 }
 
+/** Is this LeetCode handle already linked to another member? LeetCode has no
+ *  OAuth, so without this anyone could claim a top solver's handle and their
+ *  leaderboard score. Shortcut: first come, first served, not proof of
+ *  ownership; a bio-token check would be the upgrade. */
+export async function lcHandleTaken(
+  handle: string,
+  userId: string,
+): Promise<boolean> {
+  const other = await db.user.findFirst({
+    where: {
+      lcUsername: { equals: handle, mode: "insensitive" },
+      NOT: { id: userId },
+    },
+    select: { id: true },
+  });
+  return other !== null;
+}
+
 /**
  * Outcome of an event-roster authorization check. Carries the HTTP status a
  * route should return so every roster endpoint answers identically instead of

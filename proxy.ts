@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { authSecret, usesSecureCookies } from "@/lib/cookies";
+import { usesSecureCookies } from "@/lib/cookies";
 import { canAccessAdmin } from "@/lib/roles";
 
 // Routes that require an authenticated (club-member) session. Everything else —
@@ -18,19 +18,20 @@ const isProtectedRoute = (path: string) =>
  * `crypto` — that module is unavailable in the Edge Runtime that proxy
  * runs in. `getToken()` only decodes the JWT cookie via `jose` (Edge-safe).
  *
- * The JWT contains `id`, `role`, `usn`, `branch`, `lcUsername`, and
- * `accessToken` — set by the jwt callback in lib/auth.ts.
+ * The JWT contains `id`, `role`, `status`, `usn`, `branch` and
+ * `lcUsername` — set by the jwt callback in lib/auth.ts. (Never the GitHub
+ * token: that stays encrypted in the DB.)
  */
 export async function proxy(req: NextRequest) {
   // `getToken()` must read the session cookie with the same name + encryption
   // salt Auth.js used to write it. On HTTPS (Vercel) that's the `__Secure-`
   // prefixed cookie; getToken defaults to the bare HTTP name, so we must tell it
   // explicitly or the session reads as null and every member is bounced to
-  // /login. The secret comes from the same authSecret() lib/auth.ts uses, so
-  // the two sides can never diverge.
+  // /login. The secret is resolved the same way lib/auth.ts resolves it
+  // (AUTH_SECRET ?? NEXTAUTH_SECRET) so the two sides can never diverge.
   const token = await getToken({
     req,
-    secret: authSecret(),
+    secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
     secureCookie: usesSecureCookies(
       req.nextUrl.protocol,
       req.headers.get("x-forwarded-proto"),

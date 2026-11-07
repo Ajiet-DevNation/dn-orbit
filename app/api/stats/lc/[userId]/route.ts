@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { fetchLeetCodeStats } from "@/lib/lc-fetcher";
 import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
 import { canAccessAdmin } from "@/lib/roles";
+import { saveLcStats } from "@/lib/statsSync";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -100,16 +101,7 @@ export async function GET(
     fetchedAt: new Date(),
   };
 
-  const existing = await db.lcStats.findFirst({ where: { userId } });
-
-  const saved = existing
-    ? await db.lcStats.update({
-        where: { id: existing.id },
-        data: statsData,
-      })
-    : await db.lcStats.create({
-        data: { userId, ...statsData },
-      });
+  const saved = await saveLcStats(userId, statsData);
 
   // ── 6. Return response ─────────────────────────────────────
   return NextResponse.json({

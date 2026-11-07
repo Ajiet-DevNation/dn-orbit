@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { canAccessAdmin } from "@/lib/roles";
 import { parseBody, updateProjectSchema } from "@/lib/validation";
 
@@ -87,6 +88,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       where: { id },
       data: dataToUpdate,
     });
+    invalidatePublic(PUBLIC_TAG.projects);
 
     if (sendBackToReview) {
       void logAudit({

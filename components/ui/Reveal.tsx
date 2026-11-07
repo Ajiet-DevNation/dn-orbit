@@ -1,6 +1,7 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface RevealProps {
   children: ReactNode;
@@ -12,9 +13,12 @@ interface RevealProps {
 }
 
 /**
- * Subtle, once-only fade-up as the element scrolls into view. Honours
- * prefers-reduced-motion (renders static). Web Animations API, so no animation
- * library ships for one entrance.
+ * Subtle, once-only fade-up as the element scrolls into view. Keeps the 8-bit
+ * theme — this only eases entrances, it doesn't add any decorative motion.
+ *
+ * A CSS transition on an IntersectionObserver flag rather than framer-motion,
+ * which this one fade was the only user of. Under prefers-reduced-motion the
+ * globals.css reset flattens the transition, so it simply appears.
  */
 export function Reveal({
   children,
@@ -23,44 +27,36 @@ export function Reveal({
   delay = 0,
 }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-
-    el.style.opacity = "0";
-    let anim: Animation | null = null;
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (!entry?.isIntersecting) return;
+        if (!entry.isIntersecting) return;
+        setShown(true);
         io.disconnect();
-        anim = el.animate(
-          [
-            { opacity: 0, transform: `translateY(${y}px)` },
-            { opacity: 1, transform: "translateY(0)" },
-          ],
-          {
-            duration: 600,
-            delay: delay * 1000,
-            easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-            fill: "backwards",
-          },
-        );
-        el.style.opacity = "";
       },
       { threshold: 0.2 },
     );
     io.observe(el);
-    return () => {
-      io.disconnect();
-      anim?.cancel();
-      el.style.opacity = "";
-    };
-  }, [y, delay]);
+    return () => io.disconnect();
+  }, []);
 
   return (
-    <div ref={ref} className={className}>
+    <div
+      ref={ref}
+      className={cn(
+        "transition-[opacity,translate] duration-500 ease-(--ease-out-quart)",
+        className,
+      )}
+      style={{
+        opacity: shown ? 1 : 0,
+        translate: shown ? "0 0" : `0 ${y}px`,
+        transitionDelay: `${delay}s`,
+      }}
+    >
       {children}
     </div>
   );

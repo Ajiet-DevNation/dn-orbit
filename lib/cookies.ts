@@ -26,17 +26,3 @@ export function usesSecureCookies(
   if (forwarded) return forwarded === "https";
   return protocol === "https:";
 }
-
-// Session signing secret. A missing one at runtime throws instead of falling
-// back to a value anyone could read in the repo and forge an admin session
-// with. Only `next build` (which never issues a session) gets a random stand-in.
-export function authSecret(
-  env: Record<string, string | undefined> = process.env,
-): string {
-  const secret = env.AUTH_SECRET || env.NEXTAUTH_SECRET;
-  if (secret) return secret;
-  if (env.NEXT_PHASE === "phase-production-build") {
-    return crypto.randomUUID() + crypto.randomUUID();
-  }
-  throw new Error("Missing AUTH_SECRET (or NEXTAUTH_SECRET) env var");
-}

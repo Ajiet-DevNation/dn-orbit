@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  allowlistEntrySchema,
   createEventSchema,
   createProjectSchema,
   feedbackSchema,
@@ -21,11 +22,35 @@ describe("parseBody", () => {
   test("returns a 400-able error for malformed JSON instead of throwing", async () => {
     const req = new Request("http://localhost/test", {
       method: "POST",
+      headers: { "content-type": "application/json" },
       body: "{not json",
     });
     const result = await parseBody(req, createEventSchema);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe("Invalid JSON body");
+  });
+
+  test("rejects a non-JSON content type (cross-site text/plain form)", async () => {
+    const req = new Request("http://localhost/test", {
+      method: "POST",
+      headers: { "content-type": "text/plain" },
+      body: JSON.stringify({ title: "x", eventDate: "2026-08-01" }),
+    });
+    const result = await parseBody(req, createEventSchema);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("application/json");
+  });
+
+  test("accepts a JSON content type with a charset", async () => {
+    const req = new Request("http://localhost/test", {
+      method: "POST",
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: JSON.stringify({
+        title: "Hack",
+        eventDate: "2026-08-01T18:00:00Z",
+      }),
+    });
+    expect((await parseBody(req, createEventSchema)).ok).toBe(true);
   });
 
   test("reports the offending field path", async () => {
@@ -404,5 +429,60 @@ describe("event deadline vs event date", () => {
         registrationDeadline: "2030-01-01T00:00",
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("event date range", () => {
+  test.each([
+    0,
+    -1,
+    999_999_999_999_999,
+    "1969-12-31T00:00",
+    "2100-01-01T00:00",
+  ])("rejects out-of-range eventDate %p", async (eventDate) => {
+    const result = await parseBody(
+      jsonReq({ title: "X", eventDate }),
+      createEventSchema,
+    );
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe("allowlistEntrySchema", () => {
+  test("normalises a valid username and email", () => {
+    const r = allowlistEntrySchema.safeParse({
+      githubUsername: "  Octo-Cat ",
+      email: " A@B.dev ",
+      note: "",
+    });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data).toEqual({
+        githubUsername: "octo-cat",
+        email: "a@b.dev",
+        note: undefined,
+      });
+    }
+  });
+
+  test("accepts either field alone", () => {
+    expect(
+      allowlistEntrySchema.safeParse({ githubUsername: "a" }).success,
+    ).toBe(true);
+    expect(
+      allowlistEntrySchema.safeParse({ email: "a@b.co", githubUsername: "" })
+        .success,
+    ).toBe(true);
+  });
+
+  test.each([
+    {},
+    { githubUsername: "  ", email: "" },
+    { githubUsername: "<script>" },
+    { githubUsername: "https://github.com/x" },
+    { email: "nope" },
+    { githubUsername: "ok", email: "nope" },
+  ])("rejects %p", (body) => {
+    expect(allowlistEntrySchema.safeParse(body).success).toBe(false);
   });
 });

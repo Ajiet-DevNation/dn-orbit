@@ -3,6 +3,9 @@ import {
   type EventAudience,
   type FormFieldDef,
   isFieldVisible,
+  isSafePattern,
+  MAX_PATTERN_INPUT_LEN,
+  MAX_PATTERN_LEN,
   usnRequiredFor,
   validateSubmission,
 } from "./forms";
@@ -143,6 +146,48 @@ describe("validateSubmission", () => {
     expect(r.ok).toBe(false);
   });
 
+  test("multi_choice dedupes repeated options", () => {
+    const r = validateSubmission({
+      ...base,
+      schema: [field({ id: "x", type: "multi_choice", options: ["A", "B"] })],
+      input: {
+        name: "N",
+        email: "a@b.com",
+        responses: { x: Array(10_000).fill("A") },
+      },
+    });
+    expect(r.ok).toBe(true);
+    expect(r.value?.responses.x).toEqual(["A"]);
+  });
+
+  test("email field rejects an over-long value without running the regex", () => {
+    const started = performance.now();
+    const r = validateSubmission({
+      ...base,
+      schema: [field({ id: "x", type: "email" })],
+      input: {
+        name: "N",
+        email: "a@b.com",
+        responses: { x: `a@${".".repeat(100_000)}@` },
+      },
+    });
+    expect(r.ok).toBe(false);
+    expect(performance.now() - started).toBeLessThan(50);
+  });
+
+  test("text over the pattern input cap is rejected, not matched", () => {
+    const r = validateSubmission({
+      ...base,
+      schema: [field({ id: "x", pattern: "^\\d+$" })],
+      input: {
+        name: "N",
+        email: "a@b.com",
+        responses: { x: "1".repeat(MAX_PATTERN_INPUT_LEN + 1) },
+      },
+    });
+    expect(r.ok).toBe(false);
+  });
+
   test("number field rejects non-numeric", () => {
     const r = validateSubmission({
       ...base,
@@ -255,5 +300,59 @@ describe("isFieldVisible", () => {
   test("checkbox (array) controller matches on includes", () => {
     expect(isFieldVisible(cond, { c: ["No", "Yes"] })).toBe(true);
     expect(isFieldVisible(cond, { c: ["No"] })).toBe(false);
+  });
+});
+
+describe("isSafePattern", () => {
+  test("accepts ordinary validation patterns", () => {
+    for (const p of [
+      "^[0-9]{10}$",
+      "^4JK\\d{2}[A-Z]{2}\\d{3}$",
+      "^https?://",
+      "^(jpg|png)$",
+      "^[a-z]+(-[a-z]+)?$",
+    ]) {
+      expect(isSafePattern(p)).toBe(true);
+    }
+  });
+
+  test("rejects catastrophic backtracking shapes", () => {
+    for (const p of [
+      "(a+)+$",
+      "^(\\w+\\s?)*$",
+      "(a*)*b",
+      "(a|aa)+$",
+      "(x+x+)+y",
+      "^(a+){2,}$",
+      "(a)\\1",
+    ]) {
+      expect(isSafePattern(p)).toBe(false);
+    }
+  });
+
+  test("rejects adjacent open quantifiers and choice explosions", () => {
+    for (const p of [
+      "^\\d*\\d*\\d*\\d*x$",
+      "^\\d+\\d{1,}\\d{0,99}x$",
+      "^a?a?a?a?a?a?a?aaaaaaa$",
+      "^(a|a)(a|a)(a|a)(a|a)(a|a)(a|a)(a|a)b$",
+    ]) {
+      expect(isSafePattern(p)).toBe(false);
+    }
+  });
+
+  test("does not count group openers, lazy marks or [classes] as quantifiers", () => {
+    for (const p of [
+      "^(?:[A-Z]{2,3})\\d+?$",
+      "^[*+?|{}]+\\d{3}$",
+      "^(?<id>\\d{4})-\\d{4}$",
+    ]) {
+      expect(isSafePattern(p)).toBe(true);
+    }
+  });
+
+  test("rejects invalid and over-long patterns", () => {
+    expect(isSafePattern("(")).toBe(false);
+    expect(isSafePattern("a".repeat(MAX_PATTERN_LEN + 1))).toBe(false);
   });
 });

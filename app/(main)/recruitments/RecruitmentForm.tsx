@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useRef, useState } from "react";
+import { useState, ViewTransition } from "react";
+import {
+  RECRUIT_CARD_TRANSITION,
+  RECRUIT_MORPH,
+} from "@/components/home/RecruitmentBanner";
 import { Button } from "@/components/ui/8bit-button";
+import { Card } from "@/components/ui/8bit-card";
 import {
   FIELD_ERROR,
   FIELD_FRAME,
@@ -19,9 +24,7 @@ import {
 } from "@/components/ui/8bit-select";
 import { Textarea } from "@/components/ui/8bit-textarea";
 import { toast } from "@/components/ui/8bit-toast";
-import { PixelFrame } from "@/components/ui/PixelFrame";
-import { PixelArrow } from "@/components/ui/PixelIcons";
-import { useSpriteSheet } from "@/hooks/useSpriteSheet";
+import { PixelArrow, PixelCheck } from "@/components/ui/PixelIcons";
 import {
   ABOUT_MAX_WORDS,
   BRANCHES,
@@ -32,10 +35,9 @@ import {
   recruitmentApplicationSchema,
   YEARS,
 } from "@/lib/recruitment";
-import { loopFrame } from "@/lib/sprite";
 import { cn } from "@/lib/utils";
 import { MissionProgress } from "./MissionProgress";
-import { RecruitHeaderCard, SignalBars, type Step } from "./RecruitHeaderCard";
+import { RecruitHeaderCard, type Step } from "./RecruitHeaderCard";
 
 type Key = keyof RecruitmentApplicationInput;
 type Values = Record<Key, string>;
@@ -175,10 +177,13 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   if (!open) {
     return (
       <Layout step={null}>
-        <StatusCard
-          title="RECRUITMENT IS CLOSED"
-          body="We're not taking applications right now. Keep an eye on the home page for the next drive."
-        />
+        <Card className="w-full items-start gap-4 border-white/10 p-8">
+          <p className="retro text-sm text-white/70">RECRUITMENT IS CLOSED.</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            We&apos;re not taking applications right now. Keep an eye on the
+            home page for the next drive.
+          </p>
+        </Card>
       </Layout>
     );
   }
@@ -186,14 +191,26 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   if (step === "done") {
     return (
       <Layout step="done">
-        <StatusCard
-          title="APPLICATION SENT!"
-          body="Thanks for applying. The team will review it and reach out on WhatsApp or email."
-          celebrate
-        />
+        <Card className="w-full items-center gap-4 border-brand/30 p-10 text-center">
+          <PixelCheck className="text-4xl text-brand-light" />
+          <p className="retro text-sm text-white">APPLICATION SENT!</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Thanks for applying. The team will review it and reach out on
+            WhatsApp or email.
+          </p>
+        </Card>
       </Layout>
     );
   }
+
+  // Keyboard and screen-reader users land on the first field to fix, after
+  // the errors have rendered.
+  const focusFirstError = () =>
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>('form [aria-invalid="true"]')
+        ?.focus(),
+    );
 
   const review = (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,6 +218,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error));
       toast.error("Please fix the highlighted fields");
+      focusFirstError();
       return;
     }
     setErrors({});
@@ -227,6 +245,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
         setErrors(data.fields);
         setStep("form");
         toast.error("Please fix the highlighted fields");
+        focusFirstError();
       } else {
         toast.error(data.error ?? "Could not submit your application");
       }
@@ -240,6 +259,11 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   const filled = REQUIRED.filter((k) => values[k].trim()).length;
 
   if (step === "review") {
+    // Read back what will be stored (USN uppercased, email lowercased, "@"
+    // dropped from the X handle), not the raw keystrokes. review() already
+    // proved the parse succeeds.
+    const parsed = recruitmentApplicationSchema.safeParse(values);
+    const shown = parsed.success ? parsed.data : values;
     return (
       <Layout step="review" filled={filled}>
         {SECTIONS.map((s, i) => (
@@ -257,7 +281,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
                     {k === "about" ? "ABOUT YOU" : FIELDS[k].label}
                   </dt>
                   <dd className="whitespace-pre-wrap break-words font-mono text-sm text-white">
-                    {values[k].trim() || "—"}
+                    {String(shown[k] ?? "").trim() || "—"}
                   </dd>
                 </div>
               ))}
@@ -298,6 +322,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   const control = (k: Key) => {
     const id = `rec-${k}`;
     const invalid = !!errors[k];
+    const describedBy = invalid ? `${id}-error` : undefined;
     if (k === "branch" || k === "year") {
       const options =
         k === "branch"
@@ -305,7 +330,11 @@ export function RecruitmentForm({ open }: { open: boolean }) {
           : YEARS.map((y) => ({ value: String(y), label: `YEAR ${y}` }));
       return (
         <Select value={values[k]} onValueChange={set(k)}>
-          <SelectTrigger id={id} aria-invalid={invalid}>
+          <SelectTrigger
+            id={id}
+            aria-invalid={invalid}
+            aria-describedby={describedBy}
+          >
             <SelectValue
               placeholder={k === "branch" ? "Select branch" : "Select year"}
             />
@@ -329,6 +358,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
             value={values.about}
             placeholder="I am a…"
             aria-invalid={invalid}
+            aria-describedby={describedBy}
             onChange={(e) => set("about")(e.target.value)}
             rows={6}
             className="[&_textarea]:min-h-[160px]"
@@ -355,6 +385,7 @@ export function RecruitmentForm({ open }: { open: boolean }) {
         autoComplete={f.autoComplete}
         placeholder={f.placeholder}
         aria-invalid={invalid}
+        aria-describedby={describedBy}
         onChange={(e) => set(k)(e.target.value)}
       />
     );
@@ -392,33 +423,8 @@ export function RecruitmentForm({ open }: { open: boolean }) {
           </Panel>
         ))}
 
-        {/* Phones: the row sticks to the bottom and carries the progress the
-            desktop rail shows, so it stays in view the whole way down. */}
-        <div className="sticky bottom-0 z-10 -mx-5 flex flex-col gap-3 border-t-2 border-brand/30 bg-black/95 px-5 py-4 sm:-mx-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0">
-          <div className="flex items-center gap-3 lg:hidden">
-            <div
-              role="progressbar"
-              aria-label="Required fields completed"
-              aria-valuemin={0}
-              aria-valuemax={REQUIRED.length}
-              aria-valuenow={filled}
-              className="flex flex-1 gap-[2px] border-2 border-brand bg-brand p-[2px] sm:w-40 sm:flex-none"
-            >
-              {REQUIRED.map((k, i) => (
-                <span
-                  key={k}
-                  className={cn(
-                    "h-2 flex-1",
-                    i < filled ? "bg-brand-light" : "bg-[#1a1838]",
-                  )}
-                />
-              ))}
-            </div>
-            <span className="retro whitespace-nowrap text-[9px] text-brand-light">
-              {filled} / {REQUIRED.length}
-            </span>
-          </div>
-          <p className="retro hidden text-[9px] tracking-[0.14em] text-muted-foreground lg:block">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="retro text-[9px] tracking-[0.14em] text-muted-foreground">
             <span className="text-brand-light">*</span> REQUIRED
           </p>
           <Button
@@ -446,29 +452,44 @@ function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 py-24 sm:px-6 sm:py-28">
-      <Link
-        href="/"
-        className="retro flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 hover:text-white"
-      >
-        <PixelArrow dir="left" /> BACK TO ORBIT
-      </Link>
-      {/* Full width, like the mock: the rail is too narrow for this card. */}
-      <div className="mt-6">
-        <RecruitHeaderCard current={step} />
-      </div>
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-10">
-        <aside className="flex flex-col gap-6 lg:sticky lg:top-28 lg:col-span-2 lg:self-start">
-          {filled !== undefined && (
-            // Desktop only, like before: on phones the form should start fast.
-            <div className="hidden lg:block">
-              <MissionProgress filled={filled} total={REQUIRED.length} />
-            </div>
-          )}
-          <PixelFrame className="hidden lg:block">
-            <div className="flex flex-col gap-4 px-1 py-1">
-              <span className="retro flex items-center gap-2.5 text-[9px] tracking-widest text-white">
-                <SignalBars />
+    // Arriving from the landing page's RECRUITING strip, the page rises in
+    // under the card's morph; leaving by BACK TO ORBIT it fades out fast.
+    // Every other navigation leaves it alone (default="none").
+    <ViewTransition
+      enter={{ "recruit-in": "recruit-rise", default: "none" }}
+      exit={{ "recruit-out": "recruit-sink", default: "none" }}
+      default="none"
+    >
+      <div className="mx-auto w-full max-w-6xl px-5 pt-6 pb-24 sm:px-6 sm:pt-8 sm:pb-28">
+        <Link
+          href="/"
+          transitionTypes={["recruit-out"]}
+          // 14px of text; the pseudo-element grows the hit area to 44px tall
+          // without moving the layout (same trick as the 8-bit Button).
+          className="retro relative flex w-fit items-center gap-2 text-[9px] text-brand-light transition-colors duration-200 before:absolute before:-inset-x-2 before:-inset-y-[15px] before:content-[''] hover:text-white"
+        >
+          <PixelArrow dir="left" /> BACK TO ORBIT
+        </Link>
+        {/* Full width, like the mock: the rail is too narrow for this card. */}
+        <ViewTransition
+          name={RECRUIT_CARD_TRANSITION}
+          share={RECRUIT_MORPH}
+          default="none"
+        >
+          <div className="mt-6">
+            <RecruitHeaderCard current={step} />
+          </div>
+        </ViewTransition>
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5 lg:gap-10">
+          <aside className="flex flex-col gap-6 lg:sticky lg:top-28 lg:col-span-2 lg:self-start">
+            {filled !== undefined && (
+              // Desktop only, like before: on phones the form should start fast.
+              <div className="hidden lg:block">
+                <MissionProgress filled={filled} total={REQUIRED.length} />
+              </div>
+            )}
+            <div className="hidden flex-col gap-4 border-2 border-white/10 bg-[#0a0a0a] p-6 lg:flex">
+              <span className="retro text-[9px] tracking-widest text-white/80">
                 HOW IT WORKS
               </span>
               <ol className="flex flex-col gap-3">
@@ -481,19 +502,19 @@ function Layout({
                     <span className="retro shrink-0 text-[9px] leading-5 text-brand-light">
                       0{i + 1}
                     </span>
-                    <span className="text-xs leading-5 text-[#bdb8d9]">
+                    <span className="text-xs leading-5 text-muted-foreground">
                       {text}
                     </span>
                   </li>
                 ))}
               </ol>
             </div>
-          </PixelFrame>
-        </aside>
+          </aside>
 
-        <div className="flex flex-col gap-6 lg:col-span-3">{children}</div>
+          <div className="flex flex-col gap-6 lg:col-span-3">{children}</div>
+        </div>
       </div>
-    </div>
+    </ViewTransition>
   );
 }
 
@@ -507,8 +528,8 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-2 border-brand/25 bg-[#0a0a0a] transition-colors duration-200 focus-within:border-brand/70">
-      <header className="flex items-center gap-3 border-b-2 border-brand/20 bg-brand/[0.06] px-5 py-3 sm:px-6">
+    <section className="border-2 border-white/10 bg-[#0a0a0a] transition-colors duration-200 focus-within:border-brand/40">
+      <header className="flex items-center gap-3 border-b-2 border-white/10 px-5 py-3 sm:px-6">
         <span className="retro text-[9px] text-brand-light">0{index}</span>
         <h2 className="retro text-[9px] tracking-widest text-white/80">
           {"// "}
@@ -544,7 +565,11 @@ function Field({
         {required && <span className="text-brand-light">*</span>}
       </Label>
       {children}
-      {error && <p className={FIELD_ERROR}>{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className={FIELD_ERROR}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -613,54 +638,5 @@ function CvPicker({
       </label>
       <div className={FIELD_FRAME_SIDES} aria-hidden="true" />
     </div>
-  );
-}
-
-// Pluton's flag-hop sheet, reused from the progress walkway.
-const JUMP_FRAMES = 9;
-
-// Closed / sent screen: the purple pixel frame, and on success Pluton hopping
-// with his flag. Sprite steps on rAF; reduced motion holds frame 0.
-function StatusCard({
-  title,
-  body,
-  celebrate = false,
-}: {
-  title: string;
-  body: string;
-  celebrate?: boolean;
-}) {
-  const spriteRef = useRef<HTMLDivElement>(null);
-  const frameAt = useCallback((t: number) => loopFrame(t, JUMP_FRAMES, 90), []);
-  useSpriteSheet(spriteRef, JUMP_FRAMES, frameAt, celebrate);
-
-  return (
-    <PixelFrame>
-      <div className="flex flex-col items-center gap-4 px-2 py-6 text-center sm:py-8">
-        {celebrate && (
-          <div
-            ref={spriteRef}
-            aria-hidden
-            className="pixelated size-[96px] bg-[url(/assets/pluton/pluton-flag-jump.png)] bg-[length:900%_100%] bg-no-repeat"
-          />
-        )}
-        <p
-          className={cn(
-            "retro text-sm sm:text-base",
-            celebrate ? "text-brand-light" : "text-white",
-          )}
-        >
-          {title}
-        </p>
-        <p className="max-w-sm font-mono text-sm leading-relaxed text-[#d4d0ea]">
-          {body}
-        </p>
-        <Button asChild variant="outline" className="mt-2 text-[10px]">
-          <Link href="/">
-            <PixelArrow dir="left" /> BACK TO ORBIT
-          </Link>
-        </Button>
-      </div>
-    </PixelFrame>
   );
 }

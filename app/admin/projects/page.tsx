@@ -17,6 +17,11 @@ export default async function AdminProjectsPage() {
     redirect("/");
   }
 
+  // Tiles count in the DB; the list below is capped at 500.
+  const reviewCounts = await db.project.groupBy({
+    by: ["reviewStatus"],
+    _count: true,
+  });
   const projects = await db.project.findMany({
     // Bounded: one page view must never become an unbounded transfer.
     take: 500,
@@ -43,12 +48,10 @@ export default async function AdminProjectsPage() {
       submittedAt: "desc",
     },
   });
-  const pendingCount = projects.filter(
-    (p) => p.reviewStatus === "pending",
-  ).length;
-  const approvedCount = projects.filter(
-    (p) => p.reviewStatus === "approved",
-  ).length;
+  const count = (status: string) =>
+    reviewCounts.find((c) => c.reviewStatus === status)?._count ?? 0;
+  const pendingCount = count("pending");
+  const approvedCount = count("approved");
 
   return (
     <div className="space-y-8 p-6 md:p-8">

@@ -109,10 +109,12 @@ export function LensSection({
       <div className="sticky top-0 h-svh w-full overflow-hidden motion-reduce:relative">
         {/* The giant title flies into this label, which then takes over,
             kicker and all. */}
-        <div className="pointer-events-none absolute inset-x-0 top-[92px] z-30 flex flex-col items-center md:inset-x-auto md:left-[max(24px,3.5vw)] md:top-[24%] md:items-start">
+        {/* A landscape phone has no height for the title above the lens, so it
+            sits to the left, desktop style. */}
+        <div className="pointer-events-none absolute inset-x-0 top-[92px] z-30 flex flex-col items-center max-md:landscape:inset-x-auto max-md:landscape:left-6 max-md:landscape:top-[96px] max-md:landscape:items-start md:inset-x-auto md:left-[max(24px,3.5vw)] md:top-[24%] md:items-start">
           <div
             ref={entrance.headingRef}
-            className="flex flex-col items-center gap-3 md:items-start"
+            className="flex flex-col items-center gap-3 max-md:landscape:items-start md:items-start"
             style={{ opacity: 0 }}
           >
             <p className="retro text-[9px] tracking-[0.3em] text-brand-light md:text-[clamp(10px,0.8vw,14px)]">
@@ -133,7 +135,7 @@ export function LensSection({
           className={cn(
             // md:top nudges the centre line 15px down: the lens then sits
             // midway between the nav and the counter instead of touching the nav.
-            "absolute inset-x-0 bottom-0 top-[150px] select-none md:top-[30px]",
+            "absolute inset-x-0 bottom-0 top-[150px] select-none max-md:landscape:top-[90px] md:top-[30px]",
             stageClassName,
           )}
           style={stageStyle}

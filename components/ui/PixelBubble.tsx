@@ -64,6 +64,9 @@ export function PixelBubble({
         aria-hidden
         width={t.w}
         height={t.h}
+        // Served as-is: the optimizer caches by URL, so a recoloured file kept
+        // showing its old colours. A 150-byte sprite gains nothing from it.
+        unoptimized
         className={cn("pixelated absolute max-w-none", t.className)}
       />
     </div>

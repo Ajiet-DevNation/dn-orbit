@@ -2,7 +2,7 @@ import { memo } from "react";
 
 // HUD cartridge chrome layered over a lens card. Emphasis (edge bloom,
 // bracket brightness, scanlines) follows the engine's --cf-center var via
-// opacity (compositor cheap). The bracket "pop" is animated imperatively (useCardPowerOn),
+// opacity (compositor cheap). The bracket "pop" is animated imperatively by GSAP (useCardPowerOn),
 // which targets .hud-bracket inside the card. "full" (Projects) adds the steady
 // scanlines texture; "depth" (Members) keeps the frame readable over the
 // flipped bio.

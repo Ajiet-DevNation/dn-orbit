@@ -15,9 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/8bit-select";
 import { Textarea } from "@/components/ui/8bit-textarea";
-import { toast } from "@/components/ui/8bit-toast";
+import { toast as rawToast } from "@/components/ui/8bit-toast";
 import { ImageCropUpload } from "@/components/ui/ImageCropUpload";
 import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 import { PixelModal } from "@/components/ui/PixelModal";
 import {
   AUDIENCE_OPTIONS,
@@ -26,6 +27,17 @@ import {
   eventTypeLabel,
   type FormFieldDef,
 } from "@/lib/forms";
+
+const toast = rawToast as unknown as (message: ReactNode) => void;
+function notify(kind: "success" | "error", message: string) {
+  const color = kind === "success" ? "text-brand-light" : "text-red-500";
+  toast(
+    <span className={`inline-flex items-center gap-2 ${color}`}>
+      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
+      {message}
+    </span>,
+  );
+}
 
 interface EventModalProps {
   open: boolean;
@@ -75,21 +87,21 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
 
   async function handleCreate() {
     if (!title.trim() || !eventDate) {
-      toast.error("Title and date are required");
+      notify("error", "Title and date are required");
       return;
     }
     // Every builder question needs a label; an "Untitled question" left in the
     // schema produces a confusing registration field, so block on it early.
     const blankLabel = schema.find((f) => !f.label.trim());
     if (blankLabel) {
-      toast.error("Every custom question needs a label");
+      notify("error", "Every custom question needs a label");
       return;
     }
     if (
       capacity &&
       (!Number.isInteger(Number(capacity)) || Number(capacity) < 1)
     ) {
-      toast.error("Capacity must be a whole number ≥ 1");
+      notify("error", "Capacity must be a whole number ≥ 1");
       return;
     }
     if (
@@ -97,7 +109,7 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
       eventDate &&
       new Date(registrationDeadline) > new Date(eventDate)
     ) {
-      toast.error("Registration deadline can't be after the event");
+      notify("error", "Registration deadline can't be after the event");
       return;
     }
 
@@ -123,7 +135,8 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
 
-      toast.success(
+      notify(
+        "success",
         isAdmin && publishNow
           ? "Event published"
           : "Event submitted for admin review",
@@ -131,13 +144,13 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
       // First-ever event: point the user to where they can track it and see who
       // registers, since that page isn't obvious. Shown once (server flag).
       if (body.isFirstEvent) {
-        toast.success("Find it under YOUR EVENTS in your profile");
+        notify("success", "Find it under YOUR EVENTS in your profile");
       }
       reset();
       onOpenChange(false);
       router.refresh();
     } catch (err) {
-      toast.error(`${err instanceof Error ? err.message : "Failed"}`);
+      notify("error", `${err instanceof Error ? err.message : "Failed"}`);
     } finally {
       setSaving(false);
     }
@@ -191,9 +204,9 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
               clip instead of overflowing the modal. */}
         <div className="grid grid-cols-2 gap-5 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label>TYPE</Label>
+            <Label htmlFor="ev-type">TYPE</Label>
             <Select value={eventType} onValueChange={setEventType}>
-              <SelectTrigger>
+              <SelectTrigger id="ev-type">
                 <SelectValue placeholder="SELECT" />
               </SelectTrigger>
               <SelectContent className="z-[200] dark">
@@ -246,9 +259,9 @@ export function EventModal({ open, onOpenChange, isAdmin }: EventModalProps) {
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label>WHO CAN REGISTER</Label>
+            <Label htmlFor="ev-audience">WHO CAN REGISTER</Label>
             <Select value={audience} onValueChange={setAudience}>
-              <SelectTrigger>
+              <SelectTrigger id="ev-audience">
                 <SelectValue placeholder="SELECT" />
               </SelectTrigger>
               <SelectContent className="z-[200] dark">

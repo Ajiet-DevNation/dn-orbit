@@ -4,12 +4,14 @@ import {
   DRAIN_BUDGET_MS,
   GH_TTL_MS,
   hasBudget,
+  IDLE_RECHECK_MS,
   LC_TTL_MS,
   MAX_BACKOFF_MS,
   needsAnything,
   needsGithub,
   needsLeetCode,
   nextAttemptAt,
+  nextDueAt,
   orderQueue,
   queuePriority,
   type StaleInput,
@@ -132,5 +134,51 @@ describe("hasBudget", () => {
 
   test("the budget leaves headroom under the route's 60s ceiling", () => {
     expect(DRAIN_BUDGET_MS).toBeLessThan(60_000);
+  });
+});
+
+describe("nextDueAt", () => {
+  const now = Date.UTC(2026, 9, 21, 12);
+  const base = {
+    ghFetchedAt: new Date(now - 10 * 60_000),
+    lcFetchedAt: new Date(now - 10 * 60_000),
+    ghDirty: false,
+    lcDirty: false,
+  };
+
+  test("earliest TTL expiry among what can be refreshed", () => {
+    expect(nextDueAt(base, true, true, now).getTime()).toBe(
+      base.ghFetchedAt.getTime() + GH_TTL_MS,
+    );
+    expect(nextDueAt(base, false, true, now).getTime()).toBe(
+      base.lcFetchedAt.getTime() + LC_TTL_MS,
+    );
+  });
+
+  test("dirty, never-fetched or already stale means now", () => {
+    expect(
+      nextDueAt({ ...base, ghDirty: true }, true, false, now).getTime(),
+    ).toBe(now);
+    expect(
+      nextDueAt({ ...base, ghFetchedAt: null }, true, false, now).getTime(),
+    ).toBe(now);
+    const old = new Date(now - 5 * GH_TTL_MS);
+    expect(
+      nextDueAt({ ...base, ghFetchedAt: old }, true, false, now).getTime(),
+    ).toBe(now);
+  });
+
+  test("a stale side that can't be refreshed doesn't count", () => {
+    // No GitHub token: a null ghFetchedAt must not make the member due.
+    const s = { ...base, ghFetchedAt: null };
+    expect(nextDueAt(s, false, true, now).getTime()).toBe(
+      base.lcFetchedAt.getTime() + LC_TTL_MS,
+    );
+  });
+
+  test("nothing refreshable parks for the idle recheck", () => {
+    expect(nextDueAt(base, false, false, now).getTime()).toBe(
+      now + IDLE_RECHECK_MS,
+    );
   });
 });

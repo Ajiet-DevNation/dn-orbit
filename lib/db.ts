@@ -44,8 +44,14 @@ function createPrismaClient(): PrismaClient {
     globalForPrisma.pgPool ??
     new Pool({
       connectionString: safeConnectionString,
+      // pg's default of 10 is tight for one signed-in landing render (~9
+      // parallel queries). The URL is Neon's PgBouncer pooler, which accepts
+      // thousands of client connections, so 20 per instance is cheap.
+      max: 20,
       idleTimeoutMillis: 10_000,
-      connectionTimeoutMillis: 30_000,
+      // Long enough for a Neon compute to wake from suspend, short enough
+      // that a saturated pool fails fast instead of hanging the request.
+      connectionTimeoutMillis: 10_000,
       ssl: { rejectUnauthorized: true },
     });
 

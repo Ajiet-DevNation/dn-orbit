@@ -136,20 +136,20 @@ function makeUnauthTests() {
       name: "admin weights unauth",
       method: "GET",
       path: "/api/admin/config/weights",
-      expected: [403],
+      expected: [401],
     },
     {
       name: "admin member patch unauth",
       method: "PATCH",
       path: `/api/admin/members/${missingId}`,
       body: { bio: "x" },
-      expected: [403],
+      expected: [401],
     },
     {
       name: "admin refresh unauth",
       method: "POST",
       path: `/api/admin/members/${missingId}/refresh`,
-      expected: [403],
+      expected: [401],
     },
     {
       name: "stats github unauth",

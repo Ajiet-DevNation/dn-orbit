@@ -129,10 +129,11 @@ export default function EventCreationForm({
       <PixelPanel title="01 · DETAILS">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label>
+            <Label htmlFor="ecf-title">
               EVENT TITLE <span className="text-brand-light">*</span>
             </Label>
             <Input
+              id="ecf-title"
               value={f.title}
               placeholder="Enter title…"
               onChange={(e) => set("title", e.target.value)}
@@ -140,13 +141,13 @@ export default function EventCreationForm({
             />
           </div>
           <div className="grid gap-2">
-            <Label>TYPE</Label>
+            <Label htmlFor="ecf-type">TYPE</Label>
             <Select
               value={f.eventType}
               onValueChange={(v) => set("eventType", v)}
               disabled={isPending}
             >
-              <SelectTrigger>
+              <SelectTrigger id="ecf-type">
                 <SelectValue placeholder="SELECT" />
               </SelectTrigger>
               <SelectContent className="z-[200] dark">
@@ -161,10 +162,11 @@ export default function EventCreationForm({
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label>
+            <Label htmlFor="ecf-date">
               DATE &amp; TIME <span className="text-brand-light">*</span>
             </Label>
             <Input
+              id="ecf-date"
               type="datetime-local"
               style={{ colorScheme: "dark" }}
               value={f.eventDate}
@@ -173,8 +175,9 @@ export default function EventCreationForm({
             />
           </div>
           <div className="grid gap-2">
-            <Label>LOCATION</Label>
+            <Label htmlFor="ecf-location">LOCATION</Label>
             <Input
+              id="ecf-location"
               value={f.location}
               placeholder="Room or URL…"
               onChange={(e) => set("location", e.target.value)}
@@ -183,8 +186,9 @@ export default function EventCreationForm({
           </div>
         </div>
         <div className="mt-4 grid gap-2">
-          <Label>DESCRIPTION</Label>
+          <Label htmlFor="ecf-description">DESCRIPTION</Label>
           <Textarea
+            id="ecf-description"
             value={f.description}
             placeholder="What is this event about?"
             rows={5}
@@ -197,13 +201,13 @@ export default function EventCreationForm({
       <PixelPanel title="02 · AUDIENCE & CAPACITY">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3 [&>div]:min-w-0">
           <div className="grid gap-2">
-            <Label>WHO CAN REGISTER</Label>
+            <Label htmlFor="ecf-audience">WHO CAN REGISTER</Label>
             <Select
               value={f.audience}
               onValueChange={(v) => set("audience", v)}
               disabled={isPending}
             >
-              <SelectTrigger>
+              <SelectTrigger id="ecf-audience">
                 <SelectValue placeholder="SELECT" />
               </SelectTrigger>
               <SelectContent className="z-[200] dark">
@@ -216,8 +220,9 @@ export default function EventCreationForm({
             </Select>
           </div>
           <div className="grid gap-2">
-            <Label>CAPACITY (INF IF BLANK)</Label>
+            <Label htmlFor="ecf-capacity">CAPACITY (INF IF BLANK)</Label>
             <Input
+              id="ecf-capacity"
               type="number"
               min={1}
               value={f.capacity}
@@ -227,8 +232,9 @@ export default function EventCreationForm({
             />
           </div>
           <div className="grid gap-2">
-            <Label>REG. DEADLINE</Label>
+            <Label htmlFor="ecf-deadline">REG. DEADLINE</Label>
             <Input
+              id="ecf-deadline"
               type="datetime-local"
               style={{ colorScheme: "dark" }}
               value={f.registrationDeadline}
@@ -259,13 +265,13 @@ export default function EventCreationForm({
 
       <PixelPanel title="05 · DEPLOYMENT">
         <div className="grid gap-2">
-          <Label>INITIAL STATE</Label>
+          <Label htmlFor="ecf-state">INITIAL STATE</Label>
           <Select
             value={f.isPublished}
             onValueChange={(v) => set("isPublished", v)}
             disabled={isPending}
           >
-            <SelectTrigger>
+            <SelectTrigger id="ecf-state">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="z-[200] dark">

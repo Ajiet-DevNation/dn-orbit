@@ -1,11 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
-  CANVAS_SIZE,
+  ellipseArcParam,
   FLING_THRESHOLD,
-  LOADER_RING_CELLS,
   LOGO_HALF_H,
   LOGO_HALF_W,
-  loaderRingCells,
   MAX_FLING_SPEED,
   ORBIT_PERIOD_MS,
   ORBIT_RX,
@@ -294,33 +292,48 @@ describe("geometry sanity", () => {
   });
 });
 
-describe("loaderRingCells", () => {
-  test("nothing at 0, the whole ring at 1", () => {
-    expect(loaderRingCells(0, 6)).toEqual([]);
-    expect(loaderRingCells(1, 6).length).toBe(LOADER_RING_CELLS);
+describe("ellipseArcParam", () => {
+  const at = (a: number) => ({
+    x: ORBIT_RX * Math.cos(a),
+    y: ORBIT_RY * Math.sin(a),
   });
 
-  test("grows monotonically and never past the full ring", () => {
-    let prev = 0;
-    for (let p = 0; p <= 1.2; p += 0.01) {
-      const n = loaderRingCells(p, 6).length;
-      expect(n).toBeGreaterThanOrEqual(prev);
-      expect(n).toBeLessThanOrEqual(LOADER_RING_CELLS);
-      prev = n;
+  test("starts at `start` and ends one full turn later", () => {
+    expect(ellipseArcParam(ORBIT_RX, ORBIT_RY, 0, Math.PI)).toBeCloseTo(
+      Math.PI,
+    );
+    expect(ellipseArcParam(ORBIT_RX, ORBIT_RY, 1, Math.PI)).toBeCloseTo(
+      3 * Math.PI,
+    );
+  });
+
+  test("clamps fractions outside 0..1", () => {
+    expect(ellipseArcParam(ORBIT_RX, ORBIT_RY, -1)).toBeCloseTo(0);
+    expect(ellipseArcParam(ORBIT_RX, ORBIT_RY, 2)).toBeCloseTo(2 * Math.PI);
+  });
+
+  test("is monotonic", () => {
+    let prev = -1;
+    for (let f = 0; f <= 1; f += 0.01) {
+      const a = ellipseArcParam(ORBIT_RX, ORBIT_RY, f, Math.PI);
+      expect(a).toBeGreaterThan(prev);
+      prev = a;
     }
   });
 
-  test("cells sit on the pixel grid, inside the canvas, half in front", () => {
-    const cells = loaderRingCells(1, 6);
-    for (const c of cells) {
-      expect(c.x % 6).toBe(0);
-      expect(c.y % 6).toBe(0);
-      expect(c.x).toBeGreaterThanOrEqual(0);
-      expect(c.x).toBeLessThanOrEqual(CANVAS_SIZE);
+  test("equal fractions cover equal distance, even at the flat tips", () => {
+    const steps = 200;
+    const gaps: number[] = [];
+    for (let i = 0; i < steps; i++) {
+      const p = at(ellipseArcParam(ORBIT_RX, ORBIT_RY, i / steps));
+      const q = at(ellipseArcParam(ORBIT_RX, ORBIT_RY, (i + 1) / steps));
+      gaps.push(Math.hypot(q.x - p.x, q.y - p.y));
     }
-    const front = cells.filter((c) => c.front).length;
-    expect(front).toBeGreaterThan(cells.length * 0.4);
-    expect(front).toBeLessThan(cells.length * 0.6);
+    expect(Math.max(...gaps) / Math.min(...gaps)).toBeLessThan(1.02);
+  });
+
+  test("a circle maps fraction straight to angle", () => {
+    expect(ellipseArcParam(100, 100, 0.25)).toBeCloseTo(Math.PI / 2, 2);
   });
 });
 

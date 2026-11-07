@@ -1,5 +1,8 @@
 import { $Enums } from "@prisma/client";
 import { z } from "zod";
+import { isSafePattern, MAX_PATTERN_LEN } from "@/lib/forms";
+import { GITHUB_USERNAME_RE } from "@/lib/recruitment";
+import { MAX_TECH_ITEMS, MAX_TECH_NAME_LEN } from "@/lib/tech-name";
 
 // Shared request-body schemas for the Route Handlers.
 //
@@ -70,13 +73,51 @@ const dateish = z
   )
   // Piping into the original coercion keeps unparseable input rejected exactly
   // as before; the transform above only disambiguates the zone-less form.
-  .pipe(z.coerce.date());
+  // Bounded: epoch 0 / -1 or a 15-digit timestamp parse fine but put an event
+  // in 1970 or the year 33658.
+  .pipe(
+    z.coerce
+      .date()
+      .min(new Date("2000-01-01T00:00:00Z"), "Date must be in 2000–2099")
+      .max(new Date("2099-12-31T23:59:59Z"), "Date must be in 2000–2099"),
+  );
 
 // ── Events ───────────────────────────────────────────────────────────────────
 
 // Derived from the Prisma enum rather than hand-listed, so adding a value to
 // schema.prisma can't leave this validator silently rejecting it.
 const eventAudience = z.nativeEnum($Enums.EventAudience);
+
+const formFieldSchema = z
+  .object({
+    id: z.string().min(1).max(64),
+    type: z.enum([
+      "short_text",
+      "paragraph",
+      "email",
+      "number",
+      "date",
+      "single_choice",
+      "multi_choice",
+      "dropdown",
+    ]),
+    label: z.string().max(500),
+    description: z.string().max(2000).optional(),
+    required: z.boolean(),
+    placeholder: z.string().max(200).optional(),
+    options: z.array(z.string().max(200)).max(100).optional(),
+    pattern: z
+      .string()
+      .max(MAX_PATTERN_LEN)
+      .refine(isSafePattern, "Pattern could hang the server; simplify it")
+      .optional(),
+    visibleWhen: z
+      .object({ fieldId: z.string().max(64), equals: z.string().max(200) })
+      .optional(),
+  })
+  // Unknown keys are dropped (zod's default), not rejected: an older stored
+  // schema being re-saved shouldn't fail on a key it no longer uses.
+  .strip();
 
 const eventFields = {
   title: text(200),
@@ -89,8 +130,10 @@ const eventFields = {
   audience: eventAudience.optional(),
   capacity: z.number().int().min(1).max(100_000).nullish(),
   registrationDeadline: dateish.nullish(),
-  // Shape-validated by lib/forms.ts at submission time; here we only bound it.
-  formSchema: z.unknown().optional(),
+  // Registration questions. Rendered and enforced by lib/forms.ts; bounded
+  // here so one event can't store megabytes of JSON or a regex that hangs
+  // the server on every anonymous submission.
+  formSchema: z.array(formFieldSchema).max(50).optional(),
 };
 
 // a sign-up deadline after the event would keep registration open for an event
@@ -133,7 +176,10 @@ const projectFields = {
   imageUrl: optionalHttpUrl(),
   githubRepoUrl: httpUrl(),
   demoUrl: optionalHttpUrl(),
-  techStack: z.array(z.string().trim().min(1).max(60)).max(40).optional(),
+  techStack: z
+    .array(z.string().trim().min(1).max(MAX_TECH_NAME_LEN))
+    .max(MAX_TECH_ITEMS)
+    .optional(),
   milestones: z.array(milestoneSchema).max(100).optional(),
   status: projectStatus.optional(),
   progressPct: z.number().int().min(0).max(100).optional(),
@@ -199,6 +245,56 @@ export const memberUpdateSchema = z.object({
   role: z.nativeEnum($Enums.Role).optional(),
 });
 
+// ── Allowlist ────────────────────────────────────────────────────────────────
+
+/** Blank optional inputs ("" / whitespace / null) skip validation entirely. */
+const blankToUndefined = (v: unknown) =>
+  v == null || (typeof v === "string" && !v.trim()) ? undefined : v;
+
+/** Admin invite. Previously any string was stored, so a typo'd URL or a
+ *  malformed email became an entry that could never match a sign-in. */
+export const allowlistEntrySchema = z
+  .object({
+    githubUsername: z.preprocess(
+      blankToUndefined,
+      z
+        .string()
+        .trim()
+        .regex(GITHUB_USERNAME_RE, "Enter a GitHub username, not a URL")
+        .toLowerCase()
+        .optional(),
+    ),
+    email: z.preprocess(
+      blankToUndefined,
+      z.string().trim().toLowerCase().email().max(254).optional(),
+    ),
+    note: optionalText(500),
+  })
+  .refine(
+    (v) => v.githubUsername || v.email,
+    "Provide a GitHub username or an email",
+  );
+
+// ── Event registration / attendance ──────────────────────────────────────────
+
+/** Shape-only: lib/forms.ts validateSubmission does the length and per-field
+ *  checks, against the event's own form schema. */
+export const registrationBodySchema = z.object({
+  name: z.string().optional(),
+  email: z.string().optional(),
+  usn: z.string().optional(),
+  responses: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const attendanceSchema = z.object({
+  registrationId: z.string().min(1).max(100),
+  attended: z.boolean(),
+});
+
+/** Any JSON object, for routes that validate their own fields. Going through
+ *  parseBody still enforces the JSON content type. */
+export const jsonObjectSchema = z.record(z.string(), z.unknown());
+
 // ── Project members ──────────────────────────────────────────────────────────
 
 export const projectMemberSchema = z.object({
@@ -228,6 +324,14 @@ export async function parseBody<S extends z.ZodTypeAny>(
   req: Request,
   schema: S,
 ): Promise<ParsedBody<z.infer<S>>> {
+  // Only real JSON requests. A cross-site <form enctype="text/plain"> can
+  // smuggle a JSON-shaped body without a CORS preflight; requiring the JSON
+  // content type (which forms can't send) closes that for anonymous routes.
+  const type = req.headers.get("content-type")?.toLowerCase() ?? "";
+  if (!type.startsWith("application/json")) {
+    return { ok: false, error: "Expected an application/json body" };
+  }
+
   let raw: unknown;
   try {
     raw = await req.json();

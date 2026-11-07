@@ -29,11 +29,29 @@ export function useSpriteSheet(
 
     const start = performance.now();
     let raf = 0;
+    let shown = 0;
     const tick = (now: number) => {
-      el.style.backgroundPosition = framePosition(frameAt(now - start), frames);
+      // Style write only when the frame actually changes (a few times a
+      // second), not on all 60+ frames.
+      const frame = frameAt(now - start);
+      if (frame !== shown) {
+        el.style.backgroundPosition = framePosition(frame, frames);
+        shown = frame;
+      }
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // Only animate while on screen.
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !raf) raf = requestAnimationFrame(tick);
+      if (!entry.isIntersecting && raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    });
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, [ref, frames, frameAt, active]);
 }

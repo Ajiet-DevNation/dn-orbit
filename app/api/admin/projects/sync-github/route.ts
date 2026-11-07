@@ -6,6 +6,7 @@ import {
   fetchGithubProjectDrafts,
   type GithubProjectDraft,
 } from "@/lib/github-projects";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { canAccessAdmin } from "@/lib/roles";
 
 export const runtime = "nodejs";
@@ -31,7 +32,10 @@ interface SyncSummary {
 //   - existing approved   → never touched, so admin edits and decisions win
 export async function POST() {
   const session = await auth();
-  if (!session || !canAccessAdmin(session.user.role)) {
+  if (!session) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (!canAccessAdmin(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -110,6 +114,9 @@ export async function POST() {
       if (reopening) summary.reopened++;
       else summary.updated++;
     }
+
+    // Synced rows go back to review, so they leave the public carousel.
+    invalidatePublic(PUBLIC_TAG.projects);
 
     void logAudit({
       action: "project.sync_github",

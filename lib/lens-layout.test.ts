@@ -102,6 +102,25 @@ describe("lensSize", () => {
     expect(lensSize(390, 844, projects).cardW).toBe(312);
   });
 
+  test("a phone ratio makes the phone card taller, at the same width", () => {
+    const tall = { ...projects, phoneRatio: 1.15 };
+    const { cardW, cardH } = lensSize(390, 844, tall);
+    expect(cardW).toBe(312);
+    expect(cardH).toBe(Math.round(312 * 1.15));
+  });
+
+  test("a phone ratio still fits a short phone's height", () => {
+    const tall = { ...projects, phoneRatio: 1.15 };
+    const { cardH } = lensSize(375, 667, tall);
+    expect(cardH).toBeLessThanOrEqual(667 - 300 + 1);
+  });
+
+  test("desktop and landscape phones ignore the phone ratio", () => {
+    const tall = { ...projects, phoneRatio: 1.15 };
+    expect(lensSize(1440, 900, tall)).toEqual(lensSize(1440, 900, projects));
+    expect(lensSize(740, 360, tall)).toEqual(lensSize(740, 360, projects));
+  });
+
   test("never collapses below the minimum height", () => {
     expect(lensSize(800, 300, projects).cardH).toBeGreaterThanOrEqual(
       MIN_LENS_HEIGHT - 1,

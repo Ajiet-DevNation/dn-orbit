@@ -3,14 +3,9 @@ import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db, isRecordNotFound } from "@/lib/db";
-import { recomputeLeaderboardAfterResponse } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
-import {
-  canAccessAdmin,
-  canManageRoles,
-  canModerate,
-  isRankedRole,
-} from "@/lib/roles";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
+import { canAccessAdmin, canManageRoles, canModerate } from "@/lib/roles";
 import { memberUpdateSchema, parseBody } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
@@ -18,7 +13,10 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const session = await auth();
-    if (!session || !canAccessAdmin(session.user.role)) {
+    if (!session) {
+      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    }
+    if (!canAccessAdmin(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -87,14 +85,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       where: { id },
       data: updateData,
     });
+    // Visibility and status decide who is on the public board.
+    invalidatePublic(PUBLIC_TAG.leaderboard);
 
     // Log the meaningful member mutations (role / membership status changes).
     const who = toTitleCase(updatedUser.name) || "a member";
     if (role !== undefined) {
-      // Moving in or out of alumni changes who is scored, so rebuild the board.
-      if (isRankedRole(role) !== isRankedRole(target.role)) {
-        recomputeLeaderboardAfterResponse();
-      }
       void logAudit({
         action: "member.role_change",
         actorId: session.user.id,

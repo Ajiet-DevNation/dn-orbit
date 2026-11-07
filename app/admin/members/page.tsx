@@ -17,7 +17,9 @@ export default async function AdminMembersPage() {
     redirect("/");
   }
 
-  const [users, allowlist] = await Promise.all([
+  const [roleCounts, users, allowlist] = await Promise.all([
+    // Tiles count in the DB; the list below is capped at 500.
+    db.user.groupBy({ by: ["role"], _count: true }),
     db.user.findMany({
       // Bounded: one page view must never become an unbounded transfer.
       take: 500,
@@ -41,9 +43,12 @@ export default async function AdminMembersPage() {
     }),
   ]);
 
-  const adminCount = users.filter((u) => canAccessAdmin(u.role)).length;
-  const memberCount = users.filter((u) => u.role === "member").length;
-  const ajietCount = users.filter((u) => u.role === "ajiet_student").length;
+  const countWhere = (
+    match: (role: (typeof roleCounts)[number]["role"]) => boolean,
+  ) => roleCounts.reduce((n, c) => (match(c.role) ? n + c._count : n), 0);
+  const adminCount = countWhere((r) => canAccessAdmin(r));
+  const memberCount = countWhere((r) => r === "member");
+  const ajietCount = countWhere((r) => r === "ajiet_student");
 
   return (
     <div className="space-y-8 p-6 md:p-8">

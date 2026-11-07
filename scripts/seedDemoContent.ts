@@ -257,12 +257,12 @@ const ORPHANED_STORAGE_OBJECTS = [
 ];
 
 // Banners kept on salvaged events.
-const CTF_BANNER =
-  "https://evzyxuphcuexlmucbzmm.supabase.co/storage/v1/object/public/media/events/839a4a1d-ce76-4e44-8faa-9a00b5d047b4.webp";
-const DN_LOGO_BANNER =
-  "https://evzyxuphcuexlmucbzmm.supabase.co/storage/v1/object/public/media/events/21c978dc-1993-4cee-83af-46ff29f1e44c.webp";
-const AGENTOPSYN_IMAGE =
-  "https://evzyxuphcuexlmucbzmm.supabase.co/storage/v1/object/public/media/projects/ccc2d677-6958-4322-8bc3-1002c99cf8a2.webp";
+// These lived in a Supabase project that no longer exists (its host no longer
+// resolves, and the files were never copied to the current bucket), so they
+// seed as "no image". Re-upload real ones from the admin panel.
+const CTF_BANNER: string | null = null;
+const DN_LOGO_BANNER: string | null = null;
+const AGENTOPSYN_IMAGE: string | null = null;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Registration form schemas

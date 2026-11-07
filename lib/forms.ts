@@ -161,6 +161,88 @@ const MAX_EMAIL_LEN = 254; // RFC 5321 practical limit
 const MAX_USN_LEN = 32;
 const MAX_TEXT_LEN = 2000;
 
+/** Longest organizer-supplied validation regex we will run. */
+export const MAX_PATTERN_LEN = 200;
+/** Longest answer we will test against an organizer pattern. Patterns are for
+ *  short formats (IDs, phone numbers), and the cap bounds any backtracking. */
+export const MAX_PATTERN_INPUT_LEN = 128;
+// Most quantifiers that let the engine choose a length (*, +, {n,}, {n,m}), and
+// most two-way choices (?, |), one pattern may hold. Even without nesting,
+// adjacent ones backtrack polynomially: ^\d*\d*\d*\d*x$ is n^4 per start.
+const MAX_OPEN_QUANTIFIERS = 2;
+const MAX_CHOICES = 4;
+
+// Tally of the quantifiers and choices above, outside escapes and [classes].
+function ambiguity(pattern: string): { open: number; choices: number } {
+  let open = 0;
+  let choices = 0;
+  let afterQuantifier = false;
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i];
+    if (c === "\\") {
+      i++;
+      afterQuantifier = false;
+    } else if (c === "[") {
+      // JS classes end at the first unescaped ] (even `[]`).
+      for (i++; i < pattern.length && pattern[i] !== "]"; i++) {
+        if (pattern[i] === "\\") i++;
+      }
+      afterQuantifier = false;
+    } else if (c === "(") {
+      // (?: (?= (?<name> … — that ? opens a group, it is not a quantifier.
+      if (pattern[i + 1] === "?") i++;
+      afterQuantifier = false;
+    } else if (c === "*" || c === "+") {
+      open++;
+      afterQuantifier = true;
+    } else if (c === "?") {
+      // After a quantifier it only makes that one lazy.
+      if (!afterQuantifier) choices++;
+      afterQuantifier = !afterQuantifier;
+    } else if (c === "|") {
+      choices++;
+      afterQuantifier = false;
+    } else if (c === "{") {
+      const m = /^\{(\d+)(,(\d*))?\}/.exec(pattern.slice(i));
+      if (m) {
+        if (m[2] && (m[3] === "" || Number(m[3]) > Number(m[1]))) open++;
+        i += m[0].length - 1;
+        afterQuantifier = true;
+      } else {
+        afterQuantifier = false;
+      }
+    } else {
+      afterQuantifier = false;
+    }
+  }
+  return { open, choices };
+}
+
+// Patterns run against anonymous input, so a catastrophic one — nested
+// quantifiers like (a+)+ or (a|aa)* — would let any registrant pin the
+// server's event loop. Reject: over-long patterns, a repeated group that holds
+// a quantifier or an alternation, backreferences, and more ambiguity than the
+// budgets above allow. Shortcut: a heuristic, not a full
+// ReDoS analyser; if organizers ever need richer patterns, move to RE2.
+const NESTED_QUANTIFIER =
+  /\((?:[^()\\]|\\.)*[*+?}](?:[^()\\]|\\.)*\)\s*(?:[*+]|\{\d)/;
+const REPEATED_ALTERNATION =
+  /\((?:[^()\\]|\\.)*\|(?:[^()\\]|\\.)*\)\s*(?:[*+]|\{\d)/;
+export function isSafePattern(pattern: string): boolean {
+  if (pattern.length > MAX_PATTERN_LEN) return false;
+  if (NESTED_QUANTIFIER.test(pattern)) return false;
+  if (REPEATED_ALTERNATION.test(pattern)) return false;
+  if (/\\[1-9]/.test(pattern)) return false;
+  const { open, choices } = ambiguity(pattern);
+  if (open > MAX_OPEN_QUANTIFIERS || choices > MAX_CHOICES) return false;
+  try {
+    new RegExp(pattern);
+  } catch {
+    return false;
+  }
+  return true;
+}
+
 // USN format is deliberately NOT validated unless an admin sets `usnPattern`
 // on the event: college ID formats vary by cohort, and a hard-coded default
 // would reject legitimate registrations for the sake of a hint.
@@ -219,7 +301,7 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
       errors.usn = "USN / College ID is required";
     } else if (usn.length > MAX_USN_LEN) {
       errors.usn = "USN is too long";
-    } else if (args.usnPattern) {
+    } else if (args.usnPattern && isSafePattern(args.usnPattern)) {
       try {
         if (!new RegExp(args.usnPattern).test(usn)) {
           errors.usn = "USN format is invalid";
@@ -244,7 +326,9 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
     switch (f.type) {
       case "email": {
         const s = String(raw).trim();
-        if (!EMAIL_RE.test(s)) errors[f.id] = "Enter a valid email";
+        // Length first: EMAIL_RE is quadratic on long input like "a@....@".
+        if (s.length > MAX_EMAIL_LEN || !EMAIL_RE.test(s))
+          errors[f.id] = "Enter a valid email";
         else responses[f.id] = s;
         break;
       }
@@ -269,9 +353,12 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
         break;
       }
       case "multi_choice": {
-        const arr = Array.isArray(raw) ? raw.map(String) : [String(raw)];
+        // Deduped, so a repeated option can't bloat the stored row.
+        const arr = [
+          ...new Set(Array.isArray(raw) ? raw.map(String) : [String(raw)]),
+        ];
         const opts = f.options ?? [];
-        if (!arr.every((v) => opts.includes(v)))
+        if (arr.length > opts.length || !arr.every((v) => opts.includes(v)))
           errors[f.id] = "Invalid selection";
         else responses[f.id] = arr;
         break;
@@ -282,7 +369,12 @@ export function validateSubmission(args: ValidateArgs): ValidateResult {
           errors[f.id] = `${f.label} is too long`;
           break;
         }
-        if (f.pattern) {
+        // An unsafe pattern (see isSafePattern) is ignored, like an invalid one.
+        if (f.pattern && isSafePattern(f.pattern)) {
+          if (s.length > MAX_PATTERN_INPUT_LEN) {
+            errors[f.id] = `${f.label} is too long`;
+            break;
+          }
           try {
             if (!new RegExp(f.pattern).test(s))
               errors[f.id] = `${f.label} format is invalid`;

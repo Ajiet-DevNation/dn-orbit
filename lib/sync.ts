@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { recomputeLeaderboardScores } from "@/lib/leaderboard";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import {
   syncGitHubStatsForUser,
   syncLeetCodeStatsForUser,
@@ -11,6 +12,7 @@ import {
   needsGithub,
   needsLeetCode,
   nextAttemptAt,
+  nextDueAt,
   orderQueue,
 } from "@/lib/sync-queue";
 
@@ -73,7 +75,13 @@ export async function runStatsSyncIfStale(): Promise<DrainResult> {
         { OR: [{ lockedUntil: null }, { lockedUntil: { lt: now } }] },
       ],
     },
-    orderBy: [{ ghDirty: "desc" }, { ghFetchedAt: "asc" }],
+    // Postgres sorts NULLs LAST on ASC, and never-fetched members have a null
+    // ghFetchedAt — without `nulls: first` new joiners queued behind everyone.
+    orderBy: [
+      { ghDirty: "desc" },
+      { lcDirty: "desc" },
+      { ghFetchedAt: { sort: "asc", nulls: "first" } },
+    ],
     take: DRAIN_BATCH * 4,
     select: {
       userId: true,
@@ -94,11 +102,30 @@ export async function runStatsSyncIfStale(): Promise<DrainResult> {
     },
   });
 
-  const due = orderQueue(candidates).filter(
-    (c) =>
-      (needsGithub(c, startedAt) && c.user.accounts.length > 0) ||
-      (needsLeetCode(c, startedAt) && !!c.user.lcUsername),
-  );
+  const canGithub = (c: (typeof candidates)[number]) =>
+    c.user.accounts.length > 0;
+  const canLc = (c: (typeof candidates)[number]) => !!c.user.lcUsername;
+  const isDue = (c: (typeof candidates)[number]) =>
+    (needsGithub(c, startedAt) && canGithub(c)) ||
+    (needsLeetCode(c, startedAt) && canLc(c));
+  const due = orderQueue(candidates).filter(isDue);
+
+  // Park everyone in the window who has nothing to do yet (fresh, or nothing
+  // refreshable) until they next do, so they stop crowding out members that
+  // are due. Dirty marks and profile edits clear nextAttemptAt again.
+  const parked = candidates.filter((c) => !isDue(c));
+  if (parked.length > 0) {
+    await db.$transaction(
+      parked.map((c) =>
+        db.statsSyncState.updateMany({
+          where: { userId: c.userId, ghDirty: false, lcDirty: false },
+          data: {
+            nextAttemptAt: nextDueAt(c, canGithub(c), canLc(c), startedAt),
+          },
+        }),
+      ),
+    );
+  }
 
   if (due.length === 0)
     return { outcome: "idle", refreshed: 0, recomputed: false };
@@ -125,7 +152,8 @@ export async function runStatsSyncIfStale(): Promise<DrainResult> {
     const wantLc =
       needsLeetCode(candidate, startedAt) && !!candidate.user.lcUsername;
 
-    let anyOk = false;
+    let ghOk = false;
+    let lcOk = false;
     let anyFailed = false;
 
     if (wantGithub) {
@@ -133,29 +161,42 @@ export async function runStatsSyncIfStale(): Promise<DrainResult> {
         candidate.userId,
         openSourceMinStars,
       );
-      if (result.ok) anyOk = true;
+      if (result.ok) ghOk = true;
       else anyFailed = true;
     }
 
     if (wantLc && hasBudget(startedAt, Date.now())) {
       const result = await syncLeetCodeStatsForUser(candidate.userId);
-      if (result.ok) anyOk = true;
+      if (result.ok) lcOk = true;
       else anyFailed = true;
     }
 
+    const anyOk = ghOk || lcOk;
     const failCount = anyFailed ? candidate.failCount + 1 : 0;
+    const stampedAt = new Date();
+    // Each provider is stamped only on its OWN success: a failed GitHub fetch
+    // must not be marked fresh because LeetCode happened to succeed.
+    const after = {
+      ghFetchedAt: ghOk ? stampedAt : candidate.ghFetchedAt,
+      lcFetchedAt: lcOk ? stampedAt : candidate.lcFetchedAt,
+      ghDirty: ghOk ? false : candidate.ghDirty,
+      lcDirty: lcOk ? false : candidate.lcDirty,
+    };
 
     await db.statsSyncState.update({
       where: { userId: candidate.userId },
       data: {
-        // Only stamp the provider we actually refreshed successfully; a failed
-        // GitHub fetch must not mark GitHub fresh for another 30 minutes.
-        ...(wantGithub && anyOk
-          ? { ghFetchedAt: new Date(), ghDirty: false }
-          : {}),
-        ...(wantLc && anyOk ? { lcFetchedAt: new Date(), lcDirty: false } : {}),
+        ...(ghOk ? { ghFetchedAt: stampedAt, ghDirty: false } : {}),
+        ...(lcOk ? { lcFetchedAt: stampedAt, lcDirty: false } : {}),
         failCount,
-        nextAttemptAt: anyFailed ? nextAttemptAt(failCount, Date.now()) : null,
+        nextAttemptAt: anyFailed
+          ? nextAttemptAt(failCount, Date.now())
+          : nextDueAt(
+              after,
+              canGithub(candidate),
+              canLc(candidate),
+              Date.now(),
+            ),
         lockedUntil: null,
       },
     });
@@ -176,6 +217,8 @@ export async function runStatsSyncIfStale(): Promise<DrainResult> {
         create: { key: RUN_KEY, lastRunAt: new Date() },
         update: { lastRunAt: new Date() },
       });
+      // The board's "last synced" readout.
+      invalidatePublic(PUBLIC_TAG.leaderboard);
     } catch (error) {
       console.error("[sync] leaderboard recompute failed:", error);
       return { outcome: "failed", refreshed, recomputed: false };

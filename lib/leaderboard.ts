@@ -1,11 +1,12 @@
 import type { Prisma } from "@prisma/client";
 import { after } from "next/server";
+import { coalesce } from "@/lib/coalesce";
 import { db } from "@/lib/db";
 import {
   computeLeaderboard,
   type ScoringUserInput,
 } from "@/lib/leaderboard-scoring";
-import { LEADERBOARD_EXCLUDED_ROLES } from "@/lib/roles";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 
 // Who the *public* leaderboard shows. A member appears as soon as they finish
 // onboarding (they have an `lcUsername`) — they no longer wait on an admin to
@@ -20,7 +21,6 @@ import { LEADERBOARD_EXCLUDED_ROLES } from "@/lib/roles";
 //                          lcUsername yet) plus any member who has onboarded.
 export const LEADERBOARD_VISIBLE_USER_FILTER: Prisma.UserWhereInput = {
   isVisible: true,
-  role: { notIn: LEADERBOARD_EXCLUDED_ROLES },
   status: { not: "rejected" },
   OR: [{ status: "approved" }, { lcUsername: { not: null } }],
 };
@@ -48,17 +48,35 @@ export async function recomputeLeaderboardScores() {
 
   const totalEvents = await db.event.count({ where: eventFilter });
 
-  // Alumni are left out of the maths too: a graduate's big numbers would
-  // otherwise become the 100 that every current member is measured against.
+  // Only the columns the formula reads, and attendance as a count — this runs
+  // after every stats drain that changed anything, and used to pull every
+  // attended registration row (custom-question answers included) per user.
   const users = await db.user.findMany({
-    where: { role: { notIn: LEADERBOARD_EXCLUDED_ROLES } },
-    include: {
-      lcStats: { orderBy: { fetchedAt: "desc" }, take: 1 },
-      githubStats: { orderBy: { fetchedAt: "desc" }, take: 1 },
+    select: {
+      id: true,
+      lcStats: {
+        orderBy: { fetchedAt: "desc" },
+        take: 1,
+        select: { easySolved: true, mediumSolved: true, hardSolved: true },
+      },
+      githubStats: {
+        orderBy: { fetchedAt: "desc" },
+        take: 1,
+        select: {
+          totalCommits: true,
+          totalPrs: true,
+          totalStars: true,
+          openSourcePrs: true,
+        },
+      },
       // Count only attendance at events that also count toward `totalEvents`
       // (published and already past), so the numerator and denominator agree and
       // the ratio can't exceed 100%.
-      registrations: { where: { attended: true, event: eventFilter } },
+      _count: {
+        select: {
+          registrations: { where: { attended: true, event: eventFilter } },
+        },
+      },
     },
   });
 
@@ -79,7 +97,7 @@ export async function recomputeLeaderboardScores() {
           openSourcePrs: user.githubStats[0].openSourcePrs,
         }
       : null,
-    attendedCount: user.registrations.length,
+    attendedCount: user._count.registrations,
   }));
 
   const finalScores = computeLeaderboard(scoringInput, weights, totalEvents);
@@ -111,18 +129,22 @@ export async function recomputeLeaderboardScores() {
     }),
   ]);
 
+  invalidatePublic(PUBLIC_TAG.leaderboard);
   return { updatedUsersCount: finalScores.length };
 }
 
 // Recompute once the response is out (weights, attendance or event visibility
 // changed). Scores were otherwise only rebuilt when someone's GitHub/LeetCode
 // stats moved, so an admin edit could sit unreflected on the board for hours.
+//
+// Coalesced per instance: a door list marking 200 attendees used to queue 200
+// full recomputes behind the advisory lock, each holding a pooled connection.
+// Now a burst runs at most one recompute plus one trailing run that picks up
+// everything that changed while the first was in flight.
+const runCoalescedRecompute = coalesce(recomputeLeaderboardScores, (error) =>
+  console.error("[leaderboard] recompute failed:", error),
+);
+
 export function recomputeLeaderboardAfterResponse(): void {
-  after(async () => {
-    try {
-      await recomputeLeaderboardScores();
-    } catch (error) {
-      console.error("[leaderboard] recompute failed:", error);
-    }
-  });
+  after(runCoalescedRecompute);
 }

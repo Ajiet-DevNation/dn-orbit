@@ -7,7 +7,7 @@
 export interface MemberData {
   id: string;
   name: string;
-  role: string; // e.g. "PRESIDENT" / "CORE MEMBER"
+  role: string; // e.g. "PRESIDENT" / "VICE PRESIDENT" / "CORE MEMBER"
   imageUrl: string | null;
   bio: string;
   linkedin: string | null;
@@ -23,19 +23,19 @@ export interface MemberData {
 
 export const MEMBERS: MemberData[] = [
   {
-    id: "twaha",
-    name: "Aboobakkar Twaha",
+    id: "anirudh-rao",
+    name: "Anirudh Rao B",
     role: "PRESIDENT",
-    imageUrl: "/members/twaha.jpg",
-    bio: "Just doing things to the best of my abilities :D",
-    linkedin: "https://www.linkedin.com/in/aboobakkar-twaha",
-    github: "https://github.com/Twahaaa",
-    leetcode: "https://leetcode.com/u/abubakkertwaha/",
+    imageUrl: "/members/anirudh-rao-2.jpg",
+    bio: "The only commit I do is git commit",
+    linkedin: "https://www.linkedin.com/in/anirudh-rao-b5488b215",
+    github: "https://github.com/ANI-CPU-tech",
+    leetcode: "https://leetcode.com/u/Paltryispog/",
   },
   {
     id: "muaz",
     name: "Muaz Ismail Mohammed",
-    role: "CORE MEMBER",
+    role: "VICE PRESIDENT",
     imageUrl: "/members/muaz.jpg",
     bio: "No matter how ridiculous the odds may seem, within us resides the power to overcome these challenges and achieve something beautiful. That one day, we'll look back at where we started and be amazed by how far we have come.",
     linkedin: "https://www.linkedin.com/in/muaz-ismail-mohammed/",
@@ -43,14 +43,14 @@ export const MEMBERS: MemberData[] = [
     leetcode: "https://leetcode.com/u/MuazTPM/",
   },
   {
-    id: "anirudh-rao",
-    name: "Anirudh Rao B",
-    role: "CORE MEMBER",
-    imageUrl: "/members/anirudh-rao.jpg",
-    bio: "The only commit I do is git commit",
-    linkedin: "https://www.linkedin.com/in/anirudh-rao-b5488b215",
-    github: "https://github.com/ANI-CPU-tech",
-    leetcode: "https://leetcode.com/u/Paltryispog/",
+    id: "twaha",
+    name: "Aboobakkar Twaha",
+    role: "EX PRESIDENT",
+    imageUrl: "/members/twaha.jpg",
+    bio: "Just doing things to the best of my abilities :D",
+    linkedin: "https://www.linkedin.com/in/aboobakkar-twaha",
+    github: "https://github.com/Twahaaa",
+    leetcode: "https://leetcode.com/u/abubakkertwaha/",
   },
   {
     id: "arjun-r",

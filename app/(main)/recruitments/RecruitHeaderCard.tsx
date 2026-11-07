@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useCallback, useEffect, useRef } from "react";
 import { PixelBubble } from "@/components/ui/PixelBubble";
 import { PixelFrame } from "@/components/ui/PixelFrame";
-import { PixelCheck } from "@/components/ui/PixelIcons";
 import { useSpriteSheet } from "@/hooks/useSpriteSheet";
 import { pingPongFrame } from "@/lib/sprite";
 import { cn } from "@/lib/utils";
@@ -70,8 +69,20 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
       });
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // Paused once the card scrolls away (the form below is where people
+    // spend their time).
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !raf) raf = requestAnimationFrame(tick);
+      if (!entry.isIntersecting && raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    });
+    if (floatRef.current) io.observe(floatRef.current);
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, []);
 
   const at = current ? STEPS.indexOf(current) : -1;
@@ -85,7 +96,9 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
             RECRUITMENT
             <span aria-hidden className="h-[2px] flex-1 bg-white/15" />
           </span>
-          <h1 className="retro text-3xl leading-tight sm:text-4xl lg:text-5xl">
+          {/* 24px below 380px: nine pixel-font glyphs of DEVNATION at 30px are
+              wider than the card on a 320px phone. */}
+          <h1 className="retro text-2xl leading-tight min-[380px]:text-3xl sm:text-4xl lg:text-5xl">
             <span className="block text-white">JOIN</span>
             <span className="mt-2 block text-brand-light">DEVNATION</span>
           </h1>
@@ -97,50 +110,22 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
             Open to AJIET students.
           </p>
           {current && (
-            // Numbered pixel chips joined by a rail that fills as you advance.
-            <ol className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-3 border-t-2 border-white/15 pt-4">
+            <ol className="mt-1 flex items-center gap-3 border-t-2 border-white/15 pt-4">
               {STEPS.map((s, i) => (
                 <li
                   key={s}
                   aria-current={i === at ? "step" : undefined}
-                  className="flex items-center gap-2"
-                >
-                  {i > 0 && (
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "h-[3px] w-4 sm:w-6",
-                        i <= at ? "bg-brand" : "bg-white/15",
-                      )}
-                    />
+                  className={cn(
+                    "retro text-[10px] tracking-widest sm:text-xs",
+                    i === at
+                      ? "text-brand-light"
+                      : i < at
+                        ? "text-white/70"
+                        : "text-[#6d6a8a]",
                   )}
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "retro flex size-6 items-center justify-center text-[9px]",
-                      i === at
-                        ? "bg-brand text-[#0a0a0a]"
-                        : i < at
-                          ? "bg-brand/20 text-brand-light"
-                          : "border-2 border-white/15 text-[#6d6a8a]",
-                    )}
-                  >
-                    {i < at ? <PixelCheck /> : i + 1}
-                  </span>
-                  {/* Phones keep only the current step's label so the row fits. */}
-                  <span
-                    className={cn(
-                      "retro text-[10px] tracking-widest sm:inline sm:text-xs",
-                      i !== at && "hidden",
-                      i === at
-                        ? "text-brand-light"
-                        : i < at
-                          ? "text-white/70"
-                          : "text-[#6d6a8a]",
-                    )}
-                  >
-                    {s.toUpperCase()}
-                  </span>
+                >
+                  {i > 0 && <span className="mr-3 text-[#6d6a8a]">·</span>}
+                  {s.toUpperCase()}
                 </li>
               ))}
             </ol>
@@ -150,7 +135,7 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
         {/* Pluton scene — decorative. */}
         <div
           aria-hidden
-          className="relative flex min-h-[250px] flex-col items-end md:min-h-[330px]"
+          className="relative flex min-h-[250px] flex-col items-end md:min-h-0"
         >
           <PixelBubble tail="bottom-left" className="text-sm sm:text-base">
             Hey, cadet! Let&apos;s get to know you.
@@ -174,13 +159,14 @@ export function RecruitHeaderCard({ current }: { current: Step | null }) {
             </span>
           ))}
 
+          {/* 208×128 frames (13:8), centred; scaled 1.25× / 1.5× / 2×. */}
           <div
             ref={floatRef}
-            className="absolute -bottom-2 right-[12%] size-[192px] sm:size-[256px]"
+            className="absolute -bottom-2 left-1/2 -ml-[130px] h-[160px] w-[260px] md:-ml-[156px] md:h-[192px] md:w-[312px] lg:-ml-[208px] lg:h-[256px] lg:w-[416px]"
           >
             <div
               ref={spriteRef}
-              className="pixelated size-full bg-[url(/assets/pluton/pluton-laptop.png)] bg-[length:900%_100%] bg-no-repeat"
+              className="pixelated size-full bg-[url(/assets/pluton/pluton-laptop-v2.png)] bg-[length:900%_100%] bg-no-repeat"
             />
           </div>
         </div>

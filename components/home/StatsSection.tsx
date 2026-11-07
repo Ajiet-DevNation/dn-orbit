@@ -3,11 +3,13 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import type { ReactNode } from "react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Progress } from "@/components/ui/8bit-progress";
-import { toast } from "@/components/ui/8bit-toast";
+import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
 import { Reveal } from "@/components/ui/Reveal";
 import { type LanguageStat, languagesFromRecord } from "@/lib/stats-utils";
 import { ContactModal } from "./ContactModal";
@@ -23,6 +25,26 @@ const ProjectModal = dynamic(
   () => import("./ProjectModal").then((m) => m.ProjectModal),
   { ssr: false },
 );
+
+// The 8bit-toast bundle exports a single-arg `toast(title)` helper (no
+// .success/.error variants exported). It renders the title node as-is, so we
+// pass a colour-coded element: purple = success, amber = partial, red = fail.
+const toast = rawToast as unknown as (message: ReactNode) => void;
+
+function notify(kind: "success" | "warn" | "error", message: string) {
+  const color =
+    kind === "success"
+      ? "text-brand-light"
+      : kind === "warn"
+        ? "text-yellow-500"
+        : "text-red-500";
+  toast(
+    <span className={`inline-flex items-center gap-2 ${color}`}>
+      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
+      {message}
+    </span>,
+  );
+}
 
 // All serializable — plain numbers/strings, no Date objects cross the boundary.
 export interface GithubStatsData {
@@ -117,7 +139,7 @@ export function StatsSection({
     // their now-private stats on the way back (see the effect below). This is
     // a full-page redirect, so nothing after it runs.
     if (hasGithubToken && !hasRepoScope) {
-      toast.warning("Connecting private repos · approve on GitHub…");
+      notify("warn", "Connecting private repos · approve on GitHub…");
       const returnTo = `${window.location.pathname}?reauth=github`;
       await signIn("github", { redirectTo: returnTo });
       return;
@@ -180,11 +202,11 @@ export function StatsSection({
     }
 
     if (anyOk && failures.length === 0) {
-      toast.success("Stats refreshed");
+      notify("success", "Stats refreshed");
     } else if (anyOk) {
-      toast.warning(`Partial refresh · ${failures.join(" · ")}`);
+      notify("warn", `Partial refresh · ${failures.join(" · ")}`);
     } else {
-      toast.error(`Refresh failed · ${failures.join(" · ")}`);
+      notify("error", `Refresh failed · ${failures.join(" · ")}`);
     }
 
     if (anyOk) startTransition(() => router.refresh());
@@ -336,7 +358,7 @@ export function StatsSection({
               label="RANKING"
               value={
                 leetcode?.lcRanking != null
-                  ? `#${leetcode.lcRanking.toLocaleString()}`
+                  ? `#${leetcode.lcRanking.toLocaleString("en-US")}`
                   : "—"
               }
             />
@@ -369,7 +391,8 @@ export function StatsSection({
         <Card className="items-center justify-center gap-6 py-8 border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
           <div className="w-full space-y-6 px-7 text-center">
             <h3 className="retro text-base text-white">RANK</h3>
-            <p className="retro text-6xl text-white">
+            {/* 36px on phones: "#100" at 60px is wider than a 320px card. */}
+            <p className="retro text-4xl text-white sm:text-6xl">
               {rank?.rank != null ? `#${rank.rank}` : "—"}
             </p>
             <p className="retro text-[9px] text-muted-foreground">
@@ -422,7 +445,9 @@ function DifficultyTile({
 }) {
   return (
     <div className="border border-white/10 py-5 text-center">
-      <p className={`retro text-2xl ${color}`}>{value}</p>
+      {/* Three across: a three-digit count at 24px overflowed its tile on
+          a 320px phone. */}
+      <p className={`retro text-lg sm:text-2xl ${color}`}>{value}</p>
       <p className="mt-2 text-[9px] tracking-wider text-muted-foreground">
         {label}
       </p>

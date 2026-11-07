@@ -210,7 +210,7 @@ export function HeroOrbit() {
 
       {/* pointer-events-none on the wrapper so the whole area above stays
           draggable; the scroll cue opts back in. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex flex-col items-center gap-8 px-6 pb-12 text-center sm:pb-16">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex flex-col items-center gap-8 px-6 pb-12 text-center sm:pb-16 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:pb-3">
         <Wordmark />
         <ScrollCue />
       </div>

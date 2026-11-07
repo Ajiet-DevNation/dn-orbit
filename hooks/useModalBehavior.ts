@@ -47,10 +47,14 @@ export function useModalBehavior(
 ) {
   // Stable per-instance identity for the stack.
   const id = useId();
-  // Latest handler without re-running the effect: callers often pass an inline
-  // arrow, and each re-run used to bounce focus out of the field being typed in.
+
+  // Read through a ref: as an effect dependency, an inline callback (as
+  // DetailOverlay passes) tore the whole modal down and rebuilt it on every
+  // render — restoring focus to the opener and flickering the scroll lock.
   const onOpenChangeRef = useRef(onOpenChange);
-  onOpenChangeRef.current = onOpenChange;
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  });
 
   useEffect(() => {
     if (!open) return;

@@ -82,6 +82,39 @@ export function orderQueue<T extends StaleInput>(candidates: T[]): T[] {
 }
 
 /** Is there still time in this drain's budget to start another member? */
+/** How often a member with nothing refreshable (no token, no handle) is
+ *  re-checked, in case they have linked one since. */
+export const IDLE_RECHECK_MS = 6 * 60 * 60_000;
+
+/**
+ * When this member next has work, given what can actually be refreshed for
+ * them. The drain parks members until then (via nextAttemptAt), so fresh or
+ * unrefreshable rows stop occupying the candidate window — with enough of them
+ * at the front, the window filled up and newer members were never reached.
+ */
+export function nextDueAt(
+  state: StaleInput,
+  canGithub: boolean,
+  canLeetCode: boolean,
+  now: number,
+): Date {
+  const due: number[] = [];
+  if (canGithub)
+    due.push(
+      state.ghDirty || !state.ghFetchedAt
+        ? now
+        : state.ghFetchedAt.getTime() + GH_TTL_MS,
+    );
+  if (canLeetCode)
+    due.push(
+      state.lcDirty || !state.lcFetchedAt
+        ? now
+        : state.lcFetchedAt.getTime() + LC_TTL_MS,
+    );
+  if (due.length === 0) return new Date(now + IDLE_RECHECK_MS);
+  return new Date(Math.max(now, Math.min(...due)));
+}
+
 export function hasBudget(startedAt: number, now: number): boolean {
   return now - startedAt < DRAIN_BUDGET_MS;
 }

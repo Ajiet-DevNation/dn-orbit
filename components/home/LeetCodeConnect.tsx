@@ -1,11 +1,23 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { SiLeetcode } from "react-icons/si";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
-import { toast } from "@/components/ui/8bit-toast";
-import { PixelCheck } from "@/components/ui/PixelIcons";
+import { toast as rawToast } from "@/components/ui/8bit-toast";
+import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
+
+const toast = rawToast as unknown as (message: ReactNode) => void;
+function notify(kind: "success" | "error", message: string) {
+  const color = kind === "success" ? "text-brand-light" : "text-red-500";
+  toast(
+    <span className={`inline-flex items-center gap-2 ${color}`}>
+      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
+      {message}
+    </span>,
+  );
+}
 
 interface LcPreview {
   username: string;
@@ -47,7 +59,7 @@ export function LeetCodeConnect({
   async function connect() {
     const username = value.trim();
     if (!username) {
-      toast.error("Enter your LeetCode username first");
+      notify("error", "Enter your LeetCode username first");
       return;
     }
     setLoading(true);
@@ -64,10 +76,11 @@ export function LeetCodeConnect({
       setPreview(data);
       // Store the canonical handle LeetCode reports (fixes casing differences).
       if (data.username && data.username !== value) onChange(data.username);
-      toast.success(`Connected as ${data.username}`);
+      notify("success", `Connected as ${data.username}`);
     } catch (err) {
       setPreview(null);
-      toast.error(
+      notify(
+        "error",
         `${err instanceof Error ? err.message : "Verification failed"}`,
       );
     } finally {
@@ -130,7 +143,7 @@ export function LeetCodeConnect({
               <PixelCheck className="mr-1.5" />
               {preview.totalSolved} SOLVED
               {preview.ranking != null
-                ? ` · #${preview.ranking.toLocaleString()}`
+                ? ` · #${preview.ranking.toLocaleString("en-US")}`
                 : ""}
             </p>
           </div>

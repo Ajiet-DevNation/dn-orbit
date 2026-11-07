@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db, isRecordNotFound } from "@/lib/db";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { canAccessAdmin } from "@/lib/roles";
 import { parseBody, reviewActionSchema } from "@/lib/validation";
 
@@ -12,7 +13,10 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const session = await auth();
-    if (!session || !canAccessAdmin(session.user.role)) {
+    if (!session) {
+      return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+    }
+    if (!canAccessAdmin(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -33,6 +37,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         reviewedAt: new Date(),
       },
     });
+    invalidatePublic(PUBLIC_TAG.projects);
 
     void logAudit({
       action: `project.${action}`,

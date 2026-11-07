@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { canAccessAdmin } from "@/lib/roles";
 import { updateProjectSchema } from "@/lib/validation";
 
@@ -16,6 +17,7 @@ export async function deleteProject(projectId: string) {
   });
 
   revalidatePath("/admin/projects");
+  invalidatePublic(PUBLIC_TAG.projects);
 }
 
 export async function updateProjectStatus(
@@ -32,6 +34,7 @@ export async function updateProjectStatus(
   });
 
   revalidatePath("/admin/projects");
+  invalidatePublic(PUBLIC_TAG.projects);
 }
 
 export async function updateProjectProgress(
@@ -51,6 +54,7 @@ export async function updateProjectProgress(
   });
 
   revalidatePath("/admin/projects");
+  invalidatePublic(PUBLIC_TAG.projects);
 }
 
 // Admin cover override for any project. `null`/empty clears the pasted image,
@@ -77,4 +81,5 @@ export async function updateProjectImage(
   });
 
   revalidatePath("/admin/projects");
+  invalidatePublic(PUBLIC_TAG.projects);
 }

@@ -64,6 +64,10 @@ export interface LensSizing {
   share: number;
   /** Lens width as a share of the viewport on phones. */
   phoneShare: number;
+  /** Card height / width on portrait phones; defaults to `ratio`. A portrait
+   *  screen leaves a landscape card floating in empty space, so a section can
+   *  opt in to a taller card there. */
+  phoneRatio?: number;
   /** Thumb height / lens height. */
   thumbRatio: number;
 }
@@ -85,9 +89,12 @@ export function lensSize(
     s.maxWidth,
     viewportWidth * (phone ? s.phoneShare : s.share),
   );
-  const byHeight = Math.max(MIN_LENS_HEIGHT, heightRoom) / s.ratio;
+  const portrait = phone && viewportHeight > viewportWidth;
+  const ratio = portrait ? (s.phoneRatio ?? s.ratio) : s.ratio;
+  const byHeight = Math.max(MIN_LENS_HEIGHT, heightRoom) / ratio;
   const cardW = Math.round(Math.min(byWidth, byHeight));
-  const cardH = Math.round(cardW * s.ratio);
+  const cardH = Math.round(cardW * ratio);
+  // Thumbs keep the card's own aspect (s.ratio), whatever the phone lens does.
   const thumbH = Math.round(cardH * s.thumbRatio);
   const thumbW = Math.round(thumbH / s.ratio);
   return { cardW, cardH, thumbW, thumbH };

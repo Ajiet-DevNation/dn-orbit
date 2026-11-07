@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { useScrubProgress } from "@/hooks/useScrubProgress";
+import { cn, githubAvatarAt } from "@/lib/utils";
 import { SectionHeading } from "./SectionHeading";
 
 // Plain, serializable row — mapped server-side from leaderboard_scores.
@@ -32,10 +33,8 @@ interface LeaderboardSectionProps {
 
 // ─── tuning ──────────────────────────────────────────────────────────────────
 // Height of the scroll region (the pinned stage is one screen; the rest is the
-// scrub distance that drives the cinematic) lives on the section as
-// `h-[200vh] xl:h-[380vh]`: below xl only the podium plays pinned and the list
-// follows in normal flow, because a 10-row list can't share one short phone
-// screen with a podium.
+// scrub distance that drives the cinematic).
+const SECTION_VH = 380;
 
 // Scroll-progress windows [start, end] for each beat. Avatars spin in, then
 // their pillar rises beneath them, rank by rank — then the whole podium slides
@@ -160,7 +159,6 @@ function PixelCrown({ progress }: { progress: number }) {
           ...Array.from({ length: 9 }, (_, x) => [x, 3] as const),
           ...Array.from({ length: 9 }, (_, x) => [x, 4] as const),
         ].map(([x, y], i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: fixed pixel map, never reorders
           <rect key={i} x={x} y={y} width="1" height="1" fill="#facc15" />
         ))}
         {/* jewels */}
@@ -226,7 +224,8 @@ function PodiumColumn({
           <Avatar className={avatarSize}>
             {entry.image ? (
               <AvatarImage
-                src={entry.image}
+                // Up to size-40 (160px) at 2x.
+                src={githubAvatarAt(entry.image, 320)}
                 alt={entry.name}
                 className="object-cover"
               />
@@ -306,12 +305,7 @@ function SyncedAgo({ iso }: { iso: string }) {
     return () => clearInterval(id);
   }, [iso]);
   return (
-    // Server and browser read the clock a moment apart; a minute can tick over
-    // between them, so the first paint may differ by design.
-    <span
-      suppressHydrationWarning
-      className="retro text-[8px] tracking-widest text-muted-foreground/70"
-    >
+    <span className="retro text-[8px] tracking-widest text-muted-foreground/70">
       SYNCED {label}
     </span>
   );
@@ -329,6 +323,21 @@ function relativeAge(iso: string): string {
 
 // ─── Ranked list (arrives in phase B) — paginated 10 per page ─────────────────
 const PAGE_SIZE = 10;
+// The stacked (non-wide) stage shows the list alone in one pinned screen; ten
+// rows plus the header and pager need ~630px, so shorter screens page by 5.
+const SHORT_PAGE_SIZE = 5;
+
+function usePageSize(): number {
+  const [size, setSize] = useState(PAGE_SIZE);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px), (min-height: 820px)");
+    const on = () => setSize(mq.matches ? PAGE_SIZE : SHORT_PAGE_SIZE);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return size;
+}
 
 function LeaderboardList({
   entries,
@@ -340,12 +349,13 @@ function LeaderboardList({
   syncedAt?: string | null;
 }) {
   const [page, setPage] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
+  const pageSize = usePageSize();
+  const pageCount = Math.max(1, Math.ceil(entries.length / pageSize));
   // Guard against the page falling out of range if the dataset shrinks.
   const safePage = Math.min(page, pageCount - 1);
-  const startIndex = safePage * PAGE_SIZE;
-  const pageEntries = entries.slice(startIndex, startIndex + PAGE_SIZE);
-  const hasPages = entries.length > PAGE_SIZE;
+  const startIndex = safePage * pageSize;
+  const pageEntries = entries.slice(startIndex, startIndex + pageSize);
+  const hasPages = entries.length > pageSize;
   const rangeStart = startIndex + 1;
   const rangeEnd = startIndex + pageEntries.length;
 
@@ -370,7 +380,7 @@ function LeaderboardList({
           <span className="retro w-6 shrink-0 text-right text-[8px] tracking-[0.1em] text-muted-foreground/80">
             POS
           </span>
-          <span className="w-7 shrink-0" aria-hidden="true" />
+          <span className="w-6 shrink-0 sm:w-7" aria-hidden="true" />
           <span className="retro min-w-0 flex-1 text-[8px] tracking-[0.15em] text-muted-foreground/80">
             NAME
           </span>
@@ -390,7 +400,7 @@ function LeaderboardList({
             return (
               <div
                 key={`${e.rank}-${e.name}`}
-                className="flex items-center gap-2 border-b border-white/5 px-1.5 py-2 last:border-b-0 sm:gap-3"
+                className="flex items-center gap-2 border-b border-white/5 px-1.5 py-1.5 last:border-b-0 sm:gap-3 sm:py-2"
                 style={{
                   opacity: rp,
                   transform: `translateX(${(1 - rp) * -24}px)`,
@@ -403,10 +413,10 @@ function LeaderboardList({
                 >
                   {e.rank}
                 </span>
-                <Avatar className="size-7 shrink-0">
+                <Avatar className="size-6 shrink-0 sm:size-7">
                   {e.image ? (
                     <AvatarImage
-                      src={e.image}
+                      src={githubAvatarAt(e.image, 64)}
                       alt={e.name}
                       className="object-cover"
                     />
@@ -425,10 +435,6 @@ function LeaderboardList({
                   </span>
                   <span className="retro truncate text-[8px] tracking-wider text-muted-foreground/70">
                     @{e.username}
-                  </span>
-                  {/* Phones drop the score columns; the split rides here. */}
-                  <span className="mt-0.5 font-mono text-[10px] tabular-nums text-white/45 sm:hidden">
-                    GH {e.githubScore} · LC {e.lcScore} · EVT {e.eventScore}
                   </span>
                 </div>
                 <ScoreCell value={e.githubScore} />
@@ -450,7 +456,7 @@ function LeaderboardList({
               disabled={safePage === 0}
               onClick={() => setPage(safePage - 1)}
             />
-            <span className="retro whitespace-nowrap text-[9px] tracking-widest text-muted-foreground">
+            <span className="retro text-[9px] tracking-widest text-muted-foreground">
               PAGE {safePage + 1} / {pageCount}
             </span>
             <PagerButton
@@ -494,6 +500,8 @@ function ScoreHead({ label, title }: { label: string; title: string }) {
   return (
     <span
       title={title}
+      // Per-category columns need ~110px a phone row doesn't have; phones
+      // show the total only, the breakdown appears from `sm` up.
       className="retro hidden w-9 shrink-0 text-right text-[8px] tracking-[0.12em] text-muted-foreground/80 sm:block"
     >
       {label}
@@ -559,17 +567,16 @@ export function LeaderboardSection({
     3: entries[2],
   };
   // Classic podium ordering: 2nd · 1st · 3rd, left → right.
-  const visualOrder = [2, 1, 3].flatMap((rank) => {
-    const entry = byRank[rank];
-    return entry ? [{ rank, entry }] : [];
-  });
+  const visualOrder = [2, 1, 3].filter((r) => byRank[r]) as number[];
 
   const phaseB = seg(progress, BEATS.phaseB[0], BEATS.phaseB[1]);
   const phaseBE = easeOutCubic(phaseB);
 
-  // Phase B: the podium slides aside and the ranked list arrives. On narrow
-  // screens the podium rises and the list drops in beneath it; on wide screens
-  // the two sit side-by-side.
+  // Phase B: the podium slides aside and the ranked list arrives. On wide
+  // screens the two sit side-by-side. Below that the podium steps back and
+  // fades while the list takes the same spot — stacking them (podium raised,
+  // list beneath) overlapped both on any phone, since ten rows plus a podium
+  // don't fit one screen.
   //
   // The wide layout treats list + podium as ONE unit and centres that unit in
   // the container (the list used to be pinned to the left edge, which left the
@@ -601,75 +608,84 @@ export function LeaderboardSection({
   // composition by half that title band so it reads as vertically centred.
   const RAISE = 80;
 
-  // Below xl the podium just sits centred; the list lives below the section.
   const podiumTransform = wide
     ? `translate(calc(-50% + ${phaseBE * groupShift}px), calc(-50% - ${RAISE}px)) scale(${1 - phaseBE * (1 - podiumScaleEnd)})`
-    : "translate(-50%, -50%)";
+    : `translate(-50%, calc(-50% - ${phaseBE * 40}px)) scale(${1 - phaseBE * 0.15})`;
+  const podiumOpacity = wide ? 1 : 1 - phaseBE;
 
+  const listWrapperClass = wide
+    ? "absolute left-0 top-1/2"
+    : "absolute left-1/2 top-1/2 w-full max-w-md";
   // Computed px (not a calc string) so it stays in lock-step with the centring
   // math above, which also reads containerWidth.
-  const listTransform = `translateY(calc(-50% - ${RAISE}px)) translateX(${groupOffset - (1 - phaseB) * 30}px)`;
+  const listWidth = wide ? `${listW}px` : undefined;
+  const listTransform = wide
+    ? `translateY(calc(-50% - ${RAISE}px)) translateX(${groupOffset - (1 - phaseB) * 30}px)`
+    : `translate(-50%, calc(-50% + ${(1 - phaseB) * 36}px))`;
 
   return (
-    <>
-      <section
-        ref={sectionRef}
-        id="leaderboard"
-        className="relative h-[200vh] w-full scroll-mt-24 xl:h-[380vh]"
-      >
-        <div className="sticky top-0 flex h-svh w-full flex-col overflow-hidden px-6">
-          {/* Title gets its own row at the top so the podium never covers it. */}
-          <div className="shrink-0 pt-28">
-            <SectionHeading text="LEADERBOARD" />
+    <section
+      ref={sectionRef}
+      id="leaderboard"
+      className="relative w-full scroll-mt-24"
+      style={{ height: `${SECTION_VH}vh` }}
+    >
+      {/* svh: on phones 100vh is the height with the URL bar hidden, which
+          pushed the bottom of the stage under the browser chrome. */}
+      <div className="sticky top-0 flex h-svh w-full flex-col overflow-hidden px-4 sm:px-6">
+        {/* Title gets its own row at the top so the podium never covers it. */}
+        <div className="shrink-0 pt-20 md:pt-28">
+          <SectionHeading text="LEADERBOARD" />
+        </div>
+
+        {/* Podium + list centre within the area below the title. */}
+        <div
+          ref={containerRef}
+          className="relative mx-auto w-full max-w-[96rem] flex-1"
+        >
+          {/* Podium */}
+          <div
+            className="absolute left-1/2 top-1/2 flex w-full max-w-3xl items-end justify-center gap-4 sm:gap-8"
+            style={{
+              transform: podiumTransform,
+              opacity: podiumOpacity,
+              pointerEvents: podiumOpacity < 0.5 ? "none" : undefined,
+              willChange: "transform, opacity",
+            }}
+          >
+            {visualOrder.map((rank) => (
+              <PodiumColumn
+                key={rank}
+                rank={rank}
+                entry={byRank[rank]!}
+                progress={progress}
+                wide={wide}
+              />
+            ))}
           </div>
 
-          {/* Podium + list centre within the area below the title. */}
+          {/* Top-20 list */}
           <div
-            ref={containerRef}
-            className="relative mx-auto w-full max-w-[96rem] flex-1"
+            className={cn(listWrapperClass)}
+            // Same gate as pointerEvents: a faded-out list keeps its PREV/NEXT
+            // out of the tab order too.
+            inert={phaseB <= 0.5}
+            style={{
+              width: listWidth,
+              transform: listTransform,
+              opacity: phaseB,
+              pointerEvents: phaseB > 0.5 ? "auto" : "none",
+              willChange: "transform, opacity",
+            }}
           >
-            {/* Podium */}
-            <div
-              className="absolute left-1/2 top-1/2 flex w-full max-w-3xl items-end justify-center gap-4 sm:gap-8"
-              style={{
-                transform: podiumTransform,
-                willChange: "transform",
-              }}
-            >
-              {visualOrder.map(({ rank, entry }) => (
-                <PodiumColumn
-                  key={rank}
-                  rank={rank}
-                  entry={entry}
-                  progress={progress}
-                  wide={wide}
-                />
-              ))}
-            </div>
-
-            {/* Ranked list beside the podium (xl+ only). */}
-            <div
-              className="absolute left-0 top-1/2 hidden xl:block"
-              style={{
-                width: `${listW}px`,
-                transform: listTransform,
-                opacity: phaseB,
-                pointerEvents: phaseB > 0.5 ? "auto" : "none",
-                willChange: "transform, opacity",
-              }}
-            >
-              <LeaderboardList
-                entries={entries}
-                phaseB={phaseB}
-                syncedAt={syncedAt}
-              />
-            </div>
+            <LeaderboardList
+              entries={entries}
+              phaseB={phaseB}
+              syncedAt={syncedAt}
+            />
           </div>
         </div>
-      </section>
-      <div className="mx-auto w-full max-w-xl px-4 pb-24 sm:px-6 xl:hidden">
-        <LeaderboardList entries={entries} phaseB={1} syncedAt={syncedAt} />
       </div>
-    </>
+    </section>
   );
 }

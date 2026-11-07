@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { markBootSplashDone, onLoaderDrawn } from "@/lib/boot-splash";
 import { BootOverlay } from "./BootOverlay";
@@ -17,6 +18,12 @@ import { BootOverlay } from "./BootOverlay";
 //
 // It lives in the persistent (main) layout, so it mounts once per FULL load and
 // does NOT replay on in-app (soft) navigations.
+//
+// Only on the landing page. A full load of /recruitments, an event's register
+// page or /my-events is someone arriving to do a task; holding a 2–4s logo
+// animation in front of the form was the slowest thing on those pages. There
+// it renders nothing and reports "done" at once, so everything that waits on
+// the splash (hero wordmark, recruitment popup) still starts.
 
 const MIN_VISIBLE_MS = 2200; // long enough for the pixel draw to finish
 const EXIT_MS = 720;
@@ -30,11 +37,19 @@ function easeInOutCubic(t: number): number {
 }
 
 export function BootSplash() {
+  // Decided once, from the URL of the full load; later soft navigations to "/"
+  // must not bring it back.
+  const pathname = usePathname();
+  const [show] = useState(() => pathname === "/");
   const [removed, setRemoved] = useState(false);
   const [interactive, setInteractive] = useState(true);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!show) {
+      markBootSplashDone();
+      return;
+    }
     const reduce = window.matchMedia?.(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -105,9 +120,9 @@ export function BootSplash() {
       stopDrawn();
       window.removeEventListener("load", onLoad);
     };
-  }, []);
+  }, [show]);
 
-  if (removed) return null;
+  if (!show || removed) return null;
 
   return (
     <div

@@ -49,10 +49,19 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
         // transient network error — next tick retries
       }
     };
-    const id = setInterval(poll, 12000);
+    // Poll only while the tab is visible, and catch up as soon as it is again
+    // — a dashboard left open in a background tab hit the DB every 12s.
+    const id = setInterval(() => {
+      if (!document.hidden) void poll();
+    }, 12000);
+    const onVisible = () => {
+      if (!document.hidden) void poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       active = false;
       clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
@@ -77,7 +86,8 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
             onValueChange={setQuery}
             placeholder="SEARCH · DATE, USER, ACTION…"
             aria-label="Search logs"
-            className="text-[10px] uppercase tracking-wider"
+            // 16px on phones so iOS Safari doesn't zoom into the field.
+            className="text-base uppercase tracking-wider md:text-[10px]"
           />
         </Command>
       </div>
@@ -91,7 +101,7 @@ export function SystemLogs({ initial }: { initial: LogEntry[] }) {
           NO LOGS MATCH THAT SEARCH.
         </p>
       ) : (
-        <div className="no-scrollbar max-h-[60vh] space-y-2 overflow-y-auto">
+        <div className="no-scrollbar max-h-[60dvh] space-y-2 overflow-y-auto">
           {filtered.map((log) => (
             <div
               key={log.id}

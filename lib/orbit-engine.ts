@@ -253,11 +253,10 @@ export function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3;
 }
 
-// ─── Pixel rings ─────────────────────────────────────────────────────────────
-// Both landing rings and the loading ring are chains of square pixel cells
-// rather than stroked ellipses. Spin is applied here, in maths, instead of by
-// rotating the painted canvas, so every cell stays an axis-aligned square on
-// the pixel grid at any angle.
+// ─── Ring geometry ───────────────────────────────────────────────────────────
+// The landing rings and the loading ring are stroked ellipses; their spin is
+// passed to ctx.ellipse as rotation. ringCells is the pixel-cell form of the
+// same ellipse, still used by Pluton's small 8-bit ring.
 
 export interface RingCell {
   /** Canvas coords (0..CANVAS_SIZE), snapped to the pixel grid. */
@@ -283,19 +282,15 @@ export interface RingShape {
   cy?: number;
 }
 
-// ellipse parameters for `count` points spaced evenly by ARC LENGTH. Evenly
-// spaced angles bunch up at the two tips of a flat ellipse (there the curve
-// covers little ground per radian), which drew the pixel rings as solid bars.
-const arcCache = new Map<string, number[]>();
+// cumulative arc length of an ellipse sampled from parameter `start` round
+// one full turn. Evenly spaced angles bunch up at the two tips of a flat
+// ellipse (there the curve covers little ground per radian), so anything that
+// should move or space out evenly along the ring goes through this table.
+const lengthCache = new Map<string, number[]>();
 const ARC_SAMPLES = 2048;
-function evenArcParams(
-  rx: number,
-  ry: number,
-  count: number,
-  start: number,
-): number[] {
-  const key = `${rx}|${ry}|${count}|${start}`;
-  const hit = arcCache.get(key);
+function arcLengths(rx: number, ry: number, start: number): number[] {
+  const key = `${rx}|${ry}|${start}`;
+  const hit = lengthCache.get(key);
   if (hit) return hit;
   const lengths = [0];
   let prevX = rx * Math.cos(start);
@@ -308,15 +303,46 @@ function evenArcParams(
     prevX = x;
     prevY = y;
   }
-  const total = lengths[ARC_SAMPLES];
+  lengthCache.set(key, lengths);
+  return lengths;
+}
+
+// ellipse parameter at `fraction` (0..1) of the way round by arc length,
+// starting at parameter `start`; the result runs from start to start + 2π
+export function ellipseArcParam(
+  rx: number,
+  ry: number,
+  fraction: number,
+  start = 0,
+): number {
+  const lengths = arcLengths(rx, ry, start);
+  const want = Math.min(1, Math.max(0, fraction)) * lengths[ARC_SAMPLES];
+  let lo = 0;
+  let hi = ARC_SAMPLES;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (lengths[mid] < want) lo = mid;
+    else hi = mid;
+  }
+  const seg = lengths[hi] - lengths[lo] || 1;
+  const t = (lo + (want - lengths[lo]) / seg) / ARC_SAMPLES;
+  return start + t * Math.PI * 2;
+}
+
+// ellipse parameters for `count` points spaced evenly by arc length
+const arcCache = new Map<string, number[]>();
+function evenArcParams(
+  rx: number,
+  ry: number,
+  count: number,
+  start: number,
+): number[] {
+  const key = `${rx}|${ry}|${count}|${start}`;
+  const hit = arcCache.get(key);
+  if (hit) return hit;
   const params: number[] = [];
-  let j = 0;
   for (let i = 0; i < count; i++) {
-    const want = (i / count) * total;
-    while (lengths[j + 1] < want) j++;
-    const seg = lengths[j + 1] - lengths[j] || 1;
-    const t = (j + (want - lengths[j]) / seg) / ARC_SAMPLES;
-    params.push(start + t * Math.PI * 2);
+    params.push(ellipseArcParam(rx, ry, i / count, start));
   }
   arcCache.set(key, params);
   return params;
@@ -356,22 +382,5 @@ export function ringCells(
   return cells;
 }
 
-/** Cells around the full loading ring (the main orbit). */
-export const LOADER_RING_CELLS = 120;
 /** Where the loading ring starts drawing: the far left of the ellipse. */
-const LOADER_START = Math.PI;
-
-// the main ring as the loader draws it, from the far left round the back
-export function loaderRingCells(progress: number, cell: number): RingCell[] {
-  return ringCells(
-    {
-      rx: ORBIT_RX,
-      ry: ORBIT_RY,
-      tilt: ORBIT_TILT,
-      count: LOADER_RING_CELLS,
-      cell,
-    },
-    progress,
-    LOADER_START,
-  );
-}
+export const LOADER_START = Math.PI;

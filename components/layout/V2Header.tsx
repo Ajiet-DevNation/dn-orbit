@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/8bit-avatar";
 import { Button } from "@/components/ui/8bit-button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/8bit-tabs";
-import { PixelArrow } from "@/components/ui/PixelIcons";
 import { smoothScrollTo } from "@/lib/smooth-scroll";
+import { githubAvatarAt } from "@/lib/utils";
 import { BrandLink } from "./BrandLink";
 
 // Split out of the header chunk: the modal (and the vaul drawer it pulls in)
@@ -52,8 +52,28 @@ export function V2Header({
   const pathname = usePathname();
   const router = useRouter();
   const isLandingPage = pathname === "/";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  const [activeTab, setActiveTab] = useState("events");
+  // Close the phone menu on Escape or a press outside it.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onDown);
+    };
+  }, [menuOpen]);
+
+  // "" = no tab highlighted: off the landing page, or between tabbed sections.
+  const [activeTab, setActiveTab] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(!isLandingPage);
 
@@ -89,6 +109,9 @@ export function V2Header({
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) setActiveTab(entry.target.id);
+          // Leaving the band with no tabbed section entering (announcements,
+          // stats, about) clears the highlight instead of leaving it stale.
+          else setActiveTab((cur) => (cur === entry.target.id ? "" : cur));
         }
       },
       // A 1px detection band at the viewport's middle — the section spanning the
@@ -99,15 +122,14 @@ export function V2Header({
     return () => io.disconnect();
   }, [isLandingPage]);
 
-  // Off the landing page the sections don't exist here, so go home to them.
   const handleTabChange = (value: string) => {
-    if (!isLandingPage) {
-      router.push(`/#${value}`);
-      return;
-    }
     setActiveTab(value);
+    setMenuOpen(false);
     const target = document.getElementById(value);
     if (target) smoothScrollTo(target);
+    // The sections live on the landing page; from any other page the tabs
+    // used to do nothing at all.
+    else router.push(`/#${value}`);
   };
 
   const initials = (userName ?? "?")
@@ -119,8 +141,15 @@ export function V2Header({
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-transparent">
-        <div className="relative flex items-center justify-between px-6 pt-6 pb-3 gap-4">
+      {/* Named so route view transitions keep it pinned (globals.css). The
+          fade to black keeps scrolled content from colliding with the logo and
+          controls (it read as overlapping text on phones); over the black
+          hero it is invisible. */}
+      <header className="sticky top-0 z-50 w-full bg-linear-to-b from-black/90 via-black/60 to-transparent [view-transition-name:site-header]">
+        {/* min-h pins the row at 100px on every screen (the button-only phone
+            row was 92px): the hero and boot splash are laid out against
+            exactly this height (OrbitStage HEADER_OFFSET). */}
+        <div className="relative flex min-h-[100px] items-center justify-between gap-4 px-4 pt-6 pb-3 sm:px-6">
           {/* Left: Logo + Brand — links home (smooth-scrolls to top when already on
             the landing page). Dark-grey pixel fill draws in on hover. */}
           <BrandLink
@@ -138,21 +167,20 @@ export function V2Header({
           <div className="absolute inset-x-0 top-6 flex justify-center pointer-events-none">
             <div
               className="hidden lg:block mt-3"
+              // Faded-out tabs must also leave the tab order and a11y tree, or
+              // keyboard focus lands on invisible controls over the hero.
+              inert={!headerVisible}
               style={{
                 opacity: headerVisible ? 1 : 0,
                 transform: headerVisible
                   ? "translateY(0)"
                   : "translateY(-16px)",
                 transition:
-                  "opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1)",
-                willChange: "opacity, transform",
+                  "opacity 700ms var(--ease-out-quart), transform 700ms var(--ease-out-quart)",
                 pointerEvents: headerVisible ? "auto" : "none",
               }}
             >
-              <Tabs
-                value={isLandingPage ? activeTab : ""}
-                onValueChange={handleTabChange}
-              >
+              <Tabs value={activeTab} onValueChange={handleTabChange}>
                 {/*
                 TabsList background is bg-card (dark mode = #292929).
                 The pixel border divs inside use border-foreground / dark:border-ring.
@@ -177,12 +205,48 @@ export function V2Header({
 
           {/* Right: signed-in members get the 8bit avatar (click to edit profile);
             anonymous visitors get a SIGN IN button into the members-only login.
-            Below lg the tabs don't fit, so a MENU button stands in for them. */}
-          <div className="flex shrink-0 items-center gap-4">
-            <MobileNav
-              active={isLandingPage ? activeTab : null}
-              onPick={handleTabChange}
-            />
+            Below lg the section tabs don't fit (at md they overlapped the
+            wordmark and SIGN IN), so a menu sits beside it. */}
+          <div className="flex shrink-0 items-center gap-3">
+            <div ref={menuRef} className="relative lg:hidden">
+              <button
+                type="button"
+                aria-label="Sections"
+                aria-expanded={menuOpen}
+                aria-controls="section-menu"
+                onClick={() => setMenuOpen((o) => !o)}
+                className="grid size-11 place-items-center border-2 border-white/20 bg-black/60 text-white transition-[border-color,scale] duration-150 ease-out hover:border-brand active:scale-95"
+              >
+                <span aria-hidden className="flex w-5 flex-col gap-[3px]">
+                  <span className="h-[3px] bg-current" />
+                  <span className="h-[3px] bg-current" />
+                  <span className="h-[3px] bg-current" />
+                </span>
+              </button>
+              {menuOpen && (
+                <nav
+                  id="section-menu"
+                  aria-label="Sections"
+                  className="absolute right-0 top-full mt-3 flex w-52 origin-top-right flex-col border-2 border-white/15 bg-[#0a0a0a] p-1 shadow-[0_0_20px_rgba(139,92,246,0.15)] transition-[opacity,scale] duration-150 ease-out starting:scale-95 starting:opacity-0"
+                >
+                  {NAV_TABS.map((tab) => (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      onClick={() => handleTabChange(tab.value)}
+                      aria-current={
+                        isLandingPage && activeTab === tab.value
+                          ? "true"
+                          : undefined
+                      }
+                      className="retro min-h-11 px-4 text-left text-[10px] tracking-widest text-white/80 transition-colors duration-150 hover:bg-white/5 hover:text-brand-light aria-[current=true]:text-brand-light"
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </nav>
+              )}
+            </div>
             {isAuthenticated ? (
               <button
                 type="button"
@@ -193,7 +257,9 @@ export function V2Header({
                 <Avatar className="size-16">
                   {userImage ? (
                     <AvatarImage
-                      src={userImage}
+                      src={githubAvatarAt(userImage, 128)}
+                      // Above the fold, in the header on every page.
+                      loading="eager"
                       alt={userName ?? "User"}
                       className="object-cover"
                     />
@@ -203,9 +269,9 @@ export function V2Header({
                 </Avatar>
               </button>
             ) : (
-              <Button asChild className="shrink-0 text-[10px]">
-                <Link href="/login">SIGN IN</Link>
-              </Button>
+              <Link href="/login" className="shrink-0" aria-label="Sign in">
+                <Button className="text-[10px]">SIGN IN</Button>
+              </Link>
             )}
           </div>
         </div>
@@ -222,86 +288,5 @@ export function V2Header({
         />
       )}
     </>
-  );
-}
-
-// Phone/tablet stand-in for the nav tabs: a MENU button that drops a framed
-// list of the same sections. Escape, a tap outside or a pick closes it.
-function MobileNav({
-  active,
-  onPick,
-}: {
-  active: string | null;
-  onPick: (value: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    const onDown = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("pointerdown", onDown);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("pointerdown", onDown);
-    };
-  }, [open]);
-
-  return (
-    <div ref={rootRef} className="relative lg:hidden">
-      <Button
-        type="button"
-        variant="outline"
-        aria-expanded={open}
-        aria-controls="mobile-nav"
-        onClick={() => setOpen((o) => !o)}
-        className="text-[10px]"
-      >
-        {open ? "CLOSE" : "MENU"}
-      </Button>
-      {open && (
-        <nav
-          id="mobile-nav"
-          aria-label="Sections"
-          className="retro absolute right-0 top-full mt-5 w-56 bg-card p-1.5"
-        >
-          {/* The nav tabs' frame: ring bars pushed past each edge, notched corners. */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 -my-1.5 border-y-[6px] border-ring"
-          />
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 -mx-1.5 border-x-[6px] border-ring"
-          />
-          <ul className="relative flex flex-col">
-            {NAV_TABS.map((tab) => (
-              <li key={tab.value}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    onPick(tab.value);
-                  }}
-                  aria-current={active === tab.value ? "true" : undefined}
-                  className={
-                    active === tab.value
-                      ? "flex w-full items-center justify-between bg-brand px-4 py-3 text-xs text-[#0a0a0a]"
-                      : "flex w-full items-center justify-between px-4 py-3 text-xs text-white/80 transition-colors duration-150 hover:bg-white/5 hover:text-white focus-visible:bg-white/5 focus-visible:outline-none"
-                  }
-                >
-                  {tab.label}
-                  <PixelArrow />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
-    </div>
   );
 }
