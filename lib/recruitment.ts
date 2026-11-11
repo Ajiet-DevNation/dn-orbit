@@ -4,6 +4,8 @@ import { isAjietUsn } from "./usn";
 // Recruitment form rules — DB-free so the /recruitments client form and the
 // public POST route validate with the exact same schema.
 
+// Every department a member, faculty or applicant can pick. Shared by
+// onboarding, profile edit and recruitment so the lists can't drift.
 export const BRANCHES = [
   "CSE",
   "ISE",
@@ -13,9 +15,28 @@ export const BRANCHES = [
   "AIDS",
   "AIML",
   "CSD",
+  "ICB",
+  "MCA",
+  "MBA",
 ] as const;
 
 export const YEARS = [1, 2, 3, 4] as const;
+
+// MCA and MBA are two-year postgraduate courses
+const TWO_YEAR_BRANCHES: readonly string[] = ["MCA", "MBA"];
+
+export function yearsFor(branch: string): readonly number[] {
+  return TWO_YEAR_BRANCHES.includes(branch) ? [1, 2] : YEARS;
+}
+
+export function isValidYear(branch: string, year: number): boolean {
+  return yearsFor(branch).includes(year);
+}
+
+export const YEAR_FOR_BRANCH_ISSUE = {
+  message: "MCA and MBA run 2 years: pick year 1 or 2",
+  path: ["year"],
+};
 
 export const ABOUT_MAX_WORDS = 150;
 
@@ -44,63 +65,70 @@ const optional = (schema: z.ZodTypeAny) =>
     .union([z.literal(""), z.null(), z.undefined(), schema])
     .transform((v) => (v ? (v as string) : undefined));
 
-export const recruitmentApplicationSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100),
-  email: z.string().trim().toLowerCase().email("Enter a valid email").max(254),
-  usn: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .refine(isAjietUsn, "Enter a valid AJIET USN, e.g. 4JK24CS069"),
-  branch: z.enum(BRANCHES, { message: "Select your branch" }),
-  year: z.coerce
-    .number({ message: "Select your year" })
-    .int()
-    .min(1, "Select your year")
-    .max(4),
-  whatsapp: z
-    .string()
-    .transform((v) => v.replace(/[\s-]/g, ""))
-    .refine((v) => PHONE_RE.test(v), "Enter a valid WhatsApp number"),
-  about: z
-    .string()
-    .trim()
-    .min(1, "Tell us something about yourself")
-    .max(2000)
-    .refine(
-      (v) => countWords(v) <= ABOUT_MAX_WORDS,
-      `Keep it under ${ABOUT_MAX_WORDS} words`,
+export const recruitmentApplicationSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required").max(100),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email("Enter a valid email")
+      .max(254),
+    usn: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .refine(isAjietUsn, "Enter a valid AJIET USN, e.g. 4JK24CS069"),
+    branch: z.enum(BRANCHES, { message: "Select your branch" }),
+    year: z.coerce
+      .number({ message: "Select your year" })
+      .int()
+      .min(1, "Select your year")
+      .max(4),
+    whatsapp: z
+      .string()
+      .transform((v) => v.replace(/[\s-]/g, ""))
+      .refine((v) => PHONE_RE.test(v), "Enter a valid WhatsApp number"),
+    about: z
+      .string()
+      .trim()
+      .min(1, "Tell us something about yourself")
+      .max(2000)
+      .refine(
+        (v) => countWords(v) <= ABOUT_MAX_WORDS,
+        `Keep it under ${ABOUT_MAX_WORDS} words`,
+      ),
+    githubUsername: z
+      .string()
+      .trim()
+      .regex(GITHUB_USERNAME_RE, "Enter your GitHub username, not a URL"),
+    lcUsername: z
+      .string()
+      .trim()
+      .regex(LC_USERNAME_RE, "Enter your LeetCode username, not a URL"),
+    linkedinUrl: optional(
+      z
+        .string()
+        .trim()
+        .max(300)
+        .url("Enter a full LinkedIn URL")
+        .refine(
+          (v) => /^https?:\/\/([\w-]+\.)?linkedin\.com\//i.test(v),
+          "Enter a linkedin.com URL",
+        ),
     ),
-  githubUsername: z
-    .string()
-    .trim()
-    .regex(GITHUB_USERNAME_RE, "Enter your GitHub username, not a URL"),
-  lcUsername: z
-    .string()
-    .trim()
-    .regex(LC_USERNAME_RE, "Enter your LeetCode username, not a URL"),
-  linkedinUrl: optional(
-    z
-      .string()
-      .trim()
-      .max(300)
-      .url("Enter a full LinkedIn URL")
-      .refine(
-        (v) => /^https?:\/\/([\w-]+\.)?linkedin\.com\//i.test(v),
-        "Enter a linkedin.com URL",
-      ),
-  ),
-  xHandle: optional(
-    z
-      .string()
-      .trim()
-      .transform((v) => v.replace(/^@/, ""))
-      .refine(
-        (v) => X_HANDLE_RE.test(v),
-        "Enter your X handle, e.g. @devnation",
-      ),
-  ),
-});
+    xHandle: optional(
+      z
+        .string()
+        .trim()
+        .transform((v) => v.replace(/^@/, ""))
+        .refine(
+          (v) => X_HANDLE_RE.test(v),
+          "Enter your X handle, e.g. @devnation",
+        ),
+    ),
+  })
+  .refine((v) => isValidYear(v.branch, v.year), YEAR_FOR_BRANCH_ISSUE);
 
 export type RecruitmentApplicationInput = z.input<
   typeof recruitmentApplicationSchema

@@ -455,7 +455,7 @@ function ProjectsSectionInner({ projects }: { projects: ProjectData[] }) {
     onActivateCenter: open,
   });
 
-  // GSAP power-on (bracket pop) on the card the row came to rest on — keyed off
+  // Power-on (bracket pop) on the card the row came to rest on — keyed off
   // the SETTLED index, not the live one, so a drag sweeping past ten cards
   // doesn't fire ten bracket animations mid-gesture.
   useCardPowerOn(lensRef, settledIndex);
@@ -547,6 +547,7 @@ function ProjectsSectionInner({ projects }: { projects: ProjectData[] }) {
         </div>
       ))}
       cards={projects.map((project, i) => (
+        // biome-ignore lint/a11y/useSemanticElements: coverflow card holds its own links; a <button> can't nest them
         <div
           key={project.id}
           ref={registerCard(i)}

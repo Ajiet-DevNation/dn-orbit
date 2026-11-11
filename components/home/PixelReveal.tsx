@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 const COLS = 14;
 const ROWS = 10;
 const CELL_COUNT = COLS * ROWS;
+const CELLS = Array.from({ length: CELL_COUNT }, (_, i) => i);
 const DURATION_MS = 220;
 const SPREAD_MS = 520; // scatter window across all cells
 
@@ -83,7 +84,7 @@ export function PixelReveal({
             gridTemplateRows: `repeat(${ROWS}, 1fr)`,
           }}
         >
-          {Array.from({ length: CELL_COUNT }, (_, i) => (
+          {CELLS.map((i) => (
             <span
               key={i}
               style={{

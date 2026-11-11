@@ -192,6 +192,7 @@ const MemberCard = memo(function MemberCard({
   if (flipped && !everFlipped) setEverFlipped(true);
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: 3D flip card holds links on its back face; a <button> can't nest them
     <div
       onClick={() => onActivate(index)}
       role="button"
@@ -316,7 +317,7 @@ export function MembersSection() {
       }),
   });
 
-  // GSAP power-on (bracket pop) on the card the row came to rest on — keyed off
+  // Power-on (bracket pop) on the card the row came to rest on — keyed off
   // the SETTLED index, not the live one, so a drag sweeping past ten cards
   // doesn't fire ten bracket animations mid-gesture.
   useCardPowerOn(lensRef, settledIndex);

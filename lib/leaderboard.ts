@@ -7,6 +7,7 @@ import {
   type ScoringUserInput,
 } from "@/lib/leaderboard-scoring";
 import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
+import { LEADERBOARD_EXCLUDED_ROLES } from "@/lib/roles";
 
 // Who the *public* leaderboard shows. A member appears as soon as they finish
 // onboarding (they have an `lcUsername`) — they no longer wait on an admin to
@@ -21,6 +22,7 @@ import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 //                          lcUsername yet) plus any member who has onboarded.
 export const LEADERBOARD_VISIBLE_USER_FILTER: Prisma.UserWhereInput = {
   isVisible: true,
+  role: { notIn: LEADERBOARD_EXCLUDED_ROLES },
   status: { not: "rejected" },
   OR: [{ status: "approved" }, { lcUsername: { not: null } }],
 };
@@ -51,7 +53,10 @@ export async function recomputeLeaderboardScores() {
   // Only the columns the formula reads, and attendance as a count — this runs
   // after every stats drain that changed anything, and used to pull every
   // attended registration row (custom-question answers included) per user.
+  // Alumni are left out of the maths too: a graduate's big numbers would
+  // otherwise become the 100 that every current member is measured against.
   const users = await db.user.findMany({
+    where: { role: { notIn: LEADERBOARD_EXCLUDED_ROLES } },
     select: {
       id: true,
       lcStats: {

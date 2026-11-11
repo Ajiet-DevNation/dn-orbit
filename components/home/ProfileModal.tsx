@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import type { ReactNode } from "react";
 import { useState } from "react";
 import { updateProfile } from "@/app/actions/profile";
 import {
@@ -20,26 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/8bit-select";
-import { toast as rawToast } from "@/components/ui/8bit-toast";
-import { PixelCheck, PixelCross } from "@/components/ui/PixelIcons";
+import { toast } from "@/components/ui/8bit-toast";
 import { PixelModal } from "@/components/ui/PixelModal";
+import { BRANCHES, isValidYear, yearsFor } from "@/lib/recruitment";
 import { isRole, ROLE_LABELS } from "@/lib/roles";
 import { githubAvatarAt } from "@/lib/utils";
 import { LeetCodeConnect } from "./LeetCodeConnect";
-
-const toast = rawToast as unknown as (message: ReactNode) => void;
-function notify(kind: "success" | "error", message: string) {
-  const color = kind === "success" ? "text-brand-light" : "text-red-500";
-  toast(
-    <span className={`inline-flex items-center gap-2 ${color}`}>
-      {kind === "success" ? <PixelCheck /> : kind === "error" && <PixelCross />}
-      {message}
-    </span>,
-  );
-}
-
-const BRANCHES = ["CSE", "ISE", "ECE", "MECH", "CIVIL", "AIDS", "AIML", "CSD"];
-const YEARS = ["1", "2", "3", "4"];
 
 export interface ProfileData {
   name: string;
@@ -81,6 +66,8 @@ export function ProfileModal({
   const router = useRouter();
 
   const roleLabel = isRole(role) ? ROLE_LABELS[role] : null;
+  // faculty have no USN, year or LeetCode; the server ignores those for them
+  const isFaculty = role === "faculty";
 
   const [name, setName] = useState(profile.name);
   const [usn, setUsn] = useState(profile.usn);
@@ -88,6 +75,12 @@ export function ProfileModal({
   const [year, setYear] = useState(profile.year ? String(profile.year) : "");
   const [lcUsername, setLcUsername] = useState(profile.lcUsername);
   const [bio, setBio] = useState(profile.bio);
+
+  // switching to a 2-year course drops a year it doesn't have
+  const pickBranch = (b: string) => {
+    setBranch(b);
+    if (year && !isValidYear(b, Number(year))) setYear("");
+  };
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [photoPopup, setPhotoPopup] = useState(false);
@@ -115,10 +108,10 @@ export function ProfileModal({
     setConfirmOpen(false);
 
     if (res?.error) {
-      notify("error", `${res.error}`);
+      toast.error(`${res.error}`);
       return;
     }
-    notify("success", "Profile updated");
+    toast.success("Profile updated");
     onOpenChange(false);
     router.refresh();
   }
@@ -229,29 +222,35 @@ export function ProfileModal({
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="pm-usn">USN</Label>
-              <Input
-                id="pm-usn"
-                value={usn}
-                onChange={(e) => setUsn(e.target.value)}
-              />
-            </div>
+            {!isFaculty && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="pm-usn">USN</Label>
+                  <Input
+                    id="pm-usn"
+                    value={usn}
+                    onChange={(e) => setUsn(e.target.value)}
+                  />
+                </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="pm-lc">LEETCODE</Label>
-              <LeetCodeConnect
-                id="pm-lc"
-                value={lcUsername}
-                onChange={setLcUsername}
-                placeholder="your_lc_handle"
-              />
-            </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="pm-lc">LEETCODE</Label>
+                  <LeetCodeConnect
+                    id="pm-lc"
+                    value={lcUsername}
+                    onChange={setLcUsername}
+                    placeholder="your_lc_handle"
+                  />
+                </div>
+              </>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="grid gap-2">
-                <Label htmlFor="pf-branch">BRANCH</Label>
-                <Select value={branch} onValueChange={setBranch}>
+                <Label htmlFor="pf-branch">
+                  {isFaculty ? "DEPARTMENT" : "BRANCH"}
+                </Label>
+                <Select value={branch} onValueChange={pickBranch}>
                   <SelectTrigger id="pf-branch">
                     <SelectValue placeholder="SELECT" />
                   </SelectTrigger>
@@ -264,21 +263,23 @@ export function ProfileModal({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="pf-year">YEAR</Label>
-                <Select value={year} onValueChange={setYear}>
-                  <SelectTrigger id="pf-year">
-                    <SelectValue placeholder="SELECT" />
-                  </SelectTrigger>
-                  <SelectContent className="z-[200] dark">
-                    {YEARS.map((y) => (
-                      <SelectItem key={y} value={y}>
-                        {y}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isFaculty && (
+                <div className="grid gap-2">
+                  <Label htmlFor="pf-year">YEAR</Label>
+                  <Select value={year} onValueChange={setYear}>
+                    <SelectTrigger id="pf-year">
+                      <SelectValue placeholder="SELECT" />
+                    </SelectTrigger>
+                    <SelectContent className="z-[200] dark">
+                      {yearsFor(branch).map((y) => (
+                        <SelectItem key={y} value={String(y)}>
+                          {y}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -352,7 +353,9 @@ export function ProfileModal({
         }
       >
         <p className="text-[12px] leading-relaxed text-muted-foreground">
-          Your name, USN, branch, year, LeetCode handle and bio will be updated.
+          {isFaculty
+            ? "Your name, department and bio will be updated."
+            : "Your name, USN, branch, year, LeetCode handle and bio will be updated."}
         </p>
       </PixelModal>
     </>

@@ -235,8 +235,9 @@ export default async function V2Page() {
       )}
       <HeroOrbit />
       <AnnouncementCarousel announcements={announcements} />
-      {/* PLAYER STATS is personal — only rendered for signed-in members. */}
-      {userId && (
+      {/* PLAYER STATS is personal — only rendered for signed-in members.
+          Faculty aren't ranked and have no LeetCode, so they skip it. */}
+      {userId && session?.user?.role !== "faculty" && (
         <StatsSection
           userId={userId}
           isAdmin={isAdmin}

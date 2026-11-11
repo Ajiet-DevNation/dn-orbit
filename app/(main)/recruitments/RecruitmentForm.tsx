@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState, ViewTransition } from "react";
+import { useCallback, useRef, useState, ViewTransition } from "react";
 import {
   RECRUIT_CARD_TRANSITION,
   RECRUIT_MORPH,
 } from "@/components/home/RecruitmentBanner";
 import { Button } from "@/components/ui/8bit-button";
-import { Card } from "@/components/ui/8bit-card";
 import {
   FIELD_ERROR,
   FIELD_FRAME,
@@ -24,20 +23,24 @@ import {
 } from "@/components/ui/8bit-select";
 import { Textarea } from "@/components/ui/8bit-textarea";
 import { toast } from "@/components/ui/8bit-toast";
-import { PixelArrow, PixelCheck } from "@/components/ui/PixelIcons";
+import { PixelFrame } from "@/components/ui/PixelFrame";
+import { PixelArrow } from "@/components/ui/PixelIcons";
+import { useSpriteSheet } from "@/hooks/useSpriteSheet";
 import {
   ABOUT_MAX_WORDS,
   BRANCHES,
   CV_MAX_BYTES,
   countWords,
   fieldErrors,
+  isValidYear,
   type RecruitmentApplicationInput,
   recruitmentApplicationSchema,
-  YEARS,
+  yearsFor,
 } from "@/lib/recruitment";
+import { loopFrame } from "@/lib/sprite";
 import { cn } from "@/lib/utils";
 import { MissionProgress } from "./MissionProgress";
-import { RecruitHeaderCard, type Step } from "./RecruitHeaderCard";
+import { RecruitHeaderCard, SignalBars, type Step } from "./RecruitHeaderCard";
 
 type Key = keyof RecruitmentApplicationInput;
 type Values = Record<Key, string>;
@@ -150,7 +153,13 @@ export function RecruitmentForm({ open }: { open: boolean }) {
 
   // Editing a field clears its error; the full check runs again on REVIEW.
   const set = (key: Key) => (v: string) => {
-    setValues((p) => ({ ...p, [key]: v }));
+    setValues((p) => {
+      const next = { ...p, [key]: v };
+      // switching to a 2-year course drops a year it doesn't have
+      if (key === "branch" && p.year && !isValidYear(v, Number(p.year)))
+        next.year = "";
+      return next;
+    });
     setErrors((p) => {
       if (!(key in p)) return p;
       const { [key]: _, ...rest } = p;
@@ -177,13 +186,10 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   if (!open) {
     return (
       <Layout step={null}>
-        <Card className="w-full items-start gap-4 border-white/10 p-8">
-          <p className="retro text-sm text-white/70">RECRUITMENT IS CLOSED.</p>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            We&apos;re not taking applications right now. Keep an eye on the
-            home page for the next drive.
-          </p>
-        </Card>
+        <StatusCard
+          title="RECRUITMENT IS CLOSED"
+          body="We're not taking applications right now. Keep an eye on the home page for the next drive."
+        />
       </Layout>
     );
   }
@@ -191,14 +197,11 @@ export function RecruitmentForm({ open }: { open: boolean }) {
   if (step === "done") {
     return (
       <Layout step="done">
-        <Card className="w-full items-center gap-4 border-brand/30 p-10 text-center">
-          <PixelCheck className="text-4xl text-brand-light" />
-          <p className="retro text-sm text-white">APPLICATION SENT!</p>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Thanks for applying. The team will review it and reach out on
-            WhatsApp or email.
-          </p>
-        </Card>
+        <StatusCard
+          title="APPLICATION SENT!"
+          body="Thanks for applying. The team will review it and reach out on WhatsApp or email."
+          celebrate
+        />
       </Layout>
     );
   }
@@ -327,7 +330,10 @@ export function RecruitmentForm({ open }: { open: boolean }) {
       const options =
         k === "branch"
           ? BRANCHES.map((b) => ({ value: b, label: b }))
-          : YEARS.map((y) => ({ value: String(y), label: `YEAR ${y}` }));
+          : yearsFor(values.branch).map((y) => ({
+              value: String(y),
+              label: `YEAR ${y}`,
+            }));
       return (
         <Select value={values[k]} onValueChange={set(k)}>
           <SelectTrigger
@@ -423,8 +429,33 @@ export function RecruitmentForm({ open }: { open: boolean }) {
           </Panel>
         ))}
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="retro text-[9px] tracking-[0.14em] text-muted-foreground">
+        {/* Phones: the row sticks to the bottom and carries the progress the
+            desktop rail shows, so it stays in view the whole way down. */}
+        <div className="sticky bottom-0 z-10 -mx-5 flex flex-col gap-3 border-t-2 border-brand/30 bg-black/95 px-5 py-4 sm:-mx-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0">
+          <div className="flex items-center gap-3 lg:hidden">
+            <div
+              role="progressbar"
+              aria-label="Required fields completed"
+              aria-valuemin={0}
+              aria-valuemax={REQUIRED.length}
+              aria-valuenow={filled}
+              className="flex flex-1 gap-[2px] border-2 border-brand bg-brand p-[2px] sm:w-40 sm:flex-none"
+            >
+              {REQUIRED.map((k, i) => (
+                <span
+                  key={k}
+                  className={cn(
+                    "h-2 flex-1",
+                    i < filled ? "bg-brand-light" : "bg-[#1a1838]",
+                  )}
+                />
+              ))}
+            </div>
+            <span className="retro whitespace-nowrap text-[9px] text-brand-light">
+              {filled} / {REQUIRED.length}
+            </span>
+          </div>
+          <p className="retro hidden text-[9px] tracking-[0.14em] text-muted-foreground lg:block">
             <span className="text-brand-light">*</span> REQUIRED
           </p>
           <Button
@@ -488,27 +519,30 @@ function Layout({
                 <MissionProgress filled={filled} total={REQUIRED.length} />
               </div>
             )}
-            <div className="hidden flex-col gap-4 border-2 border-white/10 bg-[#0a0a0a] p-6 lg:flex">
-              <span className="retro text-[9px] tracking-widest text-white/80">
-                HOW IT WORKS
-              </span>
-              <ol className="flex flex-col gap-3">
-                {[
-                  "Fill in the form and review your answers.",
-                  "The core team reviews every application.",
-                  "We reach out on WhatsApp or email.",
-                ].map((text, i) => (
-                  <li key={text} className="flex gap-3">
-                    <span className="retro shrink-0 text-[9px] leading-5 text-brand-light">
-                      0{i + 1}
-                    </span>
-                    <span className="text-xs leading-5 text-muted-foreground">
-                      {text}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            </div>
+            <PixelFrame className="hidden lg:block">
+              <div className="flex flex-col gap-4 px-1 py-1">
+                <span className="retro flex items-center gap-2.5 text-[9px] tracking-widest text-white">
+                  <SignalBars />
+                  HOW IT WORKS
+                </span>
+                <ol className="flex flex-col gap-3">
+                  {[
+                    "Fill in the form and review your answers.",
+                    "The core team reviews every application.",
+                    "We reach out on WhatsApp or email.",
+                  ].map((text, i) => (
+                    <li key={text} className="flex gap-3">
+                      <span className="retro shrink-0 text-[9px] leading-5 text-brand-light">
+                        0{i + 1}
+                      </span>
+                      <span className="text-xs leading-5 text-[#bdb8d9]">
+                        {text}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </PixelFrame>
           </aside>
 
           <div className="flex flex-col gap-6 lg:col-span-3">{children}</div>
@@ -528,8 +562,8 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-2 border-white/10 bg-[#0a0a0a] transition-colors duration-200 focus-within:border-brand/40">
-      <header className="flex items-center gap-3 border-b-2 border-white/10 px-5 py-3 sm:px-6">
+    <section className="border-2 border-brand/25 bg-[#0a0a0a] transition-colors duration-200 focus-within:border-brand/70">
+      <header className="flex items-center gap-3 border-b-2 border-brand/20 bg-brand/[0.06] px-5 py-3 sm:px-6">
         <span className="retro text-[9px] text-brand-light">0{index}</span>
         <h2 className="retro text-[9px] tracking-widest text-white/80">
           {"// "}
@@ -638,5 +672,54 @@ function CvPicker({
       </label>
       <div className={FIELD_FRAME_SIDES} aria-hidden="true" />
     </div>
+  );
+}
+
+// Pluton's flag-hop sheet, reused from the progress walkway.
+const JUMP_FRAMES = 9;
+
+// Closed / sent screen: the purple pixel frame, and on success Pluton hopping
+// with his flag. Sprite steps on rAF; reduced motion holds frame 0.
+function StatusCard({
+  title,
+  body,
+  celebrate = false,
+}: {
+  title: string;
+  body: string;
+  celebrate?: boolean;
+}) {
+  const spriteRef = useRef<HTMLDivElement>(null);
+  const frameAt = useCallback((t: number) => loopFrame(t, JUMP_FRAMES, 90), []);
+  useSpriteSheet(spriteRef, JUMP_FRAMES, frameAt, celebrate);
+
+  return (
+    <PixelFrame>
+      <div className="flex flex-col items-center gap-4 px-2 py-6 text-center sm:py-8">
+        {celebrate && (
+          <div
+            ref={spriteRef}
+            aria-hidden
+            className="pixelated size-[96px] bg-[url(/assets/pluton/pluton-flag-jump.png)] bg-[length:900%_100%] bg-no-repeat"
+          />
+        )}
+        <p
+          className={cn(
+            "retro text-sm sm:text-base",
+            celebrate ? "text-brand-light" : "text-white",
+          )}
+        >
+          {title}
+        </p>
+        <p className="max-w-sm font-mono text-sm leading-relaxed text-[#d4d0ea]">
+          {body}
+        </p>
+        <Button asChild variant="outline" className="mt-2 text-[10px]">
+          <Link href="/">
+            <PixelArrow dir="left" /> BACK TO ORBIT
+          </Link>
+        </Button>
+      </div>
+    </PixelFrame>
   );
 }

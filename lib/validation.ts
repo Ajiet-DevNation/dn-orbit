@@ -269,6 +269,9 @@ export const allowlistEntrySchema = z
       z.string().trim().toLowerCase().email().max(254).optional(),
     ),
     note: optionalText(500),
+    // Only faculty can be pre-granted from the UI; President-only (the route
+    // checks), since faculty get admin access.
+    grantRole: z.enum(["faculty"]).nullish(),
   })
   .refine(
     (v) => v.githubUsername || v.email,

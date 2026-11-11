@@ -2,36 +2,14 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { lcHandleTaken } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fetchLeetCodeStats } from "@/lib/lc-fetcher";
+import { parseProfileForm } from "@/lib/profile";
 import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { rateLimit } from "@/lib/rate-limit";
 import { isAjietUsn } from "@/lib/usn";
-
-const onboardingSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Name must be at least 2 characters")
-    .max(100, "Name is too long"),
-  usn: z.string().trim().min(5, "USN must be valid").max(20, "USN is too long"),
-  branch: z
-    .string()
-    .trim()
-    .min(2, "Branch is required")
-    .max(100, "Branch is too long"),
-  year: z.coerce.number().min(1).max(5),
-  lc_username: z
-    .string()
-    .min(1, "LeetCode username is required")
-    .max(40, "LeetCode username is too long")
-    .regex(/^[a-zA-Z0-9_.-]+$/, "Invalid LeetCode username format"),
-  // Bio is the only optional onboarding field.
-  bio: z.string().max(160, "Bio must be 160 characters or fewer").optional(),
-});
 
 export async function submitOnboarding(formData: FormData) {
   const session = await auth();
@@ -46,25 +24,10 @@ export async function submitOnboarding(formData: FormData) {
     return { error: "Too many attempts. Please wait a minute and retry." };
   }
 
-  const rawData = {
-    name: formData.get("name"),
-    usn: formData.get("usn"),
-    branch: formData.get("branch"),
-    year: formData.get("year"),
-    lc_username: formData.get("lc_username"),
-    bio: formData.get("bio") ?? undefined,
-  };
-
-  const parsed = onboardingSchema.safeParse(rawData);
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
-  }
-
   try {
     const existingUser = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true, status: true, usn: true },
+      select: { id: true, status: true, usn: true, role: true },
     });
 
     if (!existingUser) {
@@ -76,14 +39,40 @@ export async function submitOnboarding(formData: FormData) {
       return { error: "Your membership request was not approved." };
     }
 
-    if (await lcHandleTaken(parsed.data.lc_username, session.user.id)) {
+    // The DB role, not the session, picks the form: faculty skip USN / year /
+    // LeetCode.
+    const parsed = parseProfileForm(existingUser.role, formData);
+    if (!parsed.ok) {
+      return { error: parsed.error };
+    }
+
+    if (parsed.faculty) {
+      const updatedUser = await db.user.update({
+        where: { id: session.user.id },
+        data: parsed.data,
+      });
+      revalidatePath("/", "layout");
+      return {
+        success: true,
+        user: {
+          name: updatedUser.name,
+          usn: updatedUser.usn,
+          branch: updatedUser.branch,
+          lcUsername: updatedUser.lcUsername,
+        },
+      };
+    }
+
+    const { lc_username, ...profile } = parsed.data;
+
+    if (await lcHandleTaken(lc_username, session.user.id)) {
       return {
         error: "That LeetCode username is already linked to another member.",
       };
     }
 
     try {
-      await fetchLeetCodeStats(parsed.data.lc_username);
+      await fetchLeetCodeStats(lc_username);
     } catch {
       return { error: "Incorrect LeetCode username. Profile not found." };
     }
@@ -100,17 +89,13 @@ export async function submitOnboarding(formData: FormData) {
     const autoApprove =
       existingUser.status === "pending" &&
       !existingUser.usn &&
-      isAjietUsn(parsed.data.usn);
+      isAjietUsn(profile.usn);
 
     const updatedUser = await db.user.update({
       where: { id: session.user.id },
       data: {
-        name: parsed.data.name,
-        usn: parsed.data.usn,
-        branch: parsed.data.branch,
-        year: parsed.data.year,
-        lcUsername: parsed.data.lc_username,
-        bio: parsed.data.bio?.trim() || null,
+        ...profile,
+        lcUsername: lc_username,
         ...(autoApprove ? { status: "approved" as const } : {}),
       },
     });

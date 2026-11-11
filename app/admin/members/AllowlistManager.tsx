@@ -10,7 +10,9 @@ import { PixelPanel } from "@/components/admin/PixelPanel";
 import { Button } from "@/components/ui/8bit-button";
 import { Input } from "@/components/ui/8bit-input";
 import { toast } from "@/components/ui/8bit-toast";
+import { PixelCheckbox } from "@/components/ui/PixelCheckbox";
 import { useConfirm } from "@/components/ui/PixelConfirm";
+import { isRole, ROLE_LABELS } from "@/lib/roles";
 import { errorMessage } from "@/lib/utils";
 
 interface AllowlistEntry {
@@ -18,11 +20,15 @@ interface AllowlistEntry {
   githubUsername: string | null;
   email: string | null;
   note: string | null;
+  // role applied on first sign-in; null = ordinary pending account
+  grantRole: string | null;
   createdAt: string; // ISO
 }
 
 interface AllowlistManagerProps {
   initialEntries: AllowlistEntry[];
+  /** President only: may invite someone straight in as Faculty. */
+  canGrantFaculty: boolean;
 }
 
 function formatStamp(iso: string): string {
@@ -32,13 +38,17 @@ function formatStamp(iso: string): string {
   ).padStart(2, "0")}`;
 }
 
-export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
+export function AllowlistManager({
+  initialEntries,
+  canGrantFaculty,
+}: AllowlistManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { confirm, dialog } = useConfirm();
   const [githubUsername, setGithubUsername] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
+  const [asFaculty, setAsFaculty] = useState(false);
 
   const handleAdd = async () => {
     if (!githubUsername.trim() && !email.trim()) {
@@ -51,7 +61,12 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
         const res = await fetch("/api/admin/allowlist", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ githubUsername, email, note }),
+          body: JSON.stringify({
+            githubUsername,
+            email,
+            note,
+            grantRole: asFaculty ? "faculty" : null,
+          }),
         });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
@@ -59,6 +74,7 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
         setGithubUsername("");
         setEmail("");
         setNote("");
+        setAsFaculty(false);
         router.refresh();
         toast.success("Added to allowlist");
       } catch (err) {
@@ -115,6 +131,18 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
       header: "EMAIL",
       render: (e) => (
         <span className="text-[11px] text-zinc-500">{e.email ?? "—"}</span>
+      ),
+    },
+    {
+      key: "joins",
+      header: "JOINS AS",
+      render: (e) => (
+        <span className="retro text-[9px] whitespace-nowrap text-zinc-400">
+          {(isRole(e.grantRole)
+            ? ROLE_LABELS[e.grantRole]
+            : "Pending member"
+          ).toUpperCase()}
+        </span>
       ),
     },
     {
@@ -226,6 +254,20 @@ export function AllowlistManager({ initialEntries }: AllowlistManagerProps) {
               </Button>
             </div>
           </div>
+
+          {canGrantFaculty && (
+            <div className="flex items-center gap-3">
+              <PixelCheckbox
+                checked={asFaculty}
+                onChange={setAsFaculty}
+                aria-label="Invite as faculty"
+              />
+              <span className="retro text-[8px] text-zinc-400 uppercase tracking-widest leading-relaxed">
+                Invite as faculty · admin access, not ranked · applies on first
+                sign-in (existing accounts: change role above)
+              </span>
+            </div>
+          )}
 
           <PixelDataTable
             data={initialEntries}

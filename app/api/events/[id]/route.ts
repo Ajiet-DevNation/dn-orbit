@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db, isRecordNotFound } from "@/lib/db";
 import { eventUpdateData } from "@/lib/event-payload";
@@ -89,6 +90,12 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     // Publishing, unpublishing or re-dating changes the event-score denominator.
     recomputeLeaderboardAfterResponse();
     invalidatePublic(PUBLIC_TAG.events);
+    void logAudit({
+      action: "event.update",
+      actorId: session.user.id,
+      actorName: session.user.name,
+      summary: `Edited event "${updated.title}"`,
+    });
     return NextResponse.json(updated);
   } catch (error) {
     if (isRecordNotFound(error)) {
@@ -109,8 +116,14 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
   const { id } = await params;
   try {
-    await db.event.delete({ where: { id } });
+    const removed = await db.event.delete({ where: { id } });
     invalidatePublic(PUBLIC_TAG.events);
+    void logAudit({
+      action: "event.delete",
+      actorId: session.user.id,
+      actorName: session.user.name,
+      summary: `Deleted event "${removed.title}"`,
+    });
   } catch (error) {
     if (isRecordNotFound(error)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });

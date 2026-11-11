@@ -276,6 +276,7 @@ export function AboutTerminal({
 
     return (
       <TerminalLineView
+        // biome-ignore lint/suspicious/noArrayIndexKey: script lines repeat, so text + position is the stable key
         key={`${line.text}-${idx}`}
         type={line.type}
         full={full}

@@ -67,7 +67,7 @@ function PixelConfirmDialog({
         </>
       }
     >
-      <p className="text-xs leading-relaxed text-zinc-300 sm:text-sm">
+      <p className="font-mono text-sm leading-relaxed text-zinc-300">
         {message}
       </p>
     </PixelModal>

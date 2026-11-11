@@ -27,7 +27,7 @@ const Tabs = React.forwardRef<HTMLDivElement, TabsProps>(
   ) => {
     const isControlled = value !== undefined;
     const [internal, setInternal] = React.useState<string>(defaultValue ?? "");
-    const current = isControlled ? value! : internal;
+    const current = value ?? internal;
     const setValue = React.useCallback(
       (next: string) => {
         if (!isControlled) setInternal(next);

@@ -3,7 +3,7 @@ import { PixelPageHeader } from "@/components/admin/PixelPageHeader";
 import { PixelStatTile } from "@/components/admin/PixelStatTile";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { canAccessAdmin } from "@/lib/roles";
+import { canAccessAdmin, canManageRoles } from "@/lib/roles";
 import { AllowlistManager } from "./AllowlistManager";
 import { MemberTable } from "./MemberTable";
 
@@ -49,6 +49,7 @@ export default async function AdminMembersPage() {
   const adminCount = countWhere((r) => canAccessAdmin(r));
   const memberCount = countWhere((r) => r === "member");
   const ajietCount = countWhere((r) => r === "ajiet_student");
+  const facultyCount = countWhere((r) => r === "faculty");
 
   return (
     <div className="space-y-8 p-6 md:p-8">
@@ -70,6 +71,10 @@ export default async function AdminMembersPage() {
           label="AJIET STUDENTS"
           value={ajietCount.toString().padStart(2, "0")}
         />
+        <PixelStatTile
+          label="FACULTY"
+          value={facultyCount.toString().padStart(2, "0")}
+        />
       </div>
 
       <div className="space-y-4">
@@ -84,11 +89,13 @@ export default async function AdminMembersPage() {
       </div>
 
       <AllowlistManager
+        canGrantFaculty={canManageRoles(session?.user?.role)}
         initialEntries={allowlist.map((a) => ({
           id: a.id,
           githubUsername: a.githubUsername,
           email: a.email,
           note: a.note,
+          grantRole: a.grantRole,
           createdAt: a.createdAt.toISOString(),
         }))}
       />

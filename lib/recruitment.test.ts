@@ -2,8 +2,10 @@ import { describe, expect, test } from "bun:test";
 import {
   countWords,
   fieldErrors,
+  isValidYear,
   looksLikePdf,
   recruitmentApplicationSchema,
+  yearsFor,
 } from "./recruitment";
 
 const valid = {
@@ -85,4 +87,33 @@ test("looksLikePdf checks the %PDF- header, not the file name", () => {
   expect(looksLikePdf(enc.encode("%PDF-1.7\n..."))).toBe(true);
   expect(looksLikePdf(enc.encode("\x89PNG...."))).toBe(false);
   expect(looksLikePdf(new Uint8Array())).toBe(false);
+});
+
+describe("branch years", () => {
+  test("MCA and MBA run 2 years, every other branch 4", () => {
+    expect(yearsFor("MCA")).toEqual([1, 2]);
+    expect(yearsFor("MBA")).toEqual([1, 2]);
+    expect(yearsFor("CSE")).toEqual([1, 2, 3, 4]);
+    expect(yearsFor("ICB")).toEqual([1, 2, 3, 4]);
+    expect(isValidYear("MBA", 3)).toBe(false);
+    expect(isValidYear("CSE", 5)).toBe(false);
+  });
+
+  test("application rejects year 3 for MCA, accepts the new branches", () => {
+    const bad = recruitmentApplicationSchema.safeParse({
+      ...valid,
+      branch: "MCA",
+      year: "3",
+    });
+    expect(bad.success).toBe(false);
+    if (!bad.success) expect(fieldErrors(bad.error).year).toContain("MCA");
+    for (const branch of ["ICB", "MCA", "MBA"]) {
+      const ok = recruitmentApplicationSchema.safeParse({
+        ...valid,
+        branch,
+        year: "1",
+      });
+      expect(ok.success).toBe(true);
+    }
+  });
 });

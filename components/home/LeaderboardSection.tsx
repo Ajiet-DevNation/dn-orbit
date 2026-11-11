@@ -159,6 +159,7 @@ function PixelCrown({ progress }: { progress: number }) {
           ...Array.from({ length: 9 }, (_, x) => [x, 3] as const),
           ...Array.from({ length: 9 }, (_, x) => [x, 4] as const),
         ].map(([x, y], i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: fixed pixel map, never reorders
           <rect key={i} x={x} y={y} width="1" height="1" fill="#facc15" />
         ))}
         {/* jewels */}
@@ -305,7 +306,12 @@ function SyncedAgo({ iso }: { iso: string }) {
     return () => clearInterval(id);
   }, [iso]);
   return (
-    <span className="retro text-[8px] tracking-widest text-muted-foreground/70">
+    // Server and browser read the clock a moment apart; a minute can tick over
+    // between them, so the first paint may differ by design.
+    <span
+      suppressHydrationWarning
+      className="retro text-[8px] tracking-widest text-muted-foreground/70"
+    >
       SYNCED {label}
     </span>
   );
@@ -567,7 +573,10 @@ export function LeaderboardSection({
     3: entries[2],
   };
   // Classic podium ordering: 2nd · 1st · 3rd, left → right.
-  const visualOrder = [2, 1, 3].filter((r) => byRank[r]) as number[];
+  const visualOrder = [2, 1, 3].flatMap((rank) => {
+    const entry = byRank[rank];
+    return entry ? [{ rank, entry }] : [];
+  });
 
   const phaseB = seg(progress, BEATS.phaseB[0], BEATS.phaseB[1]);
   const phaseBE = easeOutCubic(phaseB);
@@ -653,11 +662,11 @@ export function LeaderboardSection({
               willChange: "transform, opacity",
             }}
           >
-            {visualOrder.map((rank) => (
+            {visualOrder.map(({ rank, entry }) => (
               <PodiumColumn
                 key={rank}
                 rank={rank}
-                entry={byRank[rank]!}
+                entry={entry}
                 progress={progress}
                 wide={wide}
               />

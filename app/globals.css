@@ -247,7 +247,7 @@ body {
    A clean retro-HUD chrome layered over the 8-bit lens cards. Static
    textures whose OPACITY follows the engine's --cf-center var
    (compositor-cheap); the corner-bracket "pop" is animated
-   imperatively by GSAP (see useCardPowerOn) so it survives the global
+   imperatively with the Web Animations API (see useCardPowerOn) so it survives the global
    reduced-motion CSS reset. */
 
 /* Centre-card edge bloom: a purple ring + inner glow that fades up as a card
@@ -272,7 +272,7 @@ body {
 }
 
 /* Four L-shaped corner brackets that frame the card like a targeting reticle.
-   GSAP pops their scale when a card becomes centred. */
+   useCardPowerOn pops their scale when a card becomes centred. */
 .hud-bracket {
   position: absolute;
   width: 22px;

@@ -5,6 +5,9 @@
 export const ROLES = [
   "president",
   "vice_president",
+  // College staff. Admin-panel access like a core member, but never ranked on
+  // the leaderboard, and only the President may moderate them.
+  "faculty",
   "core_member",
   "member",
   // Former DevNation members who have graduated. No admin access; recognised so
@@ -19,17 +22,19 @@ export const ROLES = [
 
 export type Role = (typeof ROLES)[number];
 
-// The three tiers allowed into the admin panel. `member` and `ajiet_student`
+// Tiers allowed into the admin panel. `member`, `alumni` and `ajiet_student`
 // are excluded.
 const ADMIN_ROLES: readonly Role[] = [
   "president",
   "vice_president",
+  "faculty",
   "core_member",
 ];
 
 export const ROLE_LABELS: Record<Role, string> = {
   president: "President",
   vice_president: "Vice President",
+  faculty: "Faculty",
   core_member: "Core Member",
   member: "Member",
   alumni: "AJIET Alumni",
@@ -40,6 +45,14 @@ export function isRole(value: unknown): value is Role {
   return (
     typeof value === "string" && (ROLES as readonly string[]).includes(value)
   );
+}
+
+// alumni graduated out and faculty are staff, so neither ranks nor sets the
+// curve for others
+export const LEADERBOARD_EXCLUDED_ROLES: Role[] = ["alumni", "faculty"];
+
+export function isRankedRole(role: string | null | undefined): boolean {
+  return isRole(role) && !LEADERBOARD_EXCLUDED_ROLES.includes(role);
 }
 
 /** May this role open the admin panel / call admin APIs? */
@@ -55,9 +68,12 @@ export function canManageRoles(role: string | null | undefined): boolean {
 // Officer tiers that sit above ordinary admins. A lower tier may not reject,
 // hide or edit them — otherwise a core member could reject the President, and a
 // rejected account cannot sign in (lib/auth.ts), locking them out.
+// Faculty shares the VP rank: only the President may moderate them, and they
+// may not moderate the VP or each other.
 const PROTECTED_RANK: Partial<Record<Role, number>> = {
   president: 0,
   vice_president: 1,
+  faculty: 1,
 };
 
 // may this admin change another member's status / visibility / bio?
@@ -70,4 +86,15 @@ export function canModerate(
   if (target === undefined) return true;
   const actor = isRole(actorRole) ? PROTECTED_RANK[actorRole] : undefined;
   return actor !== undefined && actor < target;
+}
+
+// faculty skip USN / year / LeetCode, so a department is all they need
+export function isProfileComplete(p: {
+  role?: string | null;
+  usn?: string | null;
+  branch?: string | null;
+  lcUsername?: string | null;
+}): boolean {
+  if (p.role === "faculty") return !!p.branch;
+  return !!(p.usn && p.branch && p.lcUsername);
 }

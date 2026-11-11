@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { canAccessAdmin } from "@/lib/roles";
+import { canAccessAdmin, canManageRoles } from "@/lib/roles";
 import { allowlistEntrySchema, parseBody } from "@/lib/validation";
 
 // GET — list allowlist entries (newest first). POST — add an entry by GitHub
@@ -41,17 +41,32 @@ export async function POST(req: NextRequest) {
     if (!parsed.ok) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
-    const { githubUsername, email, note } = parsed.data;
+    const { githubUsername, email, note, grantRole } = parsed.data;
+
+    // Pre-granting faculty hands out admin access at first sign-in, so it is a
+    // role change: President only, same as the member role picker.
+    if (grantRole && !canManageRoles(session.user.role)) {
+      return NextResponse.json(
+        { error: "Only the President may invite faculty" },
+        { status: 403 },
+      );
+    }
 
     const entry = await db.allowlist.create({
-      data: { githubUsername, email, note, addedBy: session.user.id },
+      data: {
+        githubUsername,
+        email,
+        note,
+        grantRole: grantRole ?? null,
+        addedBy: session.user.id,
+      },
     });
 
     void logAudit({
       action: "allowlist.add",
       actorId: session.user.id,
       actorName: session.user.name,
-      summary: `Added ${githubUsername ?? email} to the allowlist`,
+      summary: `Added ${githubUsername ?? email} to the allowlist${grantRole ? ` as ${grantRole}` : ""}`,
     });
 
     return NextResponse.json({ success: true, entry });

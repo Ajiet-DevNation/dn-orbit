@@ -7,7 +7,7 @@ import { BootSplash } from "@/components/ui/BootSplash";
 import { PixelStarfield } from "@/components/ui/PixelStarfield";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { canAccessAdmin } from "@/lib/roles";
+import { canAccessAdmin, isProfileComplete } from "@/lib/roles";
 
 export default async function V2Layout({
   children,
@@ -29,6 +29,7 @@ export default async function V2Layout({
           year: true,
           lcUsername: true,
           bio: true,
+          role: true,
         },
       })
     : null;
@@ -38,11 +39,7 @@ export default async function V2Layout({
   // cookie/secret edge cases), letting signed-in-but-not-onboarded users slip
   // onto the site. Checking the live DB row here guarantees new members land on
   // /onboarding. `/onboarding` lives outside this layout, so there's no loop.
-  if (
-    session?.user &&
-    dbUser &&
-    !(dbUser.usn && dbUser.branch && dbUser.lcUsername)
-  ) {
+  if (session?.user && dbUser && !isProfileComplete(dbUser)) {
     redirect("/onboarding");
   }
 
