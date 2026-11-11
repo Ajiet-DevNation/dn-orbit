@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
@@ -12,12 +13,19 @@ export async function deleteProject(projectId: string) {
   if (!canAccessAdmin(session?.user?.role))
     throw new Error("UNAUTHORIZED_ACCESS: ADMIN_CLEARANCE_REQUIRED");
 
-  await db.project.delete({
+  const removed = await db.project.delete({
     where: { id: projectId },
   });
 
   revalidatePath("/admin/projects");
   invalidatePublic(PUBLIC_TAG.projects);
+
+  void logAudit({
+    action: "project.delete",
+    actorId: session?.user?.id,
+    actorName: session?.user?.name,
+    summary: `Deleted project "${removed.title}"`,
+  });
 }
 
 export async function updateProjectStatus(
@@ -28,9 +36,16 @@ export async function updateProjectStatus(
   if (!canAccessAdmin(session?.user?.role))
     throw new Error("UNAUTHORIZED_ACCESS: ADMIN_CLEARANCE_REQUIRED");
 
+  // Server actions take any client value; check it against the enum here so a
+  // bad one is a clear error, not a Prisma crash.
+  const parsed = updateProjectSchema.safeParse({ status });
+  if (!parsed.success || !parsed.data.status) {
+    throw new Error("INVALID_STATUS");
+  }
+
   await db.project.update({
     where: { id: projectId },
-    data: { status },
+    data: { status: parsed.data.status },
   });
 
   revalidatePath("/admin/projects");
@@ -45,6 +60,10 @@ export async function updateProjectProgress(
   if (!canAccessAdmin(session?.user?.role))
     throw new Error("UNAUTHORIZED_ACCESS: ADMIN_CLEARANCE_REQUIRED");
 
+  // NaN / Infinity survive the clamp below, so refuse them outright.
+  if (typeof progressPct !== "number" || !Number.isFinite(progressPct)) {
+    throw new Error("INVALID_PROGRESS");
+  }
   // Clamp to a whole 0–100 so a bad client value can't persist out of range.
   const pct = Math.max(0, Math.min(100, Math.round(progressPct)));
 
