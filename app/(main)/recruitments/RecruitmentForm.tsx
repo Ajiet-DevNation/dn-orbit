@@ -32,9 +32,10 @@ import {
   CV_MAX_BYTES,
   countWords,
   fieldErrors,
+  isValidYear,
   type RecruitmentApplicationInput,
   recruitmentApplicationSchema,
-  YEARS,
+  yearsFor,
 } from "@/lib/recruitment";
 import { loopFrame } from "@/lib/sprite";
 import { cn } from "@/lib/utils";
@@ -152,7 +153,13 @@ export function RecruitmentForm({ open }: { open: boolean }) {
 
   // Editing a field clears its error; the full check runs again on REVIEW.
   const set = (key: Key) => (v: string) => {
-    setValues((p) => ({ ...p, [key]: v }));
+    setValues((p) => {
+      const next = { ...p, [key]: v };
+      // switching to a 2-year course drops a year it doesn't have
+      if (key === "branch" && p.year && !isValidYear(v, Number(p.year)))
+        next.year = "";
+      return next;
+    });
     setErrors((p) => {
       if (!(key in p)) return p;
       const { [key]: _, ...rest } = p;
@@ -323,7 +330,10 @@ export function RecruitmentForm({ open }: { open: boolean }) {
       const options =
         k === "branch"
           ? BRANCHES.map((b) => ({ value: b, label: b }))
-          : YEARS.map((y) => ({ value: String(y), label: `YEAR ${y}` }));
+          : yearsFor(values.branch).map((y) => ({
+              value: String(y),
+              label: `YEAR ${y}`,
+            }));
       return (
         <Select value={values[k]} onValueChange={set(k)}>
           <SelectTrigger

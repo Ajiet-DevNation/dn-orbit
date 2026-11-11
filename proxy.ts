@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { usesSecureCookies } from "@/lib/cookies";
-import { canAccessAdmin } from "@/lib/roles";
+import { canAccessAdmin, isProfileComplete } from "@/lib/roles";
 
 // Routes that require an authenticated (club-member) session. Everything else —
 // including the landing page `/` — is public and browsable without signing in.
@@ -62,7 +62,7 @@ export async function proxy(req: NextRequest) {
     const lcUsername = token.lcUsername as string | null;
     const role = token.role as string | undefined;
 
-    const isOnboarded = !!(usn && branch && lcUsername);
+    const isOnboarded = isProfileComplete({ role, usn, branch, lcUsername });
 
     // If on login page but logged in, redirect based on onboarding status
     if (path.startsWith("/login")) {

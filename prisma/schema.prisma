@@ -18,6 +18,9 @@ datasource db {
 enum Role {
   president
   vice_president
+  // College staff: admin-panel access, never ranked, moderated by the
+  // President only. See lib/roles.ts.
+  faculty
   core_member
   member
   // Former DevNation members who have graduated. No admin access; recognised so

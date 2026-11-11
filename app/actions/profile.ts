@@ -2,34 +2,13 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { lcHandleTaken } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fetchLeetCodeProfile } from "@/lib/lc-fetcher";
+import { parseProfileForm } from "@/lib/profile";
 import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { rateLimit } from "@/lib/rate-limit";
-
-const profileSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Name must be at least 2 characters")
-    .max(100, "Name is too long"),
-  usn: z.string().trim().min(5, "USN must be valid").max(20, "USN is too long"),
-  branch: z
-    .string()
-    .trim()
-    .min(2, "Branch is required")
-    .max(100, "Branch is too long"),
-  year: z.coerce.number().min(1).max(5),
-  lc_username: z
-    .string()
-    .min(1, "LeetCode username is required")
-    .max(40, "LeetCode username is too long")
-    .regex(/^[a-zA-Z0-9_.-]+$/, "Invalid LeetCode username format"),
-  bio: z.string().max(160, "Bio must be 160 characters or less").optional(),
-});
 
 export async function updateProfile(formData: FormData) {
   const session = await auth();
@@ -43,25 +22,10 @@ export async function updateProfile(formData: FormData) {
     return { error: "Too many attempts. Please wait a minute and retry." };
   }
 
-  const rawData = {
-    name: formData.get("name"),
-    usn: formData.get("usn"),
-    branch: formData.get("branch"),
-    year: formData.get("year"),
-    lc_username: formData.get("lc_username"),
-    bio: formData.get("bio") || undefined,
-  };
-
-  const parsed = profileSchema.safeParse(rawData);
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
-  }
-
   try {
     const existingUser = await db.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true, lcUsername: true },
+      select: { id: true, lcUsername: true, role: true },
     });
 
     if (!existingUser) {
@@ -70,32 +34,39 @@ export async function updateProfile(formData: FormData) {
       };
     }
 
-    // Same check onboarding does: a new handle must resolve to a real
-    // LeetCode profile, or the leaderboard would silently score zero.
-    const lcChanged = parsed.data.lc_username !== existingUser.lcUsername;
-    if (lcChanged) {
-      if (await lcHandleTaken(parsed.data.lc_username, session.user.id)) {
-        return {
-          error: "That LeetCode username is already linked to another member.",
-        };
+    // The DB role, not the session, picks the form: faculty edit only name,
+    // department and bio.
+    const parsed = parseProfileForm(existingUser.role, formData);
+    if (!parsed.ok) {
+      return { error: parsed.error };
+    }
+
+    let lcChanged = false;
+    let data: Prisma.UserUpdateInput = parsed.data;
+    if (!parsed.faculty) {
+      const { lc_username, ...profile } = parsed.data;
+      // Same check onboarding does: a new handle must resolve to a real
+      // LeetCode profile, or the leaderboard would silently score zero.
+      lcChanged = lc_username !== existingUser.lcUsername;
+      if (lcChanged) {
+        if (await lcHandleTaken(lc_username, session.user.id)) {
+          return {
+            error:
+              "That LeetCode username is already linked to another member.",
+          };
+        }
+        try {
+          await fetchLeetCodeProfile(lc_username);
+        } catch {
+          return { error: "Incorrect LeetCode username. Profile not found." };
+        }
       }
-      try {
-        await fetchLeetCodeProfile(parsed.data.lc_username);
-      } catch {
-        return { error: "Incorrect LeetCode username. Profile not found." };
-      }
+      data = { ...profile, lcUsername: lc_username };
     }
 
     const updatedUser = await db.user.update({
       where: { id: session.user.id },
-      data: {
-        name: parsed.data.name,
-        usn: parsed.data.usn,
-        branch: parsed.data.branch,
-        year: parsed.data.year,
-        lcUsername: parsed.data.lc_username,
-        bio: parsed.data.bio,
-      },
+      data,
     });
 
     // New handle: put the member at the front of the stats queue so the board

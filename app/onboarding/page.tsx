@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/8bit-select";
 import { toast } from "@/components/ui/8bit-toast";
 import { PixelStarfield } from "@/components/ui/PixelStarfield";
+import { BRANCHES, isValidYear, yearsFor } from "@/lib/recruitment";
 import { cn } from "@/lib/utils";
 
 // ── Validation ───────────────────────────────────────────────────────────────
@@ -31,17 +32,22 @@ import { cn } from "@/lib/utils";
 const USN_REGEX = /^[0-9][A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{3}$/i;
 const LC_REGEX = /^[a-zA-Z0-9_-]+$/;
 
-function validate(fields: {
-  name: string;
-  usn: string;
-  branch: string;
-  year: string;
-  lcUsername: string;
-}): Record<string, string> {
+// faculty only fill name + department; the server applies the same split
+function validate(
+  fields: {
+    name: string;
+    usn: string;
+    branch: string;
+    year: string;
+    lcUsername: string;
+  },
+  isFaculty: boolean,
+): Record<string, string> {
   const e: Record<string, string> = {};
   if (!fields.name.trim()) e.name = "REQUIRED";
-  if (!USN_REGEX.test(fields.usn)) e.usn = "FORMAT: 4AL22CS001";
   if (!fields.branch) e.branch = "REQUIRED";
+  if (isFaculty) return e;
+  if (!USN_REGEX.test(fields.usn)) e.usn = "FORMAT: 4AL22CS001";
   if (!fields.year) e.year = "REQUIRED";
   if (!fields.lcUsername.trim()) e.lcUsername = "REQUIRED";
   else if (!LC_REGEX.test(fields.lcUsername))
@@ -111,9 +117,16 @@ export default function OnboardingPage() {
   const [bio, setBio] = useState("");
 
   const githubUsername = session?.user?.name ?? "";
+  const isFaculty = session?.user?.role === "faculty";
+
+  // switching to a 2-year course drops a year it doesn't have
+  const pickBranch = (b: string) => {
+    setBranch(b);
+    if (year && !isValidYear(b, Number(year))) setYear("");
+  };
 
   async function handleSubmit(formData: FormData) {
-    const errors = validate({ name, usn, branch, year, lcUsername });
+    const errors = validate({ name, usn, branch, year, lcUsername }, isFaculty);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -200,26 +213,30 @@ export default function OnboardingPage() {
                   )}
                 </div>
 
-                <div className="grid gap-3">
-                  <Label htmlFor="usn">USN</Label>
-                  <Input
-                    id="usn"
-                    placeholder="4AL22CS001"
-                    value={usn}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setUsn(e.target.value.toUpperCase())
-                    }
-                    className="[&_input]:uppercase"
-                    aria-invalid={!!fieldErrors.usn}
-                  />
-                  {fieldErrors.usn && (
-                    <p className={FIELD_ERROR}>{fieldErrors.usn}</p>
-                  )}
-                </div>
+                {!isFaculty && (
+                  <div className="grid gap-3">
+                    <Label htmlFor="usn">USN</Label>
+                    <Input
+                      id="usn"
+                      placeholder="4AL22CS001"
+                      value={usn}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setUsn(e.target.value.toUpperCase())
+                      }
+                      className="[&_input]:uppercase"
+                      aria-invalid={!!fieldErrors.usn}
+                    />
+                    {fieldErrors.usn && (
+                      <p className={FIELD_ERROR}>{fieldErrors.usn}</p>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid gap-3">
-                  <Label htmlFor="branch">BRANCH</Label>
-                  <Select value={branch} onValueChange={setBranch}>
+                  <Label htmlFor="branch">
+                    {isFaculty ? "DEPARTMENT" : "BRANCH"}
+                  </Label>
+                  <Select value={branch} onValueChange={pickBranch}>
                     <SelectTrigger
                       id="branch"
                       aria-invalid={!!fieldErrors.branch}
@@ -227,14 +244,11 @@ export default function OnboardingPage() {
                       <SelectValue placeholder="SELECT" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CSE">CSE</SelectItem>
-                      <SelectItem value="ISE">ISE</SelectItem>
-                      <SelectItem value="ECE">ECE</SelectItem>
-                      <SelectItem value="MECH">MECH</SelectItem>
-                      <SelectItem value="CIVIL">CIVIL</SelectItem>
-                      <SelectItem value="AIDS">AIDS</SelectItem>
-                      <SelectItem value="AIML">AIML</SelectItem>
-                      <SelectItem value="CSD">CSD</SelectItem>
+                      {BRANCHES.map((b) => (
+                        <SelectItem key={b} value={b}>
+                          {b}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {fieldErrors.branch && (
@@ -242,50 +256,56 @@ export default function OnboardingPage() {
                   )}
                 </div>
 
-                <div className="grid gap-3">
-                  <Label id="year-label">YEAR</Label>
-                  <div
-                    role="radiogroup"
-                    aria-labelledby="year-label"
-                    className="grid grid-cols-4 gap-3"
-                  >
-                    {["1", "2", "3", "4"].map((y) => (
-                      <label
-                        key={y}
-                        className="retro flex h-11 cursor-pointer items-center justify-center border-2 border-white/15 bg-[#0d0d0d] text-xs text-white/70 transition-colors duration-150 hover:border-brand/40 hover:text-white has-[:checked]:border-brand has-[:checked]:bg-brand has-[:checked]:text-[#0a0a0a] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-light"
-                      >
-                        <input
-                          type="radio"
-                          name="year-choice"
-                          value={y}
-                          checked={year === y}
-                          onChange={() => setYear(y)}
-                          className="sr-only"
-                        />
-                        {y}
-                      </label>
-                    ))}
+                {!isFaculty && (
+                  <div className="grid gap-3">
+                    <Label id="year-label">YEAR</Label>
+                    <div
+                      role="radiogroup"
+                      aria-labelledby="year-label"
+                      className="grid grid-cols-4 gap-3"
+                    >
+                      {yearsFor(branch)
+                        .map(String)
+                        .map((y) => (
+                          <label
+                            key={y}
+                            className="retro flex h-11 cursor-pointer items-center justify-center border-2 border-white/15 bg-[#0d0d0d] text-xs text-white/70 transition-colors duration-150 hover:border-brand/40 hover:text-white has-[:checked]:border-brand has-[:checked]:bg-brand has-[:checked]:text-[#0a0a0a] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-light"
+                          >
+                            <input
+                              type="radio"
+                              name="year-choice"
+                              value={y}
+                              checked={year === y}
+                              onChange={() => setYear(y)}
+                              className="sr-only"
+                            />
+                            {y}
+                          </label>
+                        ))}
+                    </div>
+                    {fieldErrors.year && (
+                      <p className={FIELD_ERROR}>{fieldErrors.year}</p>
+                    )}
                   </div>
-                  {fieldErrors.year && (
-                    <p className={FIELD_ERROR}>{fieldErrors.year}</p>
-                  )}
-                </div>
+                )}
 
-                <div className="grid gap-3">
-                  <Label htmlFor="lc_username">LEETCODE USERNAME</Label>
-                  {/* CONNECT verifies the handle against the live profile so a
+                {!isFaculty && (
+                  <div className="grid gap-3">
+                    <Label htmlFor="lc_username">LEETCODE USERNAME</Label>
+                    {/* CONNECT verifies the handle against the live profile so a
                       typo or wrong name can't be committed. */}
-                  <LeetCodeConnect
-                    id="lc_username"
-                    value={lcUsername}
-                    onChange={setLcUsername}
-                    placeholder="YOUR_LC_HANDLE"
-                    invalid={!!fieldErrors.lcUsername}
-                  />
-                  {fieldErrors.lcUsername && (
-                    <p className={FIELD_ERROR}>{fieldErrors.lcUsername}</p>
-                  )}
-                </div>
+                    <LeetCodeConnect
+                      id="lc_username"
+                      value={lcUsername}
+                      onChange={setLcUsername}
+                      placeholder="YOUR_LC_HANDLE"
+                      invalid={!!fieldErrors.lcUsername}
+                    />
+                    {fieldErrors.lcUsername && (
+                      <p className={FIELD_ERROR}>{fieldErrors.lcUsername}</p>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid gap-3">
                   <Label htmlFor="bio">

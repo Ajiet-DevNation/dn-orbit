@@ -486,3 +486,18 @@ describe("allowlistEntrySchema", () => {
     expect(allowlistEntrySchema.safeParse(body).success).toBe(false);
   });
 });
+
+test("allowlist grantRole: only faculty can be pre-granted", () => {
+  const base = { githubUsername: "octocat" };
+  expect(
+    allowlistEntrySchema.safeParse({ ...base, grantRole: "faculty" }).success,
+  ).toBe(true);
+  expect(
+    allowlistEntrySchema.safeParse({ ...base, grantRole: null }).success,
+  ).toBe(true);
+  for (const role of ["president", "vice_president", "core_member"]) {
+    expect(
+      allowlistEntrySchema.safeParse({ ...base, grantRole: role }).success,
+    ).toBe(false);
+  }
+});
