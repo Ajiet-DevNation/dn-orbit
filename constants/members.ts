@@ -144,7 +144,7 @@ export const MEMBERS: MemberData[] = [
   },
   {
     id: "pragathi",
-    name: "Pragathi",
+    name: "Pragathi Prabhu",
     role: "CORE MEMBER",
     imageUrl: "/members/pragathi.jpg",
     bio: "I git blame myself.",
