@@ -148,8 +148,8 @@ export const MEMBERS: MemberData[] = [
     role: "CORE MEMBER",
     imageUrl: "/members/pragathi.jpg",
     bio: "I git blame myself.",
-    linkedin: null,
-    github: null,
-    leetcode: null,
+    linkedin: "https://www.linkedin.com/in/pragathi-prabhu-6a48b8337/",
+    github: "https://github.com/pragathiprabhu13",
+    leetcode: "https://leetcode.com/u/pragathiprabhu/",
   },
 ];
