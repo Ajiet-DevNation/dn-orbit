@@ -133,16 +133,6 @@ export const MEMBERS: MemberData[] = [
     leetcode: "https://leetcode.com/u/kifl-afk/",
   },
   {
-    id: "pahima-uchil",
-    name: "Pahima R Uchil",
-    role: "CORE MEMBER",
-    imageUrl: "/members/pahima-uchil.jpg",
-    bio: "Living proof that last-minute works.",
-    linkedin: "https://www.linkedin.com/in/pahima-r-uchil-898ab2278",
-    github: "https://github.com/pahimauchil",
-    leetcode: "https://leetcode.com/u/pahima_uchil/",
-  },
-  {
     id: "aimaan-afzal",
     name: "Mohammed Aimaan Afzal",
     role: "CORE MEMBER",
@@ -151,15 +141,5 @@ export const MEMBERS: MemberData[] = [
     linkedin: "https://www.linkedin.com/in/mohammedaimaanafzal",
     github: "https://github.com/Aimaaaan",
     leetcode: "https://leetcode.com/u/iceman/",
-  },
-  {
-    id: "purvi-vinayagam",
-    name: "Purvi Vinayagam",
-    role: "CORE MEMBER",
-    imageUrl: "/members/purvi-vinayagam.jpg",
-    bio: "CSE student with a passion for IoT, Blockchain, and Cybersecurity. A proactive learner and student leader who enjoys building innovative solutions, exploring new technologies, and turning ideas into impact.",
-    linkedin: null,
-    github: "https://github.com/purvivinayagam",
-    leetcode: "https://leetcode.com/u/purvivinayagam/",
   },
 ];

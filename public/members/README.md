@@ -22,9 +22,7 @@ serving the old picture.
 | Jizel Prince D'Souza | `jizel-dsouza.jpg` |
 | Sunpreeth Vishva | `sunpreeth-vishva.jpg` |
 | Mohamed Dhul Kifl | `dhul-kifl.jpg` |
-| Pahima R Uchil | `pahima-uchil.jpg` |
 | Mohammed Aimaan Afzal | `aimaan-afzal.jpg` |
-| Purvi Vinayagam | `purvi-vinayagam.jpg` |
 
 To add/replace a photo, drop the original in `member_photos/` and run (the
 `convert` step also handles HEIC → JPEG):
