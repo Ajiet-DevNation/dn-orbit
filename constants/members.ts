@@ -142,4 +142,14 @@ export const MEMBERS: MemberData[] = [
     github: "https://github.com/Aimaaaan",
     leetcode: "https://leetcode.com/u/iceman/",
   },
+  {
+    id: "pragathi",
+    name: "Pragathi",
+    role: "CORE MEMBER",
+    imageUrl: "/members/pragathi.jpg",
+    bio: "I git blame myself.",
+    linkedin: null,
+    github: null,
+    leetcode: null,
+  },
 ];
