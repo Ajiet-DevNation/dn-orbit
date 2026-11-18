@@ -24,6 +24,7 @@ serving the old picture.
 | Mohamed Dhul Kifl | `dhul-kifl.jpg` |
 | Mohammed Aimaan Afzal | `aimaan-afzal.jpg` |
 | Pragathi Prabhu | `pragathi.jpg` |
+| Likhith Shetty | `likhith-shetty.jpg` |
 
 To add/replace a photo, drop the original in `member_photos/` and run (the
 `convert` step also handles HEIC → JPEG):

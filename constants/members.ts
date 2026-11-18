@@ -152,4 +152,14 @@ export const MEMBERS: MemberData[] = [
     github: "https://github.com/pragathiprabhu13",
     leetcode: "https://leetcode.com/u/pragathiprabhu/",
   },
+  {
+    id: "likhith-shetty",
+    name: "Likhith Shetty",
+    role: "CORE MEMBER",
+    imageUrl: "/members/likhith-shetty.jpg",
+    bio: "I fumble my merge conflicts.",
+    linkedin: "https://www.linkedin.com/in/likhith-shetty-640b67341",
+    github: "https://github.com/likhith992",
+    leetcode: "https://leetcode.com/u/likhith_shetty/",
+  },
 ];
