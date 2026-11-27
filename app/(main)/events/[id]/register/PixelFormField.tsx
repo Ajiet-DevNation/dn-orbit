@@ -23,12 +23,12 @@ interface Props {
 // Choice rows: pixel-bordered tiles that fill purple when selected. The real
 // radio/checkbox is kept (sr-only) for keyboard + a11y; the visible control is
 // an 8-bit square mark (matching PixelCheckbox) instead of the round native one.
-const choiceLabel =
+export const choiceLabel =
   "flex min-h-11 cursor-pointer items-center gap-3 border-2 border-white/15 bg-[#0d0d0d] px-4 py-2.5 font-mono text-sm text-white transition-colors hover:border-brand/40 has-[:checked]:border-brand/70 has-[:checked]:bg-brand/[0.06]";
 
 // Square pixel indicator for choice rows. `peer-focus-visible` lights it up when
 // the (sr-only) input next to it is keyboard-focused.
-function ChoiceMark({ checked }: { checked: boolean }) {
+export function ChoiceMark({ checked }: { checked: boolean }) {
   return (
     <span
       aria-hidden

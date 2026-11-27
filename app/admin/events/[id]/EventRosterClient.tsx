@@ -7,6 +7,7 @@ import {
 } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
 import { PixelArrow } from "@/components/ui/PixelIcons";
+import type { TeamStatus } from "@/lib/teams";
 import { errorMessage } from "@/lib/utils";
 
 interface RosterEntry {
@@ -17,7 +18,35 @@ interface RosterEntry {
   attended: boolean;
   registeredAt: string;
   responses: Record<string, unknown>;
+  /** Team name on a team event; null otherwise or if the team was removed. */
+  team: string | null;
 }
+
+interface TeamRow {
+  id: string;
+  name: string;
+  code: string;
+  matchValue: string;
+  size: number;
+  status: TeamStatus;
+}
+
+interface TeamsInfo {
+  minSize: number;
+  maxSize: number;
+  maxTeams: number | null;
+  /** Label of the field all members share (e.g. "Branch"), or null. */
+  matchLabel: string | null;
+  /** Registrants who never created or joined a team. */
+  withoutTeam: number;
+  rows: TeamRow[];
+}
+
+const TEAM_STATUS_LABEL: Record<TeamStatus, string> = {
+  incomplete: "INCOMPLETE",
+  complete: "COMPLETE",
+  full: "FULL",
+};
 
 interface FormFieldMeta {
   id: string;
@@ -29,11 +58,14 @@ export default function EventRosterClient({
   registrations: initial,
   totalRegistrations,
   formFields,
+  teams,
 }: {
   eventId: string;
   registrations: RosterEntry[];
   totalRegistrations: number;
   formFields: FormFieldMeta[];
+  /** Team rules and teams for a team event; null for individual sign-up. */
+  teams: TeamsInfo | null;
 }) {
   // Optimistic: flip the row at once and only roll back on failure. Each click
   // used to router.refresh() the whole roster, re-sending every row (answers
@@ -97,6 +129,19 @@ export default function EventRosterClient({
       header: "USN",
       render: (r) => <span className="text-white/70">{r.usn}</span>,
     },
+    ...(teams
+      ? [
+          {
+            key: "team",
+            header: "TEAM",
+            render: (r: RosterEntry) => (
+              <span className={r.team ? "text-white" : "text-[#facc15]"}>
+                {r.team ?? "NO TEAM"}
+              </span>
+            ),
+          },
+        ]
+      : []),
     ...formFields.map(
       (f): PixelColumn<RosterEntry> => ({
         key: `resp_${f.id}`,
@@ -136,8 +181,91 @@ export default function EventRosterClient({
     },
   ];
 
+  const teamColumns: PixelColumn<TeamRow>[] = teams
+    ? [
+        {
+          key: "name",
+          header: "TEAM",
+          render: (t) => <span className="text-white">{t.name}</span>,
+        },
+        {
+          key: "code",
+          header: "INVITE CODE",
+          render: (t) => (
+            <span className="font-mono tracking-widest text-white/70">
+              {t.code}
+            </span>
+          ),
+        },
+        ...(teams.matchLabel
+          ? [
+              {
+                key: "match",
+                header: teams.matchLabel.toUpperCase(),
+                render: (t: TeamRow) => (
+                  <span className="text-white/70">{t.matchValue}</span>
+                ),
+              },
+            ]
+          : []),
+        {
+          key: "size",
+          header: "MEMBERS",
+          render: (t) => (
+            <span className="text-white/70">
+              {t.size} / {teams.maxSize}
+            </span>
+          ),
+        },
+        {
+          key: "status",
+          header: "STATUS",
+          align: "right",
+          render: (t) => (
+            <span
+              className={`retro inline-block border-2 px-2 py-1 text-[8px] ${t.status === "incomplete" ? "border-[#eab308]/60 text-[#facc15]" : "border-brand text-brand-light"}`}
+              title={
+                t.status === "incomplete"
+                  ? `Needs at least ${teams.minSize} members`
+                  : undefined
+              }
+            >
+              {TEAM_STATUS_LABEL[t.status]}
+            </span>
+          ),
+        },
+      ]
+    : [];
+  const incomplete = teams?.rows.filter((t) => t.status === "incomplete");
+
   return (
     <div className="space-y-4">
+      {teams && (
+        <div className="space-y-4 pb-4">
+          <span className="retro block text-[9px] tracking-widest text-zinc-500">
+            TEAMS: {teams.rows.length}
+            {teams.maxTeams != null && ` / ${teams.maxTeams}`} · SIZE{" "}
+            {teams.minSize}–{teams.maxSize}
+            {incomplete && incomplete.length > 0 && (
+              <span className="text-[#facc15]">
+                {" "}
+                · {incomplete.length} BELOW {teams.minSize} MEMBERS
+              </span>
+            )}
+            {teams.withoutTeam > 0 && (
+              <span className="text-[#facc15]">
+                {" "}
+                · {teams.withoutTeam} REGISTERED WITHOUT A TEAM
+              </span>
+            )}
+          </span>
+          <PixelDataTable
+            data={teams.rows}
+            columns={teamColumns}
+            empty="NO TEAMS YET"
+          />
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <span className="retro text-[9px] tracking-widest text-zinc-500">
           TOTAL REGISTERED: {totalRegistrations}

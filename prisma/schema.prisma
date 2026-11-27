@@ -246,12 +246,15 @@ model Event {
   capacity             Int?
   registrationDeadline DateTime?      @map("registration_deadline")
   formSchema           Json?          @map("form_schema")
+  /// Team sign-up rules; null = individual registration. Shape: lib/teams.ts
+  teamConfig           Json?          @map("team_config")
   createdAt            DateTime       @default(now()) @map("created_at")
 
   creator       User           @relation("EventCreator", fields: [createdBy], references: [id])
   reviewedBy    User?          @relation("EventReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   registrations Registration[]
   feedback      Feedback[]
+  teams         EventTeam[]
 
   @@index([createdBy])
   @@index([reviewStatus, isPublished, eventDate])
@@ -274,13 +277,40 @@ model Registration {
   responses    Json     @default("{}")
   attended     Boolean  @default(false)
   registeredAt DateTime @default(now()) @map("registered_at")
+  teamId       String?  @map("team_id")
 
-  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  event Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  team  EventTeam? @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
   @@unique([eventId, email])
   @@index([userId])
+  @@index([teamId])
   @@map("registrations")
+}
+
+// ─────────────────────────────────────────────
+// EVENT TEAMS (team events only, see Event.teamConfig)
+// ─────────────────────────────────────────────
+
+model EventTeam {
+  id         String   @id @default(uuid())
+  eventId    String   @map("event_id")
+  name       String
+  /// Lowercased, space-collapsed name: makes names unique per event ignoring case.
+  nameKey    String   @map("name_key")
+  /// Invite code teammates type to join, stored normalized (no dash).
+  code       String
+  /// The answer every member shares on teamConfig.matchFieldId (e.g. branch).
+  matchValue String?  @map("match_value")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  event   Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  members Registration[]
+
+  @@unique([eventId, code])
+  @@unique([eventId, nameKey])
+  @@map("event_teams")
 }
 
 // ─────────────────────────────────────────────

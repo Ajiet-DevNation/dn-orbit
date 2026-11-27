@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { isApproved } from "@/lib/access";
 import { logAudit } from "@/lib/audit";
 import { auth } from "@/lib/auth";
+import { usesSecureCookies } from "@/lib/cookies";
 import { db } from "@/lib/db";
 import { registrationClosesAt } from "@/lib/event-order";
 import {
@@ -12,9 +13,20 @@ import {
 } from "@/lib/forms";
 import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
+import { REG_COOKIE_MAX_AGE_S, regCookieName } from "@/lib/registration-cookie";
+import { parseTeamConfig } from "@/lib/teams";
 import { parseBody, registrationBodySchema } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
+
+type Outcome =
+  | { ok: true; id: string }
+  | {
+      ok: false;
+      status: 409;
+      error: string;
+      fields?: Record<string, string>;
+    };
 
 export async function POST(req: NextRequest, { params }: Params) {
   const { id: eventId } = await params;
@@ -106,19 +118,19 @@ export async function POST(req: NextRequest, { params }: Params) {
         }
       : body;
 
-  const result = validateSubmission({
-    audience,
-    isMember,
-    schema: parseFormSchema(event.formSchema),
-    input,
-  });
-
+  const schema = parseFormSchema(event.formSchema);
+  const result = validateSubmission({ audience, isMember, schema, input });
   if (!result.ok) {
     return NextResponse.json(
       { error: "Validation failed", fields: result.errors },
       { status: 422 },
     );
   }
+
+  // Team events: this is step 1 only (the registrant's details). Picking a
+  // team is step 2, POST /api/events/[id]/team, so someone who stops halfway
+  // comes back to the team step instead of a blank form.
+  const teamConfig = parseTeamConfig(event.teamConfig);
 
   try {
     const data = {
@@ -130,20 +142,18 @@ export async function POST(req: NextRequest, { params }: Params) {
       responses: result.value.responses as Prisma.InputJsonValue,
     };
 
-    // Authoritative capacity guard. For a capped event we lock the event row
-    // (`FOR UPDATE`) so concurrent registrations serialize here, then re-count
-    // under that lock before inserting — closing the check-then-act race where
-    // two requests both pass the pre-check above and overshoot capacity.
-    // Uncapped events skip the transaction entirely: a plain insert, no
+    // Authoritative capacity guard. For a capped or team event we lock the
+    // event row (`FOR UPDATE`) so concurrent registrations serialize here, then
+    // re-check under that lock before inserting — closing the check-then-act
+    // race where two requests both pass the pre-check above and overshoot
+    // capacity (or both take one USN).
+    // Other events skip the transaction entirely: a plain insert, no
     // BEGIN/COMMIT round trips and no pooled connection held open.
-    const outcome =
-      event.capacity == null
-        ? {
-            full: false as const,
-            id: (await db.registration.create({ data })).id,
-          }
+    const outcome: Outcome =
+      event.capacity == null && !teamConfig
+        ? { ok: true, id: (await db.registration.create({ data })).id }
         : await db.$transaction(
-            async (tx) => {
+            async (tx): Promise<Outcome> => {
               const locked = await tx.$queryRaw<{ capacity: number | null }[]>`
                 SELECT capacity FROM events WHERE id = ${eventId} FOR UPDATE
               `;
@@ -152,18 +162,43 @@ export async function POST(req: NextRequest, { params }: Params) {
                 const count = await tx.registration.count({
                   where: { eventId },
                 });
-                if (count >= cap) return { full: true as const };
+                if (count >= cap)
+                  return { ok: false, status: 409, error: "Event is full" };
+              }
+              // Team events: one registration per person. Email is unique
+              // already; this stops one student filling two team seats under
+              // two addresses.
+              if (teamConfig && data.usn) {
+                const dupe = await tx.registration.findFirst({
+                  where: {
+                    eventId,
+                    usn: { equals: data.usn, mode: "insensitive" },
+                  },
+                  select: { id: true },
+                });
+                if (dupe) {
+                  const error = "This USN is already registered for this event";
+                  return {
+                    ok: false,
+                    status: 409,
+                    error,
+                    fields: { usn: error },
+                  };
+                }
               }
               const created = await tx.registration.create({ data });
-              return { full: false as const, id: created.id };
+              return { ok: true, id: created.id };
             },
             // A popular capped event queues registrants on the row lock; give
             // the queue room before Prisma's 2s/5s defaults turn it into 500s.
             { maxWait: 5_000, timeout: 10_000 },
           );
 
-    if (outcome.full) {
-      return NextResponse.json({ error: "Event is full" }, { status: 409 });
+    if (!outcome.ok) {
+      return NextResponse.json(
+        { error: outcome.error, fields: outcome.fields },
+        { status: outcome.status },
+      );
     }
     // Cards show seat counts / FULL.
     invalidatePublic(PUBLIC_TAG.events);
@@ -174,7 +209,22 @@ export async function POST(req: NextRequest, { params }: Params) {
       actorName: result.value.name,
       summary: `${result.value.name} registered for "${event.title}"`,
     });
-    return NextResponse.json({ id: outcome.id }, { status: 201 });
+
+    const res = NextResponse.json({ id: outcome.id }, { status: 201 });
+    // Identifies this browser's registration: it's how the registrant comes
+    // back to their team (or to the team step) instead of a blank form, and
+    // what authorizes step 2. See lib/registration-cookie.ts.
+    res.cookies.set(regCookieName(eventId), outcome.id, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: usesSecureCookies(
+        req.nextUrl.protocol,
+        req.headers.get("x-forwarded-proto"),
+      ),
+      path: "/",
+      maxAge: REG_COOKIE_MAX_AGE_S,
+    });
+    return res;
   } catch (e) {
     if (
       e instanceof Prisma.PrismaClientKnownRequestError &&
@@ -204,10 +254,27 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!session)
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   const { id: eventId } = await params;
-  await db.registration.deleteMany({
-    where: { eventId, userId: session.user.id },
-  });
+  const where = { eventId, userId: session.user.id };
+  const teamIds = (
+    await db.registration.findMany({ where, select: { teamId: true } })
+  ).flatMap((r) => (r.teamId ? [r.teamId] : []));
+
+  if (teamIds.length === 0) {
+    await db.registration.deleteMany({ where });
+  } else {
+    // Leaving a team: drop the team too once nobody is left in it, under the
+    // same event lock as register so a join can't land in a team being deleted.
+    await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM events WHERE id = ${eventId} FOR UPDATE`;
+      await tx.registration.deleteMany({ where });
+      await tx.eventTeam.deleteMany({
+        where: { id: { in: teamIds }, members: { none: {} } },
+      });
+    });
+  }
   // Cards show seat counts.
   invalidatePublic(PUBLIC_TAG.events);
-  return NextResponse.json({ success: true });
+  const res = NextResponse.json({ success: true });
+  res.cookies.delete(regCookieName(eventId));
+  return res;
 }

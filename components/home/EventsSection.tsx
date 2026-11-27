@@ -40,11 +40,17 @@ export interface EventCardData {
   registeredCount: number;
   /** Organizer-set seat cap, or null for unlimited. */
   capacity: number | null;
+  /** Team events: teams formed so far, the slot cap (null = no cap) and the
+   *  allowed size, e.g. "4–6 members". Null for individual sign-up. */
+  teams: { count: number; max: number | null; sizeLabel: string } | null;
   /** Pre-formatted registration deadline, or null when none was set. */
   deadlineLabel: string | null;
   /** Capacity reached — distinct from a passed deadline, so copy can differ. */
   isFull: boolean;
   registrationClosed: boolean;
+  /** This visitor's registration (browser cookie or account): null when none,
+   *  "needs_team" when a team event's step 2 (create/join) is still to do. */
+  registration: "registered" | "needs_team" | null;
 }
 
 // First letter of the event type, shown as a big pixel glyph when a card has no
@@ -136,15 +142,25 @@ function EventCard({ data }: { data: EventCardData }) {
             {/* Seats — reserved as a fixed row so cards stay the same height
                 whether or not the organizer capped attendance. */}
             <p className="retro mt-auto truncate text-[8px] tracking-wider text-zinc-500">
-              {data.capacity != null
-                ? `${data.registeredCount} / ${data.capacity} SEATS`
-                : `${data.registeredCount} REGISTERED`}
+              {seatsLine(data)}
             </p>
           </div>
         </Card>
       </div>
     </>
   );
+}
+
+// The card's bottom row. Team events count teams (the scarce thing) rather than
+// people.
+function seatsLine(data: EventCardData): string {
+  if (data.teams)
+    return data.teams.max != null
+      ? `${data.teams.count} / ${data.teams.max} TEAMS`
+      : `${data.teams.count} TEAMS`;
+  return data.capacity != null
+    ? `${data.registeredCount} / ${data.capacity} SEATS`
+    : `${data.registeredCount} REGISTERED`;
 }
 
 function EmptyState() {
@@ -229,20 +245,51 @@ function EventDetail({ data, open }: { data: EventCardData; open: boolean }) {
       {/* Every remaining organizer-set field, as a labelled list. Rows are
           omitted individually when the organizer left the field blank. */}
       <dl className="flex flex-col gap-2">
-        <DetailRow
-          label="SEATS"
-          value={
-            data.capacity != null
-              ? `${data.registeredCount} / ${data.capacity} registered`
-              : `${data.registeredCount} registered · unlimited`
-          }
-        />
+        {data.teams ? (
+          <>
+            <DetailRow
+              label="TEAMS"
+              value={
+                data.teams.max != null
+                  ? `${data.teams.count} / ${data.teams.max} formed · ${data.registeredCount} registered`
+                  : `${data.teams.count} formed · ${data.registeredCount} registered`
+              }
+            />
+            <DetailRow label="TEAM SIZE" value={data.teams.sizeLabel} />
+          </>
+        ) : (
+          <DetailRow
+            label="SEATS"
+            value={
+              data.capacity != null
+                ? `${data.registeredCount} / ${data.capacity} registered`
+                : `${data.registeredCount} registered · unlimited`
+            }
+          />
+        )}
         {data.deadlineLabel && (
           <DetailRow label="REGISTER BY" value={data.deadlineLabel} />
         )}
       </dl>
 
-      {data.registrationClosed ? (
+      {data.registration ? (
+        // Already in: link to their registration (and team, or the team step
+        // if they haven't picked one) instead of a second REGISTER that would
+        // only be refused as a duplicate.
+        <Button
+          asChild
+          className="w-fit text-[9px] !bg-brand hover:!bg-brand-light !text-black"
+        >
+          <Link href={`/events/${data.id}/register`}>
+            {data.registration === "needs_team"
+              ? "REGISTERED · PICK YOUR TEAM"
+              : data.teams
+                ? "YOU'RE REGISTERED · VIEW TEAM"
+                : "YOU'RE REGISTERED · VIEW"}{" "}
+            <PixelArrow />
+          </Link>
+        </Button>
+      ) : data.registrationClosed ? (
         <span className="retro w-fit border-2 border-white/20 px-4 py-3 text-[9px] text-white/50">
           {data.isFull ? "EVENT FULL" : "REGISTRATION CLOSED"}
         </span>
