@@ -1,18 +1,9 @@
 // The email a candidate gets when an admin accepts or rejects their
 // recruitment application. Pure, so it is unit-tested; sending is lib/mail.ts.
 
+import { escapeHtml, SITE_URL } from "./mail";
+
 type Decision = "approved" | "rejected";
-
-const SITE_URL = "https://www.devnation.club";
-
-function escapeHtml(s: string): string {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
 
 const BODY: Record<Decision, { subject: string; lines: string[] }> = {
   approved: {

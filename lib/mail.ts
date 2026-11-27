@@ -5,6 +5,19 @@
 
 const RESEND_URL = "https://api.resend.com/emails";
 
+/** Public site linked from every email. */
+export const SITE_URL = "https://www.devnation.club";
+
+/** For user-supplied text placed into an email's HTML part. */
+export function escapeHtml(s: string): string {
+  return s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 export async function sendMail(mail: {
   to: string;
   subject: string;

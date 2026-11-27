@@ -37,7 +37,11 @@ const eventsCached = unstable_cache(
         audience: true,
         capacity: true,
         registrationDeadline: true,
+        teamConfig: true,
         _count: { select: { registrations: true } },
+        // Team events only (no rows otherwise): the card shows "N / 12 TEAMS"
+        // and is FULL only when no slot or seat is left.
+        teams: { select: { _count: { select: { members: true } } } },
       },
     });
     return rows.map((e) => ({
@@ -46,7 +50,7 @@ const eventsCached = unstable_cache(
       registrationDeadline: e.registrationDeadline?.toISOString() ?? null,
     }));
   },
-  ["public-events-v1"],
+  ["public-events-v2"],
   { tags: [PUBLIC_TAG.events], revalidate: TTL_S },
 );
 

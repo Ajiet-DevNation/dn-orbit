@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { AboutSection } from "@/components/home/AboutSection";
 import {
   type Announcement,
@@ -29,6 +30,7 @@ import {
   formatEventTime,
 } from "@/lib/event-format";
 import { orderForDisplay, registrationClosesAt } from "@/lib/event-order";
+import { eventTypeLabel } from "@/lib/forms";
 import { LEADERBOARD_VISIBLE_USER_FILTER } from "@/lib/leaderboard";
 import { toTitleCase } from "@/lib/names";
 import type { ProjectData } from "@/lib/projects";
@@ -39,8 +41,10 @@ import {
   publicRecruitmentOpen,
   publicSyncedAt,
 } from "@/lib/public-data";
+import { parseRegCookie, regCookieName } from "@/lib/registration-cookie";
 import { canAccessAdmin } from "@/lib/roles";
 import { languagesFromRecord } from "@/lib/stats-utils";
+import { parseTeamConfig, teamEventFull, teamSizeLabel } from "@/lib/teams";
 
 export const metadata = {
   // Absolute title so the home page reads cleanly (no "%s — ORBIT" template).
@@ -118,6 +122,33 @@ export default async function V2Page() {
   ]);
   const events = orderForDisplay(eventRows);
 
+  // Events this visitor already registered for — by this browser's cookie
+  // (anonymous AJIET registrants) or their account — so the detail panel says
+  // so instead of offering REGISTER again. One query, only when there's
+  // something to look up.
+  const cookieStore = await cookies();
+  const myRegIds = events.flatMap((e) => {
+    const v = parseRegCookie(cookieStore.get(regCookieName(e.id))?.value);
+    return v ? [v] : [];
+  });
+  // eventId → whether that registration is in a team yet.
+  const myRegistrations = new Map(
+    myRegIds.length > 0 || userId
+      ? (
+          await db.registration.findMany({
+            where: {
+              eventId: { in: events.map((e) => e.id) },
+              OR: [
+                ...(myRegIds.length > 0 ? [{ id: { in: myRegIds } }] : []),
+                ...(userId ? [{ userId }] : []),
+              ],
+            },
+            select: { eventId: true, teamId: true },
+          })
+        ).map((r) => [r.eventId, r.teamId != null] as const)
+      : [],
+  );
+
   // A GitHub account row with a token means we can pull the member's stats. The
   // token itself never leaves the server — only this boolean reaches the client.
   const hasGithubToken = !!ghAccount;
@@ -130,7 +161,7 @@ export default async function V2Page() {
 
   const announcements: Announcement[] = events.slice(0, 6).map((e) => ({
     id: e.id,
-    tag: (e.eventType ?? "EVENT").toUpperCase(),
+    tag: eventTypeLabel(e.eventType ?? "EVENT").toUpperCase(),
     title: e.title,
     body: e.description,
     meta: [formatEventDateShort(e.eventDate), e.location]
@@ -139,10 +170,15 @@ export default async function V2Page() {
   }));
 
   const eventCards: EventCardData[] = events.map((e) => {
-    const full = e.capacity != null && e._count.registrations >= e.capacity;
+    const teamConfig = parseTeamConfig(e.teamConfig);
+    const teamSizes = e.teams.map((t) => t._count.members);
+    const full =
+      (e.capacity != null && e._count.registrations >= e.capacity) ||
+      (teamConfig != null && teamEventFull(teamConfig, teamSizes));
     return {
       id: e.id,
-      type: (e.eventType ?? "EVENT").toUpperCase(),
+      // Stored types use underscores ("CAPTURE_THE_FLAG"); cards show words.
+      type: eventTypeLabel(e.eventType ?? "EVENT").toUpperCase(),
       title: e.title,
       description: e.description,
       dateLabel: formatEventDateLong(e.eventDate),
@@ -152,6 +188,13 @@ export default async function V2Page() {
       audience: e.audience as EventCardData["audience"],
       registeredCount: e._count.registrations,
       capacity: e.capacity,
+      teams: teamConfig
+        ? {
+            count: teamSizes.length,
+            max: teamConfig.maxTeams,
+            sizeLabel: teamSizeLabel(teamConfig),
+          }
+        : null,
       // Only surface an explicitly-set deadline. Falling back to the event date
       // (as the closed-check does) would show every event a "register by" line
       // the organizer never wrote.
@@ -160,6 +203,12 @@ export default async function V2Page() {
         : null,
       isFull: full,
       registrationClosed: full || new Date() > registrationClosesAt(e),
+      // Team events: registered without a team yet means step 2 is pending.
+      registration: !myRegistrations.has(e.id)
+        ? null
+        : teamConfig && !myRegistrations.get(e.id)
+          ? "needs_team"
+          : "registered",
     };
   });
 

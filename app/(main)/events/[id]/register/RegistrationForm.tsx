@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Input } from "@/components/ui/8bit-input";
@@ -15,8 +15,23 @@ import {
   usnRequiredFor,
   validateSubmission,
 } from "@/lib/forms";
+import { smoothScrollTo } from "@/lib/smooth-scroll";
+import {
+  TEAM_ERROR_KEYS,
+  type TeamChoice,
+  validateTeamChoice,
+} from "@/lib/teams";
 import { FieldCard } from "./FieldCard";
 import { PixelFormField } from "./PixelFormField";
+import {
+  AlreadyRegistered,
+  type ExistingRegistration,
+  type TeamAction,
+  TeamDone,
+  type TeamInfo,
+  type TeamResult,
+  TeamStep,
+} from "./TeamStep";
 
 export function RegistrationForm({
   eventId,
@@ -25,6 +40,8 @@ export function RegistrationForm({
   isMember,
   closed,
   schema,
+  existing,
+  team,
   dateLabel,
   timeLabel,
   location,
@@ -39,6 +56,11 @@ export function RegistrationForm({
   isMember: boolean;
   closed: boolean;
   schema: FormFieldDef[];
+  /** This browser's (or account's) registration, if any. On a team event
+   *  without a team yet, the page opens on the team step. */
+  existing: ExistingRegistration | null;
+  /** Team rules for a team event; null for individual sign-up. */
+  team: TeamInfo | null;
   dateLabel: string;
   timeLabel: string;
   location: string | null;
@@ -70,16 +92,50 @@ export function RegistrationForm({
     });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // Team events take two saves: step 1 registers the person, step 2 puts them
+  // in a team. Once step 1 is saved (now, or on an earlier visit) this holds
+  // who registered, and the page shows step 2.
+  const [registered, setRegistered] = useState<{
+    name: string;
+    matchValue: string | null;
+  } | null>(
+    existing && !existing.team
+      ? { name: existing.name, matchValue: existing.matchValue }
+      : null,
+  );
+  const step: "details" | "team" = team && registered ? "team" : "details";
+  const [teamAction, setTeamAction] = useState<TeamAction | null>(null);
+  const [teamName, setTeamName] = useState("");
+  const [teamCode, setTeamCode] = useState("");
+  const [teamResult, setTeamResult] = useState<TeamResult | null>(null);
+  // After step 1 saves, bring the step 2 heading into view and focus it so
+  // screen readers announce it.
+  const stepHeading = useRef<HTMLParagraphElement>(null);
+  const focusStepHeading = () =>
+    requestAnimationFrame(() => {
+      const el = stepHeading.current;
+      if (!el) return;
+      smoothScrollTo(el);
+      el.focus({ preventScroll: true });
+    });
   // Hidden (unmet-condition) fields are dropped by validateSubmission on both
   // client and server, so a stale answer is never submitted or stored — no
   // pruning needed here, and toggling back keeps a previously typed answer.
 
-  if (closed) {
+  if (done && teamResult && team) {
     return (
       <Shell title={title} meta={meta}>
-        <Card className="w-full items-start gap-4 border-white/10 p-8">
-          <p className="retro text-sm text-white/70">REGISTRATION IS CLOSED.</p>
-        </Card>
+        <TeamDone result={teamResult} team={team} />
+      </Shell>
+    );
+  }
+
+  // Already registered (and, on a team event, already in a team): show that
+  // instead of the form.
+  if (existing && !done && (!team || existing.team)) {
+    return (
+      <Shell title={title} meta={meta}>
+        <AlreadyRegistered registration={existing} team={team} />
       </Shell>
     );
   }
@@ -98,8 +154,42 @@ export function RegistrationForm({
     );
   }
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  if (closed) {
+    return (
+      <Shell title={title} meta={meta}>
+        <Card className="w-full items-start gap-4 border-white/10 p-8">
+          <p className="retro text-sm text-white/70">REGISTRATION IS CLOSED.</p>
+          {registered && (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              You registered as {registered.name} but aren&apos;t in a team.
+              Contact the organizers.
+            </p>
+          )}
+        </Card>
+      </Shell>
+    );
+  }
+
+  /** Shows the server's field errors, or its message when it sent none. */
+  const showServerError = (
+    status: number,
+    data: { error?: string; fields?: Record<string, string> },
+    fallback: string,
+  ) => {
+    if (data.fields && Object.keys(data.fields).length > 0) {
+      setErrors(data.fields);
+      toast.error(
+        status === 422
+          ? "Please fix the highlighted fields"
+          : (data.error ?? fallback),
+      );
+    } else {
+      toast.error(data.error ?? fallback);
+    }
+  };
+
+  // Step 1 (or the only step): save the registrant.
+  const submitDetails = async () => {
     const local = validateSubmission({
       audience,
       isMember,
@@ -120,21 +210,66 @@ export function RegistrationForm({
         body: JSON.stringify({ name, email, usn, responses }),
       });
       if (res.status === 201) {
-        setDone(true);
+        if (team) {
+          const v = team.matchFieldId ? responses[team.matchFieldId] : null;
+          setRegistered({ name, matchValue: v == null ? null : String(v) });
+          focusStepHeading();
+        } else {
+          setDone(true);
+        }
         return;
       }
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 422 && data.fields) {
-        setErrors(data.fields);
-        toast.error("Please fix the highlighted fields");
-      } else {
-        toast.error(data.error ?? "Registration failed");
-      }
+      showServerError(
+        res.status,
+        await res.json().catch(() => ({})),
+        "Registration failed",
+      );
     } catch {
       toast.error("Network error · try again");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Step 2: create a team or join one.
+  const submitTeam = async () => {
+    const choice: TeamChoice | null =
+      teamAction === "create"
+        ? { action: "create", name: teamName }
+        : teamAction === "join"
+          ? { action: "join", code: teamCode }
+          : null;
+    const checked = validateTeamChoice(choice);
+    if (!checked.ok) {
+      setErrors(checked.errors);
+      toast.error("Please fix the highlighted fields");
+      return;
+    }
+    setErrors({});
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/events/${eventId}/team`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(checked.value),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.team) {
+        setTeamResult(data.team);
+        setDone(true);
+        return;
+      }
+      showServerError(res.status, data, "Couldn't save your team");
+    } catch {
+      toast.error("Network error · try again");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void (step === "team" ? submitTeam() : submitDetails());
   };
 
   const emailLocked = isMember && !!prefill;
@@ -146,77 +281,126 @@ export function RegistrationForm({
   return (
     <Shell title={title} meta={meta}>
       <form onSubmit={submit} noValidate className="flex w-full flex-col gap-5">
-        <FieldCard htmlFor="reg-name" label="NAME" required error={errors.name}>
-          <Input
-            id="reg-name"
-            value={name}
-            autoComplete="name"
-            placeholder="Your full name"
-            aria-invalid={!!errors.name}
-            onChange={(e) => {
-              setName(e.target.value);
-              clearError("name");
-            }}
-          />
-        </FieldCard>
-
-        <FieldCard
-          htmlFor="reg-email"
-          label="EMAIL"
-          required
-          error={errors.email}
-          description={emailLocked ? "Linked to your account." : undefined}
-        >
-          <Input
-            id="reg-email"
-            type="email"
-            value={email}
-            disabled={emailLocked}
-            autoComplete="email"
-            placeholder="you@example.com"
-            aria-invalid={!!errors.email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              clearError("email");
-            }}
-          />
-        </FieldCard>
-
-        {showUsn && (
-          <FieldCard
-            htmlFor="reg-usn"
-            label="USN / COLLEGE ID"
-            required
-            error={errors.usn}
-            description={usnLocked ? "Linked to your account." : undefined}
-          >
-            <Input
-              id="reg-usn"
-              value={usn}
-              disabled={usnLocked}
-              placeholder="e.g. 4JK24CS069"
-              aria-invalid={!!errors.usn}
-              onChange={(e) => {
-                setUsn(e.target.value);
-                clearError("usn");
-              }}
-            />
-          </FieldCard>
+        {team && (
+          <div className="flex flex-col gap-2">
+            <p
+              ref={stepHeading}
+              tabIndex={-1}
+              className="retro scroll-mt-28 text-[9px] tracking-widest text-brand-light outline-none"
+            >
+              {step === "details"
+                ? "STEP 1 OF 2 · YOUR DETAILS"
+                : "STEP 2 OF 2 · YOUR TEAM"}
+            </p>
+            {registered && (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Registered as {registered.name}. Your details are saved; now
+                create a team or join one.
+              </p>
+            )}
+          </div>
         )}
+        {step === "team" && team ? (
+          <TeamStep
+            team={team}
+            matchValue={registered?.matchValue ?? null}
+            action={teamAction}
+            onAction={(a) => {
+              setTeamAction(a);
+              clearError(TEAM_ERROR_KEYS.choice);
+            }}
+            teamName={teamName}
+            onTeamName={(v) => {
+              setTeamName(v);
+              clearError(TEAM_ERROR_KEYS.name);
+            }}
+            teamCode={teamCode}
+            onTeamCode={(v) => {
+              setTeamCode(v);
+              clearError(TEAM_ERROR_KEYS.code);
+            }}
+            errors={errors}
+          />
+        ) : (
+          <>
+            <FieldCard
+              htmlFor="reg-name"
+              label="NAME"
+              required
+              error={errors.name}
+            >
+              <Input
+                id="reg-name"
+                value={name}
+                autoComplete="name"
+                placeholder="Your full name"
+                aria-invalid={!!errors.name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  clearError("name");
+                }}
+              />
+            </FieldCard>
 
-        {schema.map((f) =>
-          isFieldVisible(f, responses) ? (
-            <PixelFormField
-              key={f.id}
-              field={f}
-              value={responses[f.id]}
-              error={errors[f.id]}
-              onChange={(v) => {
-                setResponses((p) => ({ ...p, [f.id]: v }));
-                clearError(f.id);
-              }}
-            />
-          ) : null,
+            <FieldCard
+              htmlFor="reg-email"
+              label="EMAIL"
+              required
+              error={errors.email}
+              description={emailLocked ? "Linked to your account." : undefined}
+            >
+              <Input
+                id="reg-email"
+                type="email"
+                value={email}
+                disabled={emailLocked}
+                autoComplete="email"
+                placeholder="you@example.com"
+                aria-invalid={!!errors.email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  clearError("email");
+                }}
+              />
+            </FieldCard>
+
+            {showUsn && (
+              <FieldCard
+                htmlFor="reg-usn"
+                label="USN / COLLEGE ID"
+                required
+                error={errors.usn}
+                description={usnLocked ? "Linked to your account." : undefined}
+              >
+                <Input
+                  id="reg-usn"
+                  value={usn}
+                  disabled={usnLocked}
+                  placeholder="e.g. 4JK24CS069"
+                  aria-invalid={!!errors.usn}
+                  onChange={(e) => {
+                    setUsn(e.target.value);
+                    clearError("usn");
+                  }}
+                />
+              </FieldCard>
+            )}
+
+            {schema.map((f) =>
+              isFieldVisible(f, responses) ? (
+                <PixelFormField
+                  key={f.id}
+                  field={f}
+                  value={responses[f.id]}
+                  error={errors[f.id]}
+                  onChange={(v) => {
+                    setResponses((p) => ({ ...p, [f.id]: v }));
+                    clearError(f.id);
+                  }}
+                />
+              ) : null,
+            )}
+          </>
         )}
 
         <div className="mt-1 flex flex-col gap-3">
@@ -228,7 +412,18 @@ export function RegistrationForm({
             disabled={submitting}
             className="w-full text-[11px] !bg-brand hover:!bg-brand-light !text-black sm:w-fit sm:px-10"
           >
-            {submitting ? "SUBMITTING…" : "SUBMIT REGISTRATION"}
+            {submitting
+              ? "SAVING…"
+              : !team
+                ? "SUBMIT REGISTRATION"
+                : step === "details"
+                  ? "SAVE & PICK YOUR TEAM"
+                  : teamAction === "join"
+                    ? "JOIN TEAM"
+                    : teamAction === "create"
+                      ? "CREATE TEAM"
+                      : "CONFIRM TEAM"}
+            {team && step === "details" && !submitting && <PixelArrow />}
           </Button>
         </div>
       </form>

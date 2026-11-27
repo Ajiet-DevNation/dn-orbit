@@ -3,6 +3,7 @@ import { canManageEventRoster } from "@/lib/access";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { parseFormSchema } from "@/lib/forms";
+import { formatTeamCode, parseTeamConfig, teamStatus } from "@/lib/teams";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -30,27 +31,53 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const event = await db.event.findUnique({
     where: { id },
-    include: { registrations: { orderBy: { registeredAt: "asc" } } },
+    include: {
+      registrations: {
+        orderBy: { registeredAt: "asc" },
+        include: {
+          team: {
+            select: {
+              name: true,
+              code: true,
+              _count: { select: { members: true } },
+            },
+          },
+        },
+      },
+    },
   });
   if (!event) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const fields = parseFormSchema(event.formSchema);
+  const teamConfig = parseTeamConfig(event.teamConfig);
   const header = [
     "Registered At",
     "Name",
     "Email",
     "USN",
     "Attended",
+    ...(teamConfig ? ["Team", "Team Code", "Team Members", "Team Status"] : []),
     ...fields.map((f) => f.label),
   ];
   const rows = event.registrations.map((r) => {
     const responses = (r.responses ?? {}) as Record<string, unknown>;
+    const team = r.team;
     return [
       r.registeredAt.toISOString(),
       r.name,
       r.email,
       r.usn ?? "",
       r.attended ? "yes" : "no",
+      ...(teamConfig
+        ? team
+          ? [
+              team.name,
+              formatTeamCode(team.code),
+              team._count.members,
+              teamStatus(team._count.members, teamConfig),
+            ]
+          : ["", "", "", "no team"]
+        : []),
       ...fields.map((f) => responses[f.id]),
     ]
       .map(csvCell)

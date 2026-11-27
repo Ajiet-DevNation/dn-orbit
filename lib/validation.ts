@@ -289,6 +289,13 @@ export const registrationBodySchema = z.object({
   responses: z.record(z.string(), z.unknown()).optional(),
 });
 
+/** Step 2 of a team event: create a team or join one. lib/teams.ts validates
+ *  the contents; these loose caps only bound the payload. */
+export const teamChoiceBodySchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("create"), name: z.string().max(200) }),
+  z.object({ action: z.literal("join"), code: z.string().max(64) }),
+]);
+
 export const attendanceSchema = z.object({
   registrationId: z.string().min(1).max(100),
   attended: z.boolean(),

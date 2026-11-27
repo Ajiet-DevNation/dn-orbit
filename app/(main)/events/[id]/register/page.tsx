@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -9,6 +10,18 @@ import {
 } from "@/lib/event-format";
 import { registrationClosesAt } from "@/lib/event-order";
 import { type EventAudience, parseFormSchema } from "@/lib/forms";
+import {
+  myRegistrationWhere,
+  parseRegCookie,
+  regCookieName,
+} from "@/lib/registration-cookie";
+import {
+  formatTeamCode,
+  matchValueFor,
+  parseTeamConfig,
+  teamEventFull,
+  teamSizeLabel,
+} from "@/lib/teams";
 import { RegistrationForm } from "./RegistrationForm";
 
 export async function generateMetadata({
@@ -34,9 +47,17 @@ export default async function RegisterPage({
   const { id } = await params;
   const event = await db.event.findUnique({
     where: { id },
-    include: { _count: { select: { registrations: true } } },
+    include: {
+      _count: { select: { registrations: true } },
+      // Team events only; no rows otherwise. Sizes decide FULL.
+      teams: { select: { _count: { select: { members: true } } } },
+    },
   });
   if (event?.reviewStatus !== "approved" || !event.isPublished) notFound();
+
+  const schema = parseFormSchema(event.formSchema);
+  const teamConfig = parseTeamConfig(event.teamConfig);
+  const teamSizes = event.teams.map((t) => t._count.members);
 
   const audience = event.audience as EventAudience;
   const session = await auth();
@@ -54,8 +75,33 @@ export default async function RegisterPage({
     session.user.status === "approved" &&
     (audience === "members" || audience === "members_college");
 
+  // This browser's registration (cookie set by the register route) or the
+  // signed-in account's. Read live so team size and status are current.
+  const where = myRegistrationWhere(
+    id,
+    parseRegCookie((await cookies()).get(regCookieName(id))?.value),
+    session?.user.id,
+  );
+  const mine = where
+    ? await db.registration.findFirst({
+        where,
+        select: {
+          name: true,
+          responses: true,
+          team: {
+            select: {
+              name: true,
+              code: true,
+              _count: { select: { members: true } },
+            },
+          },
+        },
+      })
+    : null;
+
   const closed =
     (event.capacity != null && event._count.registrations >= event.capacity) ||
+    (teamConfig != null && teamEventFull(teamConfig, teamSizes)) ||
     new Date() > registrationClosesAt(event);
 
   return (
@@ -65,15 +111,56 @@ export default async function RegisterPage({
       audience={audience}
       isMember={isMember}
       closed={closed}
-      schema={parseFormSchema(event.formSchema)}
+      schema={schema}
+      existing={
+        mine
+          ? {
+              name: mine.name,
+              matchValue: teamConfig
+                ? matchValueFor(
+                    teamConfig,
+                    (mine.responses ?? {}) as Record<string, unknown>,
+                  )
+                : null,
+              team: mine.team
+                ? {
+                    name: mine.team.name,
+                    code: formatTeamCode(mine.team.code),
+                    size: mine.team._count.members,
+                  }
+                : null,
+            }
+          : null
+      }
+      team={
+        teamConfig
+          ? {
+              sizeLabel: teamSizeLabel(teamConfig),
+              minSize: teamConfig.minSize,
+              maxSize: teamConfig.maxSize,
+              matchFieldId: teamConfig.matchFieldId,
+              matchLabel:
+                schema.find((f) => f.id === teamConfig.matchFieldId)?.label ??
+                null,
+              teamCount: teamSizes.length,
+              maxTeams: teamConfig.maxTeams,
+              // Creating is closed once every slot is taken; joining may not be.
+              canCreate:
+                teamConfig.maxTeams == null ||
+                teamSizes.length < teamConfig.maxTeams,
+            }
+          : null
+      }
       dateLabel={formatEventDateLong(event.eventDate)}
       timeLabel={formatEventTime(event.eventDate)}
       location={event.location}
       description={event.description}
       capacityLabel={
-        event.capacity != null
-          ? `${event._count.registrations} / ${event.capacity} REGISTERED`
-          : `${event._count.registrations} REGISTERED`
+        teamConfig?.maxTeams != null
+          ? `${teamSizes.length} / ${teamConfig.maxTeams} TEAMS · ${event._count.registrations} REGISTERED`
+          : event.capacity != null
+            ? `${event._count.registrations} / ${event.capacity} REGISTERED`
+            : `${event._count.registrations} REGISTERED`
       }
       deadlineLabel={
         event.registrationDeadline

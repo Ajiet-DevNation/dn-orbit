@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatEventDateLong } from "@/lib/event-format";
-import { parseFormSchema } from "@/lib/forms";
+import { eventTypeLabel, parseFormSchema } from "@/lib/forms";
 import { canAccessAdmin } from "@/lib/roles";
 import { type MyEvent, MyEventsList } from "./MyEventsList";
 
@@ -17,6 +17,9 @@ export const metadata = {
 // whenever a roster is truncated.
 const MAX_EVENTS = 100;
 const MAX_ROSTER_ROWS = 300;
+// Pseudo field id for the team column; can't collide with stored field ids
+// (UUIDs from the form builder).
+const TEAM_COLUMN = "__team";
 
 // A member's own events + registration rosters. Access is intrinsically scoped:
 // the query only ever returns events this signed-in user created, so registrant
@@ -47,6 +50,7 @@ export default async function MyEventsPage() {
             // could only ever show name/email/USN, so the answers an organizer
             // built the form to collect were invisible to them.
             responses: true,
+            team: { select: { name: true } },
           },
         },
       },
@@ -68,7 +72,7 @@ export default async function MyEventsPage() {
   const myEvents: MyEvent[] = events.map((e) => ({
     id: e.id,
     title: e.title,
-    type: (e.eventType ?? "EVENT").toUpperCase(),
+    type: eventTypeLabel(e.eventType ?? "EVENT").toUpperCase(),
     dateLabel: formatEventDateLong(e.eventDate),
     location: e.location,
     reviewStatus: e.reviewStatus,
@@ -78,10 +82,15 @@ export default async function MyEventsPage() {
     // Column headers come from the stored schema rather than the union of keys
     // present in `responses`, so questions nobody answered still get a column
     // (and the order matches the form the organizer built).
-    formFields: parseFormSchema(e.formSchema).map((f) => ({
-      id: f.id,
-      label: f.label,
-    })),
+    formFields: [
+      // Team events get a TEAM column ahead of the custom questions, carried
+      // as one more answer so both roster layouts render it unchanged.
+      ...(e.teamConfig != null ? [{ id: TEAM_COLUMN, label: "Team" }] : []),
+      ...parseFormSchema(e.formSchema).map((f) => ({
+        id: f.id,
+        label: f.label,
+      })),
+    ],
     roster: e.registrations.map((r) => ({
       id: r.id,
       name: r.name,
@@ -89,7 +98,10 @@ export default async function MyEventsPage() {
       usn: r.usn,
       attended: r.attended,
       registeredAt: r.registeredAt.toISOString(),
-      responses: (r.responses ?? {}) as Record<string, unknown>,
+      responses: {
+        ...((r.responses ?? {}) as Record<string, unknown>),
+        ...(r.team ? { [TEAM_COLUMN]: r.team.name } : {}),
+      },
     })),
   }));
 
