@@ -71,6 +71,17 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
+  // Short share links. `?event=<id>` opens that event's detail on the home
+  // page (EventsSection). Temporary (307) so a link can be repointed later.
+  async redirects() {
+    return [
+      {
+        source: "/ctf",
+        destination: "/?event=2d5787a0-fc46-4dba-95c1-02d611b665d8#events",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
