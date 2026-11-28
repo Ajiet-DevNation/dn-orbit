@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import { Command, CommandInput } from "@/components/ui/8bit-command";
@@ -416,6 +416,28 @@ export function EventsSection({ events }: { events: EventCardData[] }) {
     const el = cardRefs.current[id];
     if (el) open(id, el);
   }
+
+  // Shared links (/?event=<id>, e.g. /ctf) open that event's detail. Step 1
+  // turns to the card's page; step 2 runs once that page has rendered the card.
+  const [linked, setLinked] = useState<string | null>(null);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("event");
+    const i = events.findIndex((e) => e.id === id);
+    if (i < 0) return;
+    setPage(Math.floor(i / PAGE_SIZE) + 1);
+    setLinked(events[i].id);
+  }, [events]);
+  useEffect(() => {
+    const el = linked ? cardRefs.current[linked] : null;
+    if (!linked || !el) return;
+    setLinked(null);
+    // Drop the param so a refresh or a later data refresh doesn't reopen it.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("event");
+    window.history.replaceState(window.history.state, "", url);
+    el.scrollIntoView({ block: "center" });
+    open(linked, el);
+  }, [linked, open]);
 
   function handleSearch(value: string) {
     setQuery(value);
