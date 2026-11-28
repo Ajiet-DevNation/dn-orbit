@@ -2,7 +2,14 @@
 // team creator's copy is how they get the invite code back if they lose the
 // success screen. Pure, so it is unit-tested; sending is lib/mail.ts.
 
-import { escapeHtml, SITE_URL } from "./mail";
+import {
+  escapeHtml,
+  MAIL_COLORS,
+  mailButton,
+  mailLabel,
+  mailShell,
+  SITE_URL,
+} from "./mail";
 
 export interface TeamMailInput {
   name: string;
@@ -28,24 +35,8 @@ export interface TeamMailInput {
   matchValue: string | null;
 }
 
-// Inline styles only: mail clients strip <style> blocks and classes. Tables,
-// not flex or grid: Outlook and older Gmail apps ignore those.
-const FONT =
-  "ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono','Courier New',monospace";
-const C = {
-  page: "#0a0a0f",
-  card: "#111118",
-  line: "#2a2a35",
-  brand: "#8b5cf6",
-  brandLight: "#a78bfa",
-  white: "#ffffff",
-  text: "#d4d4d8",
-  muted: "#8a8a96",
-  warn: "#facc15",
-};
-
-const label = (s: string) =>
-  `<p style="margin:0 0 8px;font-size:11px;letter-spacing:3px;color:${C.muted};font-weight:bold">${s}</p>`;
+const C = MAIL_COLORS;
+const label = mailLabel;
 
 export function teamRegistrationMail(i: TeamMailInput): {
   subject: string;
@@ -108,14 +99,10 @@ export function teamRegistrationMail(i: TeamMailInput): {
     )
     .join("");
 
-  const html = `<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>${e(subject)}</title></head>
-<body style="margin:0;padding:0;background:${C.page}">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0">Team invite code: ${e(i.code)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page}"><tr><td align="center" style="padding:32px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${C.card};border:2px solid ${C.brand};font-family:${FONT};color:${C.text}">
-<tr><td style="background:${C.brand};padding:14px 28px;font-size:13px;font-weight:bold;letter-spacing:4px;color:#000000">DEVNATION <span style="letter-spacing:2px;font-weight:normal">// ORBIT</span></td></tr>
-<tr><td style="padding:32px 28px 8px">
+  const html = mailShell({
+    title: subject,
+    preheader: `Team invite code: ${i.code}`,
+    rows: `<tr><td style="padding:32px 28px 8px">
 ${label(i.role === "created" ? "TEAM CREATED" : "TEAM JOINED")}
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.35;color:${C.white};font-weight:bold">Hi ${e(i.name)}, you&#39;re registered.</h1>
 <p style="margin:0;font-size:14px;line-height:1.7">${e(lead)}</p>
@@ -145,13 +132,9 @@ ${steps.map((s, n) => `<p style="margin:0 0 6px;font-size:13px;line-height:1.6">
 <p style="margin:10px 0 0;font-size:12px;color:${C.muted}">${e(rule)}</p>
 </td></tr>`
 }
-<tr><td align="center" style="padding:28px 28px 32px">
-<a href="${e(i.eventUrl)}" style="display:inline-block;background:${C.brand};color:#000000;font-family:${FONT};font-size:13px;font-weight:bold;letter-spacing:2px;text-decoration:none;padding:14px 28px;border:2px solid ${C.brandLight}">OPEN EVENT PAGE</a>
-</td></tr>
-<tr><td style="padding:18px 28px;border-top:1px solid ${C.line};font-size:12px;line-height:1.6;color:${C.muted}">— Team DevNation · <a href="${SITE_URL}" style="color:${C.brandLight};text-decoration:none">devnation.club</a><br>You got this because you registered for ${e(i.eventTitle)}.</td></tr>
-</table>
-</td></tr></table>
-</body></html>`;
+${mailButton(i.eventUrl, "OPEN EVENT PAGE")}`,
+    footerNote: `You got this because you registered for ${i.eventTitle}.`,
+  });
 
   return { subject, text, html };
 }

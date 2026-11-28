@@ -1,7 +1,14 @@
 // The email a candidate gets when an admin accepts or rejects their
 // recruitment application. Pure, so it is unit-tested; sending is lib/mail.ts.
 
-import { escapeHtml, SITE_URL } from "./mail";
+import {
+  MAIL_COLORS as C,
+  escapeHtml,
+  mailButton,
+  mailLabel,
+  mailShell,
+  SITE_URL,
+} from "./mail";
 
 type Decision = "approved" | "rejected";
 
@@ -32,12 +39,29 @@ export function decisionMail(
   const text = [`Hi ${name},`, ...lines, "— Team DevNation", SITE_URL].join(
     "\n\n",
   );
-  // Inline styles only: mail clients strip <style> blocks and classes.
-  const html = `<div style="font-family:monospace;max-width:520px;margin:0 auto;padding:24px;background:#050505;color:#e4e4e7;border:2px solid #8b5cf6">
-<p style="margin:0 0 16px;color:#a78bfa;font-weight:bold;letter-spacing:2px">DEVNATION</p>
-<p>Hi ${escapeHtml(name)},</p>
-${lines.map((l) => `<p style="line-height:1.6">${escapeHtml(l)}</p>`).join("\n")}
-<p>— Team DevNation<br><a href="${SITE_URL}" style="color:#a78bfa">devnation.club</a></p>
-</div>`;
+  const e = escapeHtml;
+  const accepted = decision === "approved";
+  const [first, ...rest] = lines;
+  const html = mailShell({
+    title: subject,
+    preheader: first,
+    rows: `<tr><td style="padding:32px 28px 8px">
+${mailLabel(accepted ? "APPLICATION ACCEPTED" : "APPLICATION UPDATE")}
+<h1 style="margin:0 0 16px;font-size:22px;line-height:1.35;color:${C.white};font-weight:bold">${accepted ? `Hi ${e(name)}, welcome aboard.` : `Hi ${e(name)}, about your application.`}</h1>
+<p style="margin:0;font-size:14px;line-height:1.7">${e(first)}</p>
+</td></tr>
+<tr><td style="padding:24px 28px 8px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.page};border:2px ${accepted ? "dashed" : "solid"} ${accepted ? C.brand : C.line}"><tr><td style="padding:20px 22px">
+${mailLabel(accepted ? "WHAT HAPPENS NEXT" : "OUR DECISION")}
+${rest.map((l) => `<p style="margin:0 0 8px;font-size:14px;line-height:1.7;color:${C.white}">${e(l)}</p>`).join("\n")}
+</td></tr></table>
+</td></tr>
+${
+  accepted
+    ? mailButton(SITE_URL, "VISIT DEVNATION")
+    : mailButton(`${SITE_URL}/#events`, "SEE OPEN EVENTS")
+}`,
+    footerNote: "You got this because you applied to join DevNation.",
+  });
   return { subject, text, html };
 }
