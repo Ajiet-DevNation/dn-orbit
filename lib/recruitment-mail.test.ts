@@ -24,3 +24,17 @@ describe("decisionMail", () => {
     expect(m.text).toContain("<script>");
   });
 });
+
+describe("decisionMail layout", () => {
+  test("uses the shared club frame and links the right page", () => {
+    const ok = decisionMail("Asha", "approved");
+    expect(ok.html).toContain("DEVNATION");
+    expect(ok.html).toContain("APPLICATION ACCEPTED");
+    expect(ok.html).toContain("Hi Asha, welcome aboard.");
+    expect(ok.html).toContain("VISIT DEVNATION");
+    const no = decisionMail("Asha", "rejected");
+    expect(no.html).toContain("APPLICATION UPDATE");
+    expect(no.html).toContain('href="https://www.devnation.club/#events"');
+    expect(no.html).not.toContain("welcome aboard.");
+  });
+});

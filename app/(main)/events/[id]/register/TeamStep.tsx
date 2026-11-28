@@ -31,6 +31,8 @@ export interface TeamResult {
   code: string;
   size: number;
   role: "created" | "joined";
+  /** Member names, the registrant last. */
+  members: string[];
 }
 
 export type TeamAction = "create" | "join";
@@ -188,6 +190,12 @@ export function TeamDone({
           ? `"${result.name}" is set up. Share this invite code with your teammates: each of them registers here and picks JOIN A TEAM.`
           : `You're in "${result.name}" (${result.size} of ${team.maxSize} members). Bring in more teammates with the same code.`}
       </p>
+      <TeamMembers
+        members={result.members.map((name, i) => ({
+          name,
+          you: i === result.members.length - 1,
+        }))}
+      />
       <InviteCode code={result.code} />
       <p className="text-xs leading-relaxed text-muted-foreground">
         We&apos;ve emailed you this code too. Teams need {team.sizeLabel}
@@ -197,6 +205,40 @@ export function TeamDone({
         .
       </p>
     </Card>
+  );
+}
+
+/** Who is in the team. Names only: teammates never see emails or USNs. */
+function TeamMembers({
+  members,
+}: {
+  members: { name: string; you: boolean }[];
+}) {
+  return (
+    <div className="flex w-full max-w-xs flex-col items-center gap-2">
+      <span className="retro text-[9px] tracking-widest text-muted-foreground">
+        MEMBERS
+      </span>
+      <ol className="w-full divide-y divide-white/10 border-2 border-white/10 text-left">
+        {members.map((m, i) => (
+          <li
+            // biome-ignore lint/suspicious/noArrayIndexKey: two teammates can share a name; order is stable
+            key={i}
+            className="flex items-center gap-3 px-3 py-2 text-xs text-white"
+          >
+            <span className="retro text-[9px] text-brand-light">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <span className="min-w-0 flex-1 truncate">{m.name}</span>
+            {m.you && (
+              <span className="retro text-[8px] text-muted-foreground">
+                YOU
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -237,7 +279,13 @@ export interface ExistingRegistration {
   name: string;
   /** Their answer on the team match field (e.g. "CSE"), or null. */
   matchValue: string | null;
-  team: { name: string; code: string; size: number } | null;
+  team: {
+    name: string;
+    code: string;
+    size: number;
+    /** In sign-up order; `you` marks this registrant. */
+    members: { name: string; you: boolean }[];
+  } | null;
 }
 
 /** Shown instead of the form to someone who already registered, so coming
@@ -275,6 +323,7 @@ export function AlreadyRegistered({
               )}
             </span>
           </div>
+          <TeamMembers members={t.members} />
           <InviteCode code={t.code} />
           <p className="text-xs leading-relaxed text-muted-foreground">
             Teams need {team.sizeLabel}
