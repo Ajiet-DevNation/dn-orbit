@@ -48,7 +48,12 @@ export async function DELETE(_req: Request, { params }: Params) {
         },
       });
       if (!reg) return null;
-      await tx.registration.delete({ where: { id: registrationId } });
+      // deleteMany: a self-unregister of a non-team event doesn't take the
+      // lock, so the row may already be gone; that's a 404, not a 500.
+      const { count } = await tx.registration.deleteMany({
+        where: { id: registrationId, eventId },
+      });
+      if (count === 0) return null;
       const teamRemoved = reg.teamId
         ? (
             await tx.eventTeam.deleteMany({
