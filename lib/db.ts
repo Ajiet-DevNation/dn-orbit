@@ -1,6 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Prisma, PrismaClient } from "@prisma/client";
-import { Pool } from "pg";
+import type { Pool } from "pg";
+import { RetryConnectPool } from "./retry-pool";
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -24,7 +25,7 @@ const globalForPrisma = globalThis as unknown as PrismaGlobal;
  *     none" in pg — it disables idle closing, so clients sat open until Neon
  *     cut them server-side ("Connection terminated unexpectedly" pool errors,
  *     and a race where a dead client could be handed to the next query).
- *   - connectionTimeoutMillis:30000: give Neon up to 30s to wake from cold start
+ *   - connectionTimeoutMillis:10s, and one retry on timeout (lib/retry-pool.ts)
  */
 function createPrismaClient(): PrismaClient {
   if (!connectionString) {
@@ -42,7 +43,7 @@ function createPrismaClient(): PrismaClient {
 
   const pool =
     globalForPrisma.pgPool ??
-    new Pool({
+    new RetryConnectPool({
       connectionString: safeConnectionString,
       // pg's default of 10 is tight for one signed-in landing render (~9
       // parallel queries). The URL is Neon's PgBouncer pooler, which accepts

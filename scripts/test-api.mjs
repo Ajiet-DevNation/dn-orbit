@@ -133,6 +133,13 @@ function makeUnauthTests() {
       expected: [405],
     },
     {
+      // Session is checked before the event lookup.
+      name: "registration delete unauth",
+      method: "DELETE",
+      path: `/api/events/${missingId}/registrations/${missingId}`,
+      expected: [401],
+    },
+    {
       name: "admin weights unauth",
       method: "GET",
       path: "/api/admin/config/weights",
