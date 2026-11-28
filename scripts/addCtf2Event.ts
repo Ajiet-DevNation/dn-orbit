@@ -3,7 +3,7 @@
 //
 // ── Why a script and not the admin panel ──────────────────────────────────────
 // CTF 2.0 is a team event (lib/teams.ts): 12 team slots, 4–6 members per team,
-// every member from the same branch. The admin form has no team settings, so
+// from any branch. The admin form has no team settings, so
 // the event's `teamConfig` can only be written here. Keeping the whole event in
 // version control also lets it be reviewed before it reaches production.
 //
@@ -62,7 +62,6 @@ const FORM_SCHEMA: FormFieldDef[] = [
     type: "dropdown",
     label: "Branch",
     required: true,
-    description: "Every member of a team must be from the same branch.",
     options: [...BRANCHES],
   },
   {
@@ -92,7 +91,7 @@ Rounds:
 • Round 3 · Purpose: the finalists pitch a purpose for Pluton live on stage to a panel of judges
 
 Teams:
-• 4 to 6 members, all from the same branch
+• 4 to 6 members, from any branch
 • 12 team slots, first come, first served
 • Register yourself, then create a team and share its invite code, or join your teammate's team with theirs`;
 
@@ -115,7 +114,9 @@ const TEAM_CONFIG = teamConfigSchema.parse({
   minSize: 4,
   maxSize: 6,
   maxTeams: 12,
-  matchFieldId: FIELD.branch,
+  // Teams may mix branches: the same-branch rule was dropped on 2026-11-28
+  // after teammates from different branches couldn't join each other.
+  matchFieldId: null,
 });
 
 /** Host only, so the operator can see which database is about to change. */

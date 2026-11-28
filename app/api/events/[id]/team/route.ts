@@ -170,7 +170,9 @@ async function assignTeam(
       name: team.name,
       code: team.code,
       size: team._count.members + 1,
-      matchValue: team.matchValue,
+      // A team made while a rule was on keeps its value; don't quote a rule
+      // that no longer applies in the joiner's email.
+      matchValue: config.matchFieldId ? team.matchValue : null,
       role: "joined",
     },
   };
