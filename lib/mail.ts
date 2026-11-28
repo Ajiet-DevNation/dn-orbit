@@ -1,12 +1,16 @@
-// Transactional email through Resend's REST API — one fetch, no SDK.
+// Transactional email through Gmail SMTP, sent as the club's Gmail account
+// with a Google App Password.
 //
-// Never throws: a mail is a side effect of an admin action that has already
-// been saved, so a failure is reported (false) rather than undoing the action.
+// Never throws: a mail is a side effect of an action that has already been
+// saved, so a failure is reported (false) rather than undoing the action.
 
-const RESEND_URL = "https://api.resend.com/emails";
+import { createTransport, type Transporter } from "nodemailer";
 
 /** Public site linked from every email. */
 export const SITE_URL = "https://www.devnation.club";
+
+/** Sender name in the inbox. Gmail always sends from the account itself. */
+const FROM_NAME = "DevNation";
 
 /** For user-supplied text placed into an email's HTML part. */
 export function escapeHtml(s: string): string {
@@ -18,35 +22,43 @@ export function escapeHtml(s: string): string {
     .replaceAll("'", "&#39;");
 }
 
+// built on first send, so a missing env var skips mail instead of crashing
+let transport: Transporter | undefined;
+
 export async function sendMail(mail: {
   to: string;
   subject: string;
   text: string;
   html: string;
 }): Promise<boolean> {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.MAIL_FROM;
-  if (!key || !from) {
-    console.error("Mail skipped: RESEND_API_KEY or MAIL_FROM is not set");
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) {
+    console.error("Mail skipped: GMAIL_USER or GMAIL_APP_PASSWORD is not set");
     return false;
   }
+  transport ??= createTransport({
+    service: "Gmail",
+    auth: { user, pass },
+    // Same 10s budget the old mail API call had, per step.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 10_000,
+  });
   try {
-    const res = await fetch(RESEND_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ from, ...mail }),
-      signal: AbortSignal.timeout(10_000),
+    await transport.sendMail({
+      from: { name: FROM_NAME, address: user },
+      ...mail,
     });
-    if (!res.ok) {
-      console.error("Mail failed:", res.status, await res.text());
-      return false;
-    }
     return true;
   } catch (err) {
-    console.error("Mail failed:", err);
+    // Code and server reply only: never the whole error object.
+    const e = err as {
+      code?: unknown;
+      responseCode?: unknown;
+      message?: unknown;
+    };
+    console.error("Mail failed:", e.code, e.responseCode, e.message);
     return false;
   }
 }
