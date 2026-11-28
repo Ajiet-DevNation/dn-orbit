@@ -86,13 +86,17 @@ export default async function RegisterPage({
     ? await db.registration.findFirst({
         where,
         select: {
+          id: true,
           name: true,
           responses: true,
           team: {
             select: {
               name: true,
               code: true,
-              _count: { select: { members: true } },
+              members: {
+                orderBy: { registeredAt: "asc" },
+                select: { id: true, name: true },
+              },
             },
           },
         },
@@ -126,7 +130,11 @@ export default async function RegisterPage({
                 ? {
                     name: mine.team.name,
                     code: formatTeamCode(mine.team.code),
-                    size: mine.team._count.members,
+                    size: mine.team.members.length,
+                    members: mine.team.members.map((m) => ({
+                      name: m.name,
+                      you: m.id === mine.id,
+                    })),
                   }
                 : null,
             }

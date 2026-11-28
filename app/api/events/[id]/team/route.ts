@@ -12,7 +12,7 @@ import { db } from "@/lib/db";
 import { formatEventDateLong, formatEventTime } from "@/lib/event-format";
 import { registrationClosesAt } from "@/lib/event-order";
 import { parseFormSchema } from "@/lib/forms";
-import { sendMail } from "@/lib/mail";
+import { SITE_URL, sendMail } from "@/lib/mail";
 import { invalidatePublic, PUBLIC_TAG } from "@/lib/public-tags";
 import { rateLimit, rateLimitKey, tooManyRequests } from "@/lib/rate-limit";
 import {
@@ -43,6 +43,8 @@ type TeamResult = {
   size: number;
   matchValue: string | null;
   role: "created" | "joined";
+  /** Member names, this registrant last. */
+  members: string[];
 };
 
 type Outcome =
@@ -80,9 +82,12 @@ async function assignTeam(
   // in two teams.
   const reg = await tx.registration.findUnique({
     where: { id: registrationId },
-    select: { teamId: true },
+    select: { teamId: true, name: true },
   });
-  if (reg?.teamId) return reject(409, "You're already in a team");
+  // An admin can delete a registration (it takes this same lock).
+  if (!reg)
+    return reject(409, "Your registration was removed. Register again.");
+  if (reg.teamId) return reject(409, "You're already in a team");
 
   if (choice.action === "create") {
     if (config.maxTeams != null) {
@@ -127,7 +132,14 @@ async function assignTeam(
     });
     return {
       ok: true,
-      team: { name: team.name, code, size: 1, matchValue, role: "created" },
+      team: {
+        name: team.name,
+        code,
+        size: 1,
+        matchValue,
+        role: "created",
+        members: [reg.name],
+      },
     };
   }
 
@@ -139,6 +151,7 @@ async function assignTeam(
       code: true,
       matchValue: true,
       _count: { select: { members: true } },
+      members: { orderBy: { registeredAt: "asc" }, select: { name: true } },
     },
   });
   if (!team)
@@ -174,6 +187,7 @@ async function assignTeam(
       // that no longer applies in the joiner's email.
       matchValue: config.matchFieldId ? team.matchValue : null,
       role: "joined",
+      members: [...team.members.map((m) => m.name), reg.name],
     },
   };
 }
@@ -286,17 +300,16 @@ export async function POST(req: NextRequest, { params }: Params) {
   const mail = teamRegistrationMail({
     name: registration.name,
     eventTitle: event.title,
-    when: [
-      formatEventDateLong(event.eventDate),
-      formatEventTime(event.eventDate),
-      event.location,
-    ]
-      .filter(Boolean)
-      .join(" · "),
+    date: formatEventDateLong(event.eventDate),
+    time: formatEventTime(event.eventDate),
+    location: event.location,
+    eventUrl: `${SITE_URL}/events/${eventId}/register`,
     role: team.role,
     teamName: team.name,
     code: formatTeamCode(team.code),
-    size: team.size,
+    members: team.members,
+    minSize: config.minSize,
+    maxSize: config.maxSize,
     sizeLabel: teamSizeLabel(config),
     matchValue: team.matchValue,
   });
@@ -310,6 +323,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       code: formatTeamCode(team.code),
       size: team.size,
       role: team.role,
+      members: team.members,
     },
   });
 }
