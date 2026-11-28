@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   type PixelColumn,
   PixelDataTable,
 } from "@/components/admin/PixelDataTable";
 import { toast } from "@/components/ui/8bit-toast";
+import { useConfirm } from "@/components/ui/PixelConfirm";
 import { PixelArrow } from "@/components/ui/PixelIcons";
 import type { TeamStatus } from "@/lib/teams";
 import { errorMessage } from "@/lib/utils";
@@ -72,6 +74,8 @@ export default function EventRosterClient({
   // included) on every tap at the door.
   const [registrations, setRegistrations] = useState(initial);
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
+  const router = useRouter();
+  const { confirm, dialog } = useConfirm();
 
   const setAttended = (id: string, attended: boolean) =>
     setRegistrations((rows) =>
@@ -105,6 +109,37 @@ export default function EventRosterClient({
     }
   };
 
+  // drop the row here, then refresh so team sizes and totals catch up
+  const remove = async (r: RosterEntry) => {
+    const ok = await confirm({
+      title: "DELETE REGISTRATION",
+      message: `Delete ${r.name}'s registration? ${r.team ? `They leave team "${r.team}", and the team is deleted if nobody is left in it. ` : ""}This can't be undone.`,
+      confirmLabel: "DELETE",
+    });
+    if (!ok) return;
+    setRowPending(r.id, true);
+    try {
+      const res = await fetch(`/api/events/${eventId}/registrations/${r.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error(await errorMessage(res));
+      const data = (await res.json()) as { teamRemoved?: boolean };
+      setRegistrations((rows) => rows.filter((x) => x.id !== r.id));
+      toast.success(
+        data.teamRemoved
+          ? `${r.name} deleted. Team "${r.team}" was empty, so it was deleted too.`
+          : `${r.name} deleted`,
+      );
+      router.refresh();
+    } catch (err) {
+      toast.error(
+        `Delete failed: ${err instanceof Error ? err.message : "unknown"}`,
+      );
+    } finally {
+      setRowPending(r.id, false);
+    }
+  };
+
   // Mirrors formatAnswer() on the organizer-facing roster so the same
   // registration renders identically in both places.
   const fmtValue = (v: unknown) => {
@@ -134,11 +169,16 @@ export default function EventRosterClient({
           {
             key: "team",
             header: "TEAM",
-            render: (r: RosterEntry) => (
-              <span className={r.team ? "text-white" : "text-[#facc15]"}>
-                {r.team ?? "NO TEAM"}
-              </span>
-            ),
+            // A badge, not plain text: "NO TEAM" in the name's place read as
+            // a team called that.
+            render: (r: RosterEntry) =>
+              r.team ? (
+                <span className="text-white">{r.team}</span>
+              ) : (
+                <span className="retro inline-block whitespace-nowrap border-2 border-dashed border-[#eab308]/60 px-2 py-1 text-[8px] text-[#facc15]">
+                  NOT IN A TEAM
+                </span>
+              ),
           },
         ]
       : []),
@@ -167,16 +207,27 @@ export default function EventRosterClient({
       header: "ACTIONS",
       align: "right",
       render: (r) => (
-        <button
-          type="button"
-          disabled={pending.has(r.id)}
-          onClick={() => toggle(r.id, r.attended)}
-          aria-label={`${r.name} attended`}
-          aria-pressed={r.attended}
-          className="retro border-2 border-white/15 px-3 py-1 text-[8px] text-white/70 transition-colors hover:border-brand hover:text-brand-light disabled:opacity-50"
-        >
-          {r.attended ? "REVOKE" : "MARK ATTENDED"}
-        </button>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            disabled={pending.has(r.id)}
+            onClick={() => toggle(r.id, r.attended)}
+            aria-label={`${r.name} attended`}
+            aria-pressed={r.attended}
+            className="retro border-2 border-white/15 px-3 py-1 text-[8px] text-white/70 transition-colors hover:border-brand hover:text-brand-light disabled:opacity-50"
+          >
+            {r.attended ? "REVOKE" : "MARK ATTENDED"}
+          </button>
+          <button
+            type="button"
+            disabled={pending.has(r.id)}
+            onClick={() => remove(r)}
+            aria-label={`Delete ${r.name}'s registration`}
+            className="retro border-2 border-red-500/40 px-3 py-1 text-[8px] text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+          >
+            DELETE
+          </button>
+        </div>
       ),
     },
   ];
@@ -284,6 +335,7 @@ export default function EventRosterClient({
         columns={columns}
         empty="NO REGISTRATIONS YET"
       />
+      {dialog}
     </div>
   );
 }
